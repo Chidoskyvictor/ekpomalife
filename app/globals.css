@@ -1,0 +1,72 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --color-gold: var(--gold);
+  --color-laterite: var(--laterite);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  color-scheme: light;
+  --background: oklch(0.985 0.006 120);
+  --foreground: oklch(0.22 0.03 160);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.22 0.03 160);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.22 0.03 160);
+  --primary: oklch(0.64 0.16 155);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.96 0.012 140);
+  --secondary-foreground: oklch(0.25 0.03 160);
+  --muted: oklch(0.96 0.01 140);
+  --muted-foreground: oklch(0.5 0.02 160);
+  --accent: oklch(0.95 0.03 150);
+  --accent-foreground: oklch(0.3 0.06 155);
+  --destructive: oklch(0.6 0.22 27);
+  --border: oklch(0.92 0.01 140);
+  --input: oklch(0.9 0.01 140);
+  --ring: oklch(0.64 0.16 155);
+  --gold: oklch(0.85 0.16 90);
+  --laterite: oklch(0.62 0.15 45);
+  --radius: 0.875rem;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html,
+  body {
+    @apply h-full overflow-hidden bg-background text-foreground;
+    overscroll-behavior: none;
+  }
+}
