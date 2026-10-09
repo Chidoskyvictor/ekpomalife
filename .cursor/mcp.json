@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "saver": {
+      "command": "npx",
+      "args": ["-y", "@prom.codes/saver@latest"],
+      "env": {
+        "PROMETHEUS_WORKSPACE_ROOT": "c:\\Users\\USER\\ekpomalife"
+      }
+    }
+  }
+}
