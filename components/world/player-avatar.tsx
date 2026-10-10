@@ -3,17 +3,29 @@
 import { useFrame } from '@react-three/fiber'
 import { useRef } from 'react'
 import { Vector3, type Group } from 'three'
+import { CharacterFigure } from '@/components/look/character-figure'
 import { getLocation } from '@/lib/game/content'
+import { isMapLocation } from '@/lib/game/world-layout'
+import { DEFAULT_APPEARANCE, normalizeAppearance, type Appearance } from '@/lib/game/look'
 
 export function avatarSpot(locationId: string): [number, number, number] {
-  const location = getLocation(locationId)
+  const location = getLocation(isMapLocation(locationId) ? locationId : 'aau_campus')
   if (!location) return [0, 0, 0]
   return [location.position[0] + location.size[0] / 2 + 0.6, 0, location.position[1] + location.size[2] / 2 + 0.9]
 }
 
-export function PlayerAvatar({ locationId, color }: { locationId: string; color: string }) {
+export function PlayerAvatar({
+  locationId,
+  color,
+  appearance,
+}: {
+  locationId: string
+  color: string
+  appearance?: Appearance
+}) {
   const ref = useRef<Group>(null)
   const target = useRef(new Vector3())
+  const look = normalizeAppearance(appearance ?? { ...DEFAULT_APPEARANCE, fabric: 'plain-navy' })
 
   useFrame((state, delta) => {
     const group = ref.current
@@ -30,19 +42,12 @@ export function PlayerAvatar({ locationId, color }: { locationId: string; color:
   })
 
   return (
-    <group ref={ref} position={avatarSpot(locationId)}>
+    <group ref={ref} position={avatarSpot(locationId)} scale={0.55}>
       <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <circleGeometry args={[0.7, 24]} />
-        <meshBasicMaterial color="#f2c94c" transparent opacity={0.55} />
+        <meshBasicMaterial color={color} transparent opacity={0.35} />
       </mesh>
-      <mesh position={[0, 0.65, 0]} castShadow>
-        <capsuleGeometry args={[0.32, 0.6, 4, 12]} />
-        <meshStandardMaterial color={color} />
-      </mesh>
-      <mesh position={[0, 1.45, 0]} castShadow>
-        <sphereGeometry args={[0.3, 16, 12]} />
-        <meshStandardMaterial color="#7a4a2e" />
-      </mesh>
+      <CharacterFigure appearance={look} />
     </group>
   )
 }

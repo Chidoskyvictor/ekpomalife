@@ -71,9 +71,10 @@ export async function createAccount(input: SignupInput): Promise<Result> {
     return { ok: false, error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters.` }
   }
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { ok: false, error: 'Enter a valid email or leave it empty.' }
-  const age = ageOn(input.dateOfBirth)
-  if (age < 0) return { ok: false, error: 'Enter your date of birth.' }
-  if (age < MIN_AGE) return { ok: false, error: `You must be ${MIN_AGE} or older to play.` }
+  if (input.dateOfBirth) {
+    const age = ageOn(input.dateOfBirth)
+    if (age < MIN_AGE) return { ok: false, error: `You must be ${MIN_AGE} or older to play.` }
+  }
   if (!input.isAdult) return { ok: false, error: 'Confirm you are 18 or older and accept the Terms and Conditions.' }
 
   const accounts = readAccounts()

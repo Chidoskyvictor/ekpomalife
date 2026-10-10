@@ -17,7 +17,7 @@ export function WelcomeCard() {
           <span className="relative size-2 rounded-full bg-[#1fb978]" />
         </span>
         <span className="truncate">
-          <span className="tabular-nums">{online.toLocaleString()}</span> Esanites playing right now · free
+          <span className="tabular-nums">{online.toLocaleString()}</span> students on campus right now
         </span>
       </p>
       <AuthLinks size="lg" signupFirst />

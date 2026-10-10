@@ -113,7 +113,7 @@ export function LocationSheet() {
       <section className="liquid-glass pointer-events-auto mx-auto w-full max-w-md rounded-3xl p-4 sm:p-5">
         <SheetHeader location={location} onClose={close} subtitle={TYPE_META[location.type].label} />
         <p className="mt-3 text-sm text-muted-foreground">
-          {`Log in or sign up to hang out at ${location.name}. ${location.description}`}
+          {`Sign up or log in to come to ${location.name}. ${location.description}`}
         </p>
         <AuthLinks className="mt-4 justify-end" />
       </section>

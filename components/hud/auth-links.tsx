@@ -12,7 +12,7 @@ export function AuthLinks({ className, size = 'default', signupFirst = false }: 
         buttonVariants({ variant: signupFirst ? 'outline' : 'ghost' }),
         'rounded-full font-semibold',
         sizing,
-        signupFirst ? 'border-white/70 bg-white/60 hover:bg-white' : 'px-3 text-foreground/80 hover:text-primary',
+        signupFirst ? 'border-neutral-200 bg-white hover:bg-neutral-50' : 'px-3 text-foreground/80 hover:text-foreground',
       )}
     >
       Log in

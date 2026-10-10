@@ -1,8 +1,9 @@
 'use client'
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { clearSession, getAccount, getSession, saveKey } from '@/lib/game/accounts'
+import { clearSession, getSession, saveKey } from '@/lib/game/accounts'
 import { AVATAR_COLORS } from '@/lib/game/content'
+import { fabricSwatch, type Appearance } from '@/lib/game/look'
 import { createInitialState, performAction, resolveEvent, travel } from '@/lib/game/rules'
 import type { ActionId, EventChoice, GameEvent, GameState, TravelMode } from '@/lib/game/types'
 
@@ -25,8 +26,9 @@ const GameContext = createContext<GameContextValue | null>(null)
 
 const randomAvatarColor = () => AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)]!
 
-export function startNewLife(name: string, username: string) {
-  const state = createInitialState(name, username, randomAvatarColor())
+export function startNewLife(name: string, username: string, appearance?: Appearance) {
+  const color = appearance ? fabricSwatch(appearance.fabric).a : randomAvatarColor()
+  const state = createInitialState(name, username, color, appearance)
   window.localStorage.setItem(saveKey(username), JSON.stringify(state))
   return state
 }
@@ -37,8 +39,7 @@ function loadState(): GameState | null {
     if (!username) return null
     const raw = window.localStorage.getItem(saveKey(username))
     if (raw) return JSON.parse(raw) as GameState
-    const account = getAccount(username)
-    return account ? startNewLife(account.name, account.username) : null
+    return null
   } catch {
     return null
   }
@@ -105,7 +106,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       chooseEvent,
       resetGame: () => {
         if (!state) return
-        setState(startNewLife(state.characterName, state.username))
+        setState(startNewLife(state.characterName, state.username, state.appearance))
         setSelectedId(null)
         setPendingEvent(null)
       },

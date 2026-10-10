@@ -15,7 +15,7 @@ export function StatsPanel({ state }: { state: GameState }) {
   return (
     <section
       aria-label="Your stats"
-      className="pointer-events-auto grid grid-cols-4 gap-2 rounded-2xl bg-white/95 p-2.5 shadow-lg ring-1 ring-black/5 backdrop-blur sm:w-52 sm:grid-cols-1 sm:gap-2.5 sm:p-3"
+      className="liquid-glass pointer-events-auto grid w-40 grid-cols-1 gap-2 rounded-2xl p-2.5"
     >
       {STATS.map(({ key, label, icon: Icon, bar }) => {
         const value = state[key]

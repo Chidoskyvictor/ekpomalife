@@ -1,4 +1,5 @@
 import { ACTIONS, EVENTS, getLocation, START_LOCATION_ID } from './content'
+import type { Appearance } from './look'
 import type {
   ActionId,
   EventChoice,
@@ -21,12 +22,13 @@ export const OBJECTIVES = [
 
 export type ActionResult = { state: GameState; ok: boolean; message: string; event?: GameEvent }
 
-export function createInitialState(name: string, username: string, avatarColor: string): GameState {
+export function createInitialState(name: string, username: string, avatarColor: string, appearance?: Appearance): GameState {
   return {
     playerId: crypto.randomUUID(),
     characterName: name,
     username,
     avatarColor,
+    ...(appearance ? { appearance } : {}),
     cash: STARTER_CASH,
     energy: 100,
     health: 100,

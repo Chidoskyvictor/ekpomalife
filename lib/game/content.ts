@@ -1,14 +1,14 @@
 import type { ActionDef, ActionId, GameEvent, LocationRecord, LocationType } from './types'
 
 export const TYPE_META: Record<LocationType, { label: string; color: string; roof: string }> = {
-  campus: { label: 'Campus', color: '#f4efe2', roof: '#2f8f5b' },
-  hostel: { label: 'Hostel', color: '#efe4cf', roof: '#c4683a' },
-  community: { label: 'Community', color: '#fff6d9', roof: '#e2b63a' },
-  food: { label: 'Food', color: '#fbe7d8', roof: '#d9622b' },
-  transport: { label: 'Transport', color: '#e6edf4', roof: '#e8c13a' },
-  shop: { label: 'Shop', color: '#efe8f6', roof: '#7a5cc2' },
-  leisure: { label: 'Leisure', color: '#e3f0f7', roof: '#3a7fc4' },
-  worship: { label: 'Worship', color: '#f7f3ea', roof: '#8a6a4a' },
+  campus: { label: 'Campus', color: '#F0EEE5', roof: '#D6C5A0' },
+  hostel: { label: 'Hostel', color: '#B9C0C4', roof: '#D6C5A0' },
+  community: { label: 'Community', color: '#F0EEE5', roof: '#C8B48A' },
+  food: { label: 'Food', color: '#F0EEE5', roof: '#C9843A' },
+  transport: { label: 'Transport', color: '#B9C0C4', roof: '#D6C5A0' },
+  shop: { label: 'Shop', color: '#F0EEE5', roof: '#7A63B0' },
+  leisure: { label: 'Leisure', color: '#B9C0C4', roof: '#8BC7D9' },
+  worship: { label: 'Worship', color: '#F0EEE5', roof: '#D6C5A0' },
 }
 
 export const ACTIONS: Record<ActionId, ActionDef> = {

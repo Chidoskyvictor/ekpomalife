@@ -32,7 +32,7 @@ export function LoginForm() {
   return (
     <form onSubmit={submit} noValidate>
       <FieldGroup className="gap-4">
-        <p className="text-center text-sm text-muted-foreground">Welcome back. Continue your Ekpoma story.</p>
+        <p className="text-center text-sm text-muted-foreground">Welcome back. Your campus is waiting.</p>
         <Field>
           <FieldLabel htmlFor="login-username">Username</FieldLabel>
           <Input
@@ -58,7 +58,7 @@ export function LoginForm() {
           />
         </Field>
         <FormError message={error} />
-        <Button type="submit" disabled={busy || !username || !password} className={submitClass}>
+        <Button type="submit" disabled={busy} className={submitClass}>
           {busy ? 'Logging in…' : 'Log in'}
         </Button>
       </FieldGroup>

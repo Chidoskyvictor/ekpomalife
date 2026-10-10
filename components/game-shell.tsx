@@ -59,14 +59,13 @@ function CurrentLocationPill() {
     <button
       type="button"
       onClick={() => select(state.locationId)}
-      className="pointer-events-auto mx-auto flex items-center gap-2 rounded-full bg-white/95 py-2 pr-4 pl-2 text-sm font-semibold shadow-xl ring-1 ring-black/5 backdrop-blur transition-transform hover:scale-[1.02] focus-visible:ring-4 focus-visible:ring-primary/30 focus-visible:outline-none"
+      className="liquid-glass pointer-events-auto mx-auto flex items-center gap-2 rounded-full py-2 pr-4 pl-2 text-sm font-semibold transition-transform hover:scale-[1.02] focus-visible:ring-4 focus-visible:ring-primary/30 focus-visible:outline-none"
     >
       <span className="flex size-8 items-center justify-center rounded-full bg-accent text-base" aria-hidden="true">
         {location?.emoji}
       </span>
       <MapPin className="size-4 text-laterite" aria-hidden="true" />
-      <span>{location?.name}</span>
-      <span className="text-muted-foreground">· What to do here?</span>
+      <span>You · {location?.name}</span>
     </button>
   )
 }
@@ -84,7 +83,7 @@ function Hud() {
       </div>
 
       {state ? (
-        <aside className="pointer-events-none absolute inset-x-3 top-[124px] z-30 sm:inset-x-auto sm:top-24 sm:left-4">
+        <aside className="pointer-events-none absolute top-24 left-3 z-30 sm:top-24 sm:left-4">
           <StatsPanel state={state} />
         </aside>
       ) : null}

@@ -17,10 +17,10 @@ const PERIOD_ICON: Record<TimePeriod, typeof Sun> = {
 export function Logo() {
   return (
     <div className="flex items-center gap-2">
-      <span className="flex size-8 items-center justify-center rounded-xl bg-primary text-sm font-extrabold text-primary-foreground shadow-sm">
+      <span className="flex size-8 items-center justify-center rounded-full bg-neutral-900 text-xs font-extrabold text-white">
         EL
       </span>
-      <span className="text-base font-extrabold tracking-tight">Ekpoma Life</span>
+      <span className="hidden text-base font-extrabold tracking-tight sm:inline">Ekpoma Life</span>
     </div>
   )
 }

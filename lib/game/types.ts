@@ -1,3 +1,5 @@
+import type { Appearance } from './look'
+
 export type TimePeriod = 'morning' | 'afternoon' | 'evening' | 'night'
 
 export type LocationType =
@@ -27,6 +29,7 @@ export type GameState = {
   characterName: string
   username: string
   avatarColor: string
+  appearance?: Appearance
   cash: number
   energy: number
   health: number
