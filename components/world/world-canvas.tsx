@@ -5,13 +5,14 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useRef } from 'react'
 import { Vector3 } from 'three'
 import { getLocation } from '@/lib/game/content'
+import { LAND_CENTER } from '@/lib/game/world-layout'
 import { useGame } from '@/hooks/use-game'
 import { PlayerAvatar } from './player-avatar'
 import { WorldGround } from './world-ground'
 import { WorldLandmarks } from './world-landmarks'
 import { WorldTown } from './world-town'
 
-const CAMERA_OFFSET = new Vector3(36, 44, 36)
+const CAMERA_OFFSET = new Vector3(38, 46, 38)
 
 type PanControls = { target: Vector3; update: () => void }
 
@@ -22,7 +23,7 @@ function CameraRig({ focusId }: { focusId: string | null }) {
   const goal = useRef<Vector3 | null>(null)
 
   useEffect(() => {
-    camera.zoom = Math.max(9, Math.min(16, width / 80))
+    camera.zoom = Math.max(7.5, Math.min(12, width / 100))
     camera.updateProjectionMatrix()
   }, [camera, width])
 
@@ -49,26 +50,31 @@ export function WorldCanvas() {
   const currentId = state?.locationId ?? null
 
   return (
-    <div className="absolute inset-0 bg-[#cfe5c4]" aria-label="Interactive map of Ekpoma" role="application">
+    <div className="absolute inset-0 bg-[#B2BEB5]" aria-label="Interactive map of Ekpoma" role="application">
       <Canvas
         shadows
         orthographic
         dpr={[1, 2]}
-        camera={{ position: CAMERA_OFFSET.toArray(), zoom: 12, near: -200, far: 400 }}
+        camera={{
+          position: [LAND_CENTER.x + CAMERA_OFFSET.x, CAMERA_OFFSET.y, LAND_CENTER.z + CAMERA_OFFSET.z],
+          zoom: 8.2,
+          near: -200,
+          far: 400,
+        }}
         onPointerMissed={() => select(null)}
       >
-        <color attach="background" args={['#cfe5c4']} />
-        <ambientLight intensity={1.1} />
-        <hemisphereLight args={['#fff8e6', '#7fae6c', 0.6]} />
+        <color attach="background" args={['#B2BEB5']} />
+        <ambientLight intensity={1} />
+        <hemisphereLight args={['#fff8e6', '#8a948c', 0.7]} />
         <directionalLight
           position={[30, 50, 20]}
           intensity={1.6}
           castShadow
           shadow-mapSize={[2048, 2048]}
-          shadow-camera-left={-60}
-          shadow-camera-right={60}
-          shadow-camera-top={60}
-          shadow-camera-bottom={-60}
+          shadow-camera-left={-70}
+          shadow-camera-right={70}
+          shadow-camera-top={70}
+          shadow-camera-bottom={-70}
           shadow-bias={-0.0005}
         />
         <WorldGround />
@@ -79,9 +85,10 @@ export function WorldCanvas() {
           makeDefault
           enableRotate={false}
           screenSpacePanning
-          minZoom={6}
+          minZoom={7.5}
           maxZoom={40}
           zoomSpeed={0.8}
+          target={[LAND_CENTER.x, 0, LAND_CENTER.z]}
         />
         <CameraRig focusId={selectedId} />
       </Canvas>

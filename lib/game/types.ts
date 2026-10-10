@@ -12,8 +12,6 @@ export type LocationType =
 
 export type StatKey = 'cash' | 'energy' | 'health' | 'reputation' | 'academic'
 
-export type Faculty = 'Arts' | 'Sciences' | 'Law' | 'Medicine' | 'Engineering' | 'Social Sciences'
-
 export type FeedTone = 'good' | 'bad' | 'neutral'
 
 export type FeedEntry = {
@@ -27,7 +25,7 @@ export type FeedEntry = {
 export type GameState = {
   playerId: string
   characterName: string
-  faculty: Faculty
+  username: string
   avatarColor: string
   cash: number
   energy: number

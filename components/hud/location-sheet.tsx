@@ -1,6 +1,7 @@
 'use client'
 
 import { Footprints, MessageCircle, X } from 'lucide-react'
+import { AuthLinks } from '@/components/hud/auth-links'
 import { useGame } from '@/hooks/use-game'
 import { ACTIONS, getLocation, TYPE_META } from '@/lib/game/content'
 import { travelQuote } from '@/lib/game/rules'
@@ -25,7 +26,7 @@ function SheetHeader({ location, onClose, subtitle }: { location: LocationRecord
         type="button"
         onClick={onClose}
         aria-label="Close"
-        className="flex size-8 items-center justify-center rounded-full bg-secondary text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-4 focus-visible:ring-primary/30 focus-visible:outline-none"
+        className="liquid-glass-chip flex size-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-4 focus-visible:ring-primary/30 focus-visible:outline-none"
       >
         <X className="size-4" aria-hidden="true" />
       </button>
@@ -53,7 +54,9 @@ function ActionButton({ actionId, state, onAct }: { actionId: ActionId; state: G
       onClick={() => onAct(actionId)}
       className={cn(
         'flex flex-col items-start gap-0.5 rounded-2xl border p-3 text-left transition-colors focus-visible:ring-4 focus-visible:ring-primary/30 focus-visible:outline-none',
-        disabled ? 'cursor-not-allowed border-border bg-muted/60 opacity-60' : 'border-border bg-white hover:border-primary hover:bg-accent',
+        disabled
+          ? 'cursor-not-allowed border-white/30 bg-white/20 opacity-60'
+          : 'liquid-glass-chip hover:border-primary/50 hover:bg-white/50',
       )}
     >
       <span className="text-sm font-semibold">{owned ? 'Phone owned' : action.label}</span>
@@ -79,7 +82,7 @@ function TravelOptions({ state, location }: { state: GameState; location: Locati
           type="button"
           disabled={!canWalk}
           onClick={() => travelTo(location.id, 'walk')}
-          className="flex items-center justify-center gap-2 rounded-full border border-border bg-white py-3 text-sm font-semibold transition-colors hover:border-primary disabled:cursor-not-allowed disabled:opacity-50 focus-visible:ring-4 focus-visible:ring-primary/30 focus-visible:outline-none"
+          className="liquid-glass-chip flex items-center justify-center gap-2 rounded-full py-3 text-sm font-semibold transition-colors hover:border-primary/50 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:ring-4 focus-visible:ring-primary/30 focus-visible:outline-none"
         >
           <Footprints className="size-4" aria-hidden="true" />
           Walk · -{quote.walkEnergy}⚡
@@ -98,7 +101,7 @@ function TravelOptions({ state, location }: { state: GameState; location: Locati
   )
 }
 
-export function LocationSheet({ onCreate }: { onCreate: () => void }) {
+export function LocationSheet() {
   const { state, selectedId, select, act } = useGame()
   const location = selectedId ? getLocation(selectedId) : undefined
   if (!location) return null
@@ -107,18 +110,12 @@ export function LocationSheet({ onCreate }: { onCreate: () => void }) {
 
   if (!state) {
     return (
-      <section className="pointer-events-auto mx-auto w-full max-w-md rounded-3xl bg-white p-4 shadow-2xl ring-1 ring-black/5 sm:p-5">
+      <section className="liquid-glass pointer-events-auto mx-auto w-full max-w-md rounded-3xl p-4 sm:p-5">
         <SheetHeader location={location} onClose={close} subtitle={TYPE_META[location.type].label} />
         <p className="mt-3 text-sm text-muted-foreground">
-          {`Create your character to hang out at ${location.name}. ${location.description}`}
+          {`Log in or sign up to hang out at ${location.name}. ${location.description}`}
         </p>
-        <button
-          type="button"
-          onClick={onCreate}
-          className="mt-4 w-full rounded-full bg-primary py-3 text-base font-semibold text-primary-foreground shadow-md transition-colors hover:bg-primary/90 focus-visible:ring-4 focus-visible:ring-primary/30 focus-visible:outline-none"
-        >
-          Create your character · free
-        </button>
+        <AuthLinks className="mt-4 justify-end" />
       </section>
     )
   }
@@ -128,7 +125,7 @@ export function LocationSheet({ onCreate }: { onCreate: () => void }) {
   return (
     <section
       aria-label={`${location.name} details`}
-      className="pointer-events-auto mx-auto max-h-[60dvh] w-full max-w-md overflow-y-auto rounded-3xl bg-white p-4 shadow-2xl ring-1 ring-black/5 sm:p-5"
+      className="liquid-glass pointer-events-auto mx-auto max-h-[60dvh] w-full max-w-md overflow-y-auto rounded-3xl p-4 sm:p-5"
     >
       <SheetHeader
         location={location}
@@ -138,7 +135,7 @@ export function LocationSheet({ onCreate }: { onCreate: () => void }) {
       {isHere ? (
         <>
           {location.npc ? (
-            <div className="mt-3 flex gap-2 rounded-2xl bg-secondary p-3">
+            <div className="liquid-glass-chip mt-3 flex gap-2 rounded-2xl p-3">
               <MessageCircle className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
               <p className="text-sm">
                 <span className="font-semibold">
@@ -158,7 +155,7 @@ export function LocationSheet({ onCreate }: { onCreate: () => void }) {
               ))}
             </div>
           ) : (
-            <p className="mt-3 rounded-2xl bg-accent p-3 text-sm text-accent-foreground">
+            <p className="liquid-glass-chip mt-3 rounded-2xl p-3 text-sm text-accent-foreground">
               Tap any place on the map and choose Keke to ride there fast.
             </p>
           )}

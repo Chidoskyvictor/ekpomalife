@@ -2,7 +2,6 @@
 
 import { CheckCircle2, MapPin, Target, XCircle } from 'lucide-react'
 import { useState } from 'react'
-import { CreateCharacterDialog } from '@/components/hud/create-character-dialog'
 import { EventDialog } from '@/components/hud/event-dialog'
 import { LocationSheet } from '@/components/hud/location-sheet'
 import { PhoneDialog } from '@/components/hud/phone-dialog'
@@ -24,7 +23,7 @@ function ObjectiveChip() {
     <button
       type="button"
       onClick={() => objective && select(objective.locationId)}
-      className="pointer-events-auto mx-auto flex max-w-full items-center gap-2 rounded-full bg-[#1f7a4c] px-4 py-2 text-xs font-semibold text-white shadow-lg transition-colors hover:bg-[#1a6a42] focus-visible:ring-4 focus-visible:ring-primary/30 focus-visible:outline-none sm:text-sm"
+      className="pointer-events-auto mx-auto flex max-w-full items-center gap-2 rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow-lg transition-colors hover:bg-primary/90 focus-visible:ring-4 focus-visible:ring-primary/30 focus-visible:outline-none sm:text-sm"
     >
       <Target className="size-4 shrink-0" aria-hidden="true" />
       <span className="truncate">{objective ? objective.label : 'Free roam — build your Ekpoma story'}</span>
@@ -74,14 +73,12 @@ function CurrentLocationPill() {
 
 function Hud() {
   const { state, selectedId } = useGame()
-  const [createOpen, setCreateOpen] = useState(false)
   const [phoneOpen, setPhoneOpen] = useState(false)
-  const openCreate = () => setCreateOpen(true)
 
   return (
     <>
       <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex flex-col gap-2 p-3 sm:p-4">
-        <TopBar onCreate={openCreate} onOpenPhone={() => setPhoneOpen(true)} />
+        <TopBar onOpenPhone={() => setPhoneOpen(true)} />
         <ObjectiveChip />
         <ToastBubble />
       </div>
@@ -94,15 +91,14 @@ function Hud() {
 
       <div className="pointer-events-none absolute inset-x-0 bottom-0 z-30 p-3 sm:p-4">
         {selectedId ? (
-          <LocationSheet onCreate={openCreate} />
+          <LocationSheet />
         ) : state ? (
           <CurrentLocationPill />
         ) : (
-          <WelcomeCard onCreate={openCreate} />
+          <WelcomeCard />
         )}
       </div>
 
-      <CreateCharacterDialog open={createOpen} onOpenChange={setCreateOpen} />
       <PhoneDialog open={phoneOpen} onOpenChange={setPhoneOpen} />
       <EventDialog />
     </>

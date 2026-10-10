@@ -2,7 +2,6 @@ import { ACTIONS, EVENTS, getLocation, START_LOCATION_ID } from './content'
 import type {
   ActionId,
   EventChoice,
-  Faculty,
   FeedTone,
   GameEvent,
   GameState,
@@ -16,17 +15,17 @@ export const PERIODS: TimePeriod[] = ['morning', 'afternoon', 'evening', 'night'
 
 export const OBJECTIVES = [
   { id: 'buy_phone', label: 'Buy your phone at Campus Shop', locationId: 'campus_shop' },
-  { id: 'first_errand', label: 'Run a campus errand at AAU Senate', locationId: 'aau_campus' },
+  { id: 'first_errand', label: 'Run a campus errand at the Admin Block', locationId: 'aau_campus' },
   { id: 'first_meal', label: 'Eat at Mama Amina Bukka', locationId: 'roadside_bukka' },
 ] as const
 
 export type ActionResult = { state: GameState; ok: boolean; message: string; event?: GameEvent }
 
-export function createInitialState(name: string, faculty: Faculty, avatarColor: string): GameState {
+export function createInitialState(name: string, username: string, avatarColor: string): GameState {
   return {
     playerId: crypto.randomUUID(),
     characterName: name,
-    faculty,
+    username,
     avatarColor,
     cash: STARTER_CASH,
     energy: 100,
@@ -41,7 +40,7 @@ export function createInitialState(name: string, faculty: Faculty, avatarColor: 
     feed: [
       {
         id: crypto.randomUUID(),
-        text: `Welcome to Ekpoma, ${name}. Fresh ${faculty} student, ₦${STARTER_CASH.toLocaleString()} in your pocket.`,
+        text: `Welcome to Ekpoma, ${name}. Fresh AAU student, ₦${STARTER_CASH.toLocaleString()} in your pocket.`,
         tone: 'neutral',
         day: 1,
         period: 'morning',

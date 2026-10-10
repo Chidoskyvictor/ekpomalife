@@ -1,10 +1,10 @@
 'use client'
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { clearSession, getAccount, getSession, saveKey } from '@/lib/game/accounts'
+import { AVATAR_COLORS } from '@/lib/game/content'
 import { createInitialState, performAction, resolveEvent, travel } from '@/lib/game/rules'
-import type { ActionId, EventChoice, Faculty, GameEvent, GameState, TravelMode } from '@/lib/game/types'
-
-const STORAGE_KEY = 'ekpoma-life-save-v2'
+import type { ActionId, EventChoice, GameEvent, GameState, TravelMode } from '@/lib/game/types'
 
 export type Toast = { id: number; text: string; ok: boolean }
 
@@ -14,19 +14,31 @@ type GameContextValue = {
   pendingEvent: GameEvent | null
   toast: Toast | null
   select: (id: string | null) => void
-  startCharacter: (name: string, faculty: Faculty, avatarColor: string) => void
   act: (actionId: ActionId) => void
   travelTo: (locationId: string, mode: TravelMode) => void
   chooseEvent: (choice: EventChoice) => void
   resetGame: () => void
+  logOut: () => void
 }
 
 const GameContext = createContext<GameContextValue | null>(null)
 
+const randomAvatarColor = () => AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)]!
+
+export function startNewLife(name: string, username: string) {
+  const state = createInitialState(name, username, randomAvatarColor())
+  window.localStorage.setItem(saveKey(username), JSON.stringify(state))
+  return state
+}
+
 function loadState(): GameState | null {
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY)
-    return raw ? (JSON.parse(raw) as GameState) : null
+    const username = getSession()
+    if (!username) return null
+    const raw = window.localStorage.getItem(saveKey(username))
+    if (raw) return JSON.parse(raw) as GameState
+    const account = getAccount(username)
+    return account ? startNewLife(account.name, account.username) : null
   } catch {
     return null
   }
@@ -39,7 +51,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [toast, setToast] = useState<Toast | null>(null)
 
   useEffect(() => {
-    if (state) window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+    if (state) window.localStorage.setItem(saveKey(state.username), JSON.stringify(state))
   }, [state])
 
   useEffect(() => {
@@ -88,15 +100,17 @@ export function GameProvider({ children }: { children: ReactNode }) {
       pendingEvent,
       toast,
       select: setSelectedId,
-      startCharacter: (name, faculty, avatarColor) => {
-        setState(createInitialState(name, faculty, avatarColor))
-        setSelectedId(null)
-      },
       act,
       travelTo,
       chooseEvent,
       resetGame: () => {
-        window.localStorage.removeItem(STORAGE_KEY)
+        if (!state) return
+        setState(startNewLife(state.characterName, state.username))
+        setSelectedId(null)
+        setPendingEvent(null)
+      },
+      logOut: () => {
+        clearSession()
         setState(null)
         setSelectedId(null)
         setPendingEvent(null)

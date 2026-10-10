@@ -1,7 +1,9 @@
 'use client'
 
-import { Coins, Moon, RotateCcw, Smartphone, Sun, Sunrise, Sunset } from 'lucide-react'
+import { Coins, LogOut, Moon, RotateCcw, Smartphone, Sun, Sunrise, Sunset } from 'lucide-react'
+import { AuthLinks } from '@/components/hud/auth-links'
 import { useGame } from '@/hooks/use-game'
+import { usePlayerStats } from '@/hooks/use-player-stats'
 import type { TimePeriod } from '@/lib/game/types'
 import { cn } from '@/lib/utils'
 
@@ -23,26 +25,23 @@ export function Logo() {
   )
 }
 
-export function TopBar({ onCreate, onOpenPhone }: { onCreate: () => void; onOpenPhone: () => void }) {
-  const { state, resetGame } = useGame()
+export function TopBar({ onOpenPhone }: { onOpenPhone: () => void }) {
+  const { state, resetGame, logOut } = useGame()
+  const { online, visits } = usePlayerStats()
 
   if (!state) {
     return (
-      <header className="pointer-events-auto mx-auto flex w-full max-w-3xl items-center justify-between gap-3 rounded-full bg-white/95 py-2 pr-2 pl-4 shadow-lg ring-1 ring-black/5 backdrop-blur">
-        <div className="flex items-center gap-3">
+      <header className="liquid-glass pointer-events-auto mx-auto flex w-full max-w-3xl items-center justify-between gap-3 rounded-full py-1.5 pr-1.5 pl-4">
+        <div className="flex min-w-0 items-center gap-3">
           <Logo />
-          <span className="hidden items-center gap-1.5 text-xs font-semibold text-primary sm:flex">
-            <span className="size-2 rounded-full bg-primary" aria-hidden="true" />
-            AAU · Edo State
+          <span className="hidden items-center gap-1.5 text-xs font-semibold text-foreground/70 tabular-nums sm:flex">
+            <span className="size-2 rounded-full bg-[#1fb978]" aria-hidden="true" />
+            {online.toLocaleString()} online
+            <span aria-hidden="true">·</span>
+            {visits.toLocaleString()} visits
           </span>
         </div>
-        <button
-          type="button"
-          onClick={onCreate}
-          className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 focus-visible:ring-4 focus-visible:ring-primary/30 focus-visible:outline-none"
-        >
-          Start playing
-        </button>
+        <AuthLinks />
       </header>
     )
   }
@@ -50,22 +49,22 @@ export function TopBar({ onCreate, onOpenPhone }: { onCreate: () => void; onOpen
   const PeriodIcon = PERIOD_ICON[state.period]
 
   return (
-    <header className="pointer-events-auto mx-auto flex w-full max-w-3xl items-center justify-between gap-2 rounded-full bg-white/95 py-1.5 pr-1.5 pl-3 shadow-lg ring-1 ring-black/5 backdrop-blur sm:pl-4">
+    <header className="liquid-glass pointer-events-auto mx-auto flex w-full max-w-3xl items-center justify-between gap-2 rounded-full py-1.5 pr-1.5 pl-3 sm:pl-4">
       <div className="flex min-w-0 items-center gap-3">
         <Logo />
-        <span className="hidden truncate text-xs text-muted-foreground md:inline">
-          {state.characterName} · {state.faculty}
+        <span className="hidden truncate text-xs font-medium text-foreground/70 md:inline">
+          {state.characterName} · @{state.username}
         </span>
       </div>
       <div className="flex items-center gap-1.5">
-        <span className="flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 text-xs font-semibold capitalize">
+        <span className="liquid-glass-chip flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold capitalize">
           <PeriodIcon className="size-3.5 text-laterite" aria-hidden="true" />
           <span>
             Day {state.day}
             <span className="hidden sm:inline"> · {state.period}</span>
           </span>
         </span>
-        <span className="flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 text-xs font-bold tabular-nums">
+        <span className="liquid-glass-chip flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold tabular-nums">
           <Coins className="size-3.5 text-[#c9951a]" aria-hidden="true" />
           <span className="sr-only">Cash:</span>₦{state.cash.toLocaleString()}
         </span>
@@ -75,7 +74,7 @@ export function TopBar({ onCreate, onOpenPhone }: { onCreate: () => void; onOpen
           aria-label={state.hasPhone ? 'Open phone' : 'Phone locked — buy one at Campus Shop'}
           className={cn(
             'relative flex size-9 items-center justify-center rounded-full transition-colors focus-visible:ring-4 focus-visible:ring-primary/30 focus-visible:outline-none',
-            state.hasPhone ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'bg-secondary text-muted-foreground',
+            state.hasPhone ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'liquid-glass-chip text-foreground/60',
           )}
         >
           <Smartphone className="size-4" aria-hidden="true" />
@@ -89,9 +88,17 @@ export function TopBar({ onCreate, onOpenPhone }: { onCreate: () => void; onOpen
             if (window.confirm('Start a new life? Your current progress will be lost.')) resetGame()
           }}
           aria-label="Start a new character"
-          className="hidden size-9 items-center justify-center rounded-full bg-secondary text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-4 focus-visible:ring-primary/30 focus-visible:outline-none sm:flex"
+          className="liquid-glass-chip hidden size-9 items-center justify-center rounded-full text-foreground/60 transition-colors hover:text-foreground focus-visible:ring-4 focus-visible:ring-primary/30 focus-visible:outline-none sm:flex"
         >
           <RotateCcw className="size-4" aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          onClick={logOut}
+          aria-label="Log out"
+          className="liquid-glass-chip flex size-9 items-center justify-center rounded-full text-foreground/60 transition-colors hover:text-foreground focus-visible:ring-4 focus-visible:ring-primary/30 focus-visible:outline-none"
+        >
+          <LogOut className="size-4" aria-hidden="true" />
         </button>
       </div>
     </header>
