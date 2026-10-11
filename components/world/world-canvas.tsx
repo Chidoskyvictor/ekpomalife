@@ -70,7 +70,7 @@ export function WorldCanvas() {
   const currentId = state?.locationId ?? null
 
   return (
-    <div className="absolute inset-0 bg-[#55A1C3]" aria-label="Interactive map of Ekpoma" role="application">
+    <div className="absolute inset-0 bg-[#e0bb8d]" aria-label="Interactive map of Ekpoma" role="application">
       <Canvas
         shadows
         dpr={[1, 1.75]}

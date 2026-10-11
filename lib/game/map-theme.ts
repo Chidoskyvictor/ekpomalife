@@ -1,7 +1,7 @@
 export const MAP = {
   land: '#9BB682',
   landLight: '#9BB682',
-  water: '#55A1C3',
+  water: '#e0bb8d',
   road: '#929A91',
   roadEdge: '#D2D1B7',
   roadMark: '#E8E5D8',
