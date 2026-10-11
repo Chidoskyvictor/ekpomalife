@@ -4,6 +4,7 @@ import { useMemo } from 'react'
 import { ExtrudeGeometry, Shape } from 'three'
 import { MAP } from '@/lib/game/map-theme'
 import { SLABS, type Slab } from '@/lib/game/world-layout'
+import { WorldRoads } from './world-roads'
 
 function slabGeometry(slab: Pick<Slab, 'w' | 'd' | 'h' | 'radius'>) {
   const { w, d, h, radius } = slab
@@ -57,6 +58,7 @@ export function WorldGround() {
       {SLABS.map((slab) => (
         <Island key={slab.name} slab={slab} />
       ))}
+      <WorldRoads />
     </group>
   )
 }

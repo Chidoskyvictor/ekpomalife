@@ -18,7 +18,7 @@ X is east–west. Z is north–south. Y is up. Positions in `content.ts` are `[x
 
 ## Camera
 
-Perspective, isometric-inspired. Pitch 35–60° (default 48°) from vertical. Default heading is 0°. Rotate is on. Distance 32–100.
+Perspective, isometric-inspired. Pitch 35–60° (default 48°) from vertical. Default heading is 0°. Rotate is on. Distance 28–88.
 
 ## Palette
 
@@ -33,14 +33,14 @@ No roads. No town. No river.
 
 ## Land
 
-Four raised rounded slabs on the water, 5 units apart. Height is 0.42. The front school pad is two campus pads wide and two deep.
+Four raised rounded slabs on the water, 1.54 units apart. Height is 0.42. The front school pad is two campus pads wide and two deep. `realistic_road.glb` fills the gaps.
 
 | Name | Centre (x, z) | Size (w × d × h) |
 |---|---|---|
 | `campus` | −10, −18 | 36 × 26 × 0.42 |
-| `front` | −10, 13 | 36 × 26 × 0.42 |
-| `left` | −51, −2.5 | 36 × 57 × 0.42 |
-| `school` | −30.5, 57 | 77 × 52 × 0.42 |
+| `front` | −10, 9.54 | 36 × 26 × 0.42 |
+| `left` | −47.54, −4.23 | 36 × 53.54 × 0.42 |
+| `school` | −28.77, 50.08 | 73.54 × 52 × 0.42 |
 
 ## Landmarks
 

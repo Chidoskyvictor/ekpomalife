@@ -7,7 +7,7 @@ export type Land = Rect & { name: string; shade?: 'light'; empty?: boolean }
 export type Slab = Rect & { name: string; h: number; radius: number }
 
 const SLAB = { w: 36, d: 26, h: 0.42, radius: 2.1 }
-const SLAB_GAP = 5
+const SLAB_GAP = 1.54
 
 export const CAMPUS_SLAB: Slab = { name: 'campus', x: -10, z: -18, ...SLAB }
 export const FRONT_SLAB: Slab = { name: 'front', x: CAMPUS_SLAB.x, z: CAMPUS_SLAB.z + SLAB.d + SLAB_GAP, ...SLAB }
@@ -31,11 +31,37 @@ export const SCHOOL_SLAB: Slab = {
 }
 export const SLABS: Slab[] = [CAMPUS_SLAB, LEFT_SLAB, FRONT_SLAB, SCHOOL_SLAB]
 
-export const WORLD: Rect = { x: SCHOOL_SLAB.x, z: 20, w: 140, d: 150 }
+export type RoadGap = Rect & { name: string }
+
+export const ROAD_GAPS: RoadGap[] = [
+  {
+    name: 'side',
+    x: (LEFT_SLAB.x + CAMPUS_SLAB.x) / 2,
+    z: LEFT_SLAB.z,
+    w: SLAB_GAP,
+    d: LEFT_SLAB.d,
+  },
+  {
+    name: 'campus-front',
+    x: CAMPUS_SLAB.x,
+    z: (CAMPUS_SLAB.z + FRONT_SLAB.z) / 2,
+    w: CAMPUS_SLAB.w,
+    d: SLAB_GAP,
+  },
+  {
+    name: 'school',
+    x: SCHOOL_SLAB.x,
+    z: (FRONT_SLAB.z + FRONT_SLAB.d / 2 + SCHOOL_SLAB.z - SCHOOL_SLAB.d / 2) / 2,
+    w: SCHOOL_SLAB.w,
+    d: SLAB_GAP,
+  },
+]
+
+export const WORLD: Rect = { x: SCHOOL_SLAB.x, z: 16, w: 120, d: 130 }
 
 export const LANDS: Land[] = SLABS.map(({ name, x, z, w, d }) => ({ name, x, z, w, d }))
 
-export const LAND_CENTER = { x: SCHOOL_SLAB.x, z: 20 }
+export const LAND_CENTER = { x: SCHOOL_SLAB.x, z: 16 }
 
 export const ROADS: Rect[] = []
 

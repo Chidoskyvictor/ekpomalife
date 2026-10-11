@@ -14,7 +14,7 @@ import { WorldLandmarks } from './world-landmarks'
 
 const PITCH = (48 * Math.PI) / 180
 const HEADING = 0
-const DISTANCE = 78
+const DISTANCE = 64
 const MIN_PITCH = (35 * Math.PI) / 180
 const MAX_PITCH = (58 * Math.PI) / 180
 const TARGET_PAD = 8
@@ -104,8 +104,8 @@ export function WorldCanvas() {
           screenSpacePanning
           minPolarAngle={MIN_PITCH}
           maxPolarAngle={MAX_PITCH}
-          minDistance={32}
-          maxDistance={100}
+          minDistance={28}
+          maxDistance={88}
           zoomSpeed={0.7}
           rotateSpeed={0.45}
           target={[LAND_CENTER.x, 0, LAND_CENTER.z]}
