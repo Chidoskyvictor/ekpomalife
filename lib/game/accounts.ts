@@ -1,8 +1,10 @@
+import { apiUrl } from './api'
+
 const ACCOUNTS_KEY = 'ekpoma-life-accounts-v1'
 const SESSION_KEY = 'ekpoma-life-session-v1'
 
 export const MIN_AGE = 18
-export const MIN_PASSWORD_LENGTH = 6
+export const MIN_PASSWORD_LENGTH = 8
 export const USERNAME_PATTERN = /^[a-z0-9_]{3,20}$/
 
 export type Account = {
@@ -23,7 +25,9 @@ export type SignupInput = {
   isAdult: boolean
 }
 
-type Result = { ok: true; account: Account } | { ok: false; error: string }
+export type PublicAccount = { name: string; username: string }
+
+type Result = { ok: true; account: PublicAccount } | { ok: false; error: string }
 
 export const saveKey = (username: string) => `ekpoma-life-save-v3:${username}`
 
@@ -37,12 +41,6 @@ export function ageOn(dateOfBirth: string, today = new Date()) {
     today.getMonth() < birth.getMonth() || (today.getMonth() === birth.getMonth() && today.getDate() < birth.getDate())
   if (beforeBirthday) age -= 1
   return age
-}
-
-async function hashPassword(username: string, password: string) {
-  const bytes = new TextEncoder().encode(`${username}:${password}`)
-  const digest = await crypto.subtle.digest('SHA-256', bytes)
-  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')
 }
 
 function readAccounts(): Record<string, Account> {
@@ -77,28 +75,38 @@ export async function createAccount(input: SignupInput): Promise<Result> {
   }
   if (!input.isAdult) return { ok: false, error: 'Confirm you are 18 or older and accept the Terms and Conditions.' }
 
-  const accounts = readAccounts()
-  if (accounts[username]) return { ok: false, error: 'That username is taken.' }
-
-  const account: Account = {
-    name,
-    username,
-    ...(email ? { email } : {}),
-    dateOfBirth: input.dateOfBirth,
-    passwordHash: await hashPassword(username, input.password),
-    createdAt: new Date().toISOString(),
+  try {
+    const response = await fetch(`${apiUrl()}/auth/signup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ name, username, password: input.password, isAdult: input.isAdult }),
+    })
+    const data = (await response.json()) as Result
+    if (!data.ok) return { ok: false, error: data.error || 'Could not create the account.' }
+    return data
+  } catch {
+    return { ok: false, error: 'Cannot reach the server. Is the backend running?' }
   }
-  window.localStorage.setItem(ACCOUNTS_KEY, JSON.stringify({ ...accounts, [username]: account }))
-  return { ok: true, account }
 }
 
 export async function verifyLogin(usernameInput: string, password: string): Promise<Result> {
   const username = normalizeUsername(usernameInput)
-  const account = readAccounts()[username]
-  if (!account || account.passwordHash !== (await hashPassword(username, password))) {
-    return { ok: false, error: 'Wrong username or password.' }
+  if (!username || !password) return { ok: false, error: 'Wrong username or password.' }
+
+  try {
+    const response = await fetch(`${apiUrl()}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ username, password }),
+    })
+    const data = (await response.json()) as Result
+    if (!data.ok) return { ok: false, error: data.error || 'Wrong username or password.' }
+    return data
+  } catch {
+    return { ok: false, error: 'Cannot reach the server. Is the backend running?' }
   }
-  return { ok: true, account }
 }
 
 export function getSession() {
