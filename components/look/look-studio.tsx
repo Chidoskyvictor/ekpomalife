@@ -6,6 +6,7 @@ import { ChevronLeft } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Suspense, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { Button as ArcButton } from '@/components/arc/button/button'
 import { Button } from '@/components/ui/button'
 import { getAccount, getSession } from '@/lib/game/accounts'
 import {
@@ -57,7 +58,6 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 export function LookStudio() {
   const router = useRouter()
   const [username, setUsername] = useState<string | null>(null)
-  const [displayName, setDisplayName] = useState('')
   const [appearance, setAppearance] = useState<Appearance>(DEFAULT_APPEARANCE)
 
   useEffect(() => {
@@ -66,9 +66,7 @@ export function LookStudio() {
       router.replace('/signup')
       return
     }
-    const account = getAccount(session)
     setUsername(session)
-    setDisplayName(account?.name ?? session)
   }, [router])
 
   const hair = HAIR_BY_BODY[appearance.body]
@@ -79,7 +77,7 @@ export function LookStudio() {
   const finish = () => {
     if (!username) return
     const account = getAccount(username)
-    startNewLife(account?.name ?? displayName, username, appearance)
+    startNewLife(account?.name ?? username, username, appearance)
     router.replace('/')
   }
 
@@ -126,24 +124,30 @@ export function LookStudio() {
       </div>
 
       <aside className="z-10 flex w-full flex-col gap-5 overflow-y-auto rounded-t-3xl bg-white px-5 py-6 shadow-[0_-8px_30px_rgb(15_40_80/0.08)] lg:h-full lg:max-w-md lg:rounded-none lg:px-8 lg:py-8 lg:shadow-none">
-        <label className="block">
-          <span className="sr-only">Display name</span>
-          <input
-            value={displayName}
-            onChange={(event) => setDisplayName(event.target.value)}
-            className="w-full border-b border-neutral-200 bg-transparent pb-2 text-sm text-neutral-800 outline-none"
-            placeholder="@your Sim's name"
-          />
-          <span className="mt-1 block text-xs text-neutral-400">@{username}</span>
-        </label>
+        <div className="flex h-14 w-full shrink-0 items-center justify-between gap-3 rounded-full bg-muted px-5 font-sans">
+          <p className="boogaloo-regular look-username min-w-0 truncate text-black">@{username}</p>
+          <p className="shrink-0 text-sm text-neutral-400">your Sim's name</p>
+        </div>
 
-        <Section title="Body">
-          {BODIES.map((body) => (
-            <Pill key={body.id} selected={appearance.body === body.id} onClick={() => setBody(body.id)}>
-              {body.label}
-            </Pill>
-          ))}
-        </Section>
+        <section className="space-y-2">
+          <h2 className="text-[11px] font-bold tracking-[0.16em] text-neutral-400 uppercase">Body</h2>
+          <div className="grid grid-cols-2 gap-3">
+            {BODIES.map((body) => (
+              <ArcButton
+                key={body.id}
+                type="button"
+                size="lg"
+                variant={appearance.body === body.id ? 'primary' : 'secondary'}
+                aria-pressed={appearance.body === body.id}
+                onClick={() => setBody(body.id)}
+                className="w-full"
+                style={{ width: '100%', minHeight: 56, borderRadius: 999 }}
+              >
+                <span className="look-body-label">{body.label}</span>
+              </ArcButton>
+            ))}
+          </div>
+        </section>
 
         <Section title="Hairstyle">
           {hair.map((item) => (

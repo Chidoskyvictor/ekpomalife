@@ -6,6 +6,9 @@
       "env": {
         "PROMETHEUS_WORKSPACE_ROOT": "c:\\Users\\USER\\ekpomalife"
       }
+    },
+    "arc": {
+      "url": "https://uiarc.dev/api/mcp"
     }
   }
 }

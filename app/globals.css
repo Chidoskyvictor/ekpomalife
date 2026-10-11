@@ -4,6 +4,7 @@
 @import '@fontsource/roboto/400.css';
 @import '@fontsource/roboto/500.css';
 @import '@fontsource/roboto/700.css';
+@import '@fontsource/boogaloo/400.css';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -103,5 +104,30 @@
     background: rgb(255 255 255 / 0.38);
     border: 1px solid rgb(255 255 255 / 0.55);
     box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.7);
+  }
+
+  .boogaloo-regular {
+    font-family: 'Boogaloo', sans-serif;
+    font-weight: 400;
+    font-style: normal;
+  }
+
+  .look-username {
+    font-size: 1.5rem;
+  }
+
+  .look-body-label {
+    font-family: 'Boogaloo', sans-serif;
+    font-weight: 400;
+    font-style: normal;
+    font-size: 1.5rem;
+    line-height: 1;
+    letter-spacing: 0.01em;
+  }
+
+  @media (min-width: 768px) {
+    .look-body-label {
+      font-size: 1.125rem;
+    }
   }
 }

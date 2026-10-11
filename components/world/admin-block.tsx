@@ -2,11 +2,13 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { Box3, MeshStandardMaterial, Vector3, type BufferGeometry, type Mesh } from 'three'
+import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js'
+import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import type { LocationRecord } from '@/lib/game/types'
 import { Block } from './materials'
 
-const MODEL_URL = '/models/admin-block.glb?v=roof2'
+const MODEL_URL = '/models/admin-block.glb?v=meshopt1'
 
 const paintedMaterial = (color: string, roughness: number) =>
   new MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.12, roughness, flatShading: true, toneMapped: false })
@@ -23,8 +25,17 @@ type Part = { geometry: BufferGeometry; material: MeshStandardMaterial }
 
 let modelPromise: Promise<{ parts: Part[]; size: Vector3 }> | null = null
 
+function createLoader() {
+  const loader = new GLTFLoader()
+  const draco = new DRACOLoader()
+  draco.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.7/')
+  loader.setDRACOLoader(draco)
+  loader.setMeshoptDecoder(typeof MeshoptDecoder === 'function' ? MeshoptDecoder() : MeshoptDecoder)
+  return loader
+}
+
 function loadModel() {
-  modelPromise ??= new GLTFLoader().loadAsync(MODEL_URL).then(({ scene }) => {
+  modelPromise ??= createLoader().loadAsync(MODEL_URL).then(({ scene }) => {
     const parts: Part[] = []
     scene.traverse((object) => {
       const mesh = object as Mesh

@@ -14,3 +14,7 @@ __v0_jsx-dev-runtime.ts
 node_modules
 .next/
 .DS_Store
+
+# Source archives in public/ are served as static files. Keep the 33 MB
+# apartment zip (and any other zips) off git and off the deploy.
+public/models/*.zip

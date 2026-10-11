@@ -2,7 +2,7 @@
 
 import { useGLTF } from '@react-three/drei'
 import { useMemo } from 'react'
-import { Box3, CanvasTexture, MeshStandardMaterial, RepeatWrapping, SRGBColorSpace, Vector3 } from 'three'
+import { Box3, CanvasTexture, MeshStandardMaterial, RepeatWrapping, SRGBColorSpace, Vector3, type Mesh, type Object3D } from 'three'
 import {
   CHARACTER_GLB,
   HAIR_COLOR,
@@ -255,6 +255,87 @@ function ModularFigure({ appearance }: { appearance: Appearance }) {
   )
 }
 
+function visibleBox(root: Object3D) {
+  const box = new Box3()
+  let used = false
+  root.traverse((object) => {
+    const mesh = object as Mesh
+    if (!mesh.isMesh || !mesh.visible) return
+    const next = new Box3().setFromObject(mesh)
+    if (!used) {
+      box.copy(next)
+      used = true
+    } else {
+      box.union(next)
+    }
+  })
+  return used ? box : new Box3().setFromObject(root)
+}
+
+function meshLabel(mesh: Mesh) {
+  const material = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material
+  return `${mesh.name} ${(material as MeshStandardMaterial | undefined)?.name ?? ''}`.toLowerCase()
+}
+
+function isDarkHairMaterial(mesh: Mesh) {
+  if (/pele|skin|flesh|body/.test(meshLabel(mesh))) return false
+  const material = (Array.isArray(mesh.material) ? mesh.material[0] : mesh.material) as MeshStandardMaterial | undefined
+  const color = material?.color
+  if (!color) return false
+  return color.r + color.g + color.b < 0.08
+}
+
+function clipMeshAbove(mesh: Mesh, cutY: number) {
+  const geometry = mesh.geometry.index ? mesh.geometry : mesh.geometry.clone()
+  if (!geometry.index) geometry.setIndex([...Array(geometry.attributes.position.count).keys()])
+  const next = geometry.clone()
+  const position = next.attributes.position
+  const index = next.index!
+  const keep: number[] = []
+  const vertex = new Vector3()
+  mesh.updateMatrixWorld(true)
+  for (let i = 0; i < index.count; i += 3) {
+    const a = index.getX(i)
+    const b = index.getX(i + 1)
+    const c = index.getX(i + 2)
+    const midY =
+      (vertex.fromBufferAttribute(position, a).applyMatrix4(mesh.matrixWorld).y +
+        vertex.fromBufferAttribute(position, b).applyMatrix4(mesh.matrixWorld).y +
+        vertex.fromBufferAttribute(position, c).applyMatrix4(mesh.matrixWorld).y) /
+      3
+    if (midY < cutY) keep.push(a, b, c)
+  }
+  if (keep.length === 0 || keep.length === index.count) return
+  next.setIndex(keep)
+  mesh.geometry = next
+}
+
+function stripImportedHair(root: Object3D) {
+  root.updateMatrixWorld(true)
+  const body = visibleBox(root)
+  const height = Math.max(body.max.y - body.min.y, 0.001)
+  const meshBox = new Box3()
+
+  root.traverse((object) => {
+    const mesh = object as Mesh
+    if (!mesh.isMesh) return
+    if (/hair|cabelo|capelli|pelo|wig/.test(meshLabel(mesh))) {
+      mesh.visible = false
+      return
+    }
+    meshBox.setFromObject(mesh)
+    const midY = (meshBox.min.y + meshBox.max.y) / 2
+    const span = meshBox.max.y - meshBox.min.y
+    if (midY > body.min.y + height * 0.84 && span < height * 0.28) {
+      mesh.visible = false
+      return
+    }
+    if (isDarkHairMaterial(mesh) && span > height * 0.45) {
+      clipMeshAbove(mesh, body.min.y + height * 0.78)
+    }
+  })
+}
+
 function ImportedFigure({ url }: { url: string }) {
   const { scene } = useGLTF(url)
   const fit = useMemo(() => {
@@ -264,13 +345,15 @@ function ImportedFigure({ url }: { url: string }) {
     const rawSize = raw.getSize(new Vector3())
     const zUp = rawSize.z > rawSize.y * 1.2
     const rotX = zUp ? -Math.PI / 2 : 0
-    const probe = scene.clone(true)
-    probe.rotation.x = rotX
-    probe.updateMatrixWorld(true)
-    const box = new Box3().setFromObject(probe)
+    clone.rotation.x = rotX
+    clone.updateMatrixWorld(true)
+    stripImportedHair(clone)
+    const box = visibleBox(clone)
     const size = box.getSize(new Vector3())
     const center = box.getCenter(new Vector3())
     const scale = 1.65 / Math.max(size.y, 0.001)
+    clone.rotation.x = 0
+    clone.updateMatrixWorld(true)
     return {
       clone,
       rotX,
