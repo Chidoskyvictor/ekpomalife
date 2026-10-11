@@ -25,7 +25,7 @@ Perspective, isometric-inspired. Pitch 35–60° (default 48°) from vertical. D
 | Token | Colour | Use |
 |---|---|---|
 | `land` | `#9BB682` | Campus slab |
-| `water` | `#e0bb8d` | World floor |
+| `water` | `#F4EFE3` | World floor |
 | `building` | `#F0EEE5` | Walls |
 | `roof` | `#D6C5A0` | Roofs and accents |
 

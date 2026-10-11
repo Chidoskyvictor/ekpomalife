@@ -100,8 +100,8 @@ export function normalizeAppearance(input?: Partial<Appearance> | null): Appeara
 /**
  * How characters are imported
  *
- * 1. Drop CC0 GLBs in `public/models/characters/` using these names:
- *    man.glb, woman.glb
+ * 1. Drop GLBs in `public/models/` using these names:
+ *    male.glb, female.glb
  * 2. `useGLTF` from `@react-three/drei` loads them (see CharacterFigure).
  * 3. If a file is missing, the built-in low-poly figure is used instead.
  *
@@ -110,6 +110,6 @@ export function normalizeAppearance(input?: Partial<Appearance> | null): Appeara
  * stays Ekpoma, not a copy of another game.
  */
 export const CHARACTER_GLB: Record<BodyId, string> = {
-  man: '/models/characters/man.glb',
-  woman: '/models/characters/woman.glb',
+  man: '/models/male.glb',
+  woman: '/models/female.glb',
 }

@@ -14,6 +14,7 @@ export function SignupForm() {
   const router = useRouter()
   const [name, setName] = useState('')
   const [username, setUsername] = useState('')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isAdult, setIsAdult] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -22,7 +23,7 @@ export function SignupForm() {
   const submit = async (event: FormEvent) => {
     event.preventDefault()
     setBusy(true)
-    const result = await createAccount({ name, username, password, email: '', dateOfBirth: '', isAdult })
+    const result = await createAccount({ name, username, password, email, dateOfBirth: '', isAdult })
     if (!result.ok) {
       setError(result.error)
       setBusy(false)
@@ -38,25 +39,53 @@ export function SignupForm() {
         <p className="text-center text-sm text-muted-foreground">Start your AAU life. Free.</p>
         <Field>
           <FieldLabel htmlFor="name">Name</FieldLabel>
-          <Input id="name" value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" maxLength={40} required className={inputClass} />
+          <Input
+            id="name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Ese Ehimen"
+            autoComplete="name"
+            maxLength={40}
+            required
+            className={inputClass}
+          />
         </Field>
         <Field>
           <FieldLabel htmlFor="username">Username</FieldLabel>
-          <Input
-            id="username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            autoComplete="username"
-            autoCapitalize="none"
-            spellCheck={false}
-            maxLength={20}
-            required
-            aria-describedby="username-hint"
-            className={inputClass}
-          />
+          <div className="relative">
+            <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-base text-muted-foreground md:text-sm">
+              @
+            </span>
+            <Input
+              id="username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value.replace(/^@/, ''))}
+              autoComplete="username"
+              autoCapitalize="none"
+              spellCheck={false}
+              maxLength={20}
+              required
+              placeholder="ese_star"
+              aria-describedby="username-hint"
+              className={`${inputClass} pl-8`}
+            />
+          </div>
           <FieldDescription id="username-hint" className="text-xs">
             Letters, numbers and _ only. This is how people see you.
           </FieldDescription>
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="email">Email</FieldLabel>
+          <Input
+            id="email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@email.com"
+            autoComplete="email"
+            required
+            className={inputClass}
+          />
         </Field>
         <Field>
           <FieldLabel htmlFor="password">Password</FieldLabel>
@@ -70,11 +99,17 @@ export function SignupForm() {
             className={inputClass}
           />
           <FieldDescription id="password-hint" className="text-xs">
-            At least {MIN_PASSWORD_LENGTH} characters.
+            At least {MIN_PASSWORD_LENGTH} characters. Mix letters — not your name or a simple number.
           </FieldDescription>
         </Field>
         <Field orientation="horizontal" className="items-start rounded-xl border bg-neutral-50 p-3">
-          <Checkbox id="adult" checked={isAdult} onCheckedChange={(checked) => setIsAdult(checked)} className="mt-0.5" />
+          <Checkbox
+            id="adult"
+            checked={isAdult}
+            onCheckedChange={(checked) => setIsAdult(checked)}
+            required
+            className="mt-0.5"
+          />
           <FieldLabel htmlFor="adult" className="font-normal leading-snug">
             I am {MIN_AGE} or older and I agree to the terms.
           </FieldLabel>

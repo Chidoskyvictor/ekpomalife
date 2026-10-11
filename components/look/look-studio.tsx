@@ -5,7 +5,7 @@ import { Canvas } from '@react-three/fiber'
 import { ChevronLeft } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { Suspense, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { getAccount, getSession } from '@/lib/game/accounts'
 import {
@@ -108,7 +108,7 @@ export function LookStudio() {
           <span className="size-10" aria-hidden="true" />
         </header>
 
-        <Canvas camera={{ position: [0, 0.95, 3.6], fov: 32 }} className="h-full">
+        <Canvas camera={{ position: [0, 1.15, 4.1], fov: 32 }} className="h-full">
           <color attach="background" args={['#F4F7FB']} />
           <ambientLight intensity={1.05} />
           <hemisphereLight args={['#FFF7EC', '#B8C4C0', 0.55]} />
@@ -117,8 +117,10 @@ export function LookStudio() {
             <circleGeometry args={[1.05, 48]} />
             <meshBasicMaterial color="#EEF1F5" />
           </mesh>
-          <CharacterFigure appearance={preview} />
-          <OrbitControls enablePan={false} enableZoom={false} minPolarAngle={1.15} maxPolarAngle={1.4} target={[0, 0.82, 0]} />
+          <Suspense fallback={null}>
+            <CharacterFigure appearance={preview} />
+          </Suspense>
+          <OrbitControls enablePan={false} enableZoom={false} minPolarAngle={1.1} maxPolarAngle={1.45} target={[0, 0.85, 0]} />
         </Canvas>
         <p className="pointer-events-none absolute inset-x-0 bottom-4 text-center text-xs text-neutral-400">Drag to spin</p>
       </div>

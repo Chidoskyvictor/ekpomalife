@@ -2,7 +2,7 @@
 
 import { MapControls } from '@react-three/drei'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { useEffect, useRef } from 'react'
+import { Suspense, useEffect, useRef } from 'react'
 import { Vector3 } from 'three'
 import { getLocation } from '@/lib/game/content'
 import { MAP } from '@/lib/game/map-theme'
@@ -70,7 +70,7 @@ export function WorldCanvas() {
   const currentId = state?.locationId ?? null
 
   return (
-    <div className="absolute inset-0 bg-[#e0bb8d]" aria-label="Interactive map of Ekpoma" role="application">
+    <div className="absolute inset-0 bg-[#F4EFE3]" aria-label="Interactive map of Ekpoma" role="application">
       <Canvas
         shadows
         dpr={[1, 1.75]}
@@ -97,7 +97,9 @@ export function WorldCanvas() {
         />
         <WorldGround />
         <WorldLandmarks selectedId={selectedId} currentId={currentId} onSelect={select} />
-        {state ? <PlayerAvatar locationId={state.locationId} color={state.avatarColor} appearance={state.appearance} /> : null}
+        <Suspense fallback={null}>
+          {state ? <PlayerAvatar locationId={state.locationId} color={state.avatarColor} appearance={state.appearance} /> : null}
+        </Suspense>
         <MapControls
           makeDefault
           enableRotate

@@ -2,7 +2,7 @@
 
 import { useGLTF } from '@react-three/drei'
 import { useMemo } from 'react'
-import { CanvasTexture, MeshStandardMaterial, RepeatWrapping, SRGBColorSpace } from 'three'
+import { Box3, CanvasTexture, MeshStandardMaterial, RepeatWrapping, SRGBColorSpace, Vector3 } from 'three'
 import {
   CHARACTER_GLB,
   HAIR_COLOR,
@@ -255,18 +255,43 @@ function ModularFigure({ appearance }: { appearance: Appearance }) {
   )
 }
 
-function ImportedFigure({ url, appearance }: { url: string; appearance: Appearance }) {
+function ImportedFigure({ url }: { url: string }) {
   const { scene } = useGLTF(url)
-  const clone = useMemo(() => scene.clone(true), [scene])
+  const fit = useMemo(() => {
+    const clone = scene.clone(true)
+    clone.updateMatrixWorld(true)
+    const raw = new Box3().setFromObject(clone)
+    const rawSize = raw.getSize(new Vector3())
+    const zUp = rawSize.z > rawSize.y * 1.2
+    const rotX = zUp ? -Math.PI / 2 : 0
+    const probe = scene.clone(true)
+    probe.rotation.x = rotX
+    probe.updateMatrixWorld(true)
+    const box = new Box3().setFromObject(probe)
+    const size = box.getSize(new Vector3())
+    const center = box.getCenter(new Vector3())
+    const scale = 1.65 / Math.max(size.y, 0.001)
+    return {
+      clone,
+      rotX,
+      scale,
+      position: [-center.x * scale, -box.min.y * scale, -center.z * scale] as [number, number, number],
+    }
+  }, [scene])
+
   return (
-    <group scale={1.15} position={[0, 0, 0]}>
-      <primitive object={clone} />
-      <Hair id={appearance.hair} body={appearance.body} />
+    <group position={fit.position} scale={fit.scale}>
+      <group rotation={[fit.rotX, 0, 0]}>
+        <primitive object={fit.clone} />
+      </group>
     </group>
   )
 }
 
-export function CharacterFigure({ appearance, imported = false }: { appearance: Appearance; imported?: boolean }) {
-  if (imported) return <ImportedFigure url={CHARACTER_GLB[appearance.body]} appearance={appearance} />
+export function CharacterFigure({ appearance, imported = true }: { appearance: Appearance; imported?: boolean }) {
+  if (imported) return <ImportedFigure url={CHARACTER_GLB[appearance.body]} />
   return <ModularFigure appearance={appearance} />
 }
+
+useGLTF.preload(CHARACTER_GLB.man)
+useGLTF.preload(CHARACTER_GLB.woman)
