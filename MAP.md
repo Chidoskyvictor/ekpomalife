@@ -24,8 +24,8 @@ Perspective, isometric-inspired. Pitch 35–60° (default 48°) from vertical. D
 
 | Token | Colour | Use |
 |---|---|---|
-| `land` | `#9CB784` | Campus slab |
-| `water` | `#6EC8EE` | World floor |
+| `land` | `#9BB682` | Campus slab |
+| `water` | `#55A1C3` | World floor |
 | `building` | `#F0EEE5` | Walls |
 | `roof` | `#D6C5A0` | Roofs and accents |
 
@@ -48,4 +48,4 @@ Only Admin Block is on the map. Other places stay in `content.ts` for game data.
 
 | Id | Name | Position (x, z) |
 |---|---|---|
-| `aau_campus` | Admin Block | −10, −18 |
+| `aau_campus` | Admin Block | −9, 9.54 |

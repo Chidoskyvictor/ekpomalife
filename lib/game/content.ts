@@ -43,7 +43,7 @@ export const LOCATIONS: LocationRecord[] = [
     type: 'campus',
     emoji: '🎓',
     description: 'Ambrose Alli University main grounds. Lectures, students, and campus hustle.',
-    position: [-10, -18],
+    position: [-9, 9.54],
     size: [7.4, 1.9, 6.4],
     actions: ['study', 'socialize', 'errand'],
     npc: { name: 'Chuks', role: 'Student', line: 'Guy, you get ₦200? I go pay you back Friday.' },
