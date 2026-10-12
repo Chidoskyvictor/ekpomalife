@@ -21,7 +21,9 @@ import {
 } from '@/lib/game/look'
 import { startNewLife } from '@/hooks/use-game'
 import { cn } from '@/lib/utils'
+import type { HairFit } from '@/lib/game/hair-config'
 import { CharacterFigure } from './character-figure'
+import { HairDebugPanel } from './hair-debug-panel'
 
 function Pill({
   selected,
@@ -59,6 +61,7 @@ export function LookStudio() {
   const router = useRouter()
   const [username, setUsername] = useState<string | null>(null)
   const [appearance, setAppearance] = useState<Appearance>(DEFAULT_APPEARANCE)
+  const [hairTune, setHairTune] = useState<HairFit | null>(null)
 
   useEffect(() => {
     const session = getSession()
@@ -72,7 +75,10 @@ export function LookStudio() {
   const hair = HAIR_BY_BODY[appearance.body]
   const outfits = OUTFIT_BY_BODY[appearance.body]
 
-  const setBody = (body: BodyId) => setAppearance((current) => normalizeAppearance({ body, fabric: current.fabric }))
+  const setBody = (body: BodyId) => {
+    setHairTune(null)
+    setAppearance((current) => normalizeAppearance({ body, fabric: current.fabric }))
+  }
 
   const finish = () => {
     if (!username) return
@@ -116,7 +122,7 @@ export function LookStudio() {
             <meshBasicMaterial color="#EEF1F5" />
           </mesh>
           <Suspense fallback={null}>
-            <CharacterFigure appearance={preview} />
+            <CharacterFigure appearance={preview} hairTune={hairTune} />
           </Suspense>
           <OrbitControls enablePan={false} enableZoom={false} minPolarAngle={1.1} maxPolarAngle={1.45} target={[0, 0.85, 0]} />
         </Canvas>
@@ -151,11 +157,22 @@ export function LookStudio() {
 
         <Section title="Hairstyle">
           {hair.map((item) => (
-            <Pill key={item.id} selected={appearance.hair === item.id} onClick={() => setAppearance((current) => ({ ...current, hair: item.id }))}>
+            <Pill
+              key={item.id}
+              selected={appearance.hair === item.id}
+              onClick={() => {
+                setHairTune(null)
+                setAppearance((current) => ({ ...current, hair: item.id }))
+              }}
+            >
               {item.label}
             </Pill>
           ))}
         </Section>
+
+        {process.env.NODE_ENV === 'development' ? (
+          <HairDebugPanel appearance={appearance} value={hairTune} onChange={setHairTune} />
+        ) : null}
 
         <Section title="Outfit">
           {outfits.map((item) => (

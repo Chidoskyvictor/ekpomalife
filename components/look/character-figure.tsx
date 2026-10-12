@@ -1,8 +1,21 @@
 'use client'
 
 import { useGLTF } from '@react-three/drei'
-import { useMemo } from 'react'
-import { Box3, CanvasTexture, MeshStandardMaterial, RepeatWrapping, SRGBColorSpace, Vector3, type Mesh, type Object3D } from 'three'
+import { useLayoutEffect, useMemo, useRef, type ReactNode } from 'react'
+import {
+  Box3,
+  Bone,
+  CanvasTexture,
+  Group,
+  Mesh,
+  MeshStandardMaterial,
+  RepeatWrapping,
+  SRGBColorSpace,
+  SkinnedMesh,
+  Vector3,
+  type Object3D,
+} from 'three'
+import { HAIR_CONFIG, hairFitFor, type HairFit } from '@/lib/game/hair-config'
 import {
   CHARACTER_GLB,
   HAIR_COLOR,
@@ -315,18 +328,21 @@ function stripImportedHair(root: Object3D) {
   const body = visibleBox(root)
   const height = Math.max(body.max.y - body.min.y, 0.001)
   const meshBox = new Box3()
+  const hidden: Box3[] = []
 
   root.traverse((object) => {
     const mesh = object as Mesh
     if (!mesh.isMesh) return
+    meshBox.setFromObject(mesh)
     if (/hair|cabelo|capelli|pelo|wig/.test(meshLabel(mesh))) {
+      hidden.push(meshBox.clone())
       mesh.visible = false
       return
     }
-    meshBox.setFromObject(mesh)
     const midY = (meshBox.min.y + meshBox.max.y) / 2
     const span = meshBox.max.y - meshBox.min.y
     if (midY > body.min.y + height * 0.84 && span < height * 0.28) {
+      hidden.push(meshBox.clone())
       mesh.visible = false
       return
     }
@@ -334,10 +350,179 @@ function stripImportedHair(root: Object3D) {
       clipMeshAbove(mesh, body.min.y + height * 0.78)
     }
   })
+  return hidden
 }
 
-function ImportedFigure({ url }: { url: string }) {
+function computeHeadBox(root: Object3D, scalpBoxes: Box3[]) {
+  if (scalpBoxes.length > 0) {
+    const hair = scalpBoxes[0].clone()
+    for (let i = 1; i < scalpBoxes.length; i++) hair.union(scalpBoxes[i])
+    const size = hair.getSize(new Vector3())
+    if (size.y > size.x * 1.35) hair.min.y = hair.max.y - Math.max(size.x, size.z)
+    return hair
+  }
+  const body = visibleBox(root)
+  const size = body.getSize(new Vector3())
+  const center = body.getCenter(new Vector3())
+  const skull = size.y * 0.12
+  const box = new Box3()
+  box.min.set(center.x - skull * 0.55, body.max.y - skull, center.z - skull * 0.5)
+  box.max.set(center.x + skull * 0.55, body.max.y, center.z + skull * 0.5)
+  return box
+}
+
+function findHeadBone(root: Object3D) {
+  let named: Object3D | null = null
+  let loose: Object3D | null = null
+  root.traverse((object) => {
+    if (!(object as Bone).isBone) return
+    const name = object.name.replace(/\s+/g, '')
+    if (/^(mixamorig[:|_]?Head|Head|bip001Head|HeadTop_End)$/i.test(name)) {
+      named ??= object
+      return
+    }
+    const lower = object.name.toLowerCase()
+    if (!loose && lower.includes('head') && !/headphone|headset/.test(lower)) loose = object
+  })
+  return named ?? loose
+}
+
+function keepHairMeshes(root: Object3D) {
+  const meshes: Mesh[] = []
+  root.traverse((object) => {
+    const mesh = object as Mesh
+    if (mesh.isMesh) meshes.push(mesh)
+  })
+  const hair = meshes.filter((mesh) => /hair|cabelo|capelli|pelo|wig/.test(meshLabel(mesh)))
+  if (hair.length === 0) {
+    freezeSkinnedMeshes(root)
+    return
+  }
+  for (const mesh of meshes) mesh.visible = hair.includes(mesh)
+  freezeSkinnedMeshes(root)
+}
+
+function paintHairBlack(root: Object3D) {
+  root.traverse((object) => {
+    const mesh = object as Mesh
+    if (!mesh.isMesh || !mesh.visible) return
+    const sources = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
+    const painted = sources.map((source) => {
+      const material = (source as MeshStandardMaterial).clone()
+      material.color.set(HAIR_COLOR)
+      material.map = null
+      material.emissiveMap = null
+      material.emissive.set(0, 0, 0)
+      material.vertexColors = false
+      material.roughness = 0.72
+      material.metalness = 0.02
+      return material
+    })
+    mesh.material = Array.isArray(mesh.material) ? painted : painted[0]!
+  })
+}
+
+function freezeSkinnedMeshes(root: Object3D) {
+  const skinned: SkinnedMesh[] = []
+  root.traverse((object) => {
+    const mesh = object as SkinnedMesh
+    if (mesh.isSkinnedMesh) skinned.push(mesh)
+  })
+  for (const mesh of skinned) {
+    mesh.skeleton?.pose()
+    const baked = new Mesh(mesh.geometry, mesh.material)
+    baked.name = mesh.name
+    baked.visible = mesh.visible
+    baked.castShadow = true
+    baked.position.copy(mesh.position)
+    baked.quaternion.copy(mesh.quaternion)
+    baked.scale.copy(mesh.scale)
+    mesh.parent?.add(baked)
+    mesh.removeFromParent()
+  }
+}
+
+function HeadSocket({
+  bone,
+  center,
+  children,
+}: {
+  bone: Object3D | null
+  center: [number, number, number]
+  children: ReactNode
+}) {
+  const group = useRef<Group>(null)
+  useLayoutEffect(() => {
+    const node = group.current
+    if (!node || !bone) return
+    bone.add(node)
+    node.position.set(0, 0, 0)
+    node.rotation.set(0, 0, 0)
+    node.scale.set(1, 1, 1)
+    return () => {
+      bone.remove(node)
+    }
+  }, [bone])
+
+  if (bone) return <group ref={group}>{children}</group>
+  return (
+    <group name="Head" position={center}>
+      {children}
+    </group>
+  )
+}
+
+function FittedHair({ file, fit, headSize }: { file: string; fit: HairFit; headSize: Vector3 }) {
+  const { scene } = useGLTF(file)
+  const prepared = useMemo(() => {
+    const clone = scene.clone(true)
+    keepHairMeshes(clone)
+    if (fit.paint) paintHairBlack(clone)
+    clone.position.set(0, 0, 0)
+    clone.rotation.set(0, 0, 0)
+    clone.scale.set(1, 1, 1)
+    const pivot = new Group()
+    pivot.add(clone)
+    pivot.rotation.set(fit.rotation[0], fit.rotation[1], fit.rotation[2])
+    pivot.updateMatrixWorld(true)
+    const box = visibleBox(pivot)
+    const size = box.getSize(new Vector3())
+    const cap = box.clone()
+    const capHeight = Math.min(Math.max(headSize.y * 1.15, size.x * 0.85), Math.max(size.y * 0.28, headSize.y))
+    cap.min.y = Math.max(box.min.y, box.max.y - capHeight)
+    const capCenter = cap.getCenter(new Vector3())
+    const autoScale = (headSize.x * 1.05) / Math.max(size.x, 0.001)
+    const scale = autoScale * fit.scale
+    const scalp = headSize.y / 2
+    let posY = scalp - cap.max.y * scale
+    const posX = -capCenter.x * scale + fit.offset[0]
+    const posZ = -capCenter.z * scale + fit.offset[2]
+    return {
+      pivot,
+      scale,
+      position: [posX, posY + fit.offset[1], posZ] as [number, number, number],
+    }
+  }, [scene, fit, headSize])
+
+  return (
+    <group position={prepared.position} scale={prepared.scale}>
+      <primitive object={prepared.pivot} />
+    </group>
+  )
+}
+
+function ImportedFigure({
+  url,
+  appearance,
+  hairTune,
+}: {
+  url: string
+  appearance: Appearance
+  hairTune?: HairFit | null
+}) {
   const { scene } = useGLTF(url)
+  const stored = hairFitFor(appearance.body, appearance.hair)
+  const hair = hairTune ?? stored
   const fit = useMemo(() => {
     const clone = scene.clone(true)
     clone.updateMatrixWorld(true)
@@ -347,34 +532,54 @@ function ImportedFigure({ url }: { url: string }) {
     const rotX = zUp ? -Math.PI / 2 : 0
     clone.rotation.x = rotX
     clone.updateMatrixWorld(true)
-    stripImportedHair(clone)
+    const scalp = stripImportedHair(clone)
+    const headBox = computeHeadBox(clone, scalp)
     const box = visibleBox(clone)
     const size = box.getSize(new Vector3())
     const center = box.getCenter(new Vector3())
     const scale = 1.65 / Math.max(size.y, 0.001)
-    clone.rotation.x = 0
-    clone.updateMatrixWorld(true)
+    const headCenter = headBox.getCenter(new Vector3())
+    const headSize = headBox.getSize(new Vector3())
+    const bone = findHeadBone(clone)
     return {
       clone,
-      rotX,
+      bone,
       scale,
       position: [-center.x * scale, -box.min.y * scale, -center.z * scale] as [number, number, number],
+      headCenter: [headCenter.x, headCenter.y, headCenter.z] as [number, number, number],
+      headSize,
     }
-  }, [scene])
+  }, [scene, url])
 
   return (
     <group position={fit.position} scale={fit.scale}>
-      <group rotation={[fit.rotX, 0, 0]}>
-        <primitive object={fit.clone} />
-      </group>
+      <primitive object={fit.clone} />
+      <HeadSocket bone={fit.bone} center={fit.headCenter}>
+        {hair ? <FittedHair file={hair.file} fit={hair} headSize={fit.headSize} /> : null}
+      </HeadSocket>
     </group>
   )
 }
 
-export function CharacterFigure({ appearance, imported = true }: { appearance: Appearance; imported?: boolean }) {
-  if (imported) return <ImportedFigure url={CHARACTER_GLB[appearance.body]} />
+export function CharacterFigure({
+  appearance,
+  imported = true,
+  hairTune = null,
+}: {
+  appearance: Appearance
+  imported?: boolean
+  hairTune?: HairFit | null
+}) {
+  if (imported) {
+    return <ImportedFigure url={CHARACTER_GLB[appearance.body]} appearance={appearance} hairTune={hairTune} />
+  }
   return <ModularFigure appearance={appearance} />
 }
 
 useGLTF.preload(CHARACTER_GLB.man)
 useGLTF.preload(CHARACTER_GLB.woman)
+for (const styles of Object.values(HAIR_CONFIG)) {
+  for (const style of Object.values(styles)) {
+    if (style?.file) useGLTF.preload(style.file)
+  }
+}

@@ -100,8 +100,8 @@ export function normalizeAppearance(input?: Partial<Appearance> | null): Appeara
 /**
  * How characters are imported
  *
- * 1. Drop GLBs in `public/models/` using these names:
- *    male.glb, female.glb
+ * 1. Drop body GLBs in `public/models/` as male.glb and female.glb.
+ *    Hair GLBs go in `public/models/hair/` and are listed in hair-config.ts.
  * 2. `useGLTF` from `@react-three/drei` loads them (see CharacterFigure).
  * 3. If a file is missing, the built-in low-poly figure is used instead.
  *
@@ -113,3 +113,5 @@ export const CHARACTER_GLB: Record<BodyId, string> = {
   man: '/models/male.glb',
   woman: '/models/female.glb',
 }
+
+export { HAIR_CONFIG, hairFitFor } from '@/lib/game/hair-config'
