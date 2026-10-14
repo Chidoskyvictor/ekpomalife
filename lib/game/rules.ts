@@ -1,5 +1,7 @@
 import { ACTIONS, EVENTS, getLocation, START_LOCATION_ID } from './content'
+import { CAREER_MAX_LEVEL, MUSIC_MAX_LEVEL, emptyDreamSnapshot, type DreamId } from './dreams'
 import type { Appearance } from './look'
+import { hasTrait, type TraitId } from './traits'
 import type {
   ActionId,
   EventChoice,
@@ -22,13 +24,26 @@ export const OBJECTIVES = [
 
 export type ActionResult = { state: GameState; ok: boolean; message: string; event?: GameEvent }
 
-export function createInitialState(name: string, username: string, avatarColor: string, appearance?: Appearance): GameState {
+export function createInitialState(
+  name: string,
+  username: string,
+  avatarColor: string,
+  appearance?: Appearance,
+  traits?: TraitId[],
+  dreamId?: DreamId | null,
+): GameState {
   return {
     playerId: crypto.randomUUID(),
     characterName: name,
     username,
     avatarColor,
     ...(appearance ? { appearance } : {}),
+    ...(traits && traits.length > 0 ? { traits } : {}),
+    dreamId: dreamId ?? null,
+    dream: { ...emptyDreamSnapshot(), netWorth: STARTER_CASH },
+    badges: [],
+    dreamCompleted: false,
+    dreamCelebrated: false,
     cash: STARTER_CASH,
     energy: 100,
     health: 100,
@@ -57,6 +72,10 @@ function applyEffects(state: GameState, effects: Partial<Record<StatKey, number>
   return {
     ...state,
     cash: Math.max(0, state.cash + (effects.cash ?? 0)),
+    dream: {
+      ...(state.dream ?? emptyDreamSnapshot()),
+      netWorth: Math.max(0, state.cash + (effects.cash ?? 0)),
+    },
     energy: clamp(state.energy + (effects.energy ?? 0)),
     health: clamp(state.health + (effects.health ?? 0)),
     reputation: clamp(state.reputation + (effects.reputation ?? 0)),
@@ -84,6 +103,16 @@ function log(state: GameState, text: string, tone: FeedTone): GameState {
 
 function addMilestone(state: GameState, id: string): GameState {
   return state.milestones.includes(id) ? state : { ...state, milestones: [...state.milestones, id] }
+}
+
+function patchDream(state: GameState, patch: Partial<GameState['dream']>): GameState {
+  const dream = {
+    ...(state.dream ?? emptyDreamSnapshot()),
+    ...patch,
+    netWorth: state.cash,
+    ownsLodge: Boolean(patch.ownsLodge ?? state.dream.ownsLodge) || state.cash >= 250_000,
+  }
+  return { ...state, dream }
 }
 
 const fail = (state: GameState, message: string): ActionResult => ({ state, ok: false, message })
@@ -149,53 +178,96 @@ export function performAction(state: GameState, actionId: ActionId, roll = Math.
   let tone: FeedTone = 'good'
 
   switch (actionId) {
-    case 'study':
-      next = applyEffects(next, { energy: -15, academic: 5 })
+    case 'study': {
+      const academic = 5 + (hasTrait(state.traits, 'tech') ? 2 : 0) + (hasTrait(state.traits, 'night-classer') ? 2 : 0)
+      const energy = -15 - (hasTrait(state.traits, 'night-classer') && state.period === 'morning' ? 4 : 0)
+      next = applyEffects(next, { energy, academic })
+      const cgpa = Math.min(5, next.dream.cgpa + 0.04 + (hasTrait(state.traits, 'tech') ? 0.01 : 0))
+      next = patchDream(next, {
+        cgpa,
+        graduated: next.dream.graduated || (next.academic >= 95 && next.day >= 8 && cgpa >= 3.5),
+      })
       message = 'You read for hours. Academic standing up.'
       break
-    case 'night_class':
-      next = applyEffects(next, { energy: -25, academic: 9, health: -3 })
+    }
+    case 'night_class': {
+      const academic = 9 + (hasTrait(state.traits, 'night-classer') ? 4 : 0) + (hasTrait(state.traits, 'tech') ? 2 : 0)
+      next = applyEffects(next, { energy: -25, academic, health: -3 })
+      const cgpa = Math.min(5, next.dream.cgpa + 0.07 + (hasTrait(state.traits, 'night-classer') ? 0.02 : 0))
+      next = patchDream(next, {
+        cgpa,
+        graduated: next.dream.graduated || (next.academic >= 95 && next.day >= 8 && cgpa >= 3.5),
+      })
       message = 'TDB (till day break) reading. Your brain is full.'
       break
-    case 'socialize':
-      next = applyEffects(next, { energy: -8, reputation: 3 })
+    }
+    case 'socialize': {
+      const reputation = 3 + (hasTrait(state.traits, 'leader') ? 3 : 0)
+      next = applyEffects(next, { energy: -8, reputation })
+      const bestFriends = Math.min(10, next.dream.bestFriends + (roll > 0.55 ? 1 : 0))
+      next = patchDream(next, {
+        bestFriends,
+        facultyPresident: next.dream.facultyPresident || (next.reputation >= 80 && bestFriends >= 3),
+      })
       message = 'You gisted and made new connections.'
       break
+    }
     case 'rest': {
       const night = state.period === 'night' || state.period === 'evening'
-      next = applyEffects(next, { energy: night ? 60 : 30, health: 8 })
+      const energy = (night ? 60 : 30) - (hasTrait(state.traits, 'night-classer') ? 8 : 0)
+      next = applyEffects(next, { energy, health: 8 })
       message = night ? 'You slept well. New day, new hustle.' : 'Short nap. You feel better.'
       if (night) next = advanceTime(next, state.period === 'night' ? 1 : 2)
       break
     }
-    case 'eat':
-      next = applyEffects(next, { cash: -800, energy: 15, health: 2 })
+    case 'eat': {
+      const foodie = hasTrait(state.traits, 'foodie')
+      const cash = foodie ? -1100 : -800
+      const energy = foodie ? 22 : 15
+      next = applyEffects(next, { cash, energy, health: 2 })
       next = addMilestone(next, 'first_meal')
-      message = "Amina's jollof hit different. +15 energy."
+      message = foodie
+        ? "Amina's jollof hit different. Belle first. +22 energy, extra ₦300."
+        : "Amina's jollof hit different. +15 energy."
       break
+    }
     case 'buy_phone':
       if (state.hasPhone) return fail(state, 'You already have a phone.')
       next = applyEffects({ ...next, hasPhone: true }, { cash: -2500 })
       next = addMilestone(next, 'buy_phone')
       message = 'New phone unlocked! Messages and town events now come to you.'
       break
-    case 'buy_snack':
-      next = applyEffects(next, { cash: -300, energy: 6 })
-      message = 'Gala and Fanta. The student classic.'
+    case 'buy_snack': {
+      const foodie = hasTrait(state.traits, 'foodie')
+      next = applyEffects(next, { cash: foodie ? -450 : -300, energy: foodie ? 10 : 6 })
+      message = foodie ? 'Gala and Fanta. Extra wrap, extra ₦150.' : 'Gala and Fanta. The student classic.'
       break
+    }
     case 'errand':
       next = applyEffects(next, { cash: 500, energy: -10 })
       next = addMilestone(next, 'first_errand')
+      next = patchDream(next, {
+        careerLevel: Math.min(CAREER_MAX_LEVEL, next.dream.careerLevel + (roll > 0.65 ? 1 : 0)),
+      })
       message = 'You ran an errand for a lecturer. +₦500.'
       break
     case 'pos_shift': {
       const pay = 400 + Math.round((roll * 500) / 50) * 50
       next = applyEffects(next, { cash: pay, energy: -20 })
+      const started = next.dream.businessStarted || hasTrait(state.traits, 'tech') || roll > 0.85
+      next = patchDream(next, {
+        careerLevel: Math.min(CAREER_MAX_LEVEL, next.dream.careerLevel + (roll > 0.6 ? 1 : 0)),
+        businessStarted: started,
+        businessRevenue: started ? next.dream.businessRevenue + pay : next.dream.businessRevenue,
+      })
       message = `POS shift done. You earned ₦${pay}.`
       break
     }
     case 'watch_match':
       next = applyEffects(next, { cash: -200, reputation: 2, energy: 4 })
+      next = patchDream(next, {
+        musicSkill: Math.min(MUSIC_MAX_LEVEL, next.dream.musicSkill + (roll > 0.4 ? 1 : 0)),
+      })
       message = roll > 0.5 ? 'Your team won! The whole centre shouted.' : 'Draw. Everybody is arguing.'
       break
     case 'pray':
@@ -224,4 +296,21 @@ export function performAction(state: GameState, actionId: ActionId, roll = Math.
 
 export function currentObjective(state: GameState) {
   return OBJECTIVES.find((objective) => !state.milestones.includes(objective.id))
+}
+
+export function resetDreamProgress(state: GameState, dreamId: DreamId | null): GameState {
+  return {
+    ...state,
+    dreamId,
+    dream: { ...emptyDreamSnapshot(), netWorth: state.cash, ownsLodge: state.cash >= 250_000 },
+    dreamCompleted: false,
+    dreamCelebrated: false,
+  }
+}
+
+export function applyDreamReward(state: GameState, reward: { cash?: number; reputation?: number; badge: string }): GameState {
+  if (state.dreamCompleted) return state
+  const next = applyEffects(state, { cash: reward.cash ?? 0, reputation: reward.reputation ?? 0 })
+  const badges = next.badges.includes(reward.badge) ? next.badges : [...next.badges, reward.badge]
+  return { ...next, badges, dreamCompleted: true }
 }

@@ -6,6 +6,8 @@ import { useGame } from '@/hooks/use-game'
 import { usePlayerStats } from '@/hooks/use-player-stats'
 import type { TimePeriod } from '@/lib/game/types'
 import { cn } from '@/lib/utils'
+import guestStyles from './guest-bar.module.css'
+import logoStyles from './logo.module.css'
 
 const PERIOD_ICON: Record<TimePeriod, typeof Sun> = {
   morning: Sunrise,
@@ -16,11 +18,11 @@ const PERIOD_ICON: Record<TimePeriod, typeof Sun> = {
 
 export function Logo() {
   return (
-    <div className="flex items-center gap-2">
-      <span className="flex size-8 items-center justify-center rounded-full bg-neutral-900 text-xs font-extrabold text-white">
-        EL
+    <div className={logoStyles.logo}>
+      <span className={logoStyles.badge}>
+        <img src="/logo.png" alt="" width={36} height={36} />
       </span>
-      <span className="hidden text-base font-extrabold tracking-tight sm:inline">Ekpoma Life</span>
+      <span className={logoStyles.name}>Ekpoma Life</span>
     </div>
   )
 }
@@ -31,11 +33,11 @@ export function TopBar({ onOpenPhone }: { onOpenPhone: () => void }) {
 
   if (!state) {
     return (
-      <header className="liquid-glass pointer-events-auto mx-auto flex w-full max-w-3xl items-center justify-between gap-3 rounded-full py-1.5 pr-1.5 pl-4">
-        <div className="flex min-w-0 items-center gap-3">
+      <header className={guestStyles.bar}>
+        <div className={guestStyles.meta}>
           <Logo />
-          <span className="hidden items-center gap-1.5 text-xs font-semibold text-foreground/70 tabular-nums sm:flex">
-            <span className="size-2 rounded-full bg-[#1fb978]" aria-hidden="true" />
+          <span className={guestStyles.stats}>
+            <span className={guestStyles.live} aria-hidden="true" />
             {online.toLocaleString()} online
             <span aria-hidden="true">·</span>
             {visits.toLocaleString()} visits

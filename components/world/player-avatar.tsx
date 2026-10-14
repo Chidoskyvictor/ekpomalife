@@ -25,7 +25,7 @@ export function PlayerAvatar({
 }) {
   const ref = useRef<Group>(null)
   const target = useRef(new Vector3())
-  const look = normalizeAppearance(appearance ?? { ...DEFAULT_APPEARANCE, fabric: 'plain-navy' })
+  const look = normalizeAppearance(appearance ?? DEFAULT_APPEARANCE)
 
   useFrame((state, delta) => {
     const group = ref.current

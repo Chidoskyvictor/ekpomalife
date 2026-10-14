@@ -1,18 +1,29 @@
 'use client'
 
 import { CheckCircle2, MapPin, Target, XCircle } from 'lucide-react'
+import dynamic from 'next/dynamic'
 import { useState } from 'react'
+import { ChangeDreamDialog } from '@/components/hud/change-dream-dialog'
+import { DreamCelebration } from '@/components/hud/dream-celebration'
+import { DreamTracker } from '@/components/hud/dream-tracker'
 import { EventDialog } from '@/components/hud/event-dialog'
 import { LocationSheet } from '@/components/hud/location-sheet'
 import { PhoneDialog } from '@/components/hud/phone-dialog'
 import { StatsPanel } from '@/components/hud/stats-panel'
 import { TopBar } from '@/components/hud/top-bar'
 import { WelcomeCard } from '@/components/hud/welcome-card'
-import { WorldCanvas } from '@/components/world/world-canvas'
 import { GameProvider, useGame } from '@/hooks/use-game'
 import { getLocation } from '@/lib/game/content'
 import { currentObjective } from '@/lib/game/rules'
 import { cn } from '@/lib/utils'
+
+const WorldCanvas = dynamic(
+  () => import('@/components/world/world-canvas').then((mod) => ({ default: mod.WorldCanvas })),
+  {
+    ssr: false,
+    loading: () => <div className="absolute inset-0 app-wash" aria-hidden="true" />,
+  },
+)
 
 function ObjectiveChip() {
   const { state, select } = useGame()
@@ -73,12 +84,14 @@ function CurrentLocationPill() {
 function Hud() {
   const { state, selectedId } = useGame()
   const [phoneOpen, setPhoneOpen] = useState(false)
+  const [dreamOpen, setDreamOpen] = useState(false)
 
   return (
     <>
       <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex flex-col gap-2 p-3 sm:p-4">
         <TopBar onOpenPhone={() => setPhoneOpen(true)} />
         <ObjectiveChip />
+        <DreamTracker onChangeDream={() => setDreamOpen(true)} />
         <ToastBubble />
       </div>
 
@@ -99,6 +112,8 @@ function Hud() {
       </div>
 
       <PhoneDialog open={phoneOpen} onOpenChange={setPhoneOpen} />
+      <ChangeDreamDialog open={dreamOpen} onOpenChange={setDreamOpen} />
+      <DreamCelebration />
       <EventDialog />
     </>
   )

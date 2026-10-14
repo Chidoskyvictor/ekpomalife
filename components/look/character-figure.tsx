@@ -1,34 +1,29 @@
 'use client'
 
 import { useGLTF } from '@react-three/drei'
-import { useLayoutEffect, useMemo, useRef, type ReactNode } from 'react'
+import { Suspense, use, useEffect, useLayoutEffect, useMemo, useRef, type ReactNode } from 'react'
 import {
   Box3,
   Bone,
-  CanvasTexture,
   Group,
   Mesh,
   MeshStandardMaterial,
-  RepeatWrapping,
-  SRGBColorSpace,
   SkinnedMesh,
   Vector3,
   type Object3D,
 } from 'three'
 import { HAIR_CONFIG, hairFitFor, type HairFit } from '@/lib/game/hair-config'
+import { meshoptDecoder } from '@/lib/game/meshopt'
 import {
   CHARACTER_GLB,
   HAIR_COLOR,
   SHOE_COLOR,
   SKIN,
-  fabricSwatch,
   type Appearance,
-  type FabricId,
   type HairId,
   type OutfitId,
 } from '@/lib/game/look'
 
-const fabricCache = new Map<string, MeshStandardMaterial>()
 const colorCache = new Map<string, MeshStandardMaterial>()
 
 function paint(color: string, roughness = 0.72) {
@@ -37,37 +32,6 @@ function paint(color: string, roughness = 0.72) {
     material = new MeshStandardMaterial({ color, roughness, metalness: 0.02 })
     colorCache.set(color, material)
   }
-  return material
-}
-
-function fabricMaterial(id: FabricId) {
-  const cached = fabricCache.get(id)
-  if (cached) return cached
-  const { a, b } = fabricSwatch(id)
-  const canvas = document.createElement('canvas')
-  canvas.width = 128
-  canvas.height = 128
-  const ctx = canvas.getContext('2d')!
-  ctx.fillStyle = b
-  ctx.fillRect(0, 0, 128, 128)
-        ctx.fillStyle = a
-  for (let y = -24; y < 152; y += 24) {
-    for (let x = -24; x < 152; x += 24) {
-      ctx.beginPath()
-      ctx.moveTo(x + 12, y)
-      ctx.lineTo(x + 24, y + 12)
-      ctx.lineTo(x + 12, y + 24)
-      ctx.lineTo(x, y + 12)
-      ctx.closePath()
-      ctx.fill()
-    }
-  }
-  const map = new CanvasTexture(canvas)
-  map.colorSpace = SRGBColorSpace
-  map.wrapS = map.wrapT = RepeatWrapping
-  map.repeat.set(2, 2)
-  const material = new MeshStandardMaterial({ map, roughness: 0.7 })
-  fabricCache.set(id, material)
   return material
 }
 
@@ -87,8 +51,8 @@ function Limb({
   )
 }
 
-function Hair({ id, body }: { id: HairId; body: Appearance['body'] }) {
-  const hair = paint(HAIR_COLOR)
+function Hair({ id, body, color }: { id: HairId; body: Appearance['body']; color: string }) {
+  const hair = paint(color)
   const gele = paint('#D4A84B')
   if (id === 'bald') return null
   if (id === 'lowcut') {
@@ -168,28 +132,37 @@ function Hair({ id, body }: { id: HairId; body: Appearance['body'] }) {
   )
 }
 
-function Clothes({ outfit, fabric, body }: { outfit: OutfitId; fabric: FabricId; body: Appearance['body'] }) {
-  const cloth = fabricMaterial(fabric)
-  const navy = paint('#243044')
-  const grey = paint('#6B7280')
+function Clothes({
+  outfit,
+  body,
+  topColor,
+  bottomColor,
+}: {
+  outfit: OutfitId
+  body: Appearance['body']
+  topColor: string
+  bottomColor: string
+}) {
+  const top = paint(topColor)
+  const bottom = paint(bottomColor)
   const woman = body === 'woman'
 
   if (outfit === 'hoodie') {
     return (
       <group>
-        <mesh position={[0, 1.12, 0]} material={cloth} castShadow><boxGeometry args={[0.46, 0.42, 0.28]} /></mesh>
-        <mesh position={[0, 1.32, 0]} material={cloth} castShadow><boxGeometry args={[0.34, 0.12, 0.26]} /></mesh>
-        <mesh position={[0, 0.62, 0]} material={grey} castShadow><boxGeometry args={[0.36, 0.46, 0.22]} /></mesh>
+        <mesh position={[0, 1.12, 0]} material={top} castShadow><boxGeometry args={[0.46, 0.42, 0.28]} /></mesh>
+        <mesh position={[0, 1.32, 0]} material={top} castShadow><boxGeometry args={[0.34, 0.12, 0.26]} /></mesh>
+        <mesh position={[0, 0.62, 0]} material={bottom} castShadow><boxGeometry args={[0.36, 0.46, 0.22]} /></mesh>
       </group>
     )
   }
-  if (outfit === 'office') {
+  if (outfit === 'office' || outfit === 'corporate') {
     return (
       <group>
-        <mesh position={[0, 1.12, 0]} material={woman ? cloth : paint('#F4F1EA')} castShadow>
+        <mesh position={[0, 1.12, 0]} material={top} castShadow>
           <boxGeometry args={[woman ? 0.4 : 0.44, 0.4, 0.24]} />
         </mesh>
-        <mesh position={[0, 0.58, 0]} material={navy} castShadow>
+        <mesh position={[0, 0.58, 0]} material={bottom} castShadow>
           <boxGeometry args={[woman ? 0.36 : 0.38, woman ? 0.42 : 0.52, 0.22]} />
         </mesh>
       </group>
@@ -198,43 +171,43 @@ function Clothes({ outfit, fabric, body }: { outfit: OutfitId; fabric: FabricId;
   if (outfit === 'chiller') {
     return (
       <group>
-        <mesh position={[0, 1.14, 0]} material={cloth} castShadow><boxGeometry args={[0.48, 0.36, 0.28]} /></mesh>
-        <mesh position={[0, 0.7, 0]} material={paint('#4B5563')} castShadow><boxGeometry args={[0.4, 0.28, 0.24]} /></mesh>
+        <mesh position={[0, 1.14, 0]} material={top} castShadow><boxGeometry args={[0.48, 0.36, 0.28]} /></mesh>
+        <mesh position={[0, 0.7, 0]} material={bottom} castShadow><boxGeometry args={[0.4, 0.28, 0.24]} /></mesh>
       </group>
     )
   }
   if (outfit === 'sitework') {
     return (
       <group>
-        <mesh position={[0, 1.12, 0]} material={paint('#F0EEE5')} castShadow><boxGeometry args={[0.44, 0.4, 0.24]} /></mesh>
-        <mesh position={[0, 0.62, 0]} material={paint('#C4A35A')} castShadow><boxGeometry args={[0.4, 0.48, 0.24]} /></mesh>
+        <mesh position={[0, 1.12, 0]} material={top} castShadow><boxGeometry args={[0.44, 0.4, 0.24]} /></mesh>
+        <mesh position={[0, 0.62, 0]} material={bottom} castShadow><boxGeometry args={[0.4, 0.48, 0.24]} /></mesh>
       </group>
     )
   }
   if (outfit === 'owambe') {
     return (
       <group>
-        <mesh position={[0, 1.14, 0]} material={cloth} castShadow><boxGeometry args={[0.4, 0.36, 0.24]} /></mesh>
-        <mesh position={[0, 0.62, 0]} material={cloth} castShadow><cylinderGeometry args={[0.28, 0.34, 0.7, 10]} /></mesh>
+        <mesh position={[0, 1.14, 0]} material={top} castShadow><boxGeometry args={[0.4, 0.36, 0.24]} /></mesh>
+        <mesh position={[0, 0.62, 0]} material={bottom} castShadow><cylinderGeometry args={[0.28, 0.34, 0.7, 10]} /></mesh>
       </group>
     )
   }
   return (
     <group>
-      <mesh position={[0, woman ? 1.16 : 1.1, 0]} material={cloth} castShadow>
+      <mesh position={[0, woman ? 1.16 : 1.1, 0]} material={top} castShadow>
         <boxGeometry args={[woman ? 0.36 : 0.42, woman ? 0.28 : 0.44, 0.22]} />
       </mesh>
       {!woman ? (
         <>
-          <mesh position={[-0.26, 1.18, 0]} material={cloth} castShadow>
+          <mesh position={[-0.26, 1.18, 0]} material={top} castShadow>
             <boxGeometry args={[0.14, 0.16, 0.16]} />
           </mesh>
-          <mesh position={[0.26, 1.18, 0]} material={cloth} castShadow>
+          <mesh position={[0.26, 1.18, 0]} material={top} castShadow>
             <boxGeometry args={[0.14, 0.16, 0.16]} />
           </mesh>
         </>
       ) : null}
-      <mesh position={[0, woman ? 0.7 : 0.58, 0]} material={woman ? navy : paint('#6B4DE0')} castShadow>
+      <mesh position={[0, woman ? 0.7 : 0.58, 0]} material={bottom} castShadow>
         {woman ? <cylinderGeometry args={[0.2, 0.26, 0.4, 10]} /> : <boxGeometry args={[0.36, 0.52, 0.2]} />}
       </mesh>
     </group>
@@ -244,26 +217,32 @@ function Clothes({ outfit, fabric, body }: { outfit: OutfitId; fabric: FabricId;
 function ModularFigure({ appearance }: { appearance: Appearance }) {
   const woman = appearance.body === 'woman'
   const shorts = appearance.outfit === 'chiller'
+  const skin = appearance.skin || SKIN
   return (
     <group>
-      <mesh position={[0, 1.48, 0]} material={paint(SKIN)} castShadow>
+      <mesh position={[0, 1.48, 0]} material={paint(skin)} castShadow>
         <sphereGeometry args={[0.2, 16, 12]} />
       </mesh>
-      <mesh position={[0, 1.3, 0]} material={paint(SKIN)} castShadow>
+      <mesh position={[0, 1.3, 0]} material={paint(skin)} castShadow>
         <cylinderGeometry args={[0.07, 0.08, 0.1, 8]} />
       </mesh>
-      <Clothes outfit={appearance.outfit} fabric={appearance.fabric} body={appearance.body} />
-      <Limb position={[woman ? -0.26 : -0.28, 1.08, 0]} size={[0.055, 0.42, 0.055]} color={SKIN} />
-      <Limb position={[woman ? 0.26 : 0.28, 1.08, 0]} size={[0.055, 0.42, 0.055]} color={SKIN} />
-      <Limb position={[-0.1, shorts ? 0.42 : 0.34, 0]} size={[0.07, shorts ? 0.28 : 0.46, 0.07]} color={SKIN} />
-      <Limb position={[0.1, shorts ? 0.42 : 0.34, 0]} size={[0.07, shorts ? 0.28 : 0.46, 0.07]} color={SKIN} />
+      <Clothes
+        outfit={appearance.outfit}
+        body={appearance.body}
+        topColor={appearance.topColor}
+        bottomColor={appearance.bottomColor}
+      />
+      <Limb position={[woman ? -0.26 : -0.28, 1.08, 0]} size={[0.055, 0.42, 0.055]} color={skin} />
+      <Limb position={[woman ? 0.26 : 0.28, 1.08, 0]} size={[0.055, 0.42, 0.055]} color={skin} />
+      <Limb position={[-0.1, shorts ? 0.42 : 0.34, 0]} size={[0.07, shorts ? 0.28 : 0.46, 0.07]} color={skin} />
+      <Limb position={[0.1, shorts ? 0.42 : 0.34, 0]} size={[0.07, shorts ? 0.28 : 0.46, 0.07]} color={skin} />
       <mesh position={[-0.1, 0.05, 0.04]} material={paint(SHOE_COLOR)} castShadow>
         <boxGeometry args={[0.12, 0.07, 0.2]} />
       </mesh>
       <mesh position={[0.1, 0.05, 0.04]} material={paint(SHOE_COLOR)} castShadow>
         <boxGeometry args={[0.12, 0.07, 0.2]} />
       </mesh>
-      <Hair id={appearance.hair} body={appearance.body} />
+      <Hair id={appearance.hair} body={appearance.body} color={appearance.hairColor || HAIR_COLOR} />
     </group>
   )
 }
@@ -371,6 +350,46 @@ function computeHeadBox(root: Object3D, scalpBoxes: Box3[]) {
   return box
 }
 
+function recolorMesh(mesh: Mesh, color: string) {
+  const sources = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
+  const painted = sources.map((source) => {
+    const material = (source as MeshStandardMaterial).clone()
+    material.color.set(color)
+    material.map = null
+    material.emissiveMap = null
+    material.vertexColors = false
+    material.roughness = 0.62
+    material.metalness = 0.04
+    return material
+  })
+  mesh.material = Array.isArray(mesh.material) ? painted : painted[0]!
+}
+
+function paintOutfitClothes(root: Object3D, colors: { top: string; bottom: string }) {
+  const body = visibleBox(root)
+  const height = Math.max(body.max.y - body.min.y, 0.001)
+  const parts: { mesh: Mesh; mid: number; label: string }[] = []
+  root.traverse((object) => {
+    const mesh = object as Mesh
+    if (!mesh.isMesh || !mesh.visible) return
+    const label = meshLabel(mesh)
+    if (/pele|cabelo|hair/.test(label) && !/blusa|calca/.test(label)) return
+    const box = new Box3().setFromObject(mesh)
+    const span = box.max.y - box.min.y
+    if (span > height * 0.88) return
+    const mid = (box.min.y + box.max.y) / 2
+    if ((mid - body.min.y) / height <= 0.2) return
+    parts.push({ mesh, mid, label })
+  })
+  parts.sort((a, b) => b.mid - a.mid)
+  const namedShirt = parts.find((part) => /blusa/.test(part.label))
+  const namedPants = parts.find((part) => /calca/.test(part.label))
+  const shirt = namedShirt ?? parts[0]
+  const pants = namedPants ?? parts.find((part) => part !== shirt)
+  if (shirt) recolorMesh(shirt.mesh, colors.top)
+  if (pants) recolorMesh(pants.mesh, colors.bottom)
+}
+
 function findHeadBone(root: Object3D) {
   let named: Object3D | null = null
   let loose: Object3D | null = null
@@ -402,14 +421,42 @@ function keepHairMeshes(root: Object3D) {
   freezeSkinnedMeshes(root)
 }
 
-function paintHairBlack(root: Object3D) {
+function paintImportedSkin(root: Object3D, skin: string) {
+  root.traverse((object) => {
+    const mesh = object as Mesh
+    if (!mesh.isMesh || !mesh.visible) return
+    const label = meshLabel(mesh)
+    if (/hair|cabelo|shirt|pant|shoe|boot|cloth|jean|fabric|outfit|hat|glass/.test(label)) return
+    const sources = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
+    const painted = sources.map((source) => {
+      const material = source as MeshStandardMaterial
+      if (!material?.color) return source
+      const named = /skin|body|face|arm|leg|hand|head|neck|chest|flesh|pele/.test(label)
+      const { r, g, b } = material.color
+      const chroma = Math.max(r, g, b) - Math.min(r, g, b)
+      const flesh = r > 0.38 && g > 0.22 && r > b && chroma > 0.08 && r + g + b > 1.1
+      if (!named && !flesh) return source
+      const next = material.clone()
+      next.color.set(skin)
+      next.map = null
+      next.emissiveMap = null
+      next.vertexColors = false
+      next.roughness = 0.62
+      next.metalness = 0.02
+      return next
+    })
+    mesh.material = Array.isArray(mesh.material) ? painted : painted[0]!
+  })
+}
+
+function paintHairBlack(root: Object3D, color = HAIR_COLOR) {
   root.traverse((object) => {
     const mesh = object as Mesh
     if (!mesh.isMesh || !mesh.visible) return
     const sources = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
     const painted = sources.map((source) => {
       const material = (source as MeshStandardMaterial).clone()
-      material.color.set(HAIR_COLOR)
+      material.color.set(color)
       material.map = null
       material.emissiveMap = null
       material.emissive.set(0, 0, 0)
@@ -472,12 +519,25 @@ function HeadSocket({
   )
 }
 
-function FittedHair({ file, fit, headSize }: { file: string; fit: HairFit; headSize: Vector3 }) {
-  const { scene } = useGLTF(file)
+function FittedHair({
+  file,
+  fit,
+  headSize,
+  color,
+}: {
+  file: string
+  fit: HairFit
+  headSize: Vector3
+  color: string
+}) {
+  const decoder = use(meshoptDecoder)
+  const { scene } = useGLTF(file, true, false, (loader) => {
+    loader.setMeshoptDecoder(decoder)
+  })
   const prepared = useMemo(() => {
     const clone = scene.clone(true)
     keepHairMeshes(clone)
-    if (fit.paint) paintHairBlack(clone)
+    paintHairBlack(clone, color)
     clone.position.set(0, 0, 0)
     clone.rotation.set(0, 0, 0)
     clone.scale.set(1, 1, 1)
@@ -502,7 +562,7 @@ function FittedHair({ file, fit, headSize }: { file: string; fit: HairFit; headS
       scale,
       position: [posX, posY + fit.offset[1], posZ] as [number, number, number],
     }
-  }, [scene, fit, headSize])
+  }, [scene, fit, headSize, color])
 
   return (
     <group position={prepared.position} scale={prepared.scale}>
@@ -533,6 +593,8 @@ function ImportedFigure({
     clone.rotation.x = rotX
     clone.updateMatrixWorld(true)
     const scalp = stripImportedHair(clone)
+    paintImportedSkin(clone, appearance.skin)
+    paintOutfitClothes(clone, { top: appearance.topColor, bottom: appearance.bottomColor })
     const headBox = computeHeadBox(clone, scalp)
     const box = visibleBox(clone)
     const size = box.getSize(new Vector3())
@@ -549,13 +611,17 @@ function ImportedFigure({
       headCenter: [headCenter.x, headCenter.y, headCenter.z] as [number, number, number],
       headSize,
     }
-  }, [scene, url])
+  }, [scene, url, appearance.body, appearance.skin, appearance.topColor, appearance.bottomColor])
 
   return (
     <group position={fit.position} scale={fit.scale}>
       <primitive object={fit.clone} />
       <HeadSocket bone={fit.bone} center={fit.headCenter}>
-        {hair ? <FittedHair file={hair.file} fit={hair} headSize={fit.headSize} /> : null}
+        <Suspense fallback={null}>
+          {hair ? (
+            <FittedHair file={hair.file} fit={hair} headSize={fit.headSize} color={appearance.hairColor} />
+          ) : null}
+        </Suspense>
       </HeadSocket>
     </group>
   )
@@ -570,6 +636,19 @@ export function CharacterFigure({
   imported?: boolean
   hairTune?: HairFit | null
 }) {
+  useEffect(() => {
+    void meshoptDecoder.then((decoder) => {
+      const styles = HAIR_CONFIG[appearance.body]
+      for (const style of Object.values(styles)) {
+        if (style?.file) {
+          useGLTF.preload(style.file, true, false, (loader) => {
+            loader.setMeshoptDecoder(decoder)
+          })
+        }
+      }
+    })
+  }, [appearance.body])
+
   if (imported) {
     return <ImportedFigure url={CHARACTER_GLB[appearance.body]} appearance={appearance} hairTune={hairTune} />
   }
@@ -578,8 +657,3 @@ export function CharacterFigure({
 
 useGLTF.preload(CHARACTER_GLB.man)
 useGLTF.preload(CHARACTER_GLB.woman)
-for (const styles of Object.values(HAIR_CONFIG)) {
-  for (const style of Object.values(styles)) {
-    if (style?.file) useGLTF.preload(style.file)
-  }
-}

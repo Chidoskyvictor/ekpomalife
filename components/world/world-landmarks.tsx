@@ -12,9 +12,9 @@ import { AdminBlock } from './admin-block'
 import { Block as Box, glass, paint } from './materials'
 
 const CAMPUS_ACCENT: Record<string, string> = {
-  aau_library: '#C9843A',
-  mbc: '#7A63B0',
-  college_of_medicine: '#C45C5C',
+  aau_library: MAP.laterite,
+  mbc: MAP.window,
+  college_of_medicine: MAP.laterite,
 }
 
 const HOSTEL_COLORS: Record<string, { wall: string; accent: string }> = {
@@ -24,7 +24,7 @@ const HOSTEL_COLORS: Record<string, { wall: string; accent: string }> = {
 
 function CampusBuilding({ location }: { location: LocationRecord }) {
   const [w, h, d] = location.size
-  const accent = CAMPUS_ACCENT[location.id] ?? '#2f80ed'
+  const accent = CAMPUS_ACCENT[location.id] ?? MAP.window
   const base = 0.16
   const fins = 6
 
@@ -75,7 +75,7 @@ function CampusBuilding({ location }: { location: LocationRecord }) {
 
 function Hostel({ location }: { location: LocationRecord }) {
   const [w, h, d] = location.size
-  const colors = HOSTEL_COLORS[location.id] ?? { wall: '#ffe3a3', accent: '#f2b705' }
+  const colors = HOSTEL_COLORS[location.id] ?? { wall: MAP.roof, accent: MAP.roof }
   const floors = 3
   const floorH = h / floors
 
@@ -210,7 +210,7 @@ function LandmarkModel({ location }: { location: LocationRecord }) {
           {Array.from({ length: 6 }, (_, i) => {
             const x = -w / 2 + 1.2 + (i % 3) * 2.3
             const z = i < 3 ? -1.2 : 1.2
-            const colors = [MAP.roof, MAP.vegetation, '#C8B48A', MAP.window, MAP.buildingGray, '#E2D3B4']
+            const colors = [MAP.roof, MAP.vegetation, MAP.roof, MAP.window, MAP.buildingGray, MAP.roof]
             return (
               <group key={i} position={[x, 0, z]}>
                 <Box position={[0, 0.45, 0]} size={[1.6, 0.6, 1.4]} color={MAP.building} />
@@ -265,7 +265,7 @@ function LandmarkModel({ location }: { location: LocationRecord }) {
     case 'innovation_hub':
       return <InnovationHub location={location} />
     case 'campus_shop':
-      return <Storefront location={location} accent="#7A63B0" />
+      return <Storefront location={location} accent={MAP.window} />
     default:
       break
   }
@@ -292,8 +292,10 @@ function pinHeightFor(location: LocationRecord) {
 function Landmark({ location, selected, isCurrent, onSelect }: LandmarkProps) {
   const [x, z] = location.position
   const [pinReady, setPinReady] = useState(false)
+  const [mobile, setMobile] = useState(false)
   useEffect(() => {
     const id = requestAnimationFrame(() => setPinReady(true))
+    setMobile(window.matchMedia('(max-width: 767px), (pointer: coarse)').matches)
     return () => cancelAnimationFrame(id)
   }, [])
   const handleClick = (event: ThreeEvent<MouseEvent>) => {
@@ -306,7 +308,12 @@ function Landmark({ location, selected, isCurrent, onSelect }: LandmarkProps) {
       <group onClick={handleClick}>
         <LandmarkModel location={location} />
       </group>
-      {pinReady ? (
+      {mobile ? (
+        <mesh position={[0, pinHeightFor(location), 0]} onClick={handleClick}>
+          <sphereGeometry args={[0.55, 12, 12]} />
+          <meshBasicMaterial color={selected || isCurrent ? MAP.window : MAP.roadMark} />
+        </mesh>
+      ) : pinReady ? (
       <Html position={[0, pinHeightFor(location), 0]} center zIndexRange={[20, 10]}>
         <button
           type="button"

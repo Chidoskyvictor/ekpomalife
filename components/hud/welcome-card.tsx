@@ -1,26 +1,33 @@
 'use client'
 
+import { motion, useReducedMotion } from 'motion/react'
 import { AuthLinks } from '@/components/hud/auth-links'
+import { motionTokens } from '@/components/arc/lib/motion-tokens'
 import { usePlayerStats } from '@/hooks/use-player-stats'
+import styles from './welcome-card.module.css'
 
 export function WelcomeCard() {
   const { online } = usePlayerStats()
+  const reduceMotion = useReducedMotion() ?? false
 
   return (
-    <section
+    <motion.section
       aria-label="Join Ekpoma Life"
-      className="liquid-glass pointer-events-auto mx-auto flex w-full max-w-2xl items-center justify-between gap-3 rounded-full py-3 pr-3 pl-5"
+      className={styles.card}
+      initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={reduceMotion ? { duration: 0 } : motionTokens.spring.smooth}
     >
-      <p className="flex min-w-0 items-center gap-2 text-xs font-semibold text-foreground/80 sm:text-sm">
-        <span className="relative flex size-2 shrink-0" aria-hidden="true">
-          <span className="absolute inset-0 animate-ping rounded-full bg-[#1fb978] opacity-60" />
-          <span className="relative size-2 rounded-full bg-[#1fb978]" />
+      <p className={styles.status}>
+        <span className={styles.dot} aria-hidden="true">
+          <span className={styles.pulse} />
+          <span className={styles.live} />
         </span>
-        <span className="truncate">
-          <span className="tabular-nums">{online.toLocaleString()}</span> students on campus right now
+        <span className={styles.label}>
+          <span className={styles.count}>{online.toLocaleString()}</span> students on campus right now
         </span>
       </p>
       <AuthLinks size="lg" signupFirst />
-    </section>
+    </motion.section>
   )
 }

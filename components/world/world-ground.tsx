@@ -3,12 +3,11 @@
 import { useMemo } from 'react'
 import { ExtrudeGeometry, Shape } from 'three'
 import { MAP } from '@/lib/game/map-theme'
-import { SLABS, type Slab } from '@/lib/game/world-layout'
+import { SLABS, UKE_LATERITE, type Slab } from '@/lib/game/world-layout'
 import { WorldRoads } from './world-roads'
 
-function slabGeometry(slab: Pick<Slab, 'w' | 'd' | 'h' | 'radius'>) {
-  const { w, d, h, radius } = slab
-  const r = Math.min(radius, w / 2 - 0.4, d / 2 - 0.4)
+function roundedRect(w: number, d: number, radius: number) {
+  const r = Math.min(radius, w / 2 - 0.2, d / 2 - 0.2)
   const x = -w / 2
   const y = -d / 2
   const shape = new Shape()
@@ -21,43 +20,76 @@ function slabGeometry(slab: Pick<Slab, 'w' | 'd' | 'h' | 'radius'>) {
   shape.quadraticCurveTo(x, y + d, x, y + d - r)
   shape.lineTo(x, y + r)
   shape.quadraticCurveTo(x, y, x + r, y)
-  return new ExtrudeGeometry(shape, {
+  return shape
+}
+
+function slabGeometry(w: number, d: number, h: number, radius: number) {
+  return new ExtrudeGeometry(roundedRect(w, d, radius), {
     depth: h,
-    bevelEnabled: true,
-    bevelThickness: 0.08,
-    bevelSize: 0.1,
-    bevelSegments: 3,
+    bevelEnabled: false,
     curveSegments: 10,
   })
 }
 
 function Island({ slab }: { slab: Slab }) {
-  const geometry = useMemo(() => slabGeometry(slab), [slab])
+  const fill = useMemo(() => slabGeometry(slab.w, slab.d, slab.h, slab.radius), [slab])
+  const outline = useMemo(
+    () => slabGeometry(slab.w + 0.36, slab.d + 0.36, 0.03, slab.radius + 0.08),
+    [slab],
+  )
+  const color = slab.tone === 'residential' ? MAP.landLight : MAP.land
 
+  return (
+    <group>
+      <mesh
+        geometry={outline}
+        rotation={[-Math.PI / 2, 0, 0]}
+        position={[slab.x, -slab.h + 0.01, slab.z]}
+        receiveShadow
+      >
+        <meshStandardMaterial color={MAP.slabOutline} roughness={0.96} />
+      </mesh>
+      <mesh
+        geometry={fill}
+        rotation={[-Math.PI / 2, 0, 0]}
+        position={[slab.x, -slab.h, slab.z]}
+        receiveShadow
+      >
+        <meshStandardMaterial color={color} roughness={0.94} />
+      </mesh>
+    </group>
+  )
+}
+
+function LateritePatch() {
+  const geometry = useMemo(
+    () => slabGeometry(UKE_LATERITE.w, UKE_LATERITE.d, 0.04, 1.2),
+    [],
+  )
   return (
     <mesh
       geometry={geometry}
       rotation={[-Math.PI / 2, 0, 0]}
-      position={[slab.x, -slab.h, slab.z]}
+      position={[UKE_LATERITE.x, 0.02, UKE_LATERITE.z]}
       receiveShadow
-      castShadow
     >
-      <meshStandardMaterial color={MAP.land} roughness={0.94} />
+      <meshStandardMaterial color={MAP.laterite} roughness={0.92} />
     </mesh>
   )
 }
 
 export function WorldGround() {
-  const waterY = -SLABS[0]!.h - 0.28
+  const floorY = -SLABS[0]!.h - 0.08
   return (
     <group>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, waterY, 0]} receiveShadow>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, floorY, 0]} receiveShadow>
         <planeGeometry args={[420, 420]} />
         <meshStandardMaterial color={MAP.water} roughness={0.96} />
       </mesh>
       {SLABS.map((slab) => (
         <Island key={slab.name} slab={slab} />
       ))}
+      <LateritePatch />
       <WorldRoads />
     </group>
   )

@@ -1,0 +1,36 @@
+.confetti {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 2rem;
+}
+
+.bit {
+  display: inline-block;
+  font-size: var(--text-lg);
+  animation: pop var(--duration-considered) var(--ease-standard) both;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bit {
+    animation: none;
+  }
+}
+
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}

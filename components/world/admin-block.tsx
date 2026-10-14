@@ -2,13 +2,12 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { Box3, MeshStandardMaterial, Vector3, type BufferGeometry, type Mesh } from 'three'
-import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js'
-import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
+import { meshoptDecoder } from '@/lib/game/meshopt'
 import type { LocationRecord } from '@/lib/game/types'
 import { Block } from './materials'
 
-const MODEL_URL = '/models/admin-block.glb?v=meshopt1'
+const MODEL_URL = '/models/admin-block.glb?v=meshopt2'
 
 const paintedMaterial = (color: string, roughness: number) =>
   new MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.12, roughness, flatShading: true, toneMapped: false })
@@ -23,39 +22,39 @@ const PART_MATERIALS: Record<string, MeshStandardMaterial> = {
 
 type Part = { geometry: BufferGeometry; material: MeshStandardMaterial }
 
-let modelPromise: Promise<{ parts: Part[]; size: Vector3 }> | null = null
-
-function createLoader() {
-  const loader = new GLTFLoader()
-  const draco = new DRACOLoader()
-  draco.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.7/')
-  loader.setDRACOLoader(draco)
-  loader.setMeshoptDecoder(typeof MeshoptDecoder === 'function' ? MeshoptDecoder() : MeshoptDecoder)
-  return loader
-}
+let modelPromise: Promise<{ parts: Part[]; size: Vector3 } | null> | null = null
 
 function loadModel() {
-  modelPromise ??= createLoader().loadAsync(MODEL_URL).then(({ scene }) => {
-    const parts: Part[] = []
-    scene.traverse((object) => {
-      const mesh = object as Mesh
-      if (mesh.isMesh) {
-        const name = (mesh.material as MeshStandardMaterial).name
-        parts.push({ geometry: mesh.geometry, material: PART_MATERIALS[name] ?? wallMaterial })
-      }
+  modelPromise ??= meshoptDecoder
+    .then((decoder) => {
+      const loader = new GLTFLoader()
+      loader.setMeshoptDecoder(decoder)
+      return loader.loadAsync(MODEL_URL)
     })
-    return { parts, size: new Box3().setFromObject(scene).getSize(new Vector3()) }
-  })
+    .then(({ scene }) => {
+      const parts: Part[] = []
+      scene.traverse((object) => {
+        const mesh = object as Mesh
+        if (mesh.isMesh) {
+          const name = (mesh.material as MeshStandardMaterial).name
+          parts.push({ geometry: mesh.geometry, material: PART_MATERIALS[name] ?? wallMaterial })
+        }
+      })
+      return { parts, size: new Box3().setFromObject(scene).getSize(new Vector3()) }
+    })
+    .catch(() => null)
   return modelPromise
 }
 
 export function AdminBlock({ location }: { location: LocationRecord }) {
-  const [w, , d] = location.size
-  const [model, setModel] = useState<Awaited<ReturnType<typeof loadModel>> | null>(null)
+  const [w, h, d] = location.size
+  const [model, setModel] = useState<Awaited<ReturnType<typeof loadModel>>>(null)
 
   useEffect(() => {
     let active = true
-    loadModel().then((loaded) => active && setModel(loaded))
+    loadModel().then((loaded) => {
+      if (active) setModel(loaded)
+    })
     return () => {
       active = false
     }
@@ -72,7 +71,9 @@ export function AdminBlock({ location }: { location: LocationRecord }) {
             <mesh key={index} geometry={part.geometry} material={part.material} castShadow receiveShadow />
           ))}
         </group>
-      ) : null}
+      ) : (
+        <Block position={[0, 0.12 + h / 2, 0]} size={[w, h, d]} color="#cfae8a" />
+      )}
     </group>
   )
 }

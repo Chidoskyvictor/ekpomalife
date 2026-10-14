@@ -1,18 +1,13 @@
 'use client'
 
-import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { getSession, saveKey } from '@/lib/game/accounts'
+import { TextShimmer } from '@/components/arc/text-shimmer/text-shimmer'
+import { getSession, loadDraft, saveKey } from '@/lib/game/accounts'
+import GameShell from './game-shell'
+import styles from './game-loader.module.css'
 
-const GameShell = dynamic(() => import('./game-shell'), {
-  ssr: false,
-  loading: () => (
-    <div className="flex h-dvh w-full items-center justify-center bg-[#F4F7FB]">
-      <p className="animate-pulse text-sm font-semibold text-neutral-500">Loading Ekpoma…</p>
-    </div>
-  ),
-})
+const SPLASH_MS = 1400
 
 export function GameLoader() {
   const router = useRouter()
@@ -21,16 +16,22 @@ export function GameLoader() {
   useEffect(() => {
     const username = getSession()
     if (username && !window.localStorage.getItem(saveKey(username))) {
-      router.replace('/look')
+      const draft = loadDraft(username)
+      router.replace(draft?.appearance ? '/traits' : '/look')
       return
     }
-    setReady(true)
+
+    const timer = window.setTimeout(() => setReady(true), SPLASH_MS)
+    return () => window.clearTimeout(timer)
   }, [router])
 
   if (!ready) {
     return (
-      <div className="flex h-dvh w-full items-center justify-center bg-[#F4F7FB]">
-        <p className="animate-pulse text-sm font-semibold text-neutral-500">Loading Ekpoma…</p>
+      <div className={styles.loading} aria-busy="true" aria-live="polite">
+        <img src="/logo.png" alt="" className={styles.crest} width={88} height={88} />
+        <h1 className={styles.mark}>
+          <TextShimmer>Ekpoma Life</TextShimmer>
+        </h1>
       </div>
     )
   }

@@ -5,6 +5,7 @@ import helmet from '@fastify/helmet'
 import rateLimit from '@fastify/rate-limit'
 import { env } from './env.js'
 import { pool } from './db.js'
+import { characterRoutes } from './routes/character.js'
 import { loginRoutes } from './routes/login.js'
 import { signupRoutes } from './routes/signup.js'
 
@@ -32,10 +33,13 @@ app.get('/', async () => ({
   health: '/health',
   signup: 'POST /auth/signup',
   login: 'POST /auth/login',
+  dream: 'POST /character/dream',
+  dreamCheck: 'POST /character/dream/check',
 }))
 app.get('/health', async () => ({ ok: true }))
 await app.register(signupRoutes)
 await app.register(loginRoutes)
+await app.register(characterRoutes)
 
 const shutdown = async () => {
   await app.close()

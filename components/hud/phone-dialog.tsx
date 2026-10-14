@@ -3,9 +3,29 @@
 import { Lock } from 'lucide-react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useGame } from '@/hooks/use-game'
+import { dreamProgress, getDream, snapshotFromLife } from '@/lib/game/dreams'
 import { cn } from '@/lib/utils'
 
 const TONE_DOT = { good: 'bg-primary', bad: 'bg-destructive', neutral: 'bg-[#e2b63a]' }
+
+function DreamProfile() {
+  const { state } = useGame()
+  if (!state?.dreamId) return null
+  const dream = getDream(state.dreamId)
+  if (!dream) return null
+  const progress = dreamProgress(dream, snapshotFromLife(state.cash, state.dream))
+  return (
+    <section className="rounded-2xl bg-secondary p-3" aria-label="Big dream">
+      <p className="text-sm">
+        <span aria-hidden="true">{dream.emoji} </span>
+        {progress.label}
+      </p>
+      {state.badges.length > 0 ? (
+        <p className="mt-1 text-xs text-muted-foreground">Badges: {state.badges.join(', ')}</p>
+      ) : null}
+    </section>
+  )
+}
 
 export function PhoneDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const { state, select } = useGame()
@@ -18,6 +38,7 @@ export function PhoneDialog({ open, onOpenChange }: { open: boolean; onOpenChang
           <span className="h-1.5 w-16 rounded-full bg-white/30" />
         </div>
         <div className="flex flex-col gap-3 overflow-y-auto px-5 pb-5">
+          {state.dreamId ? <DreamProfile /> : null}
           <DialogHeader>
             <DialogTitle className="text-lg font-extrabold">{state.hasPhone ? 'Gist feed' : 'No phone yet'}</DialogTitle>
             <DialogDescription>

@@ -62,6 +62,13 @@
   --gold: oklch(0.85 0.16 90);
   --laterite: oklch(0.62 0.15 45);
   --radius: 0.875rem;
+  --app-wash: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--primary) 16%, white) 0%,
+    color-mix(in oklab, var(--primary) 10%, white) 28%,
+    color-mix(in oklab, var(--primary) 5%, white) 52%,
+    white 78%
+  );
 }
 
 @layer base {

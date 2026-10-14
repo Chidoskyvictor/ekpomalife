@@ -1,4 +1,6 @@
+import type { DreamId, DreamSnapshot } from './dreams'
 import type { Appearance } from './look'
+import type { TraitId } from './traits'
 
 export type TimePeriod = 'morning' | 'afternoon' | 'evening' | 'night'
 
@@ -30,6 +32,12 @@ export type GameState = {
   username: string
   avatarColor: string
   appearance?: Appearance
+  traits?: TraitId[]
+  dreamId?: DreamId | null
+  dream: DreamSnapshot
+  badges: string[]
+  dreamCompleted: boolean
+  dreamCelebrated: boolean
   cash: number
   energy: number
   health: number

@@ -2,6 +2,7 @@ import { apiUrl } from './api'
 
 const ACCOUNTS_KEY = 'ekpoma-life-accounts-v1'
 const SESSION_KEY = 'ekpoma-life-session-v1'
+const PROFILE_KEY = 'ekpoma-life-profile-v1'
 
 export const MIN_AGE = 18
 export const MIN_PASSWORD_LENGTH = 8
@@ -30,6 +31,7 @@ export type PublicAccount = { name: string; username: string }
 type Result = { ok: true; account: PublicAccount } | { ok: false; error: string }
 
 export const saveKey = (username: string) => `ekpoma-life-save-v3:${username}`
+export const draftKey = (username: string) => `ekpoma-life-draft-v1:${username}`
 
 export const normalizeUsername = (username: string) => username.trim().toLowerCase()
 
@@ -84,6 +86,7 @@ export async function createAccount(input: SignupInput): Promise<Result> {
     })
     const data = (await response.json()) as Result
     if (!data.ok) return { ok: false, error: data.error || 'Could not create the account.' }
+    rememberProfile(data.account)
     return data
   } catch {
     return { ok: false, error: 'Cannot reach the server. Is the backend running?' }
@@ -103,13 +106,29 @@ export async function verifyLogin(usernameInput: string, password: string): Prom
     })
     const data = (await response.json()) as Result
     if (!data.ok) return { ok: false, error: data.error || 'Wrong username or password.' }
+    rememberProfile(data.account)
     return data
   } catch {
     return { ok: false, error: 'Cannot reach the server. Is the backend running?' }
   }
 }
 
+export function rememberProfile(account: PublicAccount) {
+  window.localStorage.setItem(PROFILE_KEY, JSON.stringify(account))
+}
+
+export function getProfile(): PublicAccount | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = window.localStorage.getItem(PROFILE_KEY)
+    return raw ? (JSON.parse(raw) as PublicAccount) : null
+  } catch {
+    return null
+  }
+}
+
 export function getSession() {
+  if (typeof window === 'undefined') return null
   return window.localStorage.getItem(SESSION_KEY)
 }
 
@@ -119,4 +138,27 @@ export function setSession(username: string) {
 
 export function clearSession() {
   window.localStorage.removeItem(SESSION_KEY)
+}
+
+export type LookDraft = {
+  appearance?: unknown
+  traits?: string[]
+  dreamId?: string | null
+}
+
+export function loadDraft(username: string): LookDraft | null {
+  try {
+    const raw = window.localStorage.getItem(draftKey(username))
+    return raw ? (JSON.parse(raw) as LookDraft) : null
+  } catch {
+    return null
+  }
+}
+
+export function saveDraft(username: string, draft: LookDraft) {
+  window.localStorage.setItem(draftKey(username), JSON.stringify(draft))
+}
+
+export function clearDraft(username: string) {
+  window.localStorage.removeItem(draftKey(username))
 }

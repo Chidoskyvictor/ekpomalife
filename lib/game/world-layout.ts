@@ -4,71 +4,119 @@ import { HOUSE_ROOFS, HOUSE_WALLS } from './map-theme'
 export type Rect = { x: number; z: number; w: number; d: number }
 export type Land = Rect & { name: string; shade?: 'light'; empty?: boolean }
 
-export type Slab = Rect & { name: string; h: number; radius: number }
+export type Slab = Rect & { name: string; h: number; radius: number; tone?: 'land' | 'residential' }
 
-const SLAB = { w: 36, d: 26, h: 0.42, radius: 2.1 }
-const SLAB_GAP = 1.54
+const WORLD_W = 148
+const WORLD_D = 120
+const LAYOUT_Z = -32
+const WEST = -WORLD_W / 2
+const NORTH = -WORLD_D / 2
+const ROAD_W = 4
+export const SLAB_H = 0.42
+const SLAB_R = 1.5
 
-export const CAMPUS_SLAB: Slab = { name: 'campus', x: -10, z: -18, ...SLAB }
-export const FRONT_SLAB: Slab = { name: 'front', x: CAMPUS_SLAB.x, z: CAMPUS_SLAB.z + SLAB.d + SLAB_GAP, ...SLAB }
-export const LEFT_SLAB: Slab = {
-  name: 'left',
-  x: CAMPUS_SLAB.x - SLAB.w - SLAB_GAP,
-  z: (CAMPUS_SLAB.z + FRONT_SLAB.z) / 2,
-  w: SLAB.w,
-  d: SLAB.d * 2 + SLAB_GAP,
-  h: SLAB.h,
-  radius: SLAB.radius,
+const xFromWest = (pct: number) => WEST + (pct / 100) * WORLD_W
+const zFromNorth = (pct: number) => NORTH + (pct / 100) * WORLD_D
+
+function slabFromPct(
+  name: string,
+  westPct: number,
+  eastPct: number,
+  northPct: number,
+  southPct: number,
+  tone: 'land' | 'residential' = 'land',
+): Slab {
+  const x0 = xFromWest(westPct)
+  const x1 = xFromWest(eastPct)
+  const z0 = zFromNorth(northPct)
+  const z1 = zFromNorth(southPct)
+  return {
+    name,
+    x: (x0 + x1) / 2,
+    z: (z0 + z1) / 2 + LAYOUT_Z,
+    w: x1 - x0,
+    d: z1 - z0,
+    h: SLAB_H,
+    radius: SLAB_R,
+    tone,
+  }
 }
-export const SCHOOL_SLAB: Slab = {
-  name: 'school',
-  x: (LEFT_SLAB.x + CAMPUS_SLAB.x) / 2,
-  z: FRONT_SLAB.z + SLAB.d / 2 + SLAB_GAP + (SLAB.d * 2) / 2,
-  w: SLAB.w * 2 + SLAB_GAP,
-  d: SLAB.d * 2,
-  h: SLAB.h,
-  radius: 2.6,
+
+function roadEW(name: string, heightPct: number, dashed = false): RoadGap {
+  return { name, x: 0, z: zFromNorth(heightPct) + LAYOUT_Z, w: WORLD_W, d: ROAD_W, dashed }
 }
-export const SLABS: Slab[] = [CAMPUS_SLAB, LEFT_SLAB, FRONT_SLAB, SCHOOL_SLAB]
 
-export type RoadGap = Rect & { name: string }
+export const LEFT_SLAB: Slab = slabFromPct('north', 1, 99, 1, 45)
+export const CAMPUS_SLAB: Slab = LEFT_SLAB
+export const FRONT_SLAB: Slab = slabFromPct('south', 1, 99, 54, 97)
+export const IHUMUDUMU_SLAB: Slab = FRONT_SLAB
+export const EMAUDO_SLAB: Slab = FRONT_SLAB
+export const SCHOOL_SLAB: Slab = FRONT_SLAB
 
-export const ROAD_GAPS: RoadGap[] = [
-  {
-    name: 'side',
-    x: (LEFT_SLAB.x + CAMPUS_SLAB.x) / 2,
-    z: LEFT_SLAB.z,
-    w: SLAB_GAP,
-    d: LEFT_SLAB.d,
-  },
-  {
-    name: 'campus-front',
-    x: CAMPUS_SLAB.x,
-    z: (CAMPUS_SLAB.z + FRONT_SLAB.z) / 2,
-    w: CAMPUS_SLAB.w,
-    d: SLAB_GAP,
-  },
-  {
-    name: 'school',
-    x: SCHOOL_SLAB.x,
-    z: (FRONT_SLAB.z + FRONT_SLAB.d / 2 + SCHOOL_SLAB.z - SCHOOL_SLAB.d / 2) / 2,
-    w: SCHOOL_SLAB.w,
-    d: SLAB_GAP,
-  },
+export const UKE_SLAB = FRONT_SLAB
+export const OUTSKIRTS_SLAB = FRONT_SLAB
+export const RESIDENTIAL_SLAB = LEFT_SLAB
+
+export const SLABS: Slab[] = [LEFT_SLAB, FRONT_SLAB]
+
+export const UKE_LATERITE: Rect = {
+  x: xFromWest(18),
+  z: zFromNorth(72) + LAYOUT_Z,
+  w: 24,
+  d: 20,
+}
+
+export type RoadGap = Rect & { name: string; dashed?: boolean }
+
+export const ROAD_GAPS: RoadGap[] = [roadEW('benin-auchi', 49.5, true)]
+
+export const ROAD_FRAME: Rect[] = [
+  { x: 0, z: NORTH - 1 + LAYOUT_Z, w: WORLD_W + 4, d: 2 },
+  { x: 0, z: NORTH + WORLD_D + 1 + LAYOUT_Z, w: WORLD_W + 4, d: 2 },
+  { x: WEST - 1, z: LAYOUT_Z, w: 2, d: WORLD_D },
+  { x: WEST + WORLD_W + 1, z: LAYOUT_Z, w: 2, d: WORLD_D },
 ]
 
-export const WORLD: Rect = { x: SCHOOL_SLAB.x, z: 16, w: 120, d: 130 }
+export const WORLD: Rect = { x: 0, z: LAYOUT_Z, w: WORLD_W, d: WORLD_D }
 
-export const LANDS: Land[] = SLABS.map(({ name, x, z, w, d }) => ({ name, x, z, w, d }))
+export const LANDS: Land[] = SLABS.map(({ name, x, z, w, d, tone }) => ({
+  name,
+  x,
+  z,
+  w,
+  d,
+  shade: tone === 'residential' ? 'light' : undefined,
+}))
 
-export const LAND_CENTER = { x: SCHOOL_SLAB.x, z: 16 }
+export const LAND_CENTER = { x: 0, z: 0 }
 
-export const ROADS: Rect[] = []
+export const ROADS: Rect[] = ROAD_GAPS.map(({ x, z, w, d }) => ({ x, z, w, d }))
 
-export const CAMPUS_ZONE: Rect = { x: CAMPUS_SLAB.x, z: CAMPUS_SLAB.z, w: CAMPUS_SLAB.w, d: CAMPUS_SLAB.d }
+export const CAMPUS_ZONE: Rect = {
+  x: (xFromWest(55) + xFromWest(99)) / 2,
+  z: LEFT_SLAB.z,
+  w: xFromWest(99) - xFromWest(55),
+  d: LEFT_SLAB.d,
+}
 export const MED_ZONE: Rect = { x: 0, z: 0, w: 0, d: 0 }
 
-export const MAP_LOCATION_IDS = ['aau_campus'] as const
+export const MAP_LOCATION_IDS = [
+  'aau_campus',
+  'aau_library',
+  'mbc',
+  'sports_complex',
+  'college_of_medicine',
+  'campus_shop',
+  'keke_park',
+  'roadside_bukka',
+  'viewing_centre',
+  'ekpoma_market',
+  'innovation_hub',
+  'church',
+  'mosque',
+  'igbinedion_hostel',
+  'maryvale_hostel',
+] as const
 export type MapLocationId = (typeof MAP_LOCATION_IDS)[number]
 export const isMapLocation = (id: string): id is MapLocationId =>
   (MAP_LOCATION_IDS as readonly string[]).includes(id)

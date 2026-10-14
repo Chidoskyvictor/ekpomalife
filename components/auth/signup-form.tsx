@@ -2,13 +2,13 @@
 
 import { useRouter } from 'next/navigation'
 import { useState, type FormEvent } from 'react'
-import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
-import { Input } from '@/components/ui/input'
+import { Button } from '@/components/arc/button/button'
+import { Checkbox } from '@/components/arc/checkbox/checkbox'
+import { Input } from '@/components/arc/input/input'
+import { PasswordField } from '@/components/arc/password-field/password-field'
 import { createAccount, MIN_AGE, MIN_PASSWORD_LENGTH, setSession } from '@/lib/game/accounts'
-import { FormError, inputClass, submitClass } from './form-parts'
-import { PasswordInput } from './password-input'
+import { ActiveFill, FormError } from './form-parts'
+import styles from './auth.module.css'
 
 export function SignupForm() {
   const router = useRouter()
@@ -34,91 +34,68 @@ export function SignupForm() {
   }
 
   return (
-    <form onSubmit={submit} noValidate>
-      <FieldGroup className="gap-4">
-        <p className="text-center text-sm text-muted-foreground">Start your AAU life. Free.</p>
-        <Field>
-          <FieldLabel htmlFor="name">Name</FieldLabel>
-          <Input
-            id="name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Ese Ehimen"
-            autoComplete="name"
-            maxLength={40}
-            required
-            className={inputClass}
-          />
-        </Field>
-        <Field>
-          <FieldLabel htmlFor="username">Username</FieldLabel>
-          <div className="relative">
-            <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-base text-muted-foreground md:text-sm">
-              @
-            </span>
-            <Input
-              id="username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value.replace(/^@/, ''))}
-              autoComplete="username"
-              autoCapitalize="none"
-              spellCheck={false}
-              maxLength={20}
-              required
-              placeholder="ese_star"
-              aria-describedby="username-hint"
-              className={`${inputClass} pl-8`}
-            />
-          </div>
-          <FieldDescription id="username-hint" className="text-xs">
-            Letters, numbers and _ only. This is how people see you.
-          </FieldDescription>
-        </Field>
-        <Field>
-          <FieldLabel htmlFor="email">Email</FieldLabel>
-          <Input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@email.com"
-            autoComplete="email"
-            required
-            className={inputClass}
-          />
-        </Field>
-        <Field>
-          <FieldLabel htmlFor="password">Password</FieldLabel>
-          <PasswordInput
-            id="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            autoComplete="new-password"
-            required
-            aria-describedby="password-hint"
-            className={inputClass}
-          />
-          <FieldDescription id="password-hint" className="text-xs">
-            At least {MIN_PASSWORD_LENGTH} characters. Mix letters — not your name or a simple number.
-          </FieldDescription>
-        </Field>
-        <Field orientation="horizontal" className="items-start rounded-xl border bg-neutral-50 p-3">
-          <Checkbox
-            id="adult"
-            checked={isAdult}
-            onCheckedChange={(checked) => setIsAdult(checked)}
-            required
-            className="mt-0.5"
-          />
-          <FieldLabel htmlFor="adult" className="font-normal leading-snug">
-            I am {MIN_AGE} or older and I agree to the terms.
-          </FieldLabel>
-        </Field>
-        <FormError message={error} />
-        <Button type="submit" disabled={busy} className={submitClass}>
-          {busy ? 'Creating account…' : 'Continue'}
-        </Button>
-      </FieldGroup>
+    <form onSubmit={submit} noValidate className={styles.form}>
+      <p className={styles.lede}>Start your AAU life. Free.</p>
+      <ActiveFill>
+        <Input
+          id="name"
+          label="Name"
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          placeholder="Ese Ehimen"
+          autoComplete="name"
+          maxLength={40}
+          required
+        />
+      </ActiveFill>
+      <ActiveFill>
+        <Input
+          id="username"
+          label="Username"
+          value={username}
+          onChange={(event) => setUsername(event.target.value.replace(/^@/, ''))}
+          autoComplete="username"
+          autoCapitalize="none"
+          spellCheck={false}
+          maxLength={20}
+          required
+          placeholder="ese_star"
+          description="Letters, numbers and _ only. This is how people see you."
+        />
+      </ActiveFill>
+      <ActiveFill>
+        <Input
+          id="email"
+          label="Email"
+          type="email"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          placeholder="you@email.com"
+          autoComplete="email"
+          required
+        />
+      </ActiveFill>
+      <ActiveFill>
+        <PasswordField
+          id="password"
+          label="Password"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          autoComplete="new-password"
+          required
+          description={`At least ${MIN_PASSWORD_LENGTH} characters. Mix letters — not your name or a simple number.`}
+        />
+      </ActiveFill>
+      <Checkbox
+        label={`I am ${MIN_AGE} or older and I agree to the terms.`}
+        checked={isAdult}
+        onCheckedChange={(checked) => setIsAdult(checked === true)}
+        required
+      />
+      <FormError message={error} />
+      <Button type="submit" loading={busy} className={styles.submit}>
+        {busy ? 'Creating account…' : 'Continue'}
+      </Button>
     </form>
   )
 }

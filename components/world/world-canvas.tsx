@@ -2,7 +2,7 @@
 
 import { MapControls } from '@react-three/drei'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { Suspense, useEffect, useRef } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { Vector3 } from 'three'
 import { getLocation } from '@/lib/game/content'
 import { MAP } from '@/lib/game/map-theme'
@@ -12,11 +12,11 @@ import { PlayerAvatar } from './player-avatar'
 import { WorldGround } from './world-ground'
 import { WorldLandmarks } from './world-landmarks'
 
-const PITCH = (48 * Math.PI) / 180
+const PITCH = (30 * Math.PI) / 180
 const HEADING = 0
-const DISTANCE = 64
-const MIN_PITCH = (35 * Math.PI) / 180
-const MAX_PITCH = (58 * Math.PI) / 180
+const DISTANCE = 100
+const MIN_PITCH = (22 * Math.PI) / 180
+const MAX_PITCH = (48 * Math.PI) / 180
 const TARGET_PAD = 8
 
 const CAMERA_OFFSET = new Vector3(
@@ -68,12 +68,27 @@ function CameraRig({ focusId }: { focusId: string | null }) {
 export function WorldCanvas() {
   const { state, selectedId, select } = useGame()
   const currentId = state?.locationId ?? null
+  const [mobile, setMobile] = useState(
+    () => window.matchMedia('(max-width: 767px), (pointer: coarse)').matches,
+  )
+
+  useEffect(() => {
+    const query = window.matchMedia('(max-width: 767px), (pointer: coarse)')
+    const sync = () => setMobile(query.matches)
+    query.addEventListener('change', sync)
+    return () => query.removeEventListener('change', sync)
+  }, [])
 
   return (
-    <div className="absolute inset-0 bg-[#F4EFE3]" aria-label="Interactive map of Ekpoma" role="application">
+    <div className="absolute inset-0 bg-[#56A2C3]" aria-label="Interactive map of Ekpoma" role="application">
       <Canvas
-        shadows
-        dpr={[1, 1.75]}
+        shadows={!mobile}
+        dpr={mobile ? [1, 1] : [1, 1.75]}
+        gl={{
+          antialias: !mobile,
+          powerPreference: mobile ? 'low-power' : 'high-performance',
+          failIfMajorPerformanceCaveat: false,
+        }}
         camera={{
           position: [LAND_CENTER.x + CAMERA_OFFSET.x, CAMERA_OFFSET.y, LAND_CENTER.z + CAMERA_OFFSET.z],
           fov: 42,
@@ -83,12 +98,12 @@ export function WorldCanvas() {
         onPointerMissed={() => select(null)}
       >
         <color attach="background" args={[MAP.water]} />
-        <hemisphereLight args={['#FFF6E8', MAP.shadow, 0.9]} />
+        <hemisphereLight args={['#FFF6E8', MAP.shadow, mobile ? 1.2 : 0.9]} />
         <directionalLight
           position={[40, 70, 22]}
-          intensity={1.15}
-          castShadow
-          shadow-mapSize={[2048, 2048]}
+          intensity={mobile ? 1.35 : 1.15}
+          castShadow={!mobile}
+          shadow-mapSize={mobile ? [512, 512] : [2048, 2048]}
           shadow-camera-left={-110}
           shadow-camera-right={110}
           shadow-camera-top={110}
@@ -106,8 +121,8 @@ export function WorldCanvas() {
           screenSpacePanning
           minPolarAngle={MIN_PITCH}
           maxPolarAngle={MAX_PITCH}
-          minDistance={28}
-          maxDistance={88}
+          minDistance={48}
+          maxDistance={140}
           zoomSpeed={0.7}
           rotateSpeed={0.45}
           target={[LAND_CENTER.x, 0, LAND_CENTER.z]}
