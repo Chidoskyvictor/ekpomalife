@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { clearSession, getSession, saveKey } from '@/lib/game/accounts'
-import { checkDreamProgress } from '@/lib/game/character-api'
+import { checkDreamProgress, loadCharacter } from '@/lib/game/character-api'
 import { AVATAR_COLORS } from '@/lib/game/content'
 import { emptyDreamSnapshot, snapshotFromLife, type DreamId } from '@/lib/game/dreams'
 import { type Appearance } from '@/lib/game/look'

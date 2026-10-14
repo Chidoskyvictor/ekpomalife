@@ -12,10 +12,12 @@ import { RadioCards } from '@/components/arc/radio-cards/radio-cards'
 import { dreamRadioOptions } from '@/components/dreams/dream-options'
 import lookStyles from '@/components/look/look-studio.module.css'
 import { startNewLife } from '@/hooks/use-game'
+import { FormError } from '@/components/auth/form-parts'
 import { clearDraft, getAccount, getProfile, getSession, loadDraft, saveDraft } from '@/lib/game/accounts'
-import { saveCharacterDream } from '@/lib/game/character-api'
+import { loadCharacter, saveCharacterDream } from '@/lib/game/character-api'
 import { normalizeDreamId, type DreamId } from '@/lib/game/dreams'
 import { DEFAULT_APPEARANCE, normalizeAppearance, type Appearance } from '@/lib/game/look'
+import { pathForStep } from '@/lib/game/onboarding'
 import { normalizeTraits, type TraitId } from '@/lib/game/traits'
 import styles from '@/components/traits/trait-studio.module.css'
 
@@ -25,6 +27,8 @@ export function DreamStudio() {
   const [appearance, setAppearance] = useState<Appearance>(DEFAULT_APPEARANCE)
   const [traits, setTraits] = useState<TraitId[]>([])
   const [picked, setPicked] = useState<DreamId | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     const session = getSession()
@@ -33,19 +37,32 @@ export function DreamStudio() {
       return
     }
     const draft = loadDraft(session)
-    if (!draft?.appearance) {
-      router.replace('/look')
-      return
-    }
-    const nextTraits = normalizeTraits(draft.traits)
-    if (nextTraits.length < 2) {
-      router.replace('/traits')
-      return
-    }
-    setUsername(session)
-    setAppearance(normalizeAppearance(draft.appearance as Appearance))
-    setTraits(nextTraits)
-    setPicked(normalizeDreamId(draft.dreamId))
+    void loadCharacter().then((remote) => {
+      if (remote.ok) {
+        if (remote.step === 'look' || remote.step === 'traits') {
+          router.replace(pathForStep(remote.step))
+          return
+        }
+        if (remote.appearance) setAppearance(normalizeAppearance(remote.appearance))
+        setTraits(remote.traits)
+        setPicked(normalizeDreamId(remote.dreamId))
+        setUsername(session)
+        return
+      }
+      if (!draft?.appearance) {
+        router.replace('/look')
+        return
+      }
+      const nextTraits = normalizeTraits(draft.traits)
+      if (nextTraits.length < 2) {
+        router.replace('/traits')
+        return
+      }
+      setAppearance(normalizeAppearance(draft.appearance as Appearance))
+      setTraits(nextTraits)
+      setPicked(normalizeDreamId(draft.dreamId))
+      setUsername(session)
+    })
   }, [router])
 
   const preview = useMemo(() => appearance, [appearance])
@@ -59,11 +76,23 @@ export function DreamStudio() {
   }
 
   const finish = async () => {
-    if (!username || !picked) return
-    const account = getAccount(username) ?? getProfile()
+    if (!username || !picked || saving) return
+    setSaving(true)
+    setError(null)
     saveDraft(username, { appearance, traits, dreamId: picked })
-    await saveCharacterDream(picked)
-    startNewLife(account?.name ?? username, username, appearance, traits, picked)
+    const result = await saveCharacterDream(picked)
+    if (!result.ok) {
+      if (result.step) router.replace(pathForStep(result.step))
+      else {
+        setError(result.error)
+        setSaving(false)
+      }
+      return
+    }
+    const account = getAccount(username) ?? getProfile()
+    const look = result.appearance ?? appearance
+    const nextTraits = result.traits.length === 2 ? result.traits : traits
+    startNewLife(account?.name ?? username, username, look, nextTraits, result.dreamId ?? picked)
     clearDraft(username)
     router.replace('/')
   }
@@ -138,8 +167,9 @@ export function DreamStudio() {
         </div>
 
         <div className={lookStyles.footer}>
-          <Button type="button" disabled={!picked} onClick={() => void finish()} style={{ width: '100%' }}>
-            Continue
+          <FormError message={error} />
+          <Button type="button" disabled={!picked || saving} onClick={() => void finish()} style={{ width: '100%' }}>
+            {saving ? 'Saving dream' : 'Continue'}
           </Button>
         </div>
       </aside>

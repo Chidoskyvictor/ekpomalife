@@ -56,7 +56,7 @@
   background: linear-gradient(to top, #fff 0 58%, rgb(255 255 255 / 0.92) 72%, rgb(255 255 255 / 0));
 }
 
-.footer button {
+.footer > * {
   pointer-events: auto;
 }
 

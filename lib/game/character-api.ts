@@ -1,5 +1,8 @@
 import { apiUrl } from './api'
 import type { DreamId, DreamSnapshot } from './dreams'
+import type { Appearance } from './look'
+import type { CharacterRecord, OnboardingStep } from './onboarding'
+import type { TraitId } from './traits'
 
 export type DreamCheckResult = {
   ok: true
@@ -10,9 +13,57 @@ export type DreamCheckResult = {
   badges: string[]
 }
 
-type Fail = { ok: false; error: string }
+type Fail = { ok: false; error: string; step?: OnboardingStep }
 
-export async function saveCharacterDream(dreamId: DreamId): Promise<{ ok: true } | Fail> {
+export type CharacterOk = { ok: true } & CharacterRecord
+
+async function readJson<T>(response: Response): Promise<T | Fail> {
+  const data = (await response.json()) as T | Fail
+  if (!response.ok || (typeof data === 'object' && data && 'ok' in data && data.ok === false)) {
+    const fail = data as Fail
+    return { ok: false, error: fail.error || 'Request failed.', step: fail.step }
+  }
+  return data as T
+}
+
+export async function loadCharacter(): Promise<CharacterOk | Fail> {
+  try {
+    const response = await fetch(`${apiUrl()}/character`, { credentials: 'include' })
+    return await readJson<CharacterOk>(response)
+  } catch {
+    return { ok: false, error: 'Cannot reach the server. Is the backend running?' }
+  }
+}
+
+export async function saveCharacterLook(appearance: Appearance): Promise<CharacterOk | Fail> {
+  try {
+    const response = await fetch(`${apiUrl()}/character/look`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ appearance }),
+    })
+    return await readJson<CharacterOk>(response)
+  } catch {
+    return { ok: false, error: 'Cannot reach the server. Is the backend running?' }
+  }
+}
+
+export async function saveCharacterTraits(traits: TraitId[]): Promise<CharacterOk | Fail> {
+  try {
+    const response = await fetch(`${apiUrl()}/character/traits`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ traits }),
+    })
+    return await readJson<CharacterOk>(response)
+  } catch {
+    return { ok: false, error: 'Cannot reach the server. Is the backend running?' }
+  }
+}
+
+export async function saveCharacterDream(dreamId: DreamId): Promise<CharacterOk | Fail> {
   try {
     const response = await fetch(`${apiUrl()}/character/dream`, {
       method: 'POST',
@@ -20,9 +71,7 @@ export async function saveCharacterDream(dreamId: DreamId): Promise<{ ok: true }
       credentials: 'include',
       body: JSON.stringify({ dreamId }),
     })
-    const data = (await response.json()) as { ok: true } | Fail
-    if (!data.ok) return { ok: false, error: data.error || 'Could not save your dream.' }
-    return { ok: true }
+    return await readJson<CharacterOk>(response)
   } catch {
     return { ok: false, error: 'Cannot reach the server. Is the backend running?' }
   }
@@ -36,9 +85,7 @@ export async function checkDreamProgress(snapshot: DreamSnapshot): Promise<Dream
       credentials: 'include',
       body: JSON.stringify({ snapshot }),
     })
-    const data = (await response.json()) as DreamCheckResult | Fail
-    if (!data.ok) return { ok: false, error: data.error || 'Could not check dream progress.' }
-    return data
+    return await readJson<DreamCheckResult>(response)
   } catch {
     return { ok: false, error: 'Cannot reach the server. Is the backend running?' }
   }

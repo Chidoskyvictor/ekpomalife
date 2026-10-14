@@ -33,6 +33,9 @@ app.get('/', async () => ({
   health: '/health',
   signup: 'POST /auth/signup',
   login: 'POST /auth/login',
+  character: 'GET /character',
+  look: 'POST /character/look',
+  traits: 'POST /character/traits',
   dream: 'POST /character/dream',
   dreamCheck: 'POST /character/dream/check',
 }))

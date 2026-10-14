@@ -1,0 +1,3 @@
+ALTER TABLE characters
+    ADD COLUMN IF NOT EXISTS appearance JSONB,
+    ADD COLUMN IF NOT EXISTS traits TEXT[] NOT NULL DEFAULT '{}';

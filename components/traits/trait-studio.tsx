@@ -8,8 +8,11 @@ import { useRouter } from 'next/navigation'
 import { Suspense, useEffect, useMemo, useState } from 'react'
 import { CharacterFigure } from '@/components/look/character-figure'
 import lookStyles from '@/components/look/look-studio.module.css'
+import { FormError } from '@/components/auth/form-parts'
 import { Button } from '@/components/ui/button'
 import { getSession, loadDraft, saveDraft } from '@/lib/game/accounts'
+import { loadCharacter, saveCharacterTraits } from '@/lib/game/character-api'
+import { pathForStep } from '@/lib/game/onboarding'
 import { DEFAULT_APPEARANCE, normalizeAppearance, type Appearance } from '@/lib/game/look'
 import { TRAIT_LIMIT, TRAITS, normalizeTraits, type TraitId } from '@/lib/game/traits'
 import styles from './trait-studio.module.css'
@@ -19,6 +22,8 @@ export function TraitStudio() {
   const [username, setUsername] = useState<string | null>(null)
   const [appearance, setAppearance] = useState<Appearance>(DEFAULT_APPEARANCE)
   const [picked, setPicked] = useState<TraitId[]>([])
+  const [error, setError] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     const session = getSession()
@@ -27,13 +32,25 @@ export function TraitStudio() {
       return
     }
     const draft = loadDraft(session)
-    if (!draft?.appearance) {
-      router.replace('/look')
-      return
-    }
-    setUsername(session)
-    setAppearance(normalizeAppearance(draft.appearance as Appearance))
-    setPicked(normalizeTraits(draft.traits))
+    void loadCharacter().then((remote) => {
+      if (remote.ok) {
+        if (remote.step === 'look') {
+          router.replace(pathForStep(remote.step))
+          return
+        }
+        if (remote.appearance) setAppearance(normalizeAppearance(remote.appearance))
+        setPicked(normalizeTraits(remote.traits))
+        setUsername(session)
+        return
+      }
+      if (!draft?.appearance) {
+        router.replace('/look')
+        return
+      }
+      setAppearance(normalizeAppearance(draft.appearance as Appearance))
+      setPicked(normalizeTraits(draft.traits))
+      setUsername(session)
+    })
   }, [router])
 
   const remaining = TRAIT_LIMIT - picked.length
@@ -52,9 +69,22 @@ export function TraitStudio() {
     })
   }
 
-  const finish = () => {
-    if (!username || !ready) return
+  const finish = async () => {
+    if (!username || !ready || saving) return
+    setSaving(true)
+    setError(null)
     saveDraft(username, { appearance, traits: picked })
+    const result = await saveCharacterTraits(picked)
+    if (!result.ok) {
+      if (result.step === 'look') {
+        router.replace('/look')
+        return
+      }
+      setError(result.error)
+      setSaving(false)
+      return
+    }
+    saveDraft(username, { appearance: result.appearance ?? appearance, traits: result.traits })
     router.replace('/dream')
   }
 
@@ -154,12 +184,13 @@ export function TraitStudio() {
         </div>
 
         <div className={lookStyles.footer}>
+          <FormError message={error} />
           <Button
-            onClick={finish}
-            disabled={!ready}
+            onClick={() => void finish()}
+            disabled={!ready || saving}
             className="h-12 w-full rounded-full bg-primary text-base font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-70"
           >
-            {actionLabel}
+            {saving ? 'Saving traits' : actionLabel}
           </Button>
         </div>
       </aside>

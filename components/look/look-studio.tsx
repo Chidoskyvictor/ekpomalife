@@ -8,7 +8,9 @@ import { useRouter } from 'next/navigation'
 import { Suspense, useEffect, useMemo, useState } from 'react'
 import { Button as ArcButton } from '@/components/arc/button/button'
 import { Button } from '@/components/ui/button'
+import { FormError } from '@/components/auth/form-parts'
 import { getSession, loadDraft, saveDraft } from '@/lib/game/accounts'
+import { loadCharacter, saveCharacterLook } from '@/lib/game/character-api'
 import {
   BODIES,
   CLOTH_COLORS,
@@ -68,6 +70,8 @@ export function LookStudio() {
   const router = useRouter()
   const [username, setUsername] = useState<string | null>(null)
   const [appearance, setAppearance] = useState<Appearance>(DEFAULT_APPEARANCE)
+  const [error, setError] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     const session = getSession()
@@ -78,6 +82,9 @@ export function LookStudio() {
     setUsername(session)
     const draft = loadDraft(session)
     if (draft?.appearance) setAppearance(normalizeAppearance(draft.appearance as Appearance))
+    void loadCharacter().then((remote) => {
+      if (remote.ok && remote.appearance) setAppearance(normalizeAppearance(remote.appearance))
+    })
   }, [router])
 
   const hair = HAIR_BY_BODY[appearance.body]
@@ -87,10 +94,22 @@ export function LookStudio() {
     setAppearance((current) => normalizeAppearance({ ...current, body }))
   }
 
-  const finish = () => {
-    if (!username) return
+  const finish = async () => {
+    if (!username || saving) return
+    setSaving(true)
+    setError(null)
     const draft = loadDraft(username)
     saveDraft(username, { ...draft, appearance })
+    const result = await saveCharacterLook(appearance)
+    if (!result.ok) {
+      setError(result.error)
+      setSaving(false)
+      return
+    }
+    if (result.appearance) {
+      saveDraft(username, { ...draft, appearance: result.appearance })
+      setAppearance(result.appearance)
+    }
     router.replace('/traits')
   }
 
@@ -250,8 +269,13 @@ export function LookStudio() {
         </div>
 
         <div className={styles.footer}>
-          <Button onClick={finish} className="h-12 w-full rounded-full bg-primary text-base font-semibold text-primary-foreground hover:bg-primary/90">
-            Continue
+          <FormError message={error} />
+          <Button
+            onClick={() => void finish()}
+            disabled={saving}
+            className="h-12 w-full rounded-full bg-primary text-base font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-70"
+          >
+            {saving ? 'Saving look' : 'Continue'}
           </Button>
         </div>
       </aside>
