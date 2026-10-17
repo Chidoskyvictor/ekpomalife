@@ -6,6 +6,7 @@ import rateLimit from '@fastify/rate-limit'
 import { env } from './env.js'
 import { pool } from './db.js'
 import { characterRoutes } from './routes/character.js'
+import { economyRoutes } from './routes/economy.js'
 import { forgotRoutes } from './routes/forgot.js'
 import { gameRoutes } from './routes/game.js'
 import { loginRoutes } from './routes/login.js'
@@ -57,6 +58,16 @@ app.get('/', async () => ({
   setup: 'POST /character/setup',
   gameState: 'GET /game/state',
   gameAction: 'POST /game/action',
+  jobs: 'GET /jobs',
+  jobsApply: 'POST /jobs/apply',
+  jobsShift: 'POST /jobs/shift',
+  shop: 'GET /shop',
+  shopBuy: 'POST /shop/buy',
+  inventory: 'GET /inventory',
+  inventoryUse: 'POST /inventory/use',
+  rent: 'GET /rent',
+  rentPay: 'POST /rent/pay',
+  ledger: 'GET /ledger',
 }))
 app.get('/health', async () => ({ ok: true }))
 await app.register(signupRoutes)
@@ -65,6 +76,7 @@ await app.register(meRoutes)
 await app.register(forgotRoutes)
 await app.register(characterRoutes)
 await app.register(gameRoutes)
+await app.register(economyRoutes)
 
 const shutdown = async () => {
   await app.close()

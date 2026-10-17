@@ -397,8 +397,9 @@ export async function characterRoutes(app: FastifyInstance) {
       )
       if ((ledgerCheck.rowCount ?? 0) === 0) {
         await client.query(
-          `INSERT INTO ledger (id, character_id, amount, reason) VALUES ($1, $2, $3, $4)`,
-          [createId(), row.id, rolled.amount, 'starting-money'],
+          `INSERT INTO ledger (id, character_id, amount, reason, kind, balance_after)
+           VALUES ($1, $2, $3, $4, $5, $6)`,
+          [createId(), row.id, rolled.amount, 'starting-money', 'starting_money', rolled.amount],
         )
       }
       await client.query('COMMIT')
