@@ -4,6 +4,8 @@ import { MIN_PASSWORD_LENGTH, hashPassword } from '../auth/password.js'
 import { createResetCode, hashResetCode, resetExpiry } from '../auth/reset-code.js'
 import { pool } from '../db.js'
 import { createId } from '../ids.js'
+import { env } from '../env.js'
+import { buildResetEmail } from '../mail/reset-email.js'
 import { sendMail } from '../mail/send.js'
 
 const forgotSchema = z.object({
@@ -83,11 +85,12 @@ export async function forgotRoutes(app: FastifyInstance) {
       )
 
       try {
+        const mail = buildResetEmail({ name: user.name, code, appUrl: env.FRONTEND_ORIGIN })
         await sendMail({
           to: user.email,
-          subject: 'Ekpoma Life reset code',
-          text: `Hi ${user.name},\n\nYour Ekpoma Life password reset code is ${code}.\nIt expires in 12 minutes.\n\nIf you did not ask for this, ignore this email.`,
-          html: `<p>Hi ${user.name},</p><p>Your Ekpoma Life password reset code is <strong>${code}</strong>.</p><p>It expires in 12 minutes.</p><p>If you did not ask for this, ignore this email.</p>`,
+          subject: mail.subject,
+          text: mail.text,
+          html: mail.html,
         })
       } catch (error) {
         request.log.error(error)
