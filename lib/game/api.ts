@@ -1,9 +1,9 @@
 /**
- * Browser traffic goes same-origin through Next `/api` → backend rewrite.
- * That keeps session cookies working on phone LAN and in production (no cross-origin cookie pain).
+ * Browser traffic goes same-origin through Next `/api/*` → `app/api/[...path]` proxy → backend.
+ * That keeps `el_session` on the frontend origin (phone LAN + production).
  *
- * Set API_PROXY_TARGET (or NEXT_PUBLIC_API_URL) to the real backend for the rewrite.
- * Only set NEXT_PUBLIC_API_DIRECT_URL if you intentionally call the API host from the browser.
+ * Set API_PROXY_TARGET (or NEXT_PUBLIC_API_URL) for the server-side proxy target.
+ * Do not set NEXT_PUBLIC_API_DIRECT_URL on phone LAN — it bypasses the proxy and breaks cookies.
  */
 export function apiUrl() {
   const direct = process.env.NEXT_PUBLIC_API_DIRECT_URL?.replace(/\/$/, '')
