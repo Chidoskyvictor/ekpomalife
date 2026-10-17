@@ -13,6 +13,7 @@ const envSchema = z.object({
     (value) => (value == null || value === '' ? 'http://localhost:3000' : value),
     z.string().min(1),
   ),
+  /** Legacy flag — session cookies now follow NODE_ENV (see auth/session.ts). Kept so old .env files still parse. */
   COOKIE_SECURE: z
     .enum(['true', 'false'])
     .optional()

@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { getSessionUser } from '../auth/current-user.js'
+import { SESSION_COOKIE } from '../auth/session.js'
 import { pool } from '../db.js'
 import { computeSetupStatus, type SetupStep } from '../game/setup-status.js'
 
@@ -17,7 +18,18 @@ type CharacterRow = {
  */
 export async function meRoutes(app: FastifyInstance) {
   app.get('/auth/me', async (request, reply) => {
+    const cookieArrived = Boolean(request.cookies[SESSION_COOKIE])
     const user = await getSessionUser(request)
+    if (process.env.NODE_ENV !== 'production') {
+      request.log.info(
+        {
+          cookieArrived,
+          sessionFound: Boolean(user),
+          cookieHeaderPresent: Boolean(request.headers.cookie),
+        },
+        'GET /auth/me session probe',
+      )
+    }
     if (!user) {
       return reply.code(401).send({ ok: false, error: 'Not logged in.' })
     }

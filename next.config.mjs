@@ -1,10 +1,4 @@
 /** @type {import('next').NextConfig} */
-const apiProxyTarget = (
-  process.env.API_PROXY_TARGET ||
-  process.env.NEXT_PUBLIC_API_URL ||
-  'http://127.0.0.1:4000'
-).replace(/\/$/, '')
-
 const nextConfig = {
   // Phone / other PCs hitting this machine by LAN IP (dev only).
   allowedDevOrigins: [
@@ -14,14 +8,8 @@ const nextConfig = {
     '127.0.0.1',
     'localhost',
   ], // FE LAN + backend host (200) for phone/dev access
-  async rewrites() {
-    return [
-      {
-        source: '/api/:path*',
-        destination: `${apiProxyTarget}/:path*`,
-      },
-    ]
-  },
+  // /api/* is handled by app/api/[...path]/route.ts (forwards Cookie/Set-Cookie,
+  // strips Domain so el_session sticks to the frontend origin — not the API IP).
   typescript: {
     ignoreBuildErrors: true,
   },

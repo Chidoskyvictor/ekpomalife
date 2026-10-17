@@ -1,11 +1,11 @@
 import { createHash, randomBytes } from 'node:crypto'
 import type { FastifyReply } from 'fastify'
 import { pool } from '../db.js'
-import { env } from '../env.js'
 import { createId } from '../ids.js'
 
 export const SESSION_COOKIE = 'el_session'
 const SESSION_DAYS = 30
+const PROD_COOKIE_DOMAIN = '.ekpomalife.app'
 
 export function createSessionToken() {
   return randomBytes(32).toString('base64url')
@@ -27,12 +27,30 @@ export async function createSession(userId: string) {
   return { token, expiresAt }
 }
 
+/** Cookie flags for el_session — production stays strict; LAN/HTTP dev stays usable on phone. */
+export function sessionCookieOptions(expiresAt: Date) {
+  const isProd = process.env.NODE_ENV === 'production'
+  return {
+    httpOnly: true as const,
+    sameSite: 'lax' as const,
+    path: '/',
+    secure: isProd,
+    expires: expiresAt,
+    ...(isProd ? { domain: PROD_COOKIE_DOMAIN } : {}),
+  }
+}
+
 export function setSessionCookie(reply: FastifyReply, token: string, expiresAt: Date) {
-  reply.setCookie(SESSION_COOKIE, token, {
+  reply.setCookie(SESSION_COOKIE, token, sessionCookieOptions(expiresAt))
+}
+
+export function clearSessionCookie(reply: FastifyReply) {
+  const isProd = process.env.NODE_ENV === 'production'
+  reply.clearCookie(SESSION_COOKIE, {
+    path: '/',
     httpOnly: true,
     sameSite: 'lax',
-    path: '/',
-    secure: env.COOKIE_SECURE,
-    expires: expiresAt,
+    secure: isProd,
+    ...(isProd ? { domain: PROD_COOKIE_DOMAIN } : {}),
   })
 }
