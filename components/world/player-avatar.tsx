@@ -4,14 +4,18 @@ import { useFrame } from '@react-three/fiber'
 import { useRef } from 'react'
 import { Vector3, type Group } from 'three'
 import { CharacterFigure } from '@/components/look/character-figure'
-import { getLocation } from '@/lib/game/content'
-import { isMapLocation } from '@/lib/game/world-layout'
+import { getPlace, getPlaceByZone } from '@/lib/game/places'
+import { MAP_ZONES } from '@/lib/game/world-layout'
 import { DEFAULT_APPEARANCE, normalizeAppearance, type Appearance } from '@/lib/game/look'
 
 export function avatarSpot(locationId: string): [number, number, number] {
-  const location = getLocation(isMapLocation(locationId) ? locationId : 'aau_campus')
-  if (!location) return [0, 0, 0]
-  return [location.position[0] + location.size[0] / 2 + 0.6, 0, location.position[1] + location.size[2] / 2 + 0.9]
+  const place = getPlace(locationId) ?? getPlaceByZone(locationId)
+  const zone = MAP_ZONES.find((entry) => entry.id === (place?.zoneId ?? locationId))
+  if (zone) {
+    const [fw, fd] = zone.footprint
+    return [zone.position[0] + fw * 0.15, 0, zone.position[1] + fd * 0.15]
+  }
+  return [0, 0, 0]
 }
 
 export function PlayerAvatar({

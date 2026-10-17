@@ -1,26 +1,50 @@
 'use client'
 
-import { Footprints, MessageCircle, X } from 'lucide-react'
+import { Footprints, X } from 'lucide-react'
 import { AuthLinks } from '@/components/hud/auth-links'
 import { useGame } from '@/hooks/use-game'
-import { ACTIONS, getLocation, TYPE_META } from '@/lib/game/content'
-import { travelQuote } from '@/lib/game/rules'
-import type { ActionId, GameState, LocationRecord } from '@/lib/game/types'
+import { TYPE_META } from '@/lib/game/content'
+import {
+  ACTION_LABELS,
+  getPlace,
+  getPlaceByZone,
+  type GameActionId,
+  type Place,
+  type PlaceType,
+} from '@/lib/game/places'
+import type { GameState } from '@/lib/game/types'
 import { cn } from '@/lib/utils'
 
-function SheetHeader({ location, onClose, subtitle }: { location: LocationRecord; onClose: () => void; subtitle: string }) {
+const TYPE_EMOJI: Record<PlaceType, string> = {
+  campus: '🎓',
+  hostel: '🛏️',
+  food: '🍲',
+  shop: '🛍️',
+  transport: '🛺',
+  leisure: '⚽',
+  worship: '🙏',
+  community: '💡',
+}
+
+function resolvePlace(id: string | null): Place | null {
+  if (!id) return null
+  return getPlace(id) ?? getPlaceByZone(id)
+}
+
+function SheetHeader({ place, onClose, subtitle }: { place: Place; onClose: () => void; subtitle: string }) {
+  const typeMeta = TYPE_META[place.type] ?? { label: place.type, color: '#F0EEE5' }
   return (
     <div className="flex items-start gap-3">
       <span
         className="flex size-11 shrink-0 items-center justify-center rounded-2xl text-2xl"
-        style={{ backgroundColor: TYPE_META[location.type].color }}
+        style={{ backgroundColor: typeMeta.color }}
         aria-hidden="true"
       >
-        {location.emoji}
+        {TYPE_EMOJI[place.type]}
       </span>
       <div className="min-w-0 flex-1">
         <p className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">{subtitle}</p>
-        <h2 className="truncate text-lg font-bold leading-tight">{location.name}</h2>
+        <h2 className="truncate text-lg font-bold leading-tight">{place.label}</h2>
       </div>
       <button
         type="button"
@@ -34,67 +58,50 @@ function SheetHeader({ location, onClose, subtitle }: { location: LocationRecord
   )
 }
 
-function ActionButton({ actionId, state, onAct }: { actionId: ActionId; state: GameState; onAct: (id: ActionId) => void }) {
-  const action = ACTIONS[actionId]
-  const tooPoor = action.cost !== undefined && state.cash < action.cost
-  const tooTired = action.energyCost !== undefined && state.energy < action.energyCost
-  const owned = actionId === 'buy_phone' && state.hasPhone
-  const disabled = tooPoor || tooTired || owned
-  const meta = [
-    action.cost ? `₦${action.cost.toLocaleString()}` : null,
-    action.energyCost ? `-${action.energyCost} energy` : null,
-  ]
-    .filter(Boolean)
-    .join(' · ')
-
+function ActionButton({
+  actionId,
+  onAct,
+}: {
+  actionId: GameActionId
+  onAct: (id: GameActionId) => void
+}) {
+  const meta = ACTION_LABELS[actionId]
   return (
     <button
       type="button"
-      disabled={disabled}
       onClick={() => onAct(actionId)}
-      className={cn(
-        'flex flex-col items-start gap-0.5 rounded-2xl border p-3 text-left transition-colors focus-visible:ring-4 focus-visible:ring-primary/30 focus-visible:outline-none',
-        disabled
-          ? 'cursor-not-allowed border-white/30 bg-white/20 opacity-60'
-          : 'liquid-glass-chip hover:border-primary/50 hover:bg-white/50',
-      )}
+      className="flex flex-col items-start gap-0.5 rounded-2xl border p-3 text-left transition-colors liquid-glass-chip hover:border-primary/50 hover:bg-white/50 focus-visible:ring-4 focus-visible:ring-primary/30 focus-visible:outline-none"
     >
-      <span className="text-sm font-semibold">{owned ? 'Phone owned' : action.label}</span>
-      <span className="text-xs text-muted-foreground">{action.hint}</span>
-      {meta ? <span className="mt-0.5 text-[11px] font-semibold text-laterite">{meta}</span> : null}
+      <span className="text-sm font-semibold">{meta.label}</span>
+      <span className="text-xs text-muted-foreground">{meta.hint}</span>
     </button>
   )
 }
 
-function TravelOptions({ state, location }: { state: GameState; location: LocationRecord }) {
+function TravelPicker({ state, place }: { state: GameState; place: Place }) {
   const { travelTo } = useGame()
-  const quote = travelQuote(state.locationId, location.id)
-  const canWalk = state.energy >= quote.walkEnergy
-  const canKeke = state.cash >= quote.kekeFare
-  const from = getLocation(state.locationId)
-
+  const here = resolvePlace(state.locationId)
   return (
     <div className="mt-3">
-      <p className="text-sm text-muted-foreground">{location.description}</p>
-      <p className="mt-2 text-xs text-muted-foreground">From {from?.name ?? 'here'}</p>
-      <div className="mt-2 grid grid-cols-2 gap-2">
+      <p className="text-sm text-muted-foreground">Travel here from {here?.label ?? 'your spot'}.</p>
+      <div className="mt-2 grid grid-cols-1 gap-2">
         <button
           type="button"
-          disabled={!canWalk}
-          onClick={() => travelTo(location.id, 'walk')}
-          className="liquid-glass-chip flex items-center justify-center gap-2 rounded-full py-3 text-sm font-semibold transition-colors hover:border-primary/50 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:ring-4 focus-visible:ring-primary/30 focus-visible:outline-none"
+          onClick={() => travelTo(place.id, 'keke')}
+          className="flex items-center justify-center gap-2 rounded-full bg-primary py-3 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 focus-visible:ring-4 focus-visible:ring-primary/30 focus-visible:outline-none"
         >
-          <Footprints className="size-4" aria-hidden="true" />
-          Walk · -{quote.walkEnergy}⚡
+          <span aria-hidden="true">🛺</span>
+          Go by keke
         </button>
         <button
           type="button"
-          disabled={!canKeke}
-          onClick={() => travelTo(location.id, 'keke')}
-          className="flex items-center justify-center gap-2 rounded-full bg-primary py-3 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:ring-4 focus-visible:ring-primary/30 focus-visible:outline-none"
+          onClick={() => travelTo(place.id, 'walk')}
+          className={cn(
+            'liquid-glass-chip flex items-center justify-center gap-2 rounded-full py-3 text-sm font-semibold transition-colors hover:border-primary/50 focus-visible:ring-4 focus-visible:ring-primary/30 focus-visible:outline-none',
+          )}
         >
-          <span aria-hidden="true">🛺</span>
-          Keke · ₦{quote.kekeFare}
+          <Footprints className="size-4" aria-hidden="true" />
+          Walk (still uses travel stop)
         </button>
       </div>
     </div>
@@ -103,65 +110,50 @@ function TravelOptions({ state, location }: { state: GameState; location: Locati
 
 export function LocationSheet() {
   const { state, selectedId, select, act } = useGame()
-  const location = selectedId ? getLocation(selectedId) : undefined
-  if (!location) return null
+  const place = resolvePlace(selectedId)
+  if (!place) return null
 
   const close = () => select(null)
+  const typeMeta = TYPE_META[place.type] ?? { label: place.type, color: '#F0EEE5' }
 
   if (!state) {
     return (
       <section className="liquid-glass pointer-events-auto mx-auto w-full max-w-md rounded-3xl p-4 sm:p-5">
-        <SheetHeader location={location} onClose={close} subtitle={TYPE_META[location.type].label} />
+        <SheetHeader place={place} onClose={close} subtitle={typeMeta.label} />
         <p className="mt-3 text-sm text-muted-foreground">
-          {`Sign up or log in to come to ${location.name}. ${location.description}`}
+          Sign up or log in to come to {place.label}.
         </p>
         <AuthLinks className="mt-4 justify-end" />
       </section>
     )
   }
 
-  const isHere = state.locationId === location.id
+  const isHere = state.locationId === place.id
 
   return (
     <section
-      aria-label={`${location.name} details`}
+      aria-label={`${place.label} details`}
       className="liquid-glass pointer-events-auto mx-auto max-h-[60dvh] w-full max-w-md overflow-y-auto rounded-3xl p-4 sm:p-5"
     >
       <SheetHeader
-        location={location}
+        place={place}
         onClose={close}
-        subtitle={isHere ? `You are here · ${TYPE_META[location.type].label}` : TYPE_META[location.type].label}
+        subtitle={isHere ? `You are here · ${typeMeta.label}` : typeMeta.label}
       />
       {isHere ? (
-        <>
-          {location.npc ? (
-            <div className="liquid-glass-chip mt-3 flex gap-2 rounded-2xl p-3">
-              <MessageCircle className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
-              <p className="text-sm">
-                <span className="font-semibold">
-                  {location.npc.name} <span className="font-normal text-muted-foreground">({location.npc.role})</span>
-                </span>
-                <br />
-                <span className="text-muted-foreground">{`"${location.npc.line}"`}</span>
-              </p>
-            </div>
-          ) : (
-            <p className="mt-3 text-sm text-muted-foreground">{location.description}</p>
-          )}
-          {location.actions.length > 0 ? (
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              {location.actions.map((actionId) => (
-                <ActionButton key={actionId} actionId={actionId} state={state} onAct={act} />
-              ))}
-            </div>
-          ) : (
-            <p className="liquid-glass-chip mt-3 rounded-2xl p-3 text-sm text-accent-foreground">
-              Tap any place on the map and choose Keke to ride there fast.
-            </p>
-          )}
-        </>
+        place.actions.length > 0 ? (
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            {place.actions.map((actionId) => (
+              <ActionButton key={actionId} actionId={actionId} onAct={(id) => act(id)} />
+            ))}
+          </div>
+        ) : (
+          <p className="liquid-glass-chip mt-3 rounded-2xl p-3 text-sm text-accent-foreground">
+            Nothing to do here yet.
+          </p>
+        )
       ) : (
-        <TravelOptions state={state} location={location} />
+        <TravelPicker state={state} place={place} />
       )}
     </section>
   )

@@ -1,11 +1,11 @@
 export type DreamId =
   | 'first-class'
-  | 'faculty-president'
   | 'ekpoma-landlord'
   | 'big-boy'
   | 'edo-star'
   | 'campus-celeb'
   | 'tech-founder'
+  | 'politics'
 
 export type DreamGoalType =
   | 'cgpa'
@@ -51,12 +51,6 @@ const DREAMS: Dream[] = [
     reward: { cash: 50000, badge: 'First class' },
   },
   {
-    id: 'faculty-president',
-    title: 'Faculty president',
-    goal: { type: 'election', target: 1 },
-    reward: { reputation: 20, badge: 'Faculty president' },
-  },
-  {
     id: 'ekpoma-landlord',
     title: 'Ekpoma landlord',
     goal: { type: 'net-worth', target: 1_000_000 },
@@ -85,6 +79,12 @@ const DREAMS: Dream[] = [
     title: 'Ekpoma tech founder',
     goal: { type: 'revenue', target: 500_000 },
     reward: { cash: 25000, badge: 'Tech founder' },
+  },
+  {
+    id: 'politics',
+    title: 'politics',
+    goal: { type: 'election', target: 1 },
+    reward: { reputation: 20, badge: 'Elected' },
   },
 ]
 

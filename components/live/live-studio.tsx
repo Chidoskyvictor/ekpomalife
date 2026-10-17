@@ -1,0 +1,242 @@
+'use client'
+
+import { useRouter } from 'next/navigation'
+import { useEffect, useMemo, useState } from 'react'
+import { LobbyButton } from '@/components/auth/lobby-button'
+import { CreateStage } from '@/components/create/create-stage'
+import { StartingMoneySpin } from '@/components/create/starting-money-spin'
+import {
+  Blurb,
+  DreamList,
+  LodgeDetails,
+  LodgeHead,
+  LodgeMoney,
+  NameField,
+  PanelGroup,
+  PanelPrompt,
+  PanelSection,
+  PillRow,
+  Selectable,
+  StudioPanel,
+  lodgeCardClass,
+  lodgeHitClass,
+  pillClass,
+} from '@/components/create/studio-panel'
+import { Coins } from 'lucide-react'
+import { startNewLife } from '@/hooks/use-game'
+import { ensureLocalPlayer, getAccount, getProfile } from '@/lib/game/accounts'
+import { loadCharacter, saveCharacterSetup } from '@/lib/game/character-api'
+import { firstNameFor, loadCreation, rememberLive, rememberStartingMoney } from '@/lib/game/creation'
+import panelStyles from '@/components/create/studio-panel.module.css'
+import { DEFAULT_APPEARANCE, type Appearance } from '@/lib/game/look'
+import {
+  CHARACTER_TYPES,
+  LODGINGS,
+  formatNaira,
+  lodgingNeedsCourse,
+  type CharacterTypeId,
+  type LodgingId,
+} from '@/lib/game/live'
+import { type DreamId } from '@/lib/game/dreams'
+import { type TraitId } from '@/lib/game/traits'
+
+export function LiveStudio() {
+  const router = useRouter()
+  const [username, setUsername] = useState<string | null>(null)
+  const [playerName, setPlayerName] = useState('')
+  const [appearance, setAppearance] = useState<Appearance>(DEFAULT_APPEARANCE)
+  const [traits, setTraits] = useState<TraitId[]>([])
+  const [dreamId, setDreamId] = useState<DreamId | null>(null)
+  const [characterType, setCharacterType] = useState<CharacterTypeId>('student')
+  const [lodgingId, setLodgingId] = useState<LodgingId | null>(null)
+  const [courseId, setCourseId] = useState<string | null>(null)
+  const [pocket, setPocket] = useState<number | null>(null)
+  const [spinOpen, setSpinOpen] = useState(false)
+
+  useEffect(() => {
+    const session = ensureLocalPlayer()
+    const draft = loadCreation(session)
+    if (!draft.appearance) {
+      router.replace('/look')
+      return
+    }
+    if (draft.traits.length < 2) {
+      router.replace('/traits')
+      return
+    }
+    if (!draft.dreamId) {
+      router.replace('/dream')
+      return
+    }
+    setAppearance(draft.appearance)
+    setTraits(draft.traits)
+    setDreamId(draft.dreamId)
+    setCharacterType(draft.characterType ?? 'student')
+    setLodgingId(draft.lodgingId)
+    setCourseId(draft.courseId ?? null)
+    setPlayerName(firstNameFor(session))
+    setUsername(session)
+    if (draft.startingCash && draft.startingCash > 0) setPocket(draft.startingCash)
+    void loadCharacter().then((character) => {
+      if (!character.ok) return
+      const cash = character.startingCash ?? character.cash
+      if (cash && cash > 0) {
+        setPocket(cash)
+        if (character.startingTier) rememberStartingMoney(session, cash, character.startingTier)
+      }
+    })
+  }, [router])
+
+  const preview = useMemo(() => appearance, [appearance])
+
+  const saveLive = (nextType: CharacterTypeId, nextLodge: LodgingId | null, nextCourse: string | null) => {
+    if (!username) return
+    rememberLive(username, {
+      appearance,
+      traits,
+      dreamId,
+      characterType: nextType,
+      lodgingId: nextLodge,
+      courseId: nextCourse,
+    })
+    if (nextLodge) {
+      void saveCharacterSetup({
+        characterType: nextType,
+        lodgingId: nextLodge,
+        courseId: nextCourse,
+      })
+    }
+  }
+
+  const canMoveIn = Boolean(lodgingId) && (!lodgingNeedsCourse(lodgingId) || Boolean(courseId))
+
+  const finish = async () => {
+    if (!username || !dreamId || !lodgingId || !canMoveIn) return
+    const saved = await saveCharacterSetup({
+      characterType,
+      lodgingId,
+      courseId,
+    })
+    if (!saved.ok) return
+    rememberLive(username, {
+      appearance,
+      traits,
+      dreamId,
+      characterType,
+      lodgingId,
+      courseId,
+    })
+    setSpinOpen(true)
+  }
+
+  const enterCampus = (amount: number) => {
+    if (!username || !dreamId || !lodgingId) return
+    const account = getAccount(username) ?? getProfile()
+    startNewLife(account?.name ?? username, username, appearance, traits, dreamId, {
+      characterType,
+      lodgingId,
+      courseId: courseId ?? undefined,
+      startingCash: amount,
+    })
+    router.replace('/')
+  }
+
+  if (!username || !dreamId) return null
+
+  return (
+    <main className="app-wash relative flex h-dvh flex-col overflow-hidden lg:flex-row">
+      {pocket ? (
+        <div className={panelStyles.liveCash} aria-label="Starting money">
+          <Coins className="size-3.5" aria-hidden="true" />
+          {formatNaira(pocket)}
+        </div>
+      ) : null}
+      {spinOpen ? (
+        <StartingMoneySpin
+          username={username}
+          appearance={appearance}
+          traits={traits}
+          dreamId={dreamId}
+          onEnter={(rolled) => enterCampus(rolled)}
+        />
+      ) : null}
+      <CreateStage title="Home" step={4} backHref="/dream" appearance={preview} />
+
+      <StudioPanel
+        action={
+          <LobbyButton type="button" disabled={!canMoveIn} onClick={finish}>
+            Move in
+          </LobbyButton>
+        }
+      >
+        <NameField username={username} />
+        <PanelPrompt>
+          Where will {playerName} live? Rent is paid every Saturday.
+        </PanelPrompt>
+        <PanelGroup label="Character type">
+          <PillRow compact>
+            {CHARACTER_TYPES.map((item, index) => (
+              <Selectable
+                key={item.id}
+                index={index}
+                pressed={characterType === item.id}
+                className={pillClass(true)}
+                onClick={() => {
+                  setCharacterType(item.id)
+                  saveLive(item.id, lodgingId, courseId)
+                }}
+              >
+                {item.label}
+              </Selectable>
+            ))}
+          </PillRow>
+        </PanelGroup>
+        <PanelSection label="Where to live">
+          <DreamList label="Where to live">
+            {LODGINGS.map((item, index) => {
+              const picked = lodgingId === item.id
+              return (
+                <div key={item.id} className={lodgeCardClass(picked)}>
+                  <Selectable
+                    index={index}
+                    pressed={picked}
+                    role="radio"
+                    className={lodgeHitClass()}
+                    onClick={() => {
+                      const nextCourse = item.details ? courseId : null
+                      setLodgingId(item.id)
+                      if (!item.details) setCourseId(null)
+                      saveLive(characterType, item.id, nextCourse)
+                    }}
+                  >
+                    <LodgeHead
+                      icon={item.icon}
+                      photo={item.photo}
+                      title={item.title}
+                      badge={item.badge}
+                      badgeTone={item.badgeTone}
+                    />
+                    <Blurb>{item.description}</Blurb>
+                    <LodgeMoney rent={formatNaira(item.rentWeekly)} />
+                  </Selectable>
+                  {picked && item.details ? (
+                    <LodgeDetails
+                      perks={item.details.perks}
+                      coursesLabel={item.details.coursesLabel}
+                      courses={item.details.courses}
+                      courseId={courseId}
+                      onCourse={(id) => {
+                        setCourseId(id)
+                        saveLive(characterType, item.id, id)
+                      }}
+                    />
+                  ) : null}
+                </div>
+              )
+            })}
+          </DreamList>
+        </PanelSection>
+      </StudioPanel>
+    </main>
+  )
+}

@@ -1,11 +1,11 @@
 export type DreamId =
   | 'first-class'
-  | 'faculty-president'
   | 'ekpoma-landlord'
   | 'big-boy'
   | 'edo-star'
   | 'campus-celeb'
   | 'tech-founder'
+  | 'politics'
 
 export type DreamGoalType =
   | 'cgpa'
@@ -25,6 +25,7 @@ export type DreamReward = {
 export type Dream = {
   id: DreamId
   emoji: string
+  icon: string
   title: string
   subtitle: string
   goal: { type: DreamGoalType; target: number }
@@ -59,22 +60,16 @@ export const DREAMS: Dream[] = [
   {
     id: 'first-class',
     emoji: '🎓',
+    icon: '/emoji/graduation-cap.png',
     title: 'First class graduate',
     subtitle: 'Graduate from AAU with a first class.',
     goal: { type: 'cgpa', target: 4.5 },
     reward: { cash: 50000, badge: 'First class' },
   },
   {
-    id: 'faculty-president',
-    emoji: '🗳️',
-    title: 'Faculty president',
-    subtitle: 'Win the faculty president election.',
-    goal: { type: 'election', target: 1 },
-    reward: { reputation: 20, badge: 'Faculty president' },
-  },
-  {
     id: 'ekpoma-landlord',
     emoji: '🏠',
+    icon: '/emoji/house.png',
     title: 'Ekpoma landlord',
     subtitle: 'Own a lodge and build a net worth of ₦1,000,000.',
     goal: { type: 'net-worth', target: 1_000_000 },
@@ -83,6 +78,7 @@ export const DREAMS: Dream[] = [
   {
     id: 'big-boy',
     emoji: '💼',
+    icon: '/emoji/briefcase.png',
     title: 'Big boy / big girl',
     subtitle: 'Reach the top level of any career.',
     goal: { type: 'career', target: CAREER_MAX_LEVEL },
@@ -91,6 +87,7 @@ export const DREAMS: Dream[] = [
   {
     id: 'edo-star',
     emoji: '🎤',
+    icon: '/emoji/microphone.png',
     title: 'Edo afrobeats star',
     subtitle: 'Max out the Music skill (level 10).',
     goal: { type: 'skill', target: MUSIC_MAX_LEVEL },
@@ -99,6 +96,7 @@ export const DREAMS: Dream[] = [
   {
     id: 'campus-celeb',
     emoji: '🤝',
+    icon: '/emoji/handshake.png',
     title: 'Campus celebrity',
     subtitle: 'Become best friends with 5 people.',
     goal: { type: 'friends', target: 5 },
@@ -107,10 +105,20 @@ export const DREAMS: Dream[] = [
   {
     id: 'tech-founder',
     emoji: '💻',
+    icon: '/emoji/laptop.png',
     title: 'Ekpoma tech founder',
     subtitle: 'Start a business and hit ₦500,000 revenue.',
     goal: { type: 'revenue', target: 500_000 },
     reward: { cash: 25000, badge: 'Tech founder' },
+  },
+  {
+    id: 'politics',
+    emoji: '🗳️',
+    icon: '/emoji/ballot-box.png',
+    title: 'politics',
+    subtitle: 'Win  election.',
+    goal: { type: 'election', target: 1 },
+    reward: { reputation: 20, badge: 'Elected' },
   },
 ]
 

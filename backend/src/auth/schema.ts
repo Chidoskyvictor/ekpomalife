@@ -11,6 +11,13 @@ export const signupSchema = z.object({
     .toLowerCase()
     .regex(USERNAME_PATTERN, 'Username must be 3–20 letters, numbers or underscores.'),
   password: z.string().min(MIN_PASSWORD_LENGTH, `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`).max(72, 'Password is too long.'),
+  email: z.string().trim().email('Enter a valid email.').max(120),
+  dateOfBirth: z
+    .union([
+      z.literal(''),
+      z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/, 'Enter your date of birth.'),
+    ])
+    .optional(),
   isAdult: z.boolean().refine((value) => value === true, {
     message: 'Confirm you are 18 or older and accept the Terms and Conditions.',
   }),

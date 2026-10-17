@@ -1,12 +1,11 @@
 'use client'
 
-import { Html } from '@react-three/drei'
-import type { ThreeEvent } from '@react-three/fiber'
-import { useEffect, useState } from 'react'
+import { useFrame, type ThreeEvent } from '@react-three/fiber'
+import { useRef } from 'react'
+import type { Group } from 'three'
 import { LOCATIONS, TYPE_META } from '@/lib/game/content'
 import { isMapLocation } from '@/lib/game/world-layout'
 import type { LocationRecord } from '@/lib/game/types'
-import { cn } from '@/lib/utils'
 import { MAP } from '@/lib/game/map-theme'
 import { AdminBlock } from './admin-block'
 import { Block as Box, glass, paint } from './materials'
@@ -278,26 +277,30 @@ function LandmarkModel({ location }: { location: LocationRecord }) {
 type LandmarkProps = {
   location: LocationRecord
   selected: boolean
-  isCurrent: boolean
   onSelect: (id: string) => void
 }
 
-function pinHeightFor(location: LocationRecord) {
-  const h = location.size[1]
-  if (location.type === 'worship') return h + 3.5
-  if (location.id === 'aau_library' || location.id === 'mbc' || location.id === 'college_of_medicine') return h + 2.6
-  return h + 1.8
+function QuestArrow({ active }: { active: boolean }) {
+  const ref = useRef<Group>(null)
+  useFrame(({ clock }) => {
+    if (!ref.current || !active) return
+    const reduce =
+      typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    ref.current.position.y = reduce ? 3.2 : 3.2 + Math.sin(clock.elapsedTime * 4) * 0.35
+  })
+  if (!active) return null
+  return (
+    <group ref={ref} position={[0, 3.2, 0]}>
+      <mesh rotation={[Math.PI, 0, 0]}>
+        <coneGeometry args={[0.55, 1.1, 4]} />
+        <meshBasicMaterial color="#3d9ad6" />
+      </mesh>
+    </group>
+  )
 }
 
-function Landmark({ location, selected, isCurrent, onSelect }: LandmarkProps) {
+function Landmark({ location, selected, onSelect }: LandmarkProps) {
   const [x, z] = location.position
-  const [pinReady, setPinReady] = useState(false)
-  const [mobile, setMobile] = useState(false)
-  useEffect(() => {
-    const id = requestAnimationFrame(() => setPinReady(true))
-    setMobile(window.matchMedia('(max-width: 767px), (pointer: coarse)').matches)
-    return () => cancelAnimationFrame(id)
-  }, [])
   const handleClick = (event: ThreeEvent<MouseEvent>) => {
     event.stopPropagation()
     onSelect(location.id)
@@ -305,53 +308,21 @@ function Landmark({ location, selected, isCurrent, onSelect }: LandmarkProps) {
 
   return (
     <group position={[x, 0, z]}>
-      <group onClick={handleClick}>
-        <LandmarkModel location={location} />
-      </group>
-      {mobile ? (
-        <mesh position={[0, pinHeightFor(location), 0]} onClick={handleClick}>
-          <sphereGeometry args={[0.55, 12, 12]} />
-          <meshBasicMaterial color={selected || isCurrent ? MAP.window : MAP.roadMark} />
-        </mesh>
-      ) : pinReady ? (
-      <Html position={[0, pinHeightFor(location), 0]} center zIndexRange={[20, 10]}>
-        <button
-          type="button"
-          onClick={() => onSelect(location.id)}
-          aria-label={location.name}
-          aria-pressed={selected}
-          className="group flex flex-col items-center gap-1 outline-none"
-        >
-          <span
-            className={cn(
-              'flex size-7 items-center justify-center rounded-full border bg-white text-sm shadow-sm transition-transform group-hover:scale-110 group-focus-visible:ring-4 group-focus-visible:ring-primary/40',
-              selected ? 'scale-110 border-neutral-900' : isCurrent ? 'border-primary' : 'border-white',
-            )}
-          >
-            <span aria-hidden="true">{location.emoji}</span>
-          </span>
-          <span
-            className={cn(
-              'whitespace-nowrap rounded-full bg-white/95 px-2 py-0.5 text-[11px] font-semibold text-foreground shadow-sm transition-opacity',
-              selected || isCurrent ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100',
-            )}
-          >
-            {isCurrent ? `You · ${location.name}` : location.name}
-          </span>
-        </button>
-      </Html>
-      ) : null}
+      <mesh position={[0, 0.12, 0]} onClick={handleClick}>
+        <cylinderGeometry args={[1.6, 1.6, 0.2, 20]} />
+        <meshBasicMaterial transparent opacity={0} />
+      </mesh>
+      <QuestArrow active={selected} />
     </group>
   )
 }
 
 export function WorldLandmarks({
   selectedId,
-  currentId,
   onSelect,
 }: {
   selectedId: string | null
-  currentId: string | null
+  currentId?: string | null
   onSelect: (id: string) => void
 }) {
   return (
@@ -361,7 +332,6 @@ export function WorldLandmarks({
           key={location.id}
           location={location}
           selected={selectedId === location.id}
-          isCurrent={currentId === location.id}
           onSelect={onSelect}
         />
       ))}

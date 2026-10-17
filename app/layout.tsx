@@ -1,6 +1,5 @@
-import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
-import { Geist, Inter } from 'next/font/google'
+import { Fredoka, Geist, Inter, Plus_Jakarta_Sans } from 'next/font/google'
 import '@/components/arc/foundation.css'
 import './globals.css'
 
@@ -12,6 +11,19 @@ const geist = Geist({
 const inter = Inter({
   subsets: ['latin'],
   variable: '--font-inter',
+  weight: ['400', '500', '600', '700', '800'],
+})
+
+const fredoka = Fredoka({
+  subsets: ['latin'],
+  variable: '--font-fredoka',
+  weight: ['500', '600', '700'],
+})
+
+const jakarta = Plus_Jakarta_Sans({
+  subsets: ['latin'],
+  variable: '--font-jakarta',
+  weight: ['400', '500', '600', '700', '800'],
 })
 
 export const metadata: Metadata = {
@@ -45,10 +57,9 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={`${geist.variable} ${inter.variable}`}>
+    <html lang="en" className={`${geist.variable} ${inter.variable} ${fredoka.variable} ${jakarta.variable}`}>
       <body className="font-sans antialiased">
         {children}
-        {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>
   )

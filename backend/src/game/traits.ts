@@ -1,7 +1,28 @@
-export type TraitId = 'tech' | 'night-classer' | 'foodie' | 'leader'
+export type TraitId =
+  | 'tech'
+  | 'night-classer'
+  | 'foodie'
+  | 'leader'
+  | 'hustler'
+  | 'risk-taker'
+  | 'gym-rat'
+  | 'academic-weapon'
+  | 'fashionista'
+  | 'social-butterfly'
 
 export const TRAIT_LIMIT = 2
-const ALLOWED = new Set<TraitId>(['tech', 'night-classer', 'foodie', 'leader'])
+const ALLOWED = new Set<TraitId>([
+  'tech',
+  'night-classer',
+  'foodie',
+  'leader',
+  'hustler',
+  'risk-taker',
+  'gym-rat',
+  'academic-weapon',
+  'fashionista',
+  'social-butterfly',
+])
 
 export type CheckResult<T> = { ok: true; value: T } | { ok: false; error: string }
 

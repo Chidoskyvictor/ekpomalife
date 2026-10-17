@@ -1,42 +1,88 @@
 'use client'
 
+import { Clone, useGLTF } from '@react-three/drei'
+import { Suspense, useMemo } from 'react'
+import { Group, type Object3D } from 'three'
+import { planRoadBits, type RoadBitName } from '@/lib/game/road-bits'
+import { ROAD_FRAME, ROAD_GAPS, ROAD_W } from '@/lib/game/world-layout'
 import { MAP } from '@/lib/game/map-theme'
-import { ROAD_FRAME, ROAD_GAPS, type RoadGap } from '@/lib/game/world-layout'
 
-function Dashes({ gap }: { gap: RoadGap }) {
-  const alongZ = gap.d > gap.w
-  const length = alongZ ? gap.d : gap.w
-  const dash = 2.2
-  const space = 2
-  const marks: number[] = []
-  for (let along = -length / 2 + dash; along < length / 2 - dash; along += dash + space) {
-    marks.push(along)
+/**
+ * City Bits road kit (`campusroad.glb`): straight / junction / corner / t-split / crossing.
+ * Meshes are 0.02×0.02 with node scale 100 → 2×2 tiles lying in XY; we lay them flat.
+ */
+const ROAD_URL = '/models/campusroad.glb'
+const NATIVE_TILE = 2
+const BIT_NAMES: RoadBitName[] = [
+  'road_straight',
+  'road_corner',
+  'road_corner_curved',
+  'road_junction',
+  'road_tsplit',
+  'road_straight_crossing',
+]
+
+useGLTF.preload(ROAD_URL)
+
+function extractBits(scene: Object3D) {
+  const bits: Partial<Record<RoadBitName, Object3D>> = {}
+  for (const name of BIT_NAMES) {
+    const node = scene.getObjectByName(name)
+    if (!node) continue
+    const holder = new Group()
+    const clone = node.clone(true)
+    clone.position.set(0, 0, 0)
+    // Kit is XY-flat (thin Z); bake onto XZ so Clone yaw props don't wipe it
+    clone.rotation.x = -Math.PI / 2
+    holder.add(clone)
+    bits[name] = holder
   }
+  return bits
+}
+
+function RoadBitNetwork() {
+  const { scene } = useGLTF(ROAD_URL)
+  const bits = useMemo(() => extractBits(scene), [scene])
+  const scale = ROAD_W / NATIVE_TILE
+  const placements = useMemo(() => planRoadBits(ROAD_GAPS, ROAD_W), [])
 
   return (
-    <group>
-      {marks.map((along) => (
-        <mesh
-          key={along}
-          rotation={[-Math.PI / 2, 0, 0]}
-          position={alongZ ? [gap.x, 0.07, gap.z + along] : [gap.x + along, 0.07, gap.z]}
-        >
-          <planeGeometry args={alongZ ? [0.28, dash] : [dash, 0.28]} />
-          <meshStandardMaterial color={MAP.roadMark} roughness={0.7} />
-        </mesh>
-      ))}
+    <group position={[0, 0.07, 0]}>
+      {placements.map((p) => {
+        const src = bits[p.bit] ?? bits.road_straight
+        if (!src) return null
+        return (
+          <Clone
+            key={`${p.bit}-${p.x.toFixed(2)}-${p.z.toFixed(2)}`}
+            object={src}
+            position={[p.x, 0, p.z]}
+            rotation={[0, p.rot, 0]}
+            scale={scale}
+            castShadow
+            receiveShadow
+          />
+        )
+      })}
     </group>
   )
 }
 
-function RoadInGap({ gap }: { gap: RoadGap }) {
+/** Thin underlay only on snapped road cells — no crossing double-beds. */
+function RoadBeds() {
+  const placements = useMemo(() => planRoadBits(ROAD_GAPS, ROAD_W), [])
   return (
     <group>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[gap.x, 0.04, gap.z]} receiveShadow>
-        <planeGeometry args={[gap.w, gap.d]} />
-        <meshStandardMaterial color={MAP.road} roughness={0.94} />
-      </mesh>
-      {gap.dashed ? <Dashes gap={gap} /> : null}
+      {placements.map((p) => (
+        <mesh
+          key={`bed-${p.x.toFixed(2)}-${p.z.toFixed(2)}`}
+          rotation={[-Math.PI / 2, 0, 0]}
+          position={[p.x, 0.035, p.z]}
+          receiveShadow
+        >
+          <planeGeometry args={[ROAD_W * 1.02, ROAD_W * 1.02]} />
+          <meshStandardMaterial color="#2a2a2a" roughness={0.96} />
+        </mesh>
+      ))}
     </group>
   )
 }
@@ -50,9 +96,10 @@ export function WorldRoads() {
           <meshStandardMaterial color={MAP.road} roughness={0.94} />
         </mesh>
       ))}
-      {ROAD_GAPS.map((gap) => (
-        <RoadInGap key={gap.name} gap={gap} />
-      ))}
+      <RoadBeds />
+      <Suspense fallback={null}>
+        <RoadBitNetwork />
+      </Suspense>
     </group>
   )
 }

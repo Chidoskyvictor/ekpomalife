@@ -1,12 +1,10 @@
 'use client'
 
 import Link from 'next/link'
-import { motion, useReducedMotion } from 'motion/react'
+import { motion, useAnimation, useReducedMotion } from 'motion/react'
 import { useState } from 'react'
-import { TextReveal } from '@/components/arc/text-reveal/text-reveal'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/arc/tabs/tabs'
-import { motionTokens } from '@/components/arc/lib/motion-tokens'
-import { Logo } from '@/components/hud/top-bar'
+import { FloatingStickers } from './floating-stickers'
 import { LoginForm } from './login-form'
 import { SignupForm } from './signup-form'
 import styles from './auth.module.css'
@@ -21,6 +19,12 @@ const TITLES: Record<AuthMode, string> = {
 export function AuthPage({ initial }: { initial: AuthMode }) {
   const [mode, setMode] = useState<AuthMode>(initial)
   const reduceMotion = useReducedMotion() ?? false
+  const shake = useAnimation()
+
+  const bump = () => {
+    if (reduceMotion) return
+    void shake.start({ x: [0, -8, 8, -5, 5, 0] }).then(() => shake.set({ x: 0 }))
+  }
 
   const switchTo = (next: string) => {
     const value = next as AuthMode
@@ -31,41 +35,48 @@ export function AuthPage({ initial }: { initial: AuthMode }) {
 
   return (
     <main className={styles.page}>
+      <Link href="/" className={styles.back}>
+        ← Back to the city
+      </Link>
+      <FloatingStickers />
       <div className={styles.inner}>
-        <div className={styles.bar}>
-          <Link href="/" className={styles.back}>
-            Back
-          </Link>
-          <div className={styles.brand}>
-            <Logo />
-          </div>
-        </div>
+        <motion.header
+          className={styles.hero}
+          initial={reduceMotion ? false : { opacity: 0, y: -24, scale: 0.9 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={reduceMotion ? { duration: 0 } : { type: 'spring', bounce: 0.55, duration: 0.85 }}
+        >
+          <img src="/logo.png" alt="" width={64} height={64} className={styles.heroMark} />
+          <h1 className={styles.heroTitle}>Ekpoma Life</h1>
+        </motion.header>
 
         <motion.section
           className={styles.card}
-          initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+          layout={!reduceMotion}
+          initial={reduceMotion ? false : { opacity: 0, y: 28 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={reduceMotion ? { duration: 0 } : motionTokens.spring.smooth}
+          transition={reduceMotion ? { duration: 0 } : { duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
         >
-          <TextReveal as="h1" text="Ekpoma Life" className={styles.title} />
-          <Tabs value={mode} onValueChange={switchTo} className={styles.stack}>
-            <div className={styles.switcher}>
-              <TabsList aria-label="Account">
-                <TabsTrigger value="signup">Sign up</TabsTrigger>
-                <TabsTrigger value="login">Log in</TabsTrigger>
-              </TabsList>
-            </div>
-            <TabsContent value="signup">
-              <div className={styles.panel}>
-                <SignupForm />
+          <motion.div animate={shake} transition={{ duration: 0.4 }}>
+            <Tabs value={mode} onValueChange={switchTo} className={styles.stack}>
+              <div className={styles.switcher}>
+                <TabsList aria-label="Account">
+                  <TabsTrigger value="signup">Sign up</TabsTrigger>
+                  <TabsTrigger value="login">Log in</TabsTrigger>
+                </TabsList>
               </div>
-            </TabsContent>
-            <TabsContent value="login">
-              <div className={styles.panel}>
-                <LoginForm />
-              </div>
-            </TabsContent>
-          </Tabs>
+              <TabsContent value="signup">
+                <div className={styles.panel}>
+                  <SignupForm onShake={bump} />
+                </div>
+              </TabsContent>
+              <TabsContent value="login">
+                <div className={styles.panel}>
+                  <LoginForm onShake={bump} />
+                </div>
+              </TabsContent>
+            </Tabs>
+          </motion.div>
         </motion.section>
       </div>
     </main>

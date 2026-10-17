@@ -43,3 +43,132 @@
   color: var(--primary);
   background: color-mix(in oklab, var(--primary) 14%, white);
 }
+
+.lobbyRow {
+  display: flex;
+  width: 100%;
+  flex-shrink: 0;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.play {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border: 0;
+  text-decoration: none;
+  color: var(--primary-foreground);
+  font-family: 'Boogaloo', sans-serif;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  background: linear-gradient(180deg, color-mix(in oklab, var(--primary) 78%, white) 0%, var(--primary) 100%);
+  box-shadow: 0 5px 0 color-mix(in oklab, var(--primary) 62%, black);
+  cursor: pointer;
+}
+
+.playSticker {
+  width: 0.95rem;
+  height: 0.95rem;
+  flex-shrink: 0;
+}
+
+.play:hover {
+  filter: brightness(1.03);
+}
+
+.play:active {
+  transform: translateY(3px);
+  box-shadow: 0 2px 0 color-mix(in oklab, var(--primary) 62%, black);
+}
+
+.play:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+}
+
+.lobbySignup {
+  flex: 1;
+  min-height: 52px;
+  padding: 0 1.1rem;
+  border-radius: 16px;
+  font-size: 1.1rem;
+  white-space: nowrap;
+}
+
+.lobbyLogin {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  min-width: 6.25rem;
+  min-height: 52px;
+  padding: 0 1.35rem;
+  border-radius: 16px;
+  border: 1px solid #e3e8ef;
+  background: #fff;
+  color: var(--primary);
+  font-family: 'Boogaloo', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  white-space: nowrap;
+  text-decoration: none;
+  box-shadow: 0 5px 0 #d7dee6;
+}
+
+.lobbyLogin:hover {
+  filter: brightness(0.99);
+}
+
+.lobbyLogin:active {
+  transform: translateY(3px);
+  box-shadow: 0 2px 0 #d7dee6;
+}
+
+.lobbyLogin:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+}
+
+.compact .lobbySignup,
+.compact .lobbyLogin {
+  min-height: 42px;
+  border-radius: 14px;
+  font-size: 0.95rem;
+  box-shadow: 0 4px 0 color-mix(in oklab, var(--primary) 62%, black);
+}
+
+.compact .lobbyLogin {
+  min-width: 6rem;
+  padding: 0 1.2rem;
+  box-shadow: 0 4px 0 #d7dee6;
+}
+
+.compact .playSticker {
+  width: 0.85rem;
+  height: 0.85rem;
+}
+
+.compact .lobbySignup:active {
+  box-shadow: 0 2px 0 color-mix(in oklab, var(--primary) 62%, black);
+}
+
+.compact .lobbyLogin:active {
+  box-shadow: 0 2px 0 #d7dee6;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .play,
+  .lobbyLogin {
+    transition: none;
+  }
+
+  .play:active,
+  .lobbyLogin:active {
+    transform: none;
+  }
+}

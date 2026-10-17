@@ -3,21 +3,25 @@
 import { MapControls } from '@react-three/drei'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Suspense, useEffect, useRef, useState } from 'react'
-import { Vector3 } from 'three'
-import { getLocation } from '@/lib/game/content'
+import { NoToneMapping, Vector3 } from 'three'
+import { getPlace, getPlaceByZone } from '@/lib/game/places'
 import { MAP } from '@/lib/game/map-theme'
-import { LAND_CENTER, WORLD } from '@/lib/game/world-layout'
+import { FIRST_SLAB, LAND_CENTER, MAP_ZONES, WORLD } from '@/lib/game/world-layout'
 import { useGame } from '@/hooks/use-game'
 import { PlayerAvatar } from './player-avatar'
+import { WorldFence } from './world-fence'
 import { WorldGround } from './world-ground'
-import { WorldLandmarks } from './world-landmarks'
+import { WorldKenney } from './world-kenney'
+import { WorldRoads } from './world-roads'
+import { WorldTrees } from './world-trees'
+import { WorldZones } from './world-zones'
 
-const PITCH = (30 * Math.PI) / 180
+const PITCH = (32 * Math.PI) / 180
 const HEADING = 0
-const DISTANCE = 100
+const DISTANCE = 145
 const MIN_PITCH = (22 * Math.PI) / 180
-const MAX_PITCH = (48 * Math.PI) / 180
-const TARGET_PAD = 8
+const MAX_PITCH = (50 * Math.PI) / 180
+const TARGET_PAD = 10
 
 const CAMERA_OFFSET = new Vector3(
   DISTANCE * Math.sin(PITCH) * Math.sin(HEADING),
@@ -33,8 +37,13 @@ function CameraRig({ focusId }: { focusId: string | null }) {
   const goal = useRef<Vector3 | null>(null)
 
   useEffect(() => {
-    const location = focusId ? getLocation(focusId) : null
-    goal.current = location ? new Vector3(location.position[0], 0, location.position[1] + 4) : null
+    if (!focusId) {
+      goal.current = null
+      return
+    }
+    const place = getPlace(focusId) ?? getPlaceByZone(focusId)
+    const zone = MAP_ZONES.find((entry) => entry.id === (place?.zoneId ?? focusId))
+    goal.current = zone ? new Vector3(zone.position[0], 0, zone.position[1] + 4) : null
   }, [focusId])
 
   useFrame((_, delta) => {
@@ -68,6 +77,7 @@ function CameraRig({ focusId }: { focusId: string | null }) {
 export function WorldCanvas() {
   const { state, selectedId, select } = useGame()
   const currentId = state?.locationId ?? null
+  const night = state?.period === 'evening' || state?.period === 'night'
   const [mobile, setMobile] = useState(
     () => window.matchMedia('(max-width: 767px), (pointer: coarse)').matches,
   )
@@ -79,8 +89,19 @@ export function WorldCanvas() {
     return () => query.removeEventListener('change', sync)
   }, [])
 
+  const ambient = night ? 0.18 : 0.55
+  const hemi = night ? (mobile ? 0.4 : 0.32) : mobile ? 1.15 : 1
+  const sun = night ? (mobile ? 0.38 : 0.3) : mobile ? 1.35 : 1.2
+  const fill = night ? 0.08 : 0.28
+  const water = night ? '#2a4f66' : MAP.water
+
   return (
-    <div className="absolute inset-0 bg-[#56A2C3]" aria-label="Interactive map of Ekpoma" role="application">
+    <div
+      className="absolute inset-0"
+      style={{ background: water }}
+      aria-label="Interactive map of Ekpoma"
+      role="application"
+    >
       <Canvas
         shadows={!mobile}
         dpr={mobile ? [1, 1] : [1, 1.75]}
@@ -88,6 +109,8 @@ export function WorldCanvas() {
           antialias: !mobile,
           powerPreference: mobile ? 'low-power' : 'high-performance',
           failIfMajorPerformanceCaveat: false,
+          toneMapping: NoToneMapping,
+          toneMappingExposure: night ? 0.72 : 1,
         }}
         camera={{
           position: [LAND_CENTER.x + CAMERA_OFFSET.x, CAMERA_OFFSET.y, LAND_CENTER.z + CAMERA_OFFSET.z],
@@ -97,21 +120,31 @@ export function WorldCanvas() {
         }}
         onPointerMissed={() => select(null)}
       >
-        <color attach="background" args={[MAP.water]} />
-        <hemisphereLight args={['#FFF6E8', MAP.shadow, mobile ? 1.2 : 0.9]} />
+        <color attach="background" args={[water]} />
+        <ambientLight intensity={ambient} />
+        <hemisphereLight args={[night ? '#C9D7E8' : '#FFFFFF', MAP.land, hemi]} />
         <directionalLight
           position={[40, 70, 22]}
-          intensity={mobile ? 1.35 : 1.15}
+          intensity={sun}
+          color={night ? '#B8C9E0' : '#FFFFFF'}
           castShadow={!mobile}
           shadow-mapSize={mobile ? [512, 512] : [2048, 2048]}
-          shadow-camera-left={-110}
-          shadow-camera-right={110}
-          shadow-camera-top={110}
-          shadow-camera-bottom={-110}
+          shadow-camera-left={-140}
+          shadow-camera-right={140}
+          shadow-camera-top={140}
+          shadow-camera-bottom={-140}
           shadow-bias={-0.0004}
+          shadow-intensity={0.28}
         />
+        <directionalLight position={[-28, 36, -18]} intensity={fill} color="#F2FBFF" />
         <WorldGround />
-        <WorldLandmarks selectedId={selectedId} currentId={currentId} onSelect={select} />
+        <WorldRoads />
+        <WorldFence />
+        <WorldTrees mobile={mobile} />
+        <WorldZones />
+        <Suspense fallback={null}>
+          <WorldKenney />
+        </Suspense>
         <Suspense fallback={null}>
           {state ? <PlayerAvatar locationId={state.locationId} color={state.avatarColor} appearance={state.appearance} /> : null}
         </Suspense>
@@ -121,11 +154,11 @@ export function WorldCanvas() {
           screenSpacePanning
           minPolarAngle={MIN_PITCH}
           maxPolarAngle={MAX_PITCH}
-          minDistance={48}
-          maxDistance={140}
+          minDistance={60}
+          maxDistance={220}
           zoomSpeed={0.7}
           rotateSpeed={0.45}
-          target={[LAND_CENTER.x, 0, LAND_CENTER.z]}
+          target={[FIRST_SLAB.x, 0, FIRST_SLAB.z]}
         />
         <CameraRig focusId={selectedId} />
       </Canvas>

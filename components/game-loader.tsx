@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { TextShimmer } from '@/components/arc/text-shimmer/text-shimmer'
 import { getSession, loadDraft, saveKey } from '@/lib/game/accounts'
+import { localCharacterRecord, pathForStep } from '@/lib/game/onboarding'
 import GameShell from './game-shell'
 import styles from './game-loader.module.css'
 
@@ -16,8 +17,7 @@ export function GameLoader() {
   useEffect(() => {
     const username = getSession()
     if (username && !window.localStorage.getItem(saveKey(username))) {
-      const draft = loadDraft(username)
-      router.replace(draft?.appearance ? '/traits' : '/look')
+      router.replace(pathForStep(localCharacterRecord(loadDraft(username)).step))
       return
     }
 

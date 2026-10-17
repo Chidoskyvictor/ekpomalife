@@ -27,7 +27,7 @@ export function WelcomeCard() {
           <span className={styles.count}>{online.toLocaleString()}</span> students on campus right now
         </span>
       </p>
-      <AuthLinks size="lg" signupFirst />
+      <AuthLinks size="lg" signupFirst variant="lobby" />
     </motion.section>
   )
 }

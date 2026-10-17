@@ -3,8 +3,7 @@
 import { useMemo } from 'react'
 import { ExtrudeGeometry, Shape } from 'three'
 import { MAP } from '@/lib/game/map-theme'
-import { SLABS, UKE_LATERITE, type Slab } from '@/lib/game/world-layout'
-import { WorldRoads } from './world-roads'
+import { SLABS, type Slab } from '@/lib/game/world-layout'
 
 function roundedRect(w: number, d: number, radius: number) {
   const r = Math.min(radius, w / 2 - 0.2, d / 2 - 0.2)
@@ -37,7 +36,7 @@ function Island({ slab }: { slab: Slab }) {
     () => slabGeometry(slab.w + 0.36, slab.d + 0.36, 0.03, slab.radius + 0.08),
     [slab],
   )
-  const color = slab.tone === 'residential' ? MAP.landLight : MAP.land
+  const color = slab.color ?? (slab.tone === 'residential' ? MAP.landLight : MAP.land)
 
   return (
     <group>
@@ -47,7 +46,7 @@ function Island({ slab }: { slab: Slab }) {
         position={[slab.x, -slab.h + 0.01, slab.z]}
         receiveShadow
       >
-        <meshStandardMaterial color={MAP.slabOutline} roughness={0.96} />
+        <meshStandardMaterial color={MAP.slabOutline} roughness={0.78} />
       </mesh>
       <mesh
         geometry={fill}
@@ -55,42 +54,18 @@ function Island({ slab }: { slab: Slab }) {
         position={[slab.x, -slab.h, slab.z]}
         receiveShadow
       >
-        <meshStandardMaterial color={color} roughness={0.94} />
+        <meshStandardMaterial color={color} roughness={0.7} />
       </mesh>
     </group>
   )
 }
 
-function LateritePatch() {
-  const geometry = useMemo(
-    () => slabGeometry(UKE_LATERITE.w, UKE_LATERITE.d, 0.04, 1.2),
-    [],
-  )
-  return (
-    <mesh
-      geometry={geometry}
-      rotation={[-Math.PI / 2, 0, 0]}
-      position={[UKE_LATERITE.x, 0.02, UKE_LATERITE.z]}
-      receiveShadow
-    >
-      <meshStandardMaterial color={MAP.laterite} roughness={0.92} />
-    </mesh>
-  )
-}
-
 export function WorldGround() {
-  const floorY = -SLABS[0]!.h - 0.08
   return (
     <group>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, floorY, 0]} receiveShadow>
-        <planeGeometry args={[420, 420]} />
-        <meshStandardMaterial color={MAP.water} roughness={0.96} />
-      </mesh>
       {SLABS.map((slab) => (
         <Island key={slab.name} slab={slab} />
       ))}
-      <LateritePatch />
-      <WorldRoads />
     </group>
   )
 }

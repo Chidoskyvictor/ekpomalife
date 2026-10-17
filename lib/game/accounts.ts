@@ -82,7 +82,14 @@ export async function createAccount(input: SignupInput): Promise<Result> {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
-      body: JSON.stringify({ name, username, password: input.password, isAdult: input.isAdult }),
+      body: JSON.stringify({
+        name,
+        username,
+        password: input.password,
+        email,
+        dateOfBirth: input.dateOfBirth || undefined,
+        isAdult: input.isAdult,
+      }),
     })
     const data = (await response.json()) as Result
     if (!data.ok) return { ok: false, error: data.error || 'Could not create the account.' }
@@ -127,9 +134,21 @@ export function getProfile(): PublicAccount | null {
   }
 }
 
+export const GUEST_USERNAME = 'guest'
+
 export function getSession() {
   if (typeof window === 'undefined') return null
   return window.localStorage.getItem(SESSION_KEY)
+}
+
+/** Local play with no password and no API. Used so Look/Traits/Dream work offline. */
+export function ensureLocalPlayer() {
+  if (typeof window === 'undefined') return GUEST_USERNAME
+  const existing = getSession()
+  if (existing) return existing
+  rememberProfile({ name: 'Guest', username: GUEST_USERNAME })
+  setSession(GUEST_USERNAME)
+  return GUEST_USERNAME
 }
 
 export function setSession(username: string) {
@@ -144,6 +163,11 @@ export type LookDraft = {
   appearance?: unknown
   traits?: string[]
   dreamId?: string | null
+  characterType?: string | null
+  lodgingId?: string | null
+  courseId?: string | null
+  startingCash?: number | null
+  startingTier?: string | null
 }
 
 export function loadDraft(username: string): LookDraft | null {

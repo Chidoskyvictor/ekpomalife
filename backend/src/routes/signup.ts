@@ -26,7 +26,7 @@ export async function signupRoutes(app: FastifyInstance) {
         return reply.code(400).send({ ok: false, error: firstZodError(parsed.error) })
       }
 
-      const { name, username, password } = parsed.data
+      const { name, username, password, email, dateOfBirth } = parsed.data
       const existing = await pool.query('SELECT id FROM users WHERE username = $1', [username])
       if ((existing.rowCount ?? 0) > 0) {
         return reply.code(409).send({ ok: false, error: 'That username is taken.' })
@@ -34,14 +34,13 @@ export async function signupRoutes(app: FastifyInstance) {
 
       const passwordHash = await hashPassword(password)
       const user = { id: createId(), name, username }
+      const dob = dateOfBirth && dateOfBirth.length > 0 ? dateOfBirth : null
 
       try {
-        await pool.query('INSERT INTO users (id, name, username, password_hash) VALUES ($1, $2, $3, $4)', [
-          user.id,
-          user.name,
-          user.username,
-          passwordHash,
-        ])
+        await pool.query(
+          'INSERT INTO users (id, name, username, password_hash, email, date_of_birth) VALUES ($1, $2, $3, $4, $5, $6)',
+          [user.id, user.name, user.username, passwordHash, email, dob],
+        )
       } catch (error) {
         const code = typeof error === 'object' && error && 'code' in error ? error.code : null
         if (code === '23505') {

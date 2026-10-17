@@ -1,6 +1,8 @@
 import { ACTIONS, EVENTS, getLocation, START_LOCATION_ID } from './content'
 import { CAREER_MAX_LEVEL, MUSIC_MAX_LEVEL, emptyDreamSnapshot, type DreamId } from './dreams'
 import type { Appearance } from './look'
+import { getLodging, type CharacterTypeId, type LodgingId } from './live'
+import { applyNeeds, drainNeeds } from './needs'
 import { hasTrait, type TraitId } from './traits'
 import type {
   ActionId,
@@ -13,7 +15,6 @@ import type {
   TravelMode,
 } from './types'
 
-export const STARTER_CASH = 5000
 export const PERIODS: TimePeriod[] = ['morning', 'afternoon', 'evening', 'night']
 
 export const OBJECTIVES = [
@@ -31,7 +32,16 @@ export function createInitialState(
   appearance?: Appearance,
   traits?: TraitId[],
   dreamId?: DreamId | null,
+  extras?: {
+    characterType?: CharacterTypeId
+    lodgingId?: LodgingId
+    courseId?: string
+    startingCash?: number
+  },
 ): GameState {
+  const lodging = getLodging(extras?.lodgingId)
+  /** Cash must come from the server roll — never invent a client starter. */
+  const cash = extras?.startingCash ?? 0
   return {
     playerId: crypto.randomUUID(),
     characterName: name,
@@ -40,16 +50,24 @@ export function createInitialState(
     ...(appearance ? { appearance } : {}),
     ...(traits && traits.length > 0 ? { traits } : {}),
     dreamId: dreamId ?? null,
-    dream: { ...emptyDreamSnapshot(), netWorth: STARTER_CASH },
+    ...(extras?.characterType ? { characterType: extras.characterType } : {}),
+    ...(extras?.lodgingId ? { lodgingId: extras.lodgingId } : {}),
+    ...(extras?.courseId ? { courseId: extras.courseId } : {}),
+    dream: { ...emptyDreamSnapshot(), netWorth: cash },
     badges: [],
     dreamCompleted: false,
     dreamCelebrated: false,
-    cash: STARTER_CASH,
+    cash,
     energy: 100,
     health: 100,
     reputation: 0,
     academic: 50,
-    locationId: START_LOCATION_ID,
+    hunger: 72,
+    hygiene: 80,
+    fun: 65,
+    social: 58,
+    xp: 12,
+    locationId: lodging?.startLocationId ?? START_LOCATION_ID,
     day: 1,
     period: 'morning',
     hasPhone: false,
@@ -57,7 +75,7 @@ export function createInitialState(
     feed: [
       {
         id: crypto.randomUUID(),
-        text: `Welcome to Ekpoma, ${name}. Fresh AAU student, ₦${STARTER_CASH.toLocaleString()} in your pocket.`,
+        text: `Welcome to Ekpoma, ${name}. ${lodging ? `${lodging.title}. ` : ''}₦${cash.toLocaleString()} in your pocket.`,
         tone: 'neutral',
         day: 1,
         period: 'morning',
@@ -78,7 +96,14 @@ function applyEffects(state: GameState, effects: Partial<Record<StatKey, number>
     },
     energy: clamp(state.energy + (effects.energy ?? 0)),
     health: clamp(state.health + (effects.health ?? 0)),
-    reputation: clamp(state.reputation + (effects.reputation ?? 0)),
+    reputation: clamp(
+      state.reputation +
+        (effects.reputation
+          ? effects.reputation < 0 && hasTrait(state.traits, 'social-butterfly')
+            ? Math.ceil(effects.reputation / 2)
+            : effects.reputation
+          : 0),
+    ),
     academic: clamp(state.academic + (effects.academic ?? 0)),
   }
 }
@@ -93,7 +118,7 @@ function advanceTime(state: GameState, periods: number): GameState {
       day += 1
     }
   }
-  return { ...state, day, period: PERIODS[index]! }
+  return drainNeeds({ ...state, day, period: PERIODS[index]! }, periods)
 }
 
 function log(state: GameState, text: string, tone: FeedTone): GameState {
@@ -179,31 +204,58 @@ export function performAction(state: GameState, actionId: ActionId, roll = Math.
 
   switch (actionId) {
     case 'study': {
-      const academic = 5 + (hasTrait(state.traits, 'tech') ? 2 : 0) + (hasTrait(state.traits, 'night-classer') ? 2 : 0)
+      const academic =
+        5 +
+        (hasTrait(state.traits, 'tech') ? 2 : 0) +
+        (hasTrait(state.traits, 'night-classer') ? 2 : 0) +
+        (hasTrait(state.traits, 'academic-weapon') ? 2 : 0)
       const energy = -15 - (hasTrait(state.traits, 'night-classer') && state.period === 'morning' ? 4 : 0)
       next = applyEffects(next, { energy, academic })
-      const cgpa = Math.min(5, next.dream.cgpa + 0.04 + (hasTrait(state.traits, 'tech') ? 0.01 : 0))
+      const cgpa = Math.min(
+        5,
+        next.dream.cgpa +
+          0.04 +
+          (hasTrait(state.traits, 'tech') ? 0.01 : 0) +
+          (hasTrait(state.traits, 'academic-weapon') ? 0.01 : 0),
+      )
       next = patchDream(next, {
         cgpa,
         graduated: next.dream.graduated || (next.academic >= 95 && next.day >= 8 && cgpa >= 3.5),
       })
+      next = applyNeeds(next, { fun: -6, hunger: -5, hygiene: -2, xp: 8 })
       message = 'You read for hours. Academic standing up.'
       break
     }
     case 'night_class': {
-      const academic = 9 + (hasTrait(state.traits, 'night-classer') ? 4 : 0) + (hasTrait(state.traits, 'tech') ? 2 : 0)
+      const academic =
+        9 +
+        (hasTrait(state.traits, 'night-classer') ? 4 : 0) +
+        (hasTrait(state.traits, 'tech') ? 2 : 0) +
+        (hasTrait(state.traits, 'academic-weapon') ? 4 : 0)
       next = applyEffects(next, { energy: -25, academic, health: -3 })
-      const cgpa = Math.min(5, next.dream.cgpa + 0.07 + (hasTrait(state.traits, 'night-classer') ? 0.02 : 0))
+      const cgpa = Math.min(
+        5,
+        next.dream.cgpa +
+          0.07 +
+          (hasTrait(state.traits, 'night-classer') ? 0.02 : 0) +
+          (hasTrait(state.traits, 'academic-weapon') ? 0.02 : 0),
+      )
       next = patchDream(next, {
         cgpa,
         graduated: next.dream.graduated || (next.academic >= 95 && next.day >= 8 && cgpa >= 3.5),
       })
+      next = applyNeeds(next, { fun: -8, hunger: -8, hygiene: -4, xp: 12 })
       message = 'TDB (till day break) reading. Your brain is full.'
       break
     }
     case 'socialize': {
-      const reputation = 3 + (hasTrait(state.traits, 'leader') ? 3 : 0)
+      const reputation =
+        3 +
+        (hasTrait(state.traits, 'leader') ? 3 : 0) +
+        (hasTrait(state.traits, 'fashionista') ? 3 : 0) +
+        (hasTrait(state.traits, 'social-butterfly') ? 3 : 0)
       next = applyEffects(next, { energy: -8, reputation })
+      next = applyNeeds(next, { fun: 18, social: 16, hunger: -4, xp: 4 })
       const bestFriends = Math.min(10, next.dream.bestFriends + (roll > 0.55 ? 1 : 0))
       next = patchDream(next, {
         bestFriends,
@@ -216,6 +268,7 @@ export function performAction(state: GameState, actionId: ActionId, roll = Math.
       const night = state.period === 'night' || state.period === 'evening'
       const energy = (night ? 60 : 30) - (hasTrait(state.traits, 'night-classer') ? 8 : 0)
       next = applyEffects(next, { energy, health: 8 })
+      next = applyNeeds(next, { hygiene: night ? 25 : 8, fun: night ? 6 : 2, xp: night ? 8 : 3 })
       message = night ? 'You slept well. New day, new hustle.' : 'Short nap. You feel better.'
       if (night) next = advanceTime(next, state.period === 'night' ? 1 : 2)
       break
@@ -225,6 +278,7 @@ export function performAction(state: GameState, actionId: ActionId, roll = Math.
       const cash = foodie ? -1100 : -800
       const energy = foodie ? 22 : 15
       next = applyEffects(next, { cash, energy, health: 2 })
+      next = applyNeeds(next, { hunger: foodie ? 45 : 35, fun: 4, xp: 3 })
       next = addMilestone(next, 'first_meal')
       message = foodie
         ? "Amina's jollof hit different. Belle first. +22 energy, extra ₦300."
@@ -240,42 +294,57 @@ export function performAction(state: GameState, actionId: ActionId, roll = Math.
     case 'buy_snack': {
       const foodie = hasTrait(state.traits, 'foodie')
       next = applyEffects(next, { cash: foodie ? -450 : -300, energy: foodie ? 10 : 6 })
+      next = applyNeeds(next, { hunger: foodie ? 18 : 12, fun: 3, xp: 1 })
       message = foodie ? 'Gala and Fanta. Extra wrap, extra ₦150.' : 'Gala and Fanta. The student classic.'
       break
     }
-    case 'errand':
-      next = applyEffects(next, { cash: 500, energy: -10 })
+    case 'errand': {
+      const hustler = hasTrait(state.traits, 'hustler')
+      const cash = hustler ? 750 : 500
+      next = applyEffects(next, { cash, energy: -10, reputation: hustler ? 2 : 0 })
       next = addMilestone(next, 'first_errand')
       next = patchDream(next, {
-        careerLevel: Math.min(CAREER_MAX_LEVEL, next.dream.careerLevel + (roll > 0.65 ? 1 : 0)),
+        careerLevel: Math.min(CAREER_MAX_LEVEL, next.dream.careerLevel + (roll > (hustler ? 0.5 : 0.65) ? 1 : 0)),
       })
-      message = 'You ran an errand for a lecturer. +₦500.'
+      message = hustler ? `You ran the errand and kept the customer. +₦${cash}.` : 'You ran an errand for a lecturer. +₦500.'
       break
+    }
     case 'pos_shift': {
-      const pay = 400 + Math.round((roll * 500) / 50) * 50
-      next = applyEffects(next, { cash: pay, energy: -20 })
-      const started = next.dream.businessStarted || hasTrait(state.traits, 'tech') || roll > 0.85
+      const hustler = hasTrait(state.traits, 'hustler')
+      const pay = 400 + Math.round((roll * 500) / 50) * 50 + (hustler ? 200 : 0)
+      next = applyEffects(next, { cash: pay, energy: -20, reputation: hustler ? 2 : 0 })
+      const started = next.dream.businessStarted || hasTrait(state.traits, 'tech') || hustler || roll > 0.85
       next = patchDream(next, {
-        careerLevel: Math.min(CAREER_MAX_LEVEL, next.dream.careerLevel + (roll > 0.6 ? 1 : 0)),
+        careerLevel: Math.min(CAREER_MAX_LEVEL, next.dream.careerLevel + (roll > (hustler ? 0.45 : 0.6) ? 1 : 0)),
         businessStarted: started,
         businessRevenue: started ? next.dream.businessRevenue + pay : next.dream.businessRevenue,
       })
       message = `POS shift done. You earned ₦${pay}.`
       break
     }
-    case 'watch_match':
-      next = applyEffects(next, { cash: -200, reputation: 2, energy: 4 })
-      next = patchDream(next, {
-        musicSkill: Math.min(MUSIC_MAX_LEVEL, next.dream.musicSkill + (roll > 0.4 ? 1 : 0)),
+    case 'watch_match': {
+      const risk = hasTrait(state.traits, 'risk-taker')
+      const won = roll > (risk ? 0.28 : 0.5)
+      next = applyEffects(next, {
+        cash: risk ? (won ? 300 : -200) : -200,
+        reputation: won ? (risk ? 4 : 2) : 2,
+        energy: 4,
       })
-      message = roll > 0.5 ? 'Your team won! The whole centre shouted.' : 'Draw. Everybody is arguing.'
+      next = applyNeeds(next, { fun: 22, hunger: -3, xp: 4 })
+      next = patchDream(next, {
+        musicSkill: Math.min(MUSIC_MAX_LEVEL, next.dream.musicSkill + (roll > (risk ? 0.25 : 0.4) ? 1 : 0)),
+      })
+      message = won ? 'Your team won! The whole centre shouted.' : 'Draw. Everybody is arguing.'
       break
+    }
     case 'pray':
       next = applyEffects(next, { health: 6, reputation: 1, energy: 4 })
+      next = applyNeeds(next, { fun: 6, hygiene: 4, xp: 2 })
       message = 'Peace of mind restored.'
       break
     case 'market_run':
       next = applyEffects(next, { cash: -400, energy: 10 })
+      next = applyNeeds(next, { hunger: 20, fun: 2, xp: 2 })
       message = 'You haggled well. Garri and groundnut secured.'
       break
     case 'feedback':
@@ -283,10 +352,13 @@ export function performAction(state: GameState, actionId: ActionId, roll = Math.
       message = 'Thanks! The Ekpoma Life team logged your suggestion.'
       tone = 'neutral'
       break
-    case 'workout':
-      next = applyEffects(next, { energy: -15, health: 8, reputation: 1 })
-      message = 'Laps around the pitch. Strong body, strong mind.'
+    case 'workout': {
+      const gym = hasTrait(state.traits, 'gym-rat')
+      next = applyEffects(next, { energy: -15, health: gym ? 14 : 8, reputation: 1 })
+      next = applyNeeds(next, { hygiene: -12, fun: 10, hunger: -8, xp: 5 })
+      message = gym ? 'Leg day done. Fitness shot up.' : 'Laps around the pitch. Strong body, strong mind.'
       break
+    }
   }
 
   if (actionId !== 'rest' && action.periods > 0) next = advanceTime(next, action.periods)

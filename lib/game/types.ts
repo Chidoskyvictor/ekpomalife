@@ -1,5 +1,6 @@
 import type { DreamId, DreamSnapshot } from './dreams'
 import type { Appearance } from './look'
+import type { CharacterTypeId, LodgingId } from './live'
 import type { TraitId } from './traits'
 
 export type TimePeriod = 'morning' | 'afternoon' | 'evening' | 'night'
@@ -34,6 +35,9 @@ export type GameState = {
   appearance?: Appearance
   traits?: TraitId[]
   dreamId?: DreamId | null
+  characterType?: CharacterTypeId
+  lodgingId?: LodgingId
+  courseId?: string
   dream: DreamSnapshot
   badges: string[]
   dreamCompleted: boolean
@@ -43,9 +47,16 @@ export type GameState = {
   health: number
   reputation: number
   academic: number
+  hunger: number
+  hygiene: number
+  fun: number
+  social: number
+  xp: number
   locationId: string
   day: number
   period: TimePeriod
+  /** In-game clock label from the server (e.g. "2:40 PM"). */
+  timeLabel?: string
   hasPhone: boolean
   milestones: string[]
   feed: FeedEntry[]

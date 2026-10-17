@@ -1,8 +1,33 @@
+import { Play } from 'lucide-react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import styles from './auth-links.module.css'
 
-export function AuthLinks({ className, size = 'default', signupFirst = false }: { className?: string; size?: 'default' | 'lg'; signupFirst?: boolean }) {
+export function AuthLinks({
+  className,
+  size = 'default',
+  signupFirst = false,
+  variant = 'flat',
+}: {
+  className?: string
+  size?: 'default' | 'lg'
+  signupFirst?: boolean
+  variant?: 'flat' | 'lobby'
+}) {
+  if (variant === 'lobby') {
+    return (
+      <div className={cn(styles.lobbyRow, size === 'default' && styles.compact, className)}>
+        <Link href="/signup" className={cn(styles.play, styles.lobbySignup)}>
+          Sign up
+          <Play className={styles.playSticker} fill="currentColor" aria-hidden="true" />
+        </Link>
+        <Link href="/login" className={styles.lobbyLogin}>
+          Log in
+        </Link>
+      </div>
+    )
+  }
+
   const sizing = size === 'lg' ? styles.lg : ''
   const login = (
     <Link
