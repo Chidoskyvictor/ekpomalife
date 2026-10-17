@@ -20,23 +20,34 @@ export type CharacterOk = { ok: true } & CharacterRecord
 const FETCH_MS = 10000
 
 function failMessage(step: string, status: number, body: string) {
-  if (status === 401) return `${step}: not logged in (401). Log in again, then retry.`
+  if (status === 401) {
+    return `${step}: not logged in (401). Your session cookie is missing — open /login on this same phone/browser, then come back.`
+  }
+  // Next /api rewrite returns these when API_PROXY_TARGET is down or unreachable.
+  if (status === 502 || status === 503 || status === 504) {
+    return `${step}: Bad Gateway (${status}). The Next server cannot reach the backend (API_PROXY_TARGET). Start the API on that host/port, then Try again — you do not need to re-do Look.`
+  }
   if (status === 0) return `${step}: cannot reach API at ${apiUrl()}. Is the backend up?`
-  if (body) return `${step} (${status}): ${body}`
+  const cleaned = body.replace(/^Bad Gateway$/i, 'backend unreachable via /api proxy')
+  if (cleaned) return `${step} (${status}): ${cleaned}`
   return `${step} failed (${status}).`
 }
 
 async function apiFetch(path: string, init?: RequestInit) {
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), FETCH_MS)
+  // Promise.race timeout — avoid AbortSignal class mismatches on some mobile WebViews.
+  let timer: ReturnType<typeof setTimeout> | undefined
   try {
-    return await fetch(`${apiUrl()}${path}`, {
-      ...init,
-      credentials: 'include',
-      signal: controller.signal,
-    })
+    return await Promise.race([
+      fetch(`${apiUrl()}${path}`, {
+        ...init,
+        credentials: 'include',
+      }),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(Object.assign(new Error('timeout'), { name: 'AbortError' })), FETCH_MS)
+      }),
+    ])
   } finally {
-    clearTimeout(timer)
+    if (timer) clearTimeout(timer)
   }
 }
 

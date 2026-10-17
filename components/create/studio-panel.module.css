@@ -405,8 +405,17 @@
   object-fit: cover;
 }
 
+.lodgeList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+}
+
 .lodge {
   width: 100%;
+  min-width: 0;
 }
 
 .lodgeShell {
@@ -525,13 +534,17 @@
 .lodgeHead {
   display: flex;
   width: 100%;
-  align-items: center;
+  min-width: 0;
+  align-items: flex-start;
   gap: 10px;
 }
 
 .lodgeHead .title {
   flex: 1;
   min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  line-height: 1.25;
 }
 
 .badge {

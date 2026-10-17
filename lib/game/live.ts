@@ -1,4 +1,4 @@
-export type CharacterTypeId = 'student' | 'lecturer' | 'indigene' | 'casual'
+export type CharacterTypeId = 'student' | 'lecturer' | 'indigene' | 'casual' | 'graduate'
 
 export type LodgingId = 'hostel-poultry' | 'selfcon-oxford' | 'selfcon-g2' | 'onebed-ojo'
 
@@ -57,6 +57,7 @@ export const AAU_DETAILS: LodgingDetails = {
 
 export const CHARACTER_TYPES: CharacterType[] = [
   { id: 'student', label: 'Student' },
+  { id: 'graduate', label: 'Graduate' },
   { id: 'lecturer', label: 'Lecturer' },
   { id: 'indigene', label: 'Indigene' },
   { id: 'casual', label: 'Casual' },

@@ -53,10 +53,12 @@ export function resolveGate(mode: AuthGateMode, pathname: string, me: AuthUser):
     if (me.setupComplete) return '/'
     const expected = getPostAuthRoute(me)
     if (!isSetupPath(pathname)) return expected
+    // Allow going back to re-edit look/traits/dream/live until setupComplete
+    // (starting money / game_state). Only block skipping ahead of unfinished steps.
     const order = ['/look', '/traits', '/dream', '/live']
     const here = order.indexOf(pathname)
     const want = order.indexOf(expected)
-    if (here >= 0 && want >= 0 && here < want) return expected
+    if (here >= 0 && want >= 0 && here > want) return expected
     return null
   }
 

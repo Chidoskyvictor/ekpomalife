@@ -24,16 +24,19 @@ function digitsOf(amount: number) {
 function DigitReel({
   finalDigit,
   locked,
+  spinning,
   reduced,
 }: {
   finalDigit: string
   locked: boolean
+  /** When false, freeze on finalDigit (errors / idle). */
+  spinning: boolean
   reduced: boolean
 }) {
   const [shown, setShown] = useState(reduced ? finalDigit : '0')
 
   useEffect(() => {
-    if (reduced || locked) {
+    if (reduced || locked || !spinning) {
       setShown(finalDigit)
       return
     }
@@ -41,7 +44,7 @@ function DigitReel({
       setShown(String(Math.floor(Math.random() * 10)))
     }, 45)
     return () => window.clearInterval(id)
-  }, [finalDigit, locked, reduced])
+  }, [finalDigit, locked, reduced, spinning])
 
   return <span className={styles.digit}>{shown}</span>
 }
@@ -52,12 +55,15 @@ export function StartingMoneySpin({
   traits,
   dreamId,
   onEnter,
+  onDismiss,
 }: {
   username: string
   appearance: Appearance
   traits: TraitId[]
   dreamId: DreamId
   onEnter: (amount: number) => void
+  /** Close overlay so the player can go back / re-pick lodging before money is granted. */
+  onDismiss?: () => void
 }) {
   const reduced = useReducedMotion() ?? false
   const [amount, setAmount] = useState(0)
@@ -68,6 +74,7 @@ export function StartingMoneySpin({
   const [landed, setLanded] = useState(false)
   const [busy, setBusy] = useState(true)
   const started = useRef(false)
+  const runId = useRef(0)
 
   const burst = useCallback((nextTier: string) => {
     if (reduced) return
@@ -80,7 +87,15 @@ export function StartingMoneySpin({
     }
   }, [reduced])
 
+  const fail = useCallback((text: string) => {
+    setError(text)
+    setBusy(false)
+    setLanded(false)
+    setLocking(7) // freeze reels — do not leave them spinning forever
+  }, [])
+
   const run = useCallback(async () => {
+    const id = ++runId.current
     setError(null)
     setBusy(true)
     setLanded(false)
@@ -90,27 +105,26 @@ export function StartingMoneySpin({
     let result: { amount: number; tier: string; message: string } | null = null
     try {
       const saved = await commitCharacter({ appearance, traits, dreamId })
+      if (id !== runId.current) return
       if (!saved.ok) {
-        setError(saved.error || 'Could not save look/traits/dream before the spin.')
-        setBusy(false)
+        fail(saved.error || 'Could not save look/traits/dream before the spin.')
         return
       }
       const rolled = await rollStartingMoney()
+      if (id !== runId.current) return
       if (!rolled.ok) {
-        setError(rolled.error || 'Starting money roll failed.')
-        setBusy(false)
+        fail(rolled.error || 'Starting money roll failed.')
         return
       }
       result = { amount: rolled.amount, tier: rolled.tier, message: rolled.message }
     } catch (err) {
+      if (id !== runId.current) return
       const msg = err instanceof Error ? err.message : String(err)
-      setError(`Spin crashed: ${msg}`)
-      setBusy(false)
+      fail(`Spin crashed: ${msg}`)
       return
     }
     if (!result) {
-      setError('Could not get starting money from the server. Check your connection and try again.')
-      setBusy(false)
+      fail('Could not get starting money from the server. Check your connection and try again.')
       return
     }
 
@@ -121,12 +135,14 @@ export function StartingMoneySpin({
 
     const wait = reduced ? 0 : Math.max(0, SPIN_MS - (Date.now() - t0))
     if (wait) await new Promise((resolve) => window.setTimeout(resolve, wait))
+    if (id !== runId.current) return
 
     try {
       if (reduced) {
         setLocking(7)
       } else {
         for (let i = 1; i <= 7; i += 1) {
+          if (id !== runId.current) return
           setLocking(i)
           try {
             navigator.vibrate?.(20)
@@ -137,6 +153,7 @@ export function StartingMoneySpin({
         }
       }
     } finally {
+      if (id !== runId.current) return
       setLocking(7)
       setLanded(true)
       setBusy(false)
@@ -146,7 +163,7 @@ export function StartingMoneySpin({
         /* ignore */
       }
     }
-  }, [appearance, burst, dreamId, reduced, traits, username])
+  }, [appearance, burst, dreamId, fail, reduced, traits, username])
 
   useEffect(() => {
     if (started.current) return
@@ -156,6 +173,7 @@ export function StartingMoneySpin({
 
   const digits = digitsOf(amount)
   const badge = tier ? tierBadge(tier) : null
+  const spinning = busy && !error && locking < 7
 
   return (
     <div className={styles.overlay} role="dialog" aria-modal="true" aria-labelledby="starting-money-title">
@@ -169,15 +187,15 @@ export function StartingMoneySpin({
         ) : (
           <div className={styles.reels} aria-live="polite" aria-label={landed ? formatNaira(amount) : 'Spinning starting money'}>
             <span className={styles.naira}>₦</span>
-            <DigitReel finalDigit={digits[0] ?? '0'} locked={locking >= 1} reduced={reduced} />
+            <DigitReel finalDigit={digits[0] ?? '0'} locked={locking >= 1} spinning={spinning} reduced={reduced} />
             <span className={styles.comma}>,</span>
-            <DigitReel finalDigit={digits[1] ?? '0'} locked={locking >= 2} reduced={reduced} />
-            <DigitReel finalDigit={digits[2] ?? '0'} locked={locking >= 3} reduced={reduced} />
-            <DigitReel finalDigit={digits[3] ?? '0'} locked={locking >= 4} reduced={reduced} />
+            <DigitReel finalDigit={digits[1] ?? '0'} locked={locking >= 2} spinning={spinning} reduced={reduced} />
+            <DigitReel finalDigit={digits[2] ?? '0'} locked={locking >= 3} spinning={spinning} reduced={reduced} />
+            <DigitReel finalDigit={digits[3] ?? '0'} locked={locking >= 4} spinning={spinning} reduced={reduced} />
             <span className={styles.comma}>,</span>
-            <DigitReel finalDigit={digits[4] ?? '0'} locked={locking >= 5} reduced={reduced} />
-            <DigitReel finalDigit={digits[5] ?? '0'} locked={locking >= 6} reduced={reduced} />
-            <DigitReel finalDigit={digits[6] ?? '0'} locked={locking >= 7} reduced={reduced} />
+            <DigitReel finalDigit={digits[4] ?? '0'} locked={locking >= 5} spinning={spinning} reduced={reduced} />
+            <DigitReel finalDigit={digits[5] ?? '0'} locked={locking >= 6} spinning={spinning} reduced={reduced} />
+            <DigitReel finalDigit={digits[6] ?? '0'} locked={locking >= 7} spinning={spinning} reduced={reduced} />
           </div>
         )}
 
@@ -186,12 +204,14 @@ export function StartingMoneySpin({
             <p className={styles.error} role="alert">
               {error}
             </p>
-            <p className={styles.hint}>
-              If it says 401, log out and log in again so the session cookie is set on this device.
-            </p>
             <LobbyButton type="button" onClick={() => void run()}>
               Try again
             </LobbyButton>
+            {onDismiss ? (
+              <button type="button" className={styles.share} onClick={onDismiss}>
+                Back to lodging
+              </button>
+            ) : null}
           </div>
         ) : null}
 

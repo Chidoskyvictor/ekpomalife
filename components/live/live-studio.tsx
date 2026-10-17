@@ -7,9 +7,9 @@ import { CreateStage } from '@/components/create/create-stage'
 import { StartingMoneySpin } from '@/components/create/starting-money-spin'
 import {
   Blurb,
-  DreamList,
   LodgeDetails,
   LodgeHead,
+  LodgeList,
   LodgeMoney,
   NameField,
   PanelGroup,
@@ -177,6 +177,7 @@ export function LiveStudio() {
           traits={traits}
           dreamId={dreamId}
           onEnter={(rolled) => enterCampus(rolled)}
+          onDismiss={() => setSpinOpen(false)}
         />
       ) : null}
       <CreateStage title="Home" step={4} backHref="/dream" appearance={preview} />
@@ -222,7 +223,7 @@ export function LiveStudio() {
           </PillRow>
         </PanelGroup>
         <PanelSection label="Where to live">
-          <DreamList label="Where to live">
+          <LodgeList label="Where to live">
             {LODGINGS.map((item, index) => {
               const picked = lodgingId === item.id
               return (
@@ -264,7 +265,7 @@ export function LiveStudio() {
                 </div>
               )
             })}
-          </DreamList>
+          </LodgeList>
         </PanelSection>
       </StudioPanel>
     </main>

@@ -148,6 +148,15 @@ export function DreamList({ children, label = 'Big dream' }: { children: ReactNo
   )
 }
 
+/** Lodging cards — always one column (2-col dream grid must not apply here). */
+export function LodgeList({ children, label = 'Where to live' }: { children: ReactNode; label?: string }) {
+  return (
+    <div className={styles.lodgeList} role="radiogroup" aria-label={label}>
+      {children}
+    </div>
+  )
+}
+
 export function lodgeCardClass(picked?: boolean) {
   return [styles.card, styles.lodge, styles.lodgeShell, picked ? styles.lodgePicked : '']
     .filter(Boolean)

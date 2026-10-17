@@ -52,6 +52,18 @@ describe('AuthGate resolveGate', () => {
       resolveGate('public', '/login', { setupComplete: false, setupStep: 'dream' }),
     ).toBe('/dream')
   })
+
+  it('allows going back from /live to /dream before setup is complete', () => {
+    expect(
+      resolveGate('setup', '/dream', { setupComplete: false, setupStep: null }),
+    ).toBeNull()
+  })
+
+  it('blocks skipping ahead from /look to /live when traits are unfinished', () => {
+    expect(
+      resolveGate('setup', '/live', { setupComplete: false, setupStep: 'traits' }),
+    ).toBe('/traits')
+  })
 })
 
 describe('MSW auth + game gate', () => {

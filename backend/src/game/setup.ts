@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-export const CHARACTER_TYPE_IDS = ['student', 'lecturer', 'indigene', 'casual'] as const
+export const CHARACTER_TYPE_IDS = ['student', 'graduate', 'lecturer', 'indigene', 'casual'] as const
 export const LODGING_IDS = ['hostel-poultry', 'selfcon-oxford', 'selfcon-g2', 'onebed-ojo'] as const
 export const COURSE_IDS = [
   'computer-science',
