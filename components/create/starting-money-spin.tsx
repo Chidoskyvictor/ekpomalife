@@ -55,6 +55,7 @@ export function StartingMoneySpin({
   traits,
   dreamId,
   onEnter,
+  entering,
   onDismiss,
 }: {
   username: string
@@ -62,6 +63,8 @@ export function StartingMoneySpin({
   traits: TraitId[]
   dreamId: DreamId
   onEnter: (amount: number) => void
+  /** True while navigating into the game after Enter Ekpoma. */
+  entering?: boolean
   /** Close overlay so the player can go back / re-pick lodging before money is granted. */
   onDismiss?: () => void
 }) {
@@ -249,7 +252,7 @@ export function StartingMoneySpin({
             >
               Share
             </button>
-            <LobbyButton type="button" onClick={() => onEnter(amount)}>
+            <LobbyButton type="button" loading={entering} onClick={() => onEnter(amount)}>
               Enter Ekpoma 🚀
             </LobbyButton>
           </div>

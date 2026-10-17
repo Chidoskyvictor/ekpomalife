@@ -24,6 +24,8 @@ import {
 } from '@/components/create/studio-panel'
 import { Coins } from 'lucide-react'
 import { startNewLife } from '@/hooks/use-game'
+import { fetchAuthMe } from '@/lib/auth/fetch-auth-me'
+import { getPostAuthRoute } from '@/lib/auth/post-auth-redirect'
 import { ensureLocalPlayer, getAccount, getProfile } from '@/lib/game/accounts'
 import { commitCharacter, loadCharacter, saveCharacterSetup } from '@/lib/game/character-api'
 import { firstNameFor, loadCreation, rememberLive, rememberStartingMoney } from '@/lib/game/creation'
@@ -53,6 +55,7 @@ export function LiveStudio() {
   const [pocket, setPocket] = useState<number | null>(null)
   const [spinOpen, setSpinOpen] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [entering, setEntering] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -149,15 +152,25 @@ export function LiveStudio() {
   }
 
   const enterCampus = (amount: number) => {
-    if (!username || !dreamId || !lodgingId) return
+    if (!username || !dreamId || entering) return
+    setEntering(true)
     const account = getAccount(username) ?? getProfile()
     startNewLife(account?.name ?? username, username, appearance, traits, dreamId, {
       characterType,
-      lodgingId,
+      lodgingId: lodgingId ?? undefined,
       courseId: courseId ?? undefined,
       startingCash: amount,
     })
-    router.replace('/')
+    // Hard nav like post-auth — soft replace('/') often bounces back to /live
+    // while AuthGate re-probes, so the button looks like a no-op.
+    void (async () => {
+      try {
+        const me = await fetchAuthMe()
+        window.location.assign(getPostAuthRoute(me))
+      } catch {
+        window.location.assign('/')
+      }
+    })()
   }
 
   if (!username || !dreamId) return null
@@ -177,6 +190,7 @@ export function LiveStudio() {
           traits={traits}
           dreamId={dreamId}
           onEnter={(rolled) => enterCampus(rolled)}
+          entering={entering}
           onDismiss={() => setSpinOpen(false)}
         />
       ) : null}
@@ -214,7 +228,9 @@ export function LiveStudio() {
                 className={pillClass(true)}
                 onClick={() => {
                   setCharacterType(item.id)
-                  saveLive(item.id, lodgingId, courseId)
+                  // Graduates (and non-students) keep lodging; course only matters for AAU hostel.
+                  const nextCourse = lodgingNeedsCourse(lodgingId) ? courseId : null
+                  saveLive(item.id, lodgingId, nextCourse)
                 }}
               >
                 {item.label}
@@ -222,6 +238,11 @@ export function LiveStudio() {
             ))}
           </PillRow>
         </PanelGroup>
+        {!canMoveIn && lodgingId && lodgingNeedsCourse(lodgingId) && !courseId ? (
+          <p className="mb-3 text-left text-sm font-medium text-amber-800" role="status">
+            Pick a course under AAU student lodging, then Move in. Same for Graduate or Student.
+          </p>
+        ) : null}
         <PanelSection label="Where to live">
           <LodgeList label="Where to live">
             {LODGINGS.map((item, index) => {

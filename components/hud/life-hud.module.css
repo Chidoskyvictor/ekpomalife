@@ -65,13 +65,22 @@
   justify-content: center;
 }
 
+.statusStack {
+  pointer-events: none;
+  display: flex;
+  width: 100%;
+  max-width: 46rem;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
 .statusBar {
   pointer-events: auto;
   display: flex;
   align-items: center;
   gap: 16px;
   width: 100%;
-  max-width: 46rem;
   min-height: 48px;
   padding: 10px 14px;
   overflow-x: auto;
@@ -82,6 +91,11 @@
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+
+/* Mobile-only: players/online sit under the pill (same glass, tighter). */
+.playersDock {
+  display: none;
 }
 
 .statusBar::-webkit-scrollbar {
@@ -122,10 +136,6 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-}
-
-.statusOnlineChip {
-  display: none;
 }
 
 .sticker {
@@ -171,9 +181,22 @@
 .statusRight {
   display: inline-flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   margin-left: auto;
   flex: none;
+}
+
+.moneyChip {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 2px 2px 2px 10px;
+  border-radius: 14px;
+  border: 1px solid rgba(17, 17, 17, 0.08);
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 
 .iconGhost {
@@ -195,11 +218,17 @@
   display: inline-flex;
   align-items: center;
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: -0.01em;
   font-variant-numeric: tabular-nums;
   font-feature-settings: 'tnum' 1;
   color: #111;
+}
+
+.cashAmount {
+  font-weight: 800;
+  color: #0a0a0a;
+  opacity: 1;
 }
 
 .cashDelta {
@@ -222,16 +251,43 @@
   color: #e11d48;
 }
 
-/* Keep existing green + (signup lobby) */
+.cashShimmer {
+  /* Light sweep, but digits stay readable — not a ghost wash. */
+  --text-shimmer-highlight: #0a0a0a;
+  --text-shimmer-base: color-mix(in oklab, #0a0a0a 72%, #a1a1aa);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+  font-weight: 800;
+  font-size: inherit;
+  color: #0a0a0a;
+  min-width: 4.5rem;
+  letter-spacing: -0.02em;
+}
+
+.cashRetry {
+  pointer-events: auto;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: #e11d48;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* Keep existing green + (signup lobby) — sits inside .moneyChip with the balance */
 .plusBtn {
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
-  min-width: 44px;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
   padding: 0;
   border: 0;
-  border-radius: 12px;
+  border-radius: 11px;
+  opacity: 1;
   color: var(--primary-foreground);
   background: linear-gradient(
     180deg,
@@ -747,31 +803,73 @@
 }
 
 @media (max-width: 639px) {
-  .statusBar {
-    flex-wrap: wrap;
-    gap: 8px 12px;
-    border-radius: 22px;
+  .statusStack {
     max-width: 100%;
-    padding: 10px 12px;
+  }
+
+  /* Same pill as desktop — do not turn into a wrapped box */
+  .statusBar {
+    flex-wrap: nowrap;
+    gap: 8px;
+    border-radius: 999px;
+    max-width: 100%;
+    padding: 8px 10px 8px 12px;
   }
 
   .statusItem {
     font-size: 12px;
   }
 
-  .statusPlayers {
+  .statusItem .statusMuted {
     display: none;
   }
 
-  .statusOnlineChip {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 12px;
-    font-weight: 600;
+  .statusPlayers,
+  .deskOnly {
+    display: none !important;
   }
 
-  .statusDivider.deskOnly {
+  .playersDock {
+    pointer-events: auto;
+    display: inline-flex;
+    align-self: flex-start;
+    align-items: center;
+    gap: 5px;
+    min-height: 28px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.72);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    font-size: 11px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+    color: #111;
+    white-space: nowrap;
+  }
+
+  .playersDock .statusMuted {
+    font-size: 11px;
+  }
+
+  .playersDock .liveDot {
+    width: 6px;
+    height: 6px;
+  }
+
+  .moneyChip {
+    min-height: 34px;
+    padding: 2px 2px 2px 8px;
+  }
+
+  .moneyWrap {
+    font-size: 14px;
+  }
+
+  .iconGhost {
     display: none;
   }
 

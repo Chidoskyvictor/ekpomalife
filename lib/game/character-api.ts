@@ -161,9 +161,11 @@ export type StartingMoneyResult = {
 
 export async function rollStartingMoney(): Promise<StartingMoneyResult | Fail> {
   try {
+    // Must send `{}` — Fastify returns 400 Bad Request for Content-Type: application/json with an empty body.
     const response = await apiFetch('/character/starting-money', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
     })
     return await readJson<StartingMoneyResult>(response, 'Starting money')
   } catch (err) {

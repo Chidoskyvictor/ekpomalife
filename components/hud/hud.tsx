@@ -1,5 +1,6 @@
 'use client'
 
+import { MoreHorizontal } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { BuySheet } from '@/components/hud/buy-sheet'
 import { ChangeDreamDialog } from '@/components/hud/change-dream-dialog'
@@ -16,7 +17,6 @@ import { ProfileSheet } from '@/components/hud/profile-sheet'
 import { SettingsSheet } from '@/components/hud/settings-sheet'
 import { StatusBar } from '@/components/hud/status-bar'
 import { TodaySheet } from '@/components/hud/today-sheet'
-import { TopBar } from '@/components/hud/top-bar'
 import { UpNext } from '@/components/hud/up-next'
 import { useEconomy } from '@/hooks/use-economy'
 import { useGame } from '@/hooks/use-game'
@@ -26,7 +26,7 @@ import { cn } from '@/lib/utils'
 import styles from './life-hud.module.css'
 
 export function Hud() {
-  const { state, selectedId, select, toast, logOut, act } = useGame()
+  const { state, booting, bootError, retryBoot, selectedId, select, toast, logOut, act } = useGame()
   const { pay } = useEconomy()
   const lowPerf = useLowPerf()
   const [phoneOpen, setPhoneOpen] = useState(false)
@@ -42,12 +42,14 @@ export function Hud() {
   }, [state])
 
   const openShop = () => {
+    if (!state) return
     setTab('buy')
     setBuyOpen(true)
     select('town-shop-1')
   }
 
   const onTab = (next: PlayTab) => {
+    if (!state) return
     setTab(next)
     if (next === 'buy') {
       setBuyOpen(true)
@@ -70,6 +72,7 @@ export function Hud() {
   }
 
   const onContext = (action: ContextAction) => {
+    if (!state) return
     if (action.action === 'shop') {
       openShop()
       return
@@ -86,46 +89,62 @@ export function Hud() {
     if (action.locationId) select(action.locationId)
   }
 
-  // No character / no /game/state yet — never paint money, needs, or trait HUD.
-  if (!state) {
-    return (
-      <div className={cn(styles.root, lowPerf && styles.lowPerf)} aria-busy="true">
-        <div className={`${styles.safe} absolute inset-x-0 top-0`}>
-          <TopBar />
-        </div>
-      </div>
-    )
-  }
+  // Provisional local shell may paint early; shimmer until server confirms (or error).
+  const cashLoading = booting
 
   return (
-    <div className={cn(styles.root, lowPerf && styles.lowPerf)}>
+    <div
+      className={cn(styles.root, lowPerf && styles.lowPerf)}
+      aria-busy={cashLoading || undefined}
+    >
       <div className={`${styles.safe} absolute inset-x-0 top-0`}>
         <div className={styles.topWrap}>
-          <StatusBar state={state} onShop={openShop} />
+          <StatusBar
+            state={state}
+            cashLoading={cashLoading}
+            onShop={openShop}
+            onRetry={bootError ? retryBoot : undefined}
+          />
         </div>
-        <IslandToast state={state} />
+        {state ? <IslandToast state={state} /> : null}
         <HudToast toast={toast} />
       </div>
 
-      <UpNext
-        state={state}
-        onSelect={onQuest}
-        onOpenToday={() => setTodayOpen(true)}
-        onPayRent={() => void pay()}
-      />
-      <MeCard state={state} onOpen={() => setProfileOpen(true)} />
-
-      <div className={styles.mobileCorner}>
-        <ContextDock state={state} onMore={() => setSettingsOpen(true)} onAction={onContext} />
-      </div>
+      {state ? (
+        <>
+          <UpNext
+            state={state}
+            onSelect={onQuest}
+            onOpenToday={() => setTodayOpen(true)}
+            onPayRent={() => void pay()}
+          />
+          <MeCard state={state} onOpen={() => setProfileOpen(true)} />
+          <div className={styles.mobileCorner}>
+            <ContextDock state={state} onMore={() => setSettingsOpen(true)} onAction={onContext} />
+          </div>
+        </>
+      ) : null}
 
       <div className={styles.bottomDock}>
-        {selectedId ? <LocationSheet /> : null}
+        {state && selectedId ? <LocationSheet /> : null}
         <div className={styles.bottomRow}>
           <div className={styles.navSlot}>
             <PlayNav value={tab} onValueChange={onTab} badges={{ phone: unread }} />
           </div>
-          <ContextDock state={state} onMore={() => setSettingsOpen(true)} onAction={onContext} />
+          {state ? (
+            <ContextDock state={state} onMore={() => setSettingsOpen(true)} onAction={onContext} />
+          ) : (
+            <div className={styles.cornerActions}>
+              <button
+                type="button"
+                className={styles.moreBtn}
+                aria-label="More"
+                onClick={() => setSettingsOpen(true)}
+              >
+                <MoreHorizontal size={18} aria-hidden="true" />
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -143,14 +162,18 @@ export function Hud() {
           if (!open && tab === 'phone') setTab('home')
         }}
       />
-      <TodaySheet open={todayOpen} onOpenChange={setTodayOpen} state={state} onSelect={onQuest} />
+      {state ? (
+        <TodaySheet open={todayOpen} onOpenChange={setTodayOpen} state={state} onSelect={onQuest} />
+      ) : null}
       <SettingsSheet open={settingsOpen} onOpenChange={setSettingsOpen} onLogOut={logOut} />
-      <ProfileSheet
-        open={profileOpen}
-        onOpenChange={setProfileOpen}
-        state={state}
-        onChangeDream={() => setDreamOpen(true)}
-      />
+      {state ? (
+        <ProfileSheet
+          open={profileOpen}
+          onOpenChange={setProfileOpen}
+          state={state}
+          onChangeDream={() => setDreamOpen(true)}
+        />
+      ) : null}
       <ChangeDreamDialog open={dreamOpen} onOpenChange={setDreamOpen} />
       <DreamCelebration />
       <EventDialog />

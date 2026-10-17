@@ -8,8 +8,9 @@ import { getPlace, getPlaceByZone } from '@/lib/game/places'
 import { MAP } from '@/lib/game/map-theme'
 import { FIRST_SLAB, LAND_CENTER, MAP_ZONES, WORLD } from '@/lib/game/world-layout'
 import { useGame } from '@/hooks/use-game'
+import { MapLoadOverlay, useMapLoadProgress } from './map-load-overlay'
+import { MapLoadReporter } from './map-load-reporter'
 import { PlayerAvatar } from './player-avatar'
-import { WorldFence } from './world-fence'
 import { WorldGround } from './world-ground'
 import { WorldKenney } from './world-kenney'
 import { WorldRoads } from './world-roads'
@@ -76,8 +77,8 @@ function CameraRig({ focusId }: { focusId: string | null }) {
 
 export function WorldCanvas() {
   const { state, selectedId, select } = useGame()
-  const currentId = state?.locationId ?? null
   const night = state?.period === 'evening' || state?.period === 'night'
+  const { targetPercent, assetsDone, onProgress } = useMapLoadProgress()
   const [mobile, setMobile] = useState(
     () => window.matchMedia('(max-width: 767px), (pointer: coarse)').matches,
   )
@@ -102,6 +103,7 @@ export function WorldCanvas() {
       aria-label="Interactive map of Ekpoma"
       role="application"
     >
+      <MapLoadOverlay targetPercent={targetPercent} assetsDone={assetsDone} />
       <Canvas
         shadows={!mobile}
         dpr={mobile ? [1, 1] : [1, 1.75]}
@@ -120,6 +122,7 @@ export function WorldCanvas() {
         }}
         onPointerMissed={() => select(null)}
       >
+        <MapLoadReporter onProgress={onProgress} />
         <color attach="background" args={[water]} />
         <ambientLight intensity={ambient} />
         <hemisphereLight args={[night ? '#C9D7E8' : '#FFFFFF', MAP.land, hemi]} />
@@ -139,7 +142,6 @@ export function WorldCanvas() {
         <directionalLight position={[-28, 36, -18]} intensity={fill} color="#F2FBFF" />
         <WorldGround />
         <WorldRoads />
-        <WorldFence />
         <WorldTrees mobile={mobile} />
         <WorldZones />
         <Suspense fallback={null}>

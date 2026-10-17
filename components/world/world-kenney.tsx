@@ -8,11 +8,11 @@ import { Block } from './materials'
 
 function KenneyMesh({ placement }: { placement: KenneyPlacement }) {
   const { scene } = useGLTF(kenneyUrl(placement.model))
-  const pad = placement.scale * 1.55
+  const pad = placement.scale * 1.15
   return (
     <group position={[placement.x, 0, placement.z]} rotation={[0, placement.rot, 0]}>
-      <Block position={[0, 0.04, 0]} size={[pad + 0.35, 0.08, pad + 0.35]} color={MAP.kenneyPadEdge} shadow={false} />
-      <Block position={[0, 0.09, 0]} size={[pad, 0.1, pad]} color={MAP.kenneyPad} />
+      <Block position={[0, 0.04, 0]} size={[pad + 0.22, 0.07, pad + 0.22]} color={MAP.kenneyPadEdge} shadow={false} />
+      <Block position={[0, 0.085, 0]} size={[pad, 0.08, pad]} color={MAP.kenneyPad} />
       <Clone object={scene} position={[0, 0.14, 0]} scale={placement.scale} castShadow receiveShadow />
     </group>
   )

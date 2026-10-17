@@ -229,31 +229,45 @@ const { original, earth, sand, clay, purple, plum, lilac } = BUILDING_TINT
  *   V: 0.18 · 0.28 · 0.92
  *   H: 0.14 (campus-top, east of fence) · 0.93 (bottom)
  */
+/**
+ * Off-campus plots use the same Kenney scale / footprint band as AAU campus
+ * (~4.9–5.1, ~10×8) so heights match. Layout = two sides + open walk lane,
+ * not a single straight column and not random scatter.
+ */
 export const MAP_ZONES: MapZone[] = [
-  // —— TOWN (left of fence) —— west strip u≈0.08, mid strip u≈0.23, east strip u≈0.34
-  zone('animal-house-1', 'Animal House', 0.08, 0.08, 'building-c', [6.5, 6], 0, 3.8),
-  zone('anatomy-secretariat', 'Anatomy Secretariat', 0.08, 0.22, 'building-d', [7, 6], Math.PI / 2, 3.9),
-  zone('bamssa', 'BAMSSA', 0.08, 0.34, 'building-e', [6.5, 6], 0, 3.8),
-  zone('hall-200', '200 Level Hall', 0.08, 0.48, 'building-i', [8.5, 6.5], 0, 4.2),
-  zone('relaxation-centre', 'Relaxation Centre', 0.08, 0.6, 'building-f', [6.5, 6], 0, 3.9),
-  zone('hall-100', '100 Level Hall', 0.08, 0.72, 'building-h', [8.5, 6.5], 0, 4.2),
-  zone('etf-hall', 'ETF Hall', 0.08, 0.82, 'building-g', [7.5, 6.5], 0, 4),
-  zone('mls-hall', 'MLS Hall', 0.12, 0.82, 'building-skyscraper-b', [6, 6], 0, 4.4),
-  zone('college-of-medicine', 'College of Medicine', 0.08, 0.8, 'building-k', [11, 7.5], Math.PI / 2, 4.2),
-  // Between town-halls (0.18) and amos-jack (0.28)
-  zone('ict-lab', 'ICT Lab', 0.23, 0.22, 'building-a', [6.5, 6], 0, 3.8),
-  zone('town-shop-1', 'Shop', 0.23, 0.36, 'low-detail-building-a', [4.5, 4.5], 0, 2.9),
-  zone('town-shop-2', 'Shop', 0.23, 0.48, 'low-detail-building-b', [4.5, 4.5], 0, 2.9),
-  zone('town-shop-3', 'House', 0.23, 0.6, 'low-detail-building-c', [4.5, 4.5], 0, 2.9),
-  zone('town-shop-4', 'Shop', 0.23, 0.72, 'low-detail-building-d', [4.5, 4.5], 0, 2.9),
-  // Between amos-jack (0.28) and fence (~0.39)
-  zone('animal-house-2', 'Animal House', 0.34, 0.22, 'building-b', [6.5, 6], 0, 3.8),
-  zone('off-campus-hostels', 'Off-campus Hostels', 0.34, 0.08, 'hostel-block', [11, 7], 0),
-  zone('cattle-market', 'Cattle Market', 0.34, 0.42, 'low-detail-building-j', [12, 9], 0, 3.1),
-  zone('sazza', 'Sazza', 0.34, 0.58, 'building-c', [6, 6], 0, 3.7),
+  // —— COLLEGE OF MEDICINE plot (west of town-halls u=0.18) ——
+  // Walk lane down the middle (u≈0.085). West row + east row face the yard.
+  // West row (slab edge)
+  zone('animal-house-1', 'Animal House', 0.055, 0.12, 'building-c', [10, 8], 0, 4.9, original),
+  zone('bamssa', 'BAMSSA', 0.055, 0.3, 'building-e', [10, 8], 0, 4.9, clay),
+  zone('relaxation-centre', 'Relaxation Centre', 0.055, 0.48, 'building-f', [10, 8], 0, 4.9, sand),
+  zone('etf-hall', 'ETF Hall', 0.055, 0.66, 'building-g', [10.5, 8.5], 0, 5, purple),
+  // East row (toward town-halls road — still clear of u=0.18)
+  zone('anatomy-secretariat', 'Anatomy Secretariat', 0.115, 0.18, 'building-d', [10, 8], Math.PI, 4.9, earth),
+  zone('hall-200', '200 Level Hall', 0.115, 0.36, 'building-i', [10.5, 8.5], Math.PI, 5, plum),
+  zone('hall-100', '100 Level Hall', 0.115, 0.54, 'building-h', [10.5, 8.5], Math.PI, 5, original),
+  zone('mls-hall', 'MLS Hall', 0.115, 0.7, 'building-skyscraper-b', [10, 8], Math.PI, 5, lilac),
+  // South head of the yard — faces north into the precinct
+  zone('college-of-medicine', 'College of Medicine', 0.085, 0.8, 'building-k', [11.5, 9], Math.PI, 5.1, clay),
 
-  // —— GATE —— clear of bottom road (v=0.93) and spine
-  zone('aau-gate', 'AAU School Gate', FENCE_U + 0.04, 0.84, 'building-a', [8, 5], Math.PI, 3.9),
+  // —— Mid plot between town-halls (0.18) and amos-jack (0.28) ——
+  // Open spine u≈0.23; buildings on west / east flanks so you can walk through.
+  zone('ict-lab', 'ICT Lab', 0.205, 0.18, 'building-a', [10, 8], 0, 4.9, lilac),
+  zone('town-shop-1', 'Shop', 0.245, 0.28, 'building-b', [10, 8], Math.PI, 4.9, sand),
+  zone('town-shop-2', 'Shop', 0.205, 0.4, 'building-c', [10, 8], 0, 4.9, purple),
+  zone('town-shop-3', 'House', 0.245, 0.52, 'building-d', [10, 8], Math.PI, 4.9, original),
+  zone('town-shop-4', 'Shop', 0.205, 0.64, 'building-e', [10, 8], 0, 4.9, earth),
+  zone('bukka', 'Mama Amina Bukka', 0.245, 0.76, 'building-f', [10, 8], Math.PI, 4.9, sand),
+
+  // —— East plot between amos-jack (0.28) and fence (~0.39) ——
+  zone('off-campus-hostels', 'Off-campus Hostels', 0.32, 0.12, 'hostel-block', [11.5, 9], 0, 5.1),
+  zone('animal-house-2', 'Animal House', 0.355, 0.26, 'building-b', [10, 8], Math.PI, 4.9, clay),
+  zone('cattle-market', 'Cattle Market', 0.32, 0.42, 'building-j', [11, 8.5], 0, 5, original),
+  zone('sazza', 'Sazza', 0.355, 0.56, 'building-c', [10, 8], Math.PI, 4.9, plum),
+  zone('market', 'Ekpoma Market', 0.335, 0.72, 'building-m', [11.5, 9], 0, 5.1, clay),
+
+  // —— GATE —— clear of bottom road (v=0.93)
+  zone('aau-gate', 'AAU School Gate', FENCE_U + 0.05, 0.82, 'building-a', [10, 8], Math.PI, 4.9, earth),
 
   // —— CAMPUS —— west lawn: clinic + pitch fully east of fence (inside campus)
   zone('clinic', 'Clinic', FENCE_U + 0.06, 0.2, 'building-d', [8, 6.5], 0, 4.3, original),
@@ -279,18 +293,17 @@ export const MAP_ZONES: MapZone[] = [
 
   // School hostels removed from the map (gameplay places kept in places.ts for lodging).
   zone('law-ext', 'Law', 0.6, 0.28, 'building-l', [10.5, 8.5], 0, 5.1, sand),
-  zone('management-science', 'Management Science', 0.9, 0.34, 'building-m', [11.5, 9], 0, 5.2, original),
+  // Pulled west off ext-eng (u=0.92) into the campus lawn
+  zone('management-science', 'Management Science', 0.84, 0.34, 'building-m', [11.5, 9], 0, 5.2, original),
   // Story building (not the skyscraper — that mesh moved to ICT)
-  zone('engineering', 'Engineering', 0.9, 0.58, 'building-m', [12, 9.5], 0, 5.2, purple),
+  zone('engineering', 'Engineering', 0.84, 0.58, 'building-m', [12, 9.5], 0, 5.2, purple),
   // Annotated red square — Twin Hall ↔ Engineering strip, enlarged to fill the lawn
   zone('parking-ext', 'Parking Lot', 0.72, 0.52, 'parking-lot', [36, 30], 0),
-  // Bottom-right: left edge clear of ext-eng (u=0.92) by ~1 tile; sits on bottom-main
-  zone('shuttle-park', 'Shuttle Park', 0.975, 0.86, 'parking-lot', [16, 14], 0),
+  // Bottom-right: north of bottom-main (v=0.93), east of ext-eng — not sitting in the lane
+  zone('shuttle-park', 'Shuttle Park', 0.975, 0.84, 'parking-lot', [16, 14], 0),
 
-  // Gameplay places (placeholder Kenney models)
-  zone('bukka', 'Mama Amina Bukka', 0.23, 0.84, 'low-detail-building-e', [5.5, 5], 0, 3.1, sand),
-  zone('keke-park', 'Keke Park', FENCE_U + 0.06, 0.8, 'low-detail-building-f', [6, 5], 0, 3, original),
-  zone('market', 'Ekpoma Market', 0.34, 0.72, 'low-detail-building-wide-b', [12, 7.5], 0, 3.2, clay),
+  // Near gate / campus edge — same height band as faculty blocks
+  zone('keke-park', 'Keke Park', FENCE_U + 0.07, 0.74, 'building-g', [10, 8], 0, 4.9, sand),
 ]
 
 export const MAP_LOCATION_IDS = [

@@ -1,6 +1,8 @@
 'use client'
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { fetchAuthMe } from '@/lib/auth/fetch-auth-me'
+import { getPostAuthRoute } from '@/lib/auth/post-auth-redirect'
 import { clearSession, getSession, saveKey } from '@/lib/game/accounts'
 import { checkDreamProgress, loadCharacter } from '@/lib/game/character-api'
 import { AVATAR_COLORS } from '@/lib/game/content'
@@ -17,6 +19,9 @@ export type Toast = { id: number; text: string; ok: boolean }
 
 type GameContextValue = {
   state: GameState | null
+  /** True until the first GET /game/state resolves (ok or error). */
+  booting: boolean
+  bootError: string | null
   selectedId: string | null
   pendingEvent: GameEvent | null
   toast: Toast | null
@@ -30,6 +35,8 @@ type GameContextValue = {
   dismissDreamCelebration: () => void
   logOut: () => void
   refreshServer: () => Promise<void>
+  /** Re-run the initial /game/state load after a boot failure. */
+  retryBoot: () => void
   /** Apply cash/needs/time from a server (or economy) response — never invent numbers. */
   applyServerState: (server: ServerGameState) => void
   notifyToast: (text: string, ok?: boolean) => void
@@ -145,6 +152,9 @@ const POLL_MS = 30_000
 
 export function GameProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<GameState | null>(null)
+  const [booting, setBooting] = useState(true)
+  const [bootError, setBootError] = useState<string | null>(null)
+  const [bootKey, setBootKey] = useState(0)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [pendingEvent, setPendingEvent] = useState<GameEvent | null>(null)
   const [toast, setToast] = useState<Toast | null>(null)
@@ -161,6 +171,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
     versionRef.current = server.version
     setServerVersion(server.version)
     setState(next)
+    setBooting(false)
+    setBootError(null)
     /** Persist shell without trusting it for cash — server wins on next load. */
     try {
       window.localStorage.setItem(saveKey(next.username), JSON.stringify(next))
@@ -175,36 +187,76 @@ export function GameProvider({ children }: { children: ReactNode }) {
     mergeServer(result)
   }, [mergeServer])
 
+  const retryBoot = useCallback(() => {
+    setBootError(null)
+    setBooting(true)
+    setBootKey((key) => key + 1)
+  }, [])
+
   useEffect(() => {
-    // Never paint localStorage cash/traits as truth — wait for /game/state.
-    // Local shell is only a merge base after the server confirms setup is complete.
+    // Never paint localStorage cash as final truth — merge GET /game/state as soon as it
+    // returns. Do not wait on /character (that was blocking the balance for a long beat).
+    let cancelled = false
     void (async () => {
+      setBooting(true)
+      setBootError(null)
+      // Show last local shell immediately (bank-style) while the server confirms cash.
+      const shell = loadLocalShell()
+      if (shell && !cancelled) {
+        shellRef.current = shell
+        setState(shell)
+      }
       const result = await fetchGameState()
+      if (cancelled) return
       if (!result.ok) {
         if (result.error === 'SETUP_INCOMPLETE') {
           setState(null)
           shellRef.current = null
+          setBooting(false)
+          const me = await fetchAuthMe()
+          if (!cancelled) window.location.assign(getPostAuthRoute(me))
+          return
         }
+        setBooting(false)
+        setBootError(result.error || 'Could not load your life.')
         return
       }
-      const shell = loadLocalShell()
-      shellRef.current = shell
-      const character = await loadCharacter()
-      if (character.ok && shell) {
-        shellRef.current = {
-          ...shell,
-          dreamId: (character.dreamId as DreamId) ?? shell.dreamId,
-          appearance: character.appearance ?? shell.appearance,
-          traits: character.traits.length ? character.traits : shell.traits,
-          characterType: (character.characterType as CharacterTypeId) ?? shell.characterType,
-          lodgingId: (character.lodgingId as LodgingId) ?? shell.lodgingId,
-          courseId: character.courseId ?? shell.courseId,
-          badges: character.badges.length ? character.badges : shell.badges,
-        }
-      }
+      shellRef.current = shellRef.current ?? loadLocalShell()
       mergeServer(result)
+      // Enrich look/traits after cash is already on screen.
+      void loadCharacter().then((character) => {
+        if (cancelled || !character.ok) return
+        setState((current) => {
+          if (!current) return current
+          const next = {
+            ...current,
+            dreamId: (character.dreamId as DreamId) ?? current.dreamId,
+            appearance: character.appearance ?? current.appearance,
+            traits: character.traits.length ? character.traits : current.traits,
+            characterType: (character.characterType as CharacterTypeId) ?? current.characterType,
+            lodgingId: (character.lodgingId as LodgingId) ?? current.lodgingId,
+            courseId: character.courseId ?? current.courseId,
+            badges: character.badges.length ? character.badges : current.badges,
+          }
+          shellRef.current = next
+          return next
+        })
+      })
     })()
-  }, [mergeServer])
+    return () => {
+      cancelled = true
+    }
+  }, [mergeServer, bootKey])
+
+  // Hard stop — never leave the balance shimmer spinning past 12s.
+  useEffect(() => {
+    if (!booting) return
+    const timer = window.setTimeout(() => {
+      setBooting(false)
+      setBootError((prev) => prev ?? 'Balance is taking too long. Tap retry.')
+    }, 12_000)
+    return () => window.clearTimeout(timer)
+  }, [booting, bootKey])
 
   useEffect(() => {
     const id = window.setInterval(() => {
@@ -295,6 +347,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const value = useMemo<GameContextValue>(
     () => ({
       state,
+      booting,
+      bootError,
       selectedId,
       pendingEvent,
       toast,
@@ -330,10 +384,26 @@ export function GameProvider({ children }: { children: ReactNode }) {
         setPendingEvent(null)
       },
       refreshServer,
+      retryBoot,
       applyServerState: mergeServer,
       notifyToast: (text: string, ok = true) => notify(text, ok),
     }),
-    [state, selectedId, pendingEvent, toast, serverVersion, act, travelTo, chooseEvent, refreshServer, mergeServer, notify],
+    [
+      state,
+      booting,
+      bootError,
+      selectedId,
+      pendingEvent,
+      toast,
+      serverVersion,
+      act,
+      travelTo,
+      chooseEvent,
+      refreshServer,
+      retryBoot,
+      mergeServer,
+      notify,
+    ],
   )
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>

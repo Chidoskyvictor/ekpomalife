@@ -141,10 +141,13 @@ function ZoneLabel({ label, height }: { label: string; height: number }) {
 }
 
 function Pad({ w, d }: { w: number; d: number }) {
+  // Slightly smaller than the footprint — cement, not a bright white slab.
+  const pw = Math.max(2.4, w * 0.78)
+  const pd = Math.max(2.4, d * 0.78)
   return (
     <group>
-      <Block position={[0, 0.04, 0]} size={[w + 0.3, 0.08, d + 0.3]} color={MAP.kenneyPadEdge} shadow={false} />
-      <Block position={[0, 0.09, 0]} size={[w, 0.1, d]} color={MAP.kenneyPad} />
+      <Block position={[0, 0.04, 0]} size={[pw + 0.22, 0.07, pd + 0.22]} color={MAP.kenneyPadEdge} shadow={false} />
+      <Block position={[0, 0.085, 0]} size={[pw, 0.08, pd]} color={MAP.kenneyPad} />
     </group>
   )
 }

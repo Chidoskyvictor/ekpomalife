@@ -1,5 +1,5 @@
 import { LOCATIONS } from './content'
-import { FRONT_SLAB, inRect, mulberry32, type Rect } from './world-layout'
+import { FRONT_SLAB, inRect, mulberry32, ROADS, type Rect } from './world-layout'
 
 export type KenneyPlacement = {
   id: string
@@ -62,6 +62,10 @@ const nearLandmark = (x: number, z: number, pad: number) =>
       Math.abs(x - position[0]) < size[0] / 2 + pad && Math.abs(z - position[1]) < size[2] / 2 + pad,
   )
 
+/** Keep scatter off road rectangles (no building sitting in the lane). */
+const nearRoad = (x: number, z: number, pad: number) =>
+  ROADS.some((road) => Math.abs(x - road.x) < road.w / 2 + pad && Math.abs(z - road.z) < road.d / 2 + pad)
+
 function scatterSlab(
   slab: Rect,
   rand: () => number,
@@ -78,6 +82,7 @@ function scatterSlab(
     for (let z = minZ; z <= maxZ; z += opts.step) {
       if (rand() > opts.chance) continue
       if (nearLandmark(x, z, 5.5)) continue
+      if (nearRoad(x, z, 4)) continue
       if (!inRect(x, z, slab, -opts.pad)) continue
       const model = models[Math.floor(rand() * models.length)]!
       const jitterX = (rand() - 0.5) * opts.step * 0.35
@@ -85,6 +90,7 @@ function scatterSlab(
       const px = x + jitterX
       const pz = z + jitterZ
       if (nearLandmark(px, pz, 5)) continue
+      if (nearRoad(px, pz, 4)) continue
       out.push({
         id: `${opts.prefix}-${out.length}`,
         model,

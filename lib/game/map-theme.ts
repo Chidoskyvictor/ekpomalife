@@ -16,9 +16,9 @@ export const MAP = {
   sky: '#EEF6F8',
   laterite: '#C2643A',
   slabOutline: '#E4EDD8',
-  /** Kenney city-kit colormap sidewalk / pad white */
-  kenneyPad: '#FFFFFF',
-  kenneyPadEdge: '#E6E6EF',
+  /** Cement pad under Kenney buildings (not bright white) */
+  kenneyPad: '#B5B5AC',
+  kenneyPadEdge: '#9E9E96',
   /** AAU admin / laterite campus walls */
   earthWall: '#cfae8a',
   earthClay: '#C2643A',
