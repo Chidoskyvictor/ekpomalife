@@ -1,7 +1,12 @@
 'use client'
 
+import { AuthGate } from '@/components/auth/auth-gate'
 import { TraitStudio } from '@/components/traits/trait-studio'
 
 export default function TraitsPage() {
-  return <TraitStudio />
+  return (
+    <AuthGate mode="setup">
+      <TraitStudio />
+    </AuthGate>
+  )
 }

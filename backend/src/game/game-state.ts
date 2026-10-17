@@ -16,6 +16,7 @@ import { getPlace, startPlaceForLodging, type Place } from './places.js'
 import { advanceGameTime, clockFromGameTime, isOpenAt, DEFAULT_GAME_TIME } from './time.js'
 import type { TraitId } from './traits.js'
 import { checkTraits } from './traits.js'
+import { computeSetupStatus, SETUP_INCOMPLETE } from './setup-status.js'
 
 export type GameStateRow = {
   character_id: string
@@ -164,6 +165,7 @@ export async function writeCashChange(
 
 type CharacterMeta = {
   id: string
+  appearance: unknown
   traits: string[]
   dream_id: string | null
   snapshot: unknown
@@ -174,11 +176,19 @@ type CharacterMeta = {
 
 async function loadCharacterMeta(userId: string) {
   const found = await pool.query<CharacterMeta>(
-    `SELECT id, traits, dream_id, snapshot, lodging_id, starting_cash, cash
+    `SELECT id, appearance, traits, dream_id, snapshot, lodging_id, starting_cash, cash
      FROM characters WHERE user_id = $1`,
     [userId],
   )
   return found.rows[0] ?? null
+}
+
+async function characterHasGameState(characterId: string) {
+  const found = await pool.query<{ ok: number }>(
+    `SELECT 1 AS ok FROM game_state WHERE character_id = $1 LIMIT 1`,
+    [characterId],
+  )
+  return Boolean(found.rows[0])
 }
 
 function traitsOf(row: CharacterMeta): TraitId[] {
@@ -196,7 +206,17 @@ export async function getPublicState(userId: string): Promise<
   | { ok: false; error: string; code: number }
 > {
   const character = await loadCharacterMeta(userId)
-  if (!character) return { ok: false, error: 'Create a character first.', code: 409 }
+  if (!character) return { ok: false, error: SETUP_INCOMPLETE, code: 409 }
+
+  const hasGameState = await characterHasGameState(character.id)
+  const setup = computeSetupStatus({
+    appearance: character.appearance,
+    traits: character.traits,
+    dreamId: character.dream_id,
+    lodgingId: character.lodging_id,
+    hasGameState,
+  })
+  if (!setup.setupComplete) return { ok: false, error: SETUP_INCOMPLETE, code: 409 }
 
   const client = await pool.connect()
   try {
@@ -265,7 +285,18 @@ export async function performGameAction(
   if (!action) return { ok: false, error: 'Unknown action.', code: 400 }
 
   const character = await loadCharacterMeta(userId)
-  if (!character) return { ok: false, error: 'Create a character first.', code: 409 }
+  if (!character) return { ok: false, error: SETUP_INCOMPLETE, code: 409 }
+
+  const hasGameState = await characterHasGameState(character.id)
+  const setup = computeSetupStatus({
+    appearance: character.appearance,
+    traits: character.traits,
+    dreamId: character.dream_id,
+    lodgingId: character.lodging_id,
+    hasGameState,
+  })
+  if (!setup.setupComplete) return { ok: false, error: SETUP_INCOMPLETE, code: 409 }
+
   const traits = traitsOf(character)
 
   const client = await pool.connect()

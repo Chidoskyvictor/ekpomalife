@@ -2,8 +2,9 @@
 
 import Link from 'next/link'
 import { motion, useAnimation, useReducedMotion } from 'motion/react'
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/arc/tabs/tabs'
+import { AuthGate } from './auth-gate'
 import { FloatingStickers } from './floating-stickers'
 import { LoginForm } from './login-form'
 import { SignupForm } from './signup-form'
@@ -73,7 +74,9 @@ export function AuthPage({ initial }: { initial: AuthMode }) {
               <TabsContent value="login">
                 <div className={styles.panel}>
                   <LoginForm onShake={bump} />
-                </div>
+                  <Suspense fallback={null}>
+                    <LoginForm onShake={bump} />
+                  </Suspense>
               </TabsContent>
             </Tabs>
           </motion.div>

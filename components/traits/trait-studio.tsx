@@ -15,6 +15,7 @@ import {
   traitCardClass,
 } from '@/components/create/studio-panel'
 import { ensureLocalPlayer } from '@/lib/game/accounts'
+import { saveCharacterTraits } from '@/lib/game/character-api'
 import { firstNameFor, loadCreation, rememberTraits } from '@/lib/game/creation'
 import { DEFAULT_APPEARANCE, type Appearance } from '@/lib/game/look'
 import { TRAIT_LIMIT, TRAITS, type TraitId } from '@/lib/game/traits'
@@ -25,6 +26,9 @@ export function TraitStudio() {
   const [playerName, setPlayerName] = useState('')
   const [appearance, setAppearance] = useState<Appearance>(DEFAULT_APPEARANCE)
   const [picked, setPicked] = useState<TraitId[]>([])
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
   useEffect(() => {
     const session = ensureLocalPlayer()
     const draft = loadCreation(session)
@@ -54,9 +58,17 @@ export function TraitStudio() {
     })
   }
 
-  const finish = () => {
-    if (!username || !ready) return
+  const finish = async () => {
+    if (!username || !ready || busy) return
+    setBusy(true)
+    setError(null)
     rememberTraits(username, appearance, picked)
+    const saved = await saveCharacterTraits(picked)
+    if (!saved.ok) {
+      setError(saved.error || 'Could not save traits. Log in and try again.')
+      setBusy(false)
+      return
+    }
     router.replace('/dream')
   }
 
@@ -70,12 +82,17 @@ export function TraitStudio() {
 
       <StudioPanel
         action={
-          <LobbyButton onClick={finish} disabled={!ready}>
+          <LobbyButton loading={busy} onClick={() => void finish()} disabled={!ready}>
             {actionLabel}
           </LobbyButton>
         }
       >
         <NameField username={username} />
+        {error ? (
+          <p className="mb-3 text-sm text-red-700" role="alert">
+            {error}
+          </p>
+        ) : null}
         <PanelPrompt>Choose 2 traits for {playerName}.</PanelPrompt>
         <TraitGrid>
           {TRAITS.map((trait, index) => (

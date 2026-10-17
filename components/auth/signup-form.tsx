@@ -1,10 +1,10 @@
 'use client'
 
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { useState, type FormEvent } from 'react'
 import { useReducedMotion } from 'motion/react'
-import { createAccount, MIN_PASSWORD_LENGTH, setSession } from '@/lib/game/accounts'
+import { createAccount, MIN_PASSWORD_LENGTH } from '@/lib/game/accounts'
+import { redirectAfterAuth } from './auth-gate'
 import { LobbyButton } from './lobby-button'
 import { LobbyCheckbox } from './lobby-checkbox'
 import { LobbyField } from './lobby-field'
@@ -30,7 +30,6 @@ async function celebrate(reduce: boolean) {
 }
 
 export function SignupForm({ onShake }: { onShake: () => void }) {
-  const router = useRouter()
   const reduce = useReducedMotion() ?? false
   const [name, setName] = useState('')
   const [username, setUsername] = useState('')
@@ -60,9 +59,8 @@ export function SignupForm({ onShake }: { onShake: () => void }) {
       fail(mapError(result.error), result.error)
       return
     }
-    setSession(result.account.username)
     await celebrate(reduce)
-    router.replace('/look')
+    await redirectAfterAuth(result.account)
   }
 
   return (

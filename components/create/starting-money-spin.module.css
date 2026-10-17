@@ -93,9 +93,23 @@
 
 .error {
   margin: 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #fef3f2;
   color: #b42318;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-weight: 500;
+  line-height: 1.45;
+  text-align: left;
+  word-break: break-word;
+}
+
+.hint {
+  margin: 0;
+  color: #6b7280;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  text-align: left;
 }
 
 .actions {

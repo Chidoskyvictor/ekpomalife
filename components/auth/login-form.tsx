@@ -1,15 +1,16 @@
 'use client'
 
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { useState, type FormEvent } from 'react'
-import { setSession, verifyLogin } from '@/lib/game/accounts'
+import { verifyLogin } from '@/lib/game/accounts'
+import { redirectAfterAuth } from './auth-gate'
 import { LobbyButton } from './lobby-button'
 import { LobbyField } from './lobby-field'
 import styles from './auth.module.css'
 
 export function LoginForm({ onShake }: { onShake: () => void }) {
-  const router = useRouter()
+  const search = useSearchParams()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -17,6 +18,7 @@ export function LoginForm({ onShake }: { onShake: () => void }) {
   const [showPassword, setShowPassword] = useState(false)
   const handle = username.replace(/^@/, '')
   const ready = handle.length > 0 && password.length > 0
+  const resetOk = search.get('reset') === '1'
 
   const submit = async (event: FormEvent) => {
     event.preventDefault()
@@ -29,12 +31,16 @@ export function LoginForm({ onShake }: { onShake: () => void }) {
       setBusy(false)
       return
     }
-    setSession(result.account.username)
-    router.replace('/')
+    await redirectAfterAuth(result.account)
   }
 
   return (
     <form onSubmit={submit} noValidate className={styles.form}>
+      {resetOk ? (
+        <p className={styles.stepCopy} role="status">
+          Password updated. Log in to continue — we will send you to character setup if you have not finished it.
+        </p>
+      ) : null}
       <LobbyField
         id="login-username"
         label="Username"

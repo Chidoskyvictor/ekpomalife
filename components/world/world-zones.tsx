@@ -22,6 +22,8 @@ import type { ThreeEvent } from '@react-three/fiber'
 const ADMIN_URL = '/models/admin-block.glb'
 const PARKING_URL = '/models/parkinglot.glb'
 const STADIUM_URL = '/models/football-stadium.glb'
+/** From `public/models/hostelbuildings.zip` → extracted under /models/hostel/ */
+const HOSTEL_URL = '/models/hostel/source/residential_complex_modern_apartment_building.glb'
 /** Parking Lot by Alex Safayan [CC-BY] via Poly Pizza — ~4.1 × 3.9 */
 const PARKING_SIZE = { w: 4.1, d: 3.9 }
 /** Football stadium by Poly by Google [CC-BY] via Poly Pizza */
@@ -40,12 +42,13 @@ function saneSize(scene: Object3D) {
 function fitToPad(size: { x: number; z: number }, fw: number, fd: number, fill = 0.92) {
   return Math.max(0.2, Math.min(fw / size.x, fd / size.z) * fill)
 }
-const SPECIAL_MODELS = new Set(['admin-block', 'pad', 'parking-lot', 'football-stadium'])
+const SPECIAL_MODELS = new Set(['admin-block', 'hostel-block', 'pad', 'parking-lot', 'football-stadium'])
 const KENNEY_MODELS = [...new Set(MAP_ZONES.filter((z) => !SPECIAL_MODELS.has(z.model)).map((z) => z.model))]
 KENNEY_MODELS.forEach((name) => useGLTF.preload(kenneyUrl(name)))
 useGLTF.preload(ADMIN_URL, false, true)
 useGLTF.preload(PARKING_URL)
 useGLTF.preload(STADIUM_URL)
+useGLTF.preload(HOSTEL_URL)
 
 const adminPaint = (color: string, roughness: number) =>
   new MeshStandardMaterial({
@@ -260,6 +263,25 @@ function StadiumZone({ zone }: { zone: MapZone }) {
   )
 }
 
+function HostelZone({ zone }: { zone: MapZone }) {
+  const { scene } = useGLTF(HOSTEL_URL)
+  // Do not tint — keep the zip textures as authored
+  const prepared = useMemo(() => scene.clone(true), [scene])
+  const [fw, fd] = zone.footprint
+  const meshSize = useMemo(() => saneSize(prepared), [prepared])
+  const scale = fitToPad(meshSize, fw, fd, 0.94)
+  const padW = Math.max(fw, meshSize.x * scale * 1.06)
+  const padD = Math.max(fd, meshSize.z * scale * 1.06)
+  const labelH = 0.14 + meshSize.y * scale + 0.7
+  return (
+    <group position={[zone.position[0], 0, zone.position[1]]} rotation={[0, zone.rotation, 0]}>
+      <Pad w={padW} d={padD} />
+      <Clone object={prepared} position={[0, 0.14, 0]} scale={scale} castShadow receiveShadow />
+      <ZoneLabel label={zone.label} height={labelH} />
+    </group>
+  )
+}
+
 function ZoneFallback({ zone }: { zone: MapZone }) {
   const [fw, fd] = zone.footprint
   const bare = zone.model === 'parking-lot' || zone.model === 'football-stadium'
@@ -273,6 +295,7 @@ function ZoneFallback({ zone }: { zone: MapZone }) {
 
 function ZoneMesh({ zone }: { zone: MapZone }) {
   if (zone.model === 'admin-block' || zone.id === 'admin-block') return <AdminZone zone={zone} />
+  if (zone.model === 'hostel-block') return <HostelZone zone={zone} />
   if (zone.model === 'parking-lot') return <ParkingZone zone={zone} />
   if (zone.model === 'football-stadium') return <StadiumZone zone={zone} />
   if (zone.model === 'pad') return <PadZone zone={zone} />

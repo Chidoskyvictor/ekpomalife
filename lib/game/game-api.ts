@@ -26,16 +26,20 @@ type Fail = { ok: false; error: string; conflict?: boolean }
 const FETCH_MS = 8000
 
 async function apiFetch(path: string, init?: RequestInit) {
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), FETCH_MS)
+  // Prefer Promise.race over AbortSignal — jsdom's AbortSignal is rejected by MSW/Node fetch.
+  let timer: ReturnType<typeof setTimeout> | undefined
   try {
-    return await fetch(`${apiUrl()}${path}`, {
-      ...init,
-      credentials: 'include',
-      signal: controller.signal,
-    })
+    return await Promise.race([
+      fetch(`${apiUrl()}${path}`, {
+        ...init,
+        credentials: 'include',
+      }),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error('timeout')), FETCH_MS)
+      }),
+    ])
   } finally {
-    clearTimeout(timer)
+    if (timer) clearTimeout(timer)
   }
 }
 

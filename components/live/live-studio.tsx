@@ -25,7 +25,7 @@ import {
 import { Coins } from 'lucide-react'
 import { startNewLife } from '@/hooks/use-game'
 import { ensureLocalPlayer, getAccount, getProfile } from '@/lib/game/accounts'
-import { loadCharacter, saveCharacterSetup } from '@/lib/game/character-api'
+import { commitCharacter, loadCharacter, saveCharacterSetup } from '@/lib/game/character-api'
 import { firstNameFor, loadCreation, rememberLive, rememberStartingMoney } from '@/lib/game/creation'
 import panelStyles from '@/components/create/studio-panel.module.css'
 import { DEFAULT_APPEARANCE, type Appearance } from '@/lib/game/look'
@@ -52,6 +52,8 @@ export function LiveStudio() {
   const [courseId, setCourseId] = useState<string | null>(null)
   const [pocket, setPocket] = useState<number | null>(null)
   const [spinOpen, setSpinOpen] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const session = ensureLocalPlayer()
@@ -111,13 +113,29 @@ export function LiveStudio() {
   const canMoveIn = Boolean(lodgingId) && (!lodgingNeedsCourse(lodgingId) || Boolean(courseId))
 
   const finish = async () => {
-    if (!username || !dreamId || !lodgingId || !canMoveIn) return
+    if (!username || !dreamId || !lodgingId || !canMoveIn || busy) return
+    setBusy(true)
+    setError(null)
+
+    // Look / traits / dream are local until here — setup requires them on the server.
+    const committed = await commitCharacter({ appearance, traits, dreamId })
+    if (!committed.ok) {
+      setError(committed.error || 'Could not save your character. Log in and try again.')
+      setBusy(false)
+      return
+    }
+
     const saved = await saveCharacterSetup({
       characterType,
       lodgingId,
       courseId,
     })
-    if (!saved.ok) return
+    if (!saved.ok) {
+      setError(saved.error || 'Could not save where you live.')
+      setBusy(false)
+      return
+    }
+
     rememberLive(username, {
       appearance,
       traits,
@@ -127,6 +145,7 @@ export function LiveStudio() {
       courseId,
     })
     setSpinOpen(true)
+    setBusy(false)
   }
 
   const enterCampus = (amount: number) => {
@@ -164,12 +183,23 @@ export function LiveStudio() {
 
       <StudioPanel
         action={
-          <LobbyButton type="button" disabled={!canMoveIn} onClick={finish}>
+          <LobbyButton type="button" disabled={!canMoveIn} loading={busy} onClick={() => void finish()}>
             Move in
           </LobbyButton>
         }
       >
         <NameField username={username} />
+        {error ? (
+          <div
+            className="mb-3 rounded-xl bg-red-50 px-3 py-3 text-left text-sm font-medium leading-snug text-red-700"
+            role="alert"
+          >
+            {error}
+            <p className="mt-2 text-xs font-normal text-red-600/80">
+              Tip: 401 means log in again. Network/timeout means the API at the proxy target is down.
+            </p>
+          </div>
+        ) : null}
         <PanelPrompt>
           Where will {playerName} live? Rent is paid every Saturday.
         </PanelPrompt>

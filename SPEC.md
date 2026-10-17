@@ -112,6 +112,11 @@ Legend: ✅ DONE · 🟡 PARTIAL · ⬜ NOT STARTED
 - `POST /auth/login` `{ username, password }` → `{ ok, account }` + cookie.
 - Client form also requires email + DOB (age ≥ 18) but does not send them. **Decision for Phase 1:** store `email` (for password reset) and `date_of_birth`.
 - Sessions table stores token hash + expiry.
+- `GET /auth/me` → `{ ok, account, setupComplete, setupStep }` where `setupComplete` is true only when look + traits + dream are saved **and** a `game_state` row exists (created by `/character/setup`). `setupStep` is `"look" | "traits" | "dream" | null` — the first unfinished character step (null when those three are done).
+- **No home until setup is complete.** Every path into the app (signup, login, password reset → login, refresh, direct URL) goes through `getPostAuthRoute(user)` (`lib/auth/post-auth-redirect.ts`): not logged in → `/login`; `setupComplete` false → Look / Traits / Dream (or `/live` if character is done but no `game_state`); complete → `/`. Never hardcode a redirect to home after auth.
+- Route guards (`AuthGate`): home routes bounce incomplete users to setup; setup routes bounce complete users home; public auth pages bounce logged-in users via `getPostAuthRoute`. Loading shell only — no HUD flash.
+- `GET /game/state` and `POST /game/action` return **409** `{ ok: false, error: "SETUP_INCOMPLETE" }` when setup is incomplete so the API cannot skip setup.
+- Password reset: after success, send to `/login?reset=1` (or log in and run `getPostAuthRoute`). Never send unfinished users to home.
 
 ### 4.2 Look
 `Appearance = { body:'man'|'woman', hair, outfit, fabric }` (+ colours added in `36545fb`).
@@ -159,11 +164,12 @@ Tiers by amount: < ₦250k **Hustle Mode** · < ₦500k **Steady Start** · < �
 
 ### 4.7 Map — first slab (`MAP_ZONES`)
 - **Town side** (west of fence): Animal House ×2, Anatomy Secretariat, BAMSSA, 200 Level Hall, Relaxation Centre, 100 Level Hall, ETF Hall, MLS Hall, College of Medicine, ICT Lab, 4 small shops/houses, Off-campus Hostels, Cattle Market, Sazza.
-- **Gate:** AAU School Gate.
-- **Campus side:** Clinic, Sports Complex (stadium GLB), Life Science, Social Science, Physical Science, main column ICT (exams) → Education → Mass Comm → Admin Block (with nested courtyard parking), Law, Students' Centre, Cordelia Agbebaku Hall, Twin Hall.
-- **Extended:** School Hostels ×3, Law (ext), Management Science, Engineering, Parking Lot, Shuttle Park.
-- Roads: City Bits pieces from `campusroad.glb` on UV rails (V 0.18/0.28/~0.60/0.78/0.88, H 0.14/0.93). Trees `tree.glb`/`pinetree.glb`. Fence at `FENCE_U`.
-- Camera: perspective iso-style, pan/rotate/zoom. Palette in `map-theme.ts`.
+- **Gate:** AAU School Gate (`FENCE_U+0.04`, `v=0.84`).
+- **Campus side:** Clinic; Sports Complex inside campus (`FENCE_U+0.08`, `v=0.56`, clear of fence/Admin/Mass Comm/Education); main column ICT → Education → Mass Comm → Admin Block (courtyard parking); faculty row **just below** campus-top (`v≈0.22–0.24`): Physical Science (`FENCE_U+0.3`) → Social Science (`u=0.76`) → Life Science (`u=0.84`, toward `ext-eng`); Law, Students' Centre, Cordelia Agbebaku Hall, Twin Hall.
+- **Extended:** School Hostels removed from the map (lodging ids remain in `places.ts`); Law (ext); Management Science (`u=0.9`, `v=0.34`, clear of Life Science); Engineering; mid-strip Parking Lot; Shuttle Park (`u=0.975`, `v=0.86`, left edge clear of `ext-eng` by ~1 tile).
+- Roads: City Bits from `campusroad.glb` on UV rails (V `0.18` / `0.28` / `0.92`, H `0.14` / `0.93`). Fence at `FENCE_U`.
+- **Trees:** 12 pines only (`pinetree.glb`, `TREE_SPOTS`) in 6 calm pairs — gate L/R, clinic, sports↔fence, admin front, Management corner, Shuttle↔slab edge. No deciduous scatter; never on roads/pads/lots/footprints.
+- Camera: perspective iso-style, pan/rotate/zoom. Palette in `map-theme.ts`. Floating zone name tags kept.
 - Gap: zone ids (`admin-block`, `clinic`…) ≠ gameplay location ids (`aau_campus`, `campus_shop`, `roadside_bukka`…). Several gameplay places (Mama Amina Bukka, Keke Park, Viewing Centre, Market, church, mosque, Maryvale) have no zone.
 
 ### 4.8 Core loop (client, to be moved to server)

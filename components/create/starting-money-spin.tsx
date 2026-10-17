@@ -90,12 +90,23 @@ export function StartingMoneySpin({
     let result: { amount: number; tier: string; message: string } | null = null
     try {
       const saved = await commitCharacter({ appearance, traits, dreamId })
-      const rolled = saved.ok ? await rollStartingMoney() : null
-      if (rolled?.ok) {
-        result = { amount: rolled.amount, tier: rolled.tier, message: rolled.message }
+      if (!saved.ok) {
+        setError(saved.error || 'Could not save look/traits/dream before the spin.')
+        setBusy(false)
+        return
       }
-    } catch {
-      result = null
+      const rolled = await rollStartingMoney()
+      if (!rolled.ok) {
+        setError(rolled.error || 'Starting money roll failed.')
+        setBusy(false)
+        return
+      }
+      result = { amount: rolled.amount, tier: rolled.tier, message: rolled.message }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      setError(`Spin crashed: ${msg}`)
+      setBusy(false)
+      return
     }
     if (!result) {
       setError('Could not get starting money from the server. Check your connection and try again.')
@@ -172,7 +183,12 @@ export function StartingMoneySpin({
 
         {error ? (
           <div className={styles.actions}>
-            <p className={styles.error}>{error}</p>
+            <p className={styles.error} role="alert">
+              {error}
+            </p>
+            <p className={styles.hint}>
+              If it says 401, log out and log in again so the session cookie is set on this device.
+            </p>
             <LobbyButton type="button" onClick={() => void run()}>
               Try again
             </LobbyButton>

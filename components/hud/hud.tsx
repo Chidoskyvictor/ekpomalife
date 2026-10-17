@@ -18,7 +18,6 @@ import { StatusBar } from '@/components/hud/status-bar'
 import { TodaySheet } from '@/components/hud/today-sheet'
 import { TopBar } from '@/components/hud/top-bar'
 import { UpNext } from '@/components/hud/up-next'
-import { WelcomeCard } from '@/components/hud/welcome-card'
 import { useEconomy } from '@/hooks/use-economy'
 import { useGame } from '@/hooks/use-game'
 import { useLowPerf } from '@/hooks/use-low-perf'
@@ -87,17 +86,13 @@ export function Hud() {
     if (action.locationId) select(action.locationId)
   }
 
+  // No character / no /game/state yet — never paint money, needs, or trait HUD.
   if (!state) {
     return (
-      <div className={cn(styles.root, lowPerf && styles.lowPerf)}>
+      <div className={cn(styles.root, lowPerf && styles.lowPerf)} aria-busy="true">
         <div className={`${styles.safe} absolute inset-x-0 top-0`}>
           <TopBar />
         </div>
-        <div className={styles.bottomDock}>
-          {selectedId ? <LocationSheet /> : <WelcomeCard />}
-        </div>
-        <DreamCelebration />
-        <EventDialog />
       </div>
     )
   }

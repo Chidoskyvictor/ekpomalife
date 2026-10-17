@@ -14,6 +14,7 @@ import {
   pillClass,
 } from '@/components/create/studio-panel'
 import { ensureLocalPlayer } from '@/lib/game/accounts'
+import { saveCharacterLook } from '@/lib/game/character-api'
 import { loadCreation, rememberLook } from '@/lib/game/creation'
 import {
   BODIES,
@@ -33,6 +34,8 @@ export function LookStudio() {
   const router = useRouter()
   const [username, setUsername] = useState<string | null>(null)
   const [appearance, setAppearance] = useState<Appearance>(DEFAULT_APPEARANCE)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const session = ensureLocalPlayer()
@@ -48,9 +51,17 @@ export function LookStudio() {
     setAppearance((current) => normalizeAppearance({ ...current, body }))
   }
 
-  const finish = () => {
-    if (!username) return
+  const finish = async () => {
+    if (!username || busy) return
+    setBusy(true)
+    setError(null)
     rememberLook(username, appearance)
+    const saved = await saveCharacterLook(appearance)
+    if (!saved.ok) {
+      setError(saved.error || 'Could not save your look. Log in and try again.')
+      setBusy(false)
+      return
+    }
     router.replace('/traits')
   }
 
@@ -64,12 +75,17 @@ export function LookStudio() {
 
       <StudioPanel
         action={
-          <LobbyButton onClick={finish}>
+          <LobbyButton loading={busy} onClick={() => void finish()}>
             Next: Personality ▶
           </LobbyButton>
         }
       >
         <NameField username={username} />
+        {error ? (
+          <p className="mb-3 text-sm text-red-700" role="alert">
+            {error}
+          </p>
+        ) : null}
         <PanelSection label="Body">
           <PillRow split>
             {BODIES.map((body, index) => (

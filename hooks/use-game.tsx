@@ -176,10 +176,19 @@ export function GameProvider({ children }: { children: ReactNode }) {
   }, [mergeServer])
 
   useEffect(() => {
-    const shell = loadLocalShell()
-    shellRef.current = shell
-    if (shell) setState(shell)
+    // Never paint localStorage cash/traits as truth — wait for /game/state.
+    // Local shell is only a merge base after the server confirms setup is complete.
     void (async () => {
+      const result = await fetchGameState()
+      if (!result.ok) {
+        if (result.error === 'SETUP_INCOMPLETE') {
+          setState(null)
+          shellRef.current = null
+        }
+        return
+      }
+      const shell = loadLocalShell()
+      shellRef.current = shell
       const character = await loadCharacter()
       if (character.ok && shell) {
         shellRef.current = {
@@ -193,9 +202,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
           badges: character.badges.length ? character.badges : shell.badges,
         }
       }
-      await refreshServer()
+      mergeServer(result)
     })()
-  }, [refreshServer])
+  }, [mergeServer])
 
   useEffect(() => {
     const id = window.setInterval(() => {

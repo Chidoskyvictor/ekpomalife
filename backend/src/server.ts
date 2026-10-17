@@ -9,6 +9,7 @@ import { characterRoutes } from './routes/character.js'
 import { forgotRoutes } from './routes/forgot.js'
 import { gameRoutes } from './routes/game.js'
 import { loginRoutes } from './routes/login.js'
+import { meRoutes } from './routes/me.js'
 import { signupRoutes } from './routes/signup.js'
 
 const app = Fastify({
@@ -18,8 +19,17 @@ const app = Fastify({
 })
 
 await app.register(helmet, { global: true })
+const allowedOrigins = env.FRONTEND_ORIGIN.split(',').map((value) => value.trim()).filter(Boolean)
+
 await app.register(cors, {
-  origin: env.FRONTEND_ORIGIN,
+  origin(origin, callback) {
+    // Same-origin Next /api proxy, curl, and mobile WebViews may omit Origin.
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true)
+      return
+    }
+    callback(null, false)
+  },
   credentials: true,
   methods: ['GET', 'POST', 'OPTIONS'],
 })
@@ -35,6 +45,7 @@ app.get('/', async () => ({
   health: '/health',
   signup: 'POST /auth/signup',
   login: 'POST /auth/login',
+  me: 'GET /auth/me',
   forgot: 'POST /auth/forgot',
   reset: 'POST /auth/reset',
   character: 'GET /character',
@@ -50,6 +61,7 @@ app.get('/', async () => ({
 app.get('/health', async () => ({ ok: true }))
 await app.register(signupRoutes)
 await app.register(loginRoutes)
+await app.register(meRoutes)
 await app.register(forgotRoutes)
 await app.register(characterRoutes)
 await app.register(gameRoutes)

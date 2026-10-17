@@ -8,9 +8,10 @@ const emptyToUndefined = (value: unknown) => (value == null || value === '' ? un
 const envSchema = z.object({
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
   PORT: z.preprocess((value) => (value == null || value === '' ? 4000 : value), z.coerce.number().int().positive()),
+  /** Comma-separated allowed browser origins (e.g. localhost + LAN IP + production URL). */
   FRONTEND_ORIGIN: z.preprocess(
     (value) => (value == null || value === '' ? 'http://localhost:3000' : value),
-    z.string().url(),
+    z.string().min(1),
   ),
   COOKIE_SECURE: z
     .enum(['true', 'false'])

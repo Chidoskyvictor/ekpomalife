@@ -15,6 +15,7 @@ import {
   dreamCardClass,
 } from '@/components/create/studio-panel'
 import { ensureLocalPlayer } from '@/lib/game/accounts'
+import { saveCharacterDream } from '@/lib/game/character-api'
 import { firstNameFor, loadCreation, rememberDream } from '@/lib/game/creation'
 import { DREAMS, type DreamId } from '@/lib/game/dreams'
 import { DEFAULT_APPEARANCE, type Appearance } from '@/lib/game/look'
@@ -27,6 +28,8 @@ export function DreamStudio() {
   const [appearance, setAppearance] = useState<Appearance>(DEFAULT_APPEARANCE)
   const [traits, setTraits] = useState<TraitId[]>([])
   const [picked, setPicked] = useState<DreamId | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const session = ensureLocalPlayer()
@@ -53,9 +56,17 @@ export function DreamStudio() {
     if (username) rememberDream(username, appearance, traits, id)
   }
 
-  const finish = () => {
-    if (!username || !picked) return
+  const finish = async () => {
+    if (!username || !picked || busy) return
+    setBusy(true)
+    setError(null)
     rememberDream(username, appearance, traits, picked)
+    const saved = await saveCharacterDream(picked)
+    if (!saved.ok) {
+      setError(saved.error || 'Could not save your dream. Log in and try again.')
+      setBusy(false)
+      return
+    }
     router.replace('/live')
   }
 
@@ -67,12 +78,17 @@ export function DreamStudio() {
 
       <StudioPanel
         action={
-          <LobbyButton type="button" disabled={!picked} onClick={finish}>
+          <LobbyButton type="button" loading={busy} disabled={!picked} onClick={() => void finish()}>
             Next: Where you live ▶
           </LobbyButton>
         }
       >
         <NameField username={username} />
+        {error ? (
+          <p className="mb-3 text-sm text-red-700" role="alert">
+            {error}
+          </p>
+        ) : null}
         <PanelPrompt>What's {playerName}'s big dream?</PanelPrompt>
         <DreamList>
           {DREAMS.map((dream, index) => (

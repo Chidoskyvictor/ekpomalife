@@ -113,7 +113,7 @@ export function ForgotForm({ onShake }: { onShake: () => void }) {
       <div className={styles.form}>
         <p className={styles.stepLead}>Password updated</p>
         <p className={styles.stepCopy}>You can log in with your new password now.</p>
-        <LobbyButton type="button" onClick={() => router.replace('/login')}>
+        <LobbyButton type="button" onClick={() => router.replace('/login?reset=1')}>
           Back to log in ▶
         </LobbyButton>
       </div>

@@ -17,7 +17,14 @@ type Fail = { ok: false; error: string; step?: OnboardingStep }
 
 export type CharacterOk = { ok: true } & CharacterRecord
 
-const FETCH_MS = 6000
+const FETCH_MS = 10000
+
+function failMessage(step: string, status: number, body: string) {
+  if (status === 401) return `${step}: not logged in (401). Log in again, then retry.`
+  if (status === 0) return `${step}: cannot reach API at ${apiUrl()}. Is the backend up?`
+  if (body) return `${step} (${status}): ${body}`
+  return `${step} failed (${status}).`
+}
 
 async function apiFetch(path: string, init?: RequestInit) {
   const controller = new AbortController()
@@ -33,21 +40,51 @@ async function apiFetch(path: string, init?: RequestInit) {
   }
 }
 
-async function readJson<T>(response: Response): Promise<T | Fail> {
-  const data = (await response.json()) as T | Fail
+async function readJson<T>(response: Response, step: string): Promise<T | Fail> {
+  let raw = ''
+  try {
+    raw = await response.text()
+  } catch {
+    return { ok: false, error: failMessage(step, response.status, 'empty response') }
+  }
+
+  let data: T | Fail | null = null
+  try {
+    data = raw ? (JSON.parse(raw) as T | Fail) : null
+  } catch {
+    const snippet = raw.slice(0, 120).replace(/\s+/g, ' ')
+    return {
+      ok: false,
+      error: failMessage(step, response.status, snippet || 'non-JSON response'),
+    }
+  }
+
   if (!response.ok || (typeof data === 'object' && data && 'ok' in data && data.ok === false)) {
-    const fail = data as Fail
-    return { ok: false, error: fail.error || 'Request failed.', step: fail.step }
+    const fail = (data ?? {}) as Fail
+    return {
+      ok: false,
+      error: failMessage(step, response.status, fail.error || raw.slice(0, 120) || 'request failed'),
+      step: fail.step,
+    }
   }
   return data as T
+}
+
+function networkFail(step: string, err: unknown): Fail {
+  const name = err instanceof Error ? err.name : ''
+  const msg = err instanceof Error ? err.message : String(err)
+  if (name === 'AbortError') {
+    return { ok: false, error: `${step}: timed out talking to ${apiUrl()}. Backend slow or down.` }
+  }
+  return { ok: false, error: `${step}: network error (${msg}). API ${apiUrl()}` }
 }
 
 export async function loadCharacter(): Promise<CharacterOk | Fail> {
   try {
     const response = await apiFetch('/character')
-    return await readJson<CharacterOk>(response)
-  } catch {
-    return { ok: false, error: 'Cannot reach the server. Is the backend running?' }
+    return await readJson<CharacterOk>(response, 'Load character')
+  } catch (err) {
+    return networkFail('Load character', err)
   }
 }
 
@@ -58,9 +95,9 @@ export async function saveCharacterLook(appearance: Appearance): Promise<Charact
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ appearance }),
     })
-    return await readJson<CharacterOk>(response)
-  } catch {
-    return { ok: false, error: 'Cannot reach the server. Is the backend running?' }
+    return await readJson<CharacterOk>(response, 'Save look')
+  } catch (err) {
+    return networkFail('Save look', err)
   }
 }
 
@@ -71,9 +108,9 @@ export async function saveCharacterTraits(traits: TraitId[]): Promise<CharacterO
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ traits }),
     })
-    return await readJson<CharacterOk>(response)
-  } catch {
-    return { ok: false, error: 'Cannot reach the server. Is the backend running?' }
+    return await readJson<CharacterOk>(response, 'Save traits')
+  } catch (err) {
+    return networkFail('Save traits', err)
   }
 }
 
@@ -97,9 +134,9 @@ export async function saveCharacterDream(dreamId: DreamId): Promise<CharacterOk 
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ dreamId }),
     })
-    return await readJson<CharacterOk>(response)
-  } catch {
-    return { ok: false, error: 'Cannot reach the server. Is the backend running?' }
+    return await readJson<CharacterOk>(response, 'Save dream')
+  } catch (err) {
+    return networkFail('Save dream', err)
   }
 }
 
@@ -117,9 +154,9 @@ export async function rollStartingMoney(): Promise<StartingMoneyResult | Fail> {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
     })
-    return await readJson<StartingMoneyResult>(response)
-  } catch {
-    return { ok: false, error: 'Cannot reach the server. Is the backend running?' }
+    return await readJson<StartingMoneyResult>(response, 'Starting money')
+  } catch (err) {
+    return networkFail('Starting money', err)
   }
 }
 
@@ -131,9 +168,9 @@ export async function checkDreamProgress(_snapshot?: DreamSnapshot): Promise<Dre
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({}),
     })
-    return await readJson<DreamCheckResult>(response)
-  } catch {
-    return { ok: false, error: 'Cannot reach the server. Is the backend running?' }
+    return await readJson<DreamCheckResult>(response, 'Dream check')
+  } catch (err) {
+    return networkFail('Dream check', err)
   }
 }
 
@@ -148,8 +185,8 @@ export async function saveCharacterSetup(input: {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(input),
     })
-    return await readJson<CharacterOk>(response)
-  } catch {
-    return { ok: false, error: 'Cannot reach the server. Is the backend running?' }
+    return await readJson<CharacterOk>(response, 'Save lodging')
+  } catch (err) {
+    return networkFail('Save lodging', err)
   }
 }
