@@ -1,12 +1,16 @@
 'use client'
 
+import { useState } from 'react'
 import { Lock } from 'lucide-react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { BankScreen } from '@/components/hud/bank-screen'
 import { useGame } from '@/hooks/use-game'
 import { dreamProgress, getDream, snapshotFromLife } from '@/lib/game/dreams'
 import { cn } from '@/lib/utils'
 
 const TONE_DOT = { good: 'bg-primary', bad: 'bg-destructive', neutral: 'bg-[#e2b63a]' }
+
+type PhoneApp = 'gist' | 'bank'
 
 function DreamProfile() {
   const { state } = useGame()
@@ -29,6 +33,7 @@ function DreamProfile() {
 
 export function PhoneDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const { state, select } = useGame()
+  const [app, setApp] = useState<PhoneApp>('gist')
   if (!state) return null
 
   return (
@@ -39,15 +44,61 @@ export function PhoneDialog({ open, onOpenChange }: { open: boolean; onOpenChang
         </div>
         <div className="flex flex-col gap-3 overflow-y-auto px-5 pb-5">
           {state.dreamId ? <DreamProfile /> : null}
+          {state.hasPhone ? (
+            <div className="flex gap-2" role="tablist" aria-label="Phone apps">
+              {(
+                [
+                  ['gist', 'Gist'],
+                  ['bank', 'Bank'],
+                ] as const
+              ).map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  role="tab"
+                  aria-selected={app === id}
+                  className={cn(
+                    'min-h-11 flex-1 rounded-full px-3 py-2 text-sm font-semibold',
+                    app === id ? 'bg-primary text-primary-foreground' : 'bg-secondary',
+                  )}
+                  onClick={() => setApp(id)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          ) : null}
           <DialogHeader>
-            <DialogTitle className="text-lg font-extrabold">{state.hasPhone ? 'Gist feed' : 'No phone yet'}</DialogTitle>
+            <DialogTitle className="text-lg font-extrabold">
+              {!state.hasPhone ? 'No phone yet' : app === 'bank' ? 'Bank' : 'Gist feed'}
+            </DialogTitle>
             <DialogDescription>
-              {state.hasPhone
-                ? `${state.characterName} · Day ${state.day}, ${state.period}`
-                : 'Buy a phone at Campus Shop to unlock messages and town events.'}
+              {!state.hasPhone
+                ? 'Buy a phone at Campus Shop to unlock messages and town events.'
+                : app === 'bank'
+                  ? 'Balance and recent transactions from the server.'
+                  : `${state.characterName} · Day ${state.day}, ${state.period}`}
             </DialogDescription>
           </DialogHeader>
-          {state.hasPhone ? (
+          {!state.hasPhone ? (
+            <div className="flex flex-col items-center gap-3 py-6 text-center">
+              <span className="flex size-14 items-center justify-center rounded-full bg-secondary">
+                <Lock className="size-6 text-muted-foreground" aria-hidden="true" />
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  select('town-shop-1')
+                  onOpenChange(false)
+                }}
+                className="min-h-11 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 focus-visible:ring-4 focus-visible:ring-primary/30 focus-visible:outline-none"
+              >
+                Show me Campus Shop
+              </button>
+            </div>
+          ) : app === 'bank' ? (
+            <BankScreen />
+          ) : (
             <ol className="flex flex-col gap-2">
               {state.feed.map((entry) => (
                 <li key={entry.id} className="flex gap-2.5 rounded-2xl bg-secondary p-3">
@@ -61,22 +112,6 @@ export function PhoneDialog({ open, onOpenChange }: { open: boolean; onOpenChang
                 </li>
               ))}
             </ol>
-          ) : (
-            <div className="flex flex-col items-center gap-3 py-6 text-center">
-              <span className="flex size-14 items-center justify-center rounded-full bg-secondary">
-                <Lock className="size-6 text-muted-foreground" aria-hidden="true" />
-              </span>
-              <button
-                type="button"
-                onClick={() => {
-                  select('campus_shop')
-                  onOpenChange(false)
-                }}
-                className="rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 focus-visible:ring-4 focus-visible:ring-primary/30 focus-visible:outline-none"
-              >
-                Show me Campus Shop
-              </button>
-            </div>
           )}
         </div>
       </DialogContent>

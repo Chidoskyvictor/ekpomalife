@@ -1,7 +1,11 @@
 'use client'
 
+import { useEffect } from 'react'
 import { Footprints, X } from 'lucide-react'
 import { AuthLinks } from '@/components/hud/auth-links'
+import { JobsPanel } from '@/components/hud/jobs-panel'
+import { ShopGrid } from '@/components/hud/shop-grid'
+import { useEconomy } from '@/hooks/use-economy'
 import { useGame } from '@/hooks/use-game'
 import { TYPE_META } from '@/lib/game/content'
 import {
@@ -14,6 +18,7 @@ import {
 } from '@/lib/game/places'
 import type { GameState } from '@/lib/game/types'
 import { cn } from '@/lib/utils'
+import econStyles from './economy.module.css'
 
 const TYPE_EMOJI: Record<PlaceType, string> = {
   campus: '🎓',
@@ -108,9 +113,21 @@ function TravelPicker({ state, place }: { state: GameState; place: Place }) {
   )
 }
 
+const SHOP_PLACES = new Set(['town-shop-1', 'bukka', 'market'])
+
 export function LocationSheet() {
   const { state, selectedId, select, act } = useGame()
+  const { shopItems, loadShop, loading } = useEconomy()
   const place = resolvePlace(selectedId)
+  const isShop = Boolean(
+    place && (SHOP_PLACES.has(place.id) || place.type === 'shop' || place.type === 'food'),
+  )
+
+  useEffect(() => {
+    if (!place || !isShop) return
+    void loadShop(place.id)
+  }, [isShop, place, loadShop])
+
   if (!place) return null
 
   const close = () => select(null)
@@ -141,17 +158,34 @@ export function LocationSheet() {
         subtitle={isHere ? `You are here · ${typeMeta.label}` : typeMeta.label}
       />
       {isHere ? (
-        place.actions.length > 0 ? (
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            {place.actions.map((actionId) => (
-              <ActionButton key={actionId} actionId={actionId} onAct={(id) => act(id)} />
-            ))}
-          </div>
-        ) : (
-          <p className="liquid-glass-chip mt-3 rounded-2xl p-3 text-sm text-accent-foreground">
-            Nothing to do here yet.
-          </p>
-        )
+        <>
+          {place.actions.length > 0 ? (
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              {place.actions.map((actionId) => (
+                <ActionButton key={actionId} actionId={actionId} onAct={(id) => act(id)} />
+              ))}
+            </div>
+          ) : null}
+          <JobsPanel placeId={place.id} />
+          {isShop ? (
+            <div className={econStyles.section}>
+              <p className={econStyles.sectionTitle}>Shop</p>
+              {loading && shopItems.length === 0 ? (
+                <>
+                  <div className={econStyles.skeleton} />
+                  <div className={econStyles.skeleton} />
+                </>
+              ) : (
+                <ShopGrid items={shopItems} />
+              )}
+            </div>
+          ) : null}
+          {place.actions.length === 0 && !isShop ? (
+            <p className="liquid-glass-chip mt-3 rounded-2xl p-3 text-sm text-accent-foreground">
+              Nothing to do here yet.
+            </p>
+          ) : null}
+        </>
       ) : (
         <TravelPicker state={state} place={place} />
       )}

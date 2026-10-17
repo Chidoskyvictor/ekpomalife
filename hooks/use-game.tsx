@@ -30,6 +30,9 @@ type GameContextValue = {
   dismissDreamCelebration: () => void
   logOut: () => void
   refreshServer: () => Promise<void>
+  /** Apply cash/needs/time from a server (or economy) response — never invent numbers. */
+  applyServerState: (server: ServerGameState) => void
+  notifyToast: (text: string, ok?: boolean) => void
 }
 
 const GameContext = createContext<GameContextValue | null>(null)
@@ -318,8 +321,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
         setPendingEvent(null)
       },
       refreshServer,
+      applyServerState: mergeServer,
+      notifyToast: (text: string, ok = true) => notify(text, ok),
     }),
-    [state, selectedId, pendingEvent, toast, serverVersion, act, travelTo, chooseEvent, refreshServer],
+    [state, selectedId, pendingEvent, toast, serverVersion, act, travelTo, chooseEvent, refreshServer, mergeServer, notify],
   )
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>

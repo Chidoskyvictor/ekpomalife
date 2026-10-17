@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { BuySheet } from '@/components/hud/buy-sheet'
 import { ChangeDreamDialog } from '@/components/hud/change-dream-dialog'
 import { ContextDock } from '@/components/hud/context-dock'
 import { DreamCelebration } from '@/components/hud/dream-celebration'
@@ -18,6 +19,7 @@ import { TodaySheet } from '@/components/hud/today-sheet'
 import { TopBar } from '@/components/hud/top-bar'
 import { UpNext } from '@/components/hud/up-next'
 import { WelcomeCard } from '@/components/hud/welcome-card'
+import { useEconomy } from '@/hooks/use-economy'
 import { useGame } from '@/hooks/use-game'
 import { useLowPerf } from '@/hooks/use-low-perf'
 import type { ContextAction, QuestPill } from '@/lib/game/quests'
@@ -26,8 +28,10 @@ import styles from './life-hud.module.css'
 
 export function Hud() {
   const { state, selectedId, select, toast, logOut, act } = useGame()
+  const { pay } = useEconomy()
   const lowPerf = useLowPerf()
   const [phoneOpen, setPhoneOpen] = useState(false)
+  const [buyOpen, setBuyOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   const [todayOpen, setTodayOpen] = useState(false)
@@ -40,23 +44,26 @@ export function Hud() {
 
   const openShop = () => {
     setTab('buy')
-    select('campus_shop')
+    setBuyOpen(true)
+    select('town-shop-1')
   }
 
   const onTab = (next: PlayTab) => {
     setTab(next)
     if (next === 'buy') {
-      select('campus_shop')
+      setBuyOpen(true)
       setPhoneOpen(false)
       return
     }
     if (next === 'phone') {
       select(null)
+      setBuyOpen(false)
       setPhoneOpen(true)
       return
     }
-    select(null)
+    setBuyOpen(false)
     setPhoneOpen(false)
+    if (next === 'home') select(null)
   }
 
   const onQuest = (pill: QuestPill) => {
@@ -105,7 +112,12 @@ export function Hud() {
         <HudToast toast={toast} />
       </div>
 
-      <UpNext state={state} onSelect={onQuest} onOpenToday={() => setTodayOpen(true)} />
+      <UpNext
+        state={state}
+        onSelect={onQuest}
+        onOpenToday={() => setTodayOpen(true)}
+        onPayRent={() => void pay()}
+      />
       <MeCard state={state} onOpen={() => setProfileOpen(true)} />
 
       <div className={styles.mobileCorner}>
@@ -122,6 +134,13 @@ export function Hud() {
         </div>
       </div>
 
+      <BuySheet
+        open={buyOpen}
+        onOpenChange={(open) => {
+          setBuyOpen(open)
+          if (!open && tab === 'buy') setTab('home')
+        }}
+      />
       <PhoneDialog
         open={phoneOpen}
         onOpenChange={(open) => {

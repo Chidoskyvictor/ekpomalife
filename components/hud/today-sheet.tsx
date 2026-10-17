@@ -1,9 +1,11 @@
 'use client'
 
+import { useEconomy } from '@/hooks/use-economy'
 import { todayInEkpomaFor, type QuestPill } from '@/lib/game/quests'
 import type { GameState } from '@/lib/game/types'
 import { hapticTap } from './haptic'
 import { HudDrawer } from './hud-drawer'
+import { RentCard } from './rent-card'
 import styles from './life-hud.module.css'
 
 export function TodaySheet({
@@ -17,16 +19,19 @@ export function TodaySheet({
   state: GameState
   onSelect: (pill: QuestPill) => void
 }) {
-  const items = todayInEkpomaFor(state)
+  const { rent, currentJobId, jobs, pay } = useEconomy()
+  const jobPlaceId = jobs.find((job) => job.id === currentJobId)?.placeId ?? null
+  const items = todayInEkpomaFor(state, { rent, currentJobId, jobPlaceId })
 
   return (
     <HudDrawer
       open={open}
       onOpenChange={onOpenChange}
       title="Today in Ekpoma"
-      description="Events, coins, and tasks for the day."
+      description="Events, rent, and tasks for the day."
     >
       <div className={styles.sheetBody}>
+        <RentCard />
         <div className={styles.sheetList}>
           {items.map((item) => (
             <button
@@ -35,6 +40,10 @@ export function TodaySheet({
               className={styles.sheetRow}
               onClick={() => {
                 hapticTap()
+                if (item.rentPay) {
+                  void pay()
+                  return
+                }
                 onSelect(item)
                 onOpenChange(false)
               }}

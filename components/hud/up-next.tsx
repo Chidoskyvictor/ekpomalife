@@ -3,6 +3,7 @@
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { Bell } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { useEconomy } from '@/hooks/use-economy'
 import { todayBellCount, upNextQueueFor, type QuestPill } from '@/lib/game/quests'
 import type { GameState } from '@/lib/game/types'
 import { hapticTap } from './haptic'
@@ -14,21 +15,26 @@ export function UpNext({
   state,
   onSelect,
   onOpenToday,
+  onPayRent,
 }: {
   state: GameState
   onSelect: (pill: QuestPill) => void
   onOpenToday: () => void
+  onPayRent?: () => void
 }) {
   const reduced = useReducedMotion() ?? false
-  const queue = upNextQueueFor(state)
+  const { rent, currentJobId, jobs } = useEconomy()
+  const jobPlaceId = jobs.find((job) => job.id === currentJobId)?.placeId ?? null
+  const extras = { rent, currentJobId, jobPlaceId }
+  const queue = upNextQueueFor(state, extras)
   const [index, setIndex] = useState(0)
   const pill = queue[index % Math.max(1, queue.length)] ?? queue[0]!
-  const badge = todayBellCount(state)
+  const badge = todayBellCount(state, extras)
   const line = pill.hint || pill.title
 
   useEffect(() => {
     setIndex(0)
-  }, [state.day, state.period, queue.length])
+  }, [state.day, state.period, queue.length, rent?.status, currentJobId])
 
   const skip = () => {
     hapticTap()
@@ -44,10 +50,11 @@ export function UpNext({
           className={styles.upNext}
           onClick={() => {
             hapticTap()
+            if (pill.rentPay && onPayRent) {
+              onPayRent()
+              return
+            }
             onSelect(pill)
-          }}
-          onPointerUp={(event) => {
-            if (event.pointerType === 'touch') return
           }}
           drag={reduced ? false : 'x'}
           dragConstraints={{ left: 0, right: 0 }}
@@ -80,7 +87,11 @@ export function UpNext({
         }}
       >
         <Bell size={18} aria-hidden="true" />
-        {badge > 0 ? <span className={styles.bellBadge}>{badge > 9 ? '9+' : badge}</span> : null}
+        {badge > 0 ? (
+          <span className={styles.bellBadge} aria-hidden="true">
+            {badge > 9 ? '9+' : badge}
+          </span>
+        ) : null}
       </button>
     </div>
   )

@@ -91,10 +91,10 @@ Legend: ✅ DONE · 🟡 PARTIAL · ⬜ NOT STARTED
 | Needs (6) + XP/level + mood | 🟡 | `lib/game/needs.ts`, `components/hud/needs-stack.tsx` | Client-only decay per time period. |
 | Time (day + 4 periods, calendar, rent day) | 🟡 | `rules.ts`, `needs.ts` (`calendarForDay`, `PERIOD_CLOCK`), `clock-pill.tsx` | Client-only; rent is a reminder pill, no charge. |
 | HUD (Apple-glass) | 🟡 | `components/hud/hud.tsx` + ~30 parts | Status bar, money pill, needs, Up Next pill with **bell**, quest stack, play nav (home/buy/phone…), vaul sheets (today/profile/settings), Island toast, me-card avatar ring — present. Some pills point at placeholder data (e.g. "Daily Okada Coins", hard-coded city events). |
-| Phone | 🟡 | `components/hud/phone-dialog.tsx`, action `buy_phone` (₦2,500) | Simple dialog/feed only. No apps. |
+| Phone | 🟡 | `components/hud/phone-dialog.tsx`, `bank-screen.tsx` | Gist feed + **Bank** (balance + `/ledger`). Other apps still Phase 5. |
 | 3D map – first slab | 🟡 | `lib/game/world-layout.ts` (`MAP_ZONES`, `ROAD_GAPS`, `TREE_SPOTS`, `FENCE_U`), `components/world/*` | Town side, gate, campus side and extended area are placed (see §4.7). **Zones are visual only** — gameplay still uses the 15 old `content.ts` locations; the two lists are not linked. |
 | Billboards / ads | ⬜ | — | Nothing in code. |
-| Economy (jobs, shop, rent, transactions ledger) | ⬜ | — | Only toy actions (errand ₦500, POS shift ₦400–900). |
+| Economy (jobs, shop, rent, transactions ledger) | 🟡 | `lib/game/economy-api.ts`, `economy-mock.ts`, `hooks/use-economy.tsx`, `components/hud/{jobs-panel,shop-grid,buy-sheet,rent-card,bank-screen,inventory-panel}.tsx` | **Frontend Phase 2 done** against contracts (`GET/POST /jobs*`, `/shop*`, `/inventory`, `/rent*`, `/ledger`). Falls back to in-browser mock if API unreachable (`NEXT_PUBLIC_USE_ECONOMY_MOCK=1` forces mock). Backend economy routes still required for production. |
 | Multiplayer / chat by area | ⬜ | — | |
 | Events / elections | 🟡 | `content.ts` `EVENTS` (6 random pop-ups), `quests.ts` city events | Fictional pop-ups only; no real-world events feed, no elections. |
 | Innovation Hub | 🟡 | location `innovation_hub`, action `feedback` | Action only; no form, nothing stored. |
@@ -282,6 +282,8 @@ Buying a phone unlocks apps inside the existing phone dialog/vaul sheet: **Messa
 *Accept:* clearing localStorage loses nothing; editing cash in devtools changes nothing server-side; double-tapping an action charges once; create flow → /live → play works with server only; tests for actions, travel, needs drain, starting money once-only.
 
 **Phase 2 — Economy, jobs, shop, rent.** §5.2.
+*Frontend (this machine):* ✅ Jobs / Shop / Inventory / Rent / Bank UI wired to `lib/game/economy-api.ts` (mock fallback when API down).
+*Backend (other PC):* ⬜ Implement the contracts and ledger `applyCash()`.
 *Accept:* every cash change has a ledger row; balance never < 0 (tested); at least 6 jobs, 15 items, weekly rent with eviction; allowance on Mondays; traits change job outcomes; no client-only money paths remain (`grep STARTER_CASH`, `startCash`, `rollStartingMoneyLocal` → none).
 
 **Phase 3 — World, models, buildings.** §5.3.

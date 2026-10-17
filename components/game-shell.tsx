@@ -2,6 +2,7 @@
 
 import dynamic from 'next/dynamic'
 import { Hud } from '@/components/hud/hud'
+import { EconomyProvider } from '@/hooks/use-economy'
 import { GameProvider } from '@/hooks/use-game'
 
 const WorldCanvas = dynamic(
@@ -15,11 +16,13 @@ const WorldCanvas = dynamic(
 export default function GameShell() {
   return (
     <GameProvider>
-      <main className="relative h-dvh w-full overflow-hidden">
-        <h1 className="sr-only">Ekpoma Life</h1>
-        <WorldCanvas />
-        <Hud />
-      </main>
+      <EconomyProvider>
+        <main className="relative h-dvh w-full overflow-hidden">
+          <h1 className="sr-only">Ekpoma Life</h1>
+          <WorldCanvas />
+          <Hud />
+        </main>
+      </EconomyProvider>
     </GameProvider>
   )
 }

@@ -2,6 +2,7 @@
 
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
+import { calendarForDay } from '@/lib/game/needs'
 import { cityEventFor } from '@/lib/game/quests'
 import type { GameState } from '@/lib/game/types'
 import styles from './life-hud.module.css'
@@ -11,8 +12,24 @@ const spring = { type: 'spring' as const, stiffness: 400, damping: 32 }
 export function IslandToast({ state }: { state: GameState }) {
   const reduced = useReducedMotion() ?? false
   const event = cityEventFor(state)
+  const cal = calendarForDay(state.day)
   const seen = useRef<string | null>(null)
+  const rentSeen = useRef<number | null>(null)
   const [visible, setVisible] = useState<{ id: string; title: string; emoji: string } | null>(null)
+
+  useEffect(() => {
+    if (cal.rentDay && rentSeen.current !== state.day) {
+      rentSeen.current = state.day
+      setVisible({
+        id: `rent-day-${state.day}`,
+        title: 'Rent day · Baba Landlord dey come',
+        emoji: '/emoji/house.png',
+      })
+      const timer = window.setTimeout(() => setVisible(null), 3200)
+      return () => window.clearTimeout(timer)
+    }
+    return undefined
+  }, [cal.rentDay, state.day])
 
   useEffect(() => {
     if (seen.current === null) {

@@ -1,3 +1,4 @@
+import type { RentInfo } from './economy-api'
 import { currentObjective } from './rules'
 import { calendarForDay, PERIOD_CLOCK } from './needs'
 import type { GameState, LocationType } from './types'
@@ -10,6 +11,8 @@ export type QuestPill = {
   hint: string
   locationId?: string
   endsIn?: string
+  /** Optional action for rent pay from up-next. */
+  rentPay?: boolean
 }
 
 const CITY_EVENTS = [
@@ -152,11 +155,94 @@ export function questStackFor(state: GameState): QuestPill[] {
   return stack.slice(0, 3)
 }
 
-/** Swipeable up-next queue (tasks only). */
-export function upNextQueueFor(state: GameState): QuestPill[] {
+export function rentPill(rent: RentInfo | null | undefined): QuestPill | null {
+  if (!rent || rent.status === 'ok') return null
+  const amount = `₦${rent.amount.toLocaleString()}`
+  return {
+    id: 'task-rent-due',
+    kind: 'task',
+    emoji: '/emoji/house.png',
+    title: rent.status === 'late' ? 'Rent is waiting' : 'Rent due',
+    hint:
+      rent.status === 'late'
+        ? `${amount} · a bit late, pay when you can`
+        : `${amount} · Baba Landlord`,
+    rentPay: true,
+  }
+}
+
+export function jobShiftPill(opts: {
+  currentJobId: string | null
+  jobPlaceId?: string | null
+  locationId: string
+}): QuestPill | null {
+  if (!opts.currentJobId || !opts.jobPlaceId) return null
+  if (opts.locationId === opts.jobPlaceId) {
+    return {
+      id: 'task-job-shift',
+      kind: 'task',
+      emoji: '/emoji/money-bag.png',
+      title: 'Work your shift',
+      hint: 'You are at your job',
+      locationId: opts.jobPlaceId,
+    }
+  }
+  return {
+    id: 'task-job-go',
+    kind: 'task',
+    emoji: '/emoji/money-bag.png',
+    title: 'Go to work',
+    hint: 'Shift is open',
+    locationId: opts.jobPlaceId,
+  }
+}
+
+export function dreamStepPill(state: GameState): QuestPill | null {
+  if (!state.dreamId) return null
+  return {
+    id: 'task-dream',
+    kind: 'task',
+    emoji: '/emoji/graduation-cap.png',
+    title: 'Chase your dream',
+    hint: 'Open profile to track progress',
+    locationId: 'admin-block',
+  }
+}
+
+/**
+ * Up next priority: rent due > critical need > job shift time > dream step.
+ */
+export function upNextQueueFor(
+  state: GameState,
+  extras?: {
+    rent?: RentInfo | null
+    currentJobId?: string | null
+    jobPlaceId?: string | null
+  },
+): QuestPill[] {
+  const queue: QuestPill[] = []
+  const rent = rentPill(extras?.rent)
+  if (rent) queue.push(rent)
+
   const urgent = urgentNeedPill(state)
-  const tasks = [urgent, ...taskPillsFor(state).filter((pill) => pill.id !== urgent.id)]
-  if (tasks.length > 0) return tasks
+  if (urgent && !queue.some((pill) => pill.id === urgent.id)) queue.push(urgent)
+
+  const job = jobShiftPill({
+    currentJobId: extras?.currentJobId ?? null,
+    jobPlaceId: extras?.jobPlaceId,
+    locationId: state.locationId,
+  })
+  if (job) queue.push(job)
+
+  const dream = dreamStepPill(state)
+  if (dream) queue.push(dream)
+
+  for (const pill of taskPillsFor(state)) {
+    if (!queue.some((existing) => existing.id === pill.id)) queue.push(pill)
+  }
+
+  if (queue.length > 0) return queue
+
   const objective = currentObjective(state)
   if (objective) {
     return [
@@ -177,18 +263,32 @@ export function upNextQueueFor(state: GameState): QuestPill[] {
       emoji: '/emoji/school.png',
       title: 'Explore campus',
       hint: 'Tap a place on the map',
-      locationId: 'aau_campus',
+      locationId: 'admin-block',
     },
   ]
 }
 
 /** Bell sheet: city event + daily + tasks. */
-export function todayInEkpomaFor(state: GameState): QuestPill[] {
-  return [cityEventFor(state), dailyOkadaPill(state), ...upNextQueueFor(state)]
+export function todayInEkpomaFor(
+  state: GameState,
+  extras?: {
+    rent?: RentInfo | null
+    currentJobId?: string | null
+    jobPlaceId?: string | null
+  },
+): QuestPill[] {
+  return [cityEventFor(state), dailyOkadaPill(state), ...upNextQueueFor(state, extras)]
 }
 
-export function todayBellCount(state: GameState) {
-  return 1 + 1 + upNextQueueFor(state).length
+export function todayBellCount(
+  state: GameState,
+  extras?: {
+    rent?: RentInfo | null
+    currentJobId?: string | null
+    jobPlaceId?: string | null
+  },
+) {
+  return 1 + 1 + upNextQueueFor(state, extras).length
 }
 
 /** Deterministic NEPA outage windows for a day/period. */
