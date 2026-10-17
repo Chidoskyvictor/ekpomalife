@@ -85,8 +85,9 @@ export async function ensureGameState(
   )
   if (cash !== 0) {
     await client.query(
-      `INSERT INTO ledger (id, character_id, amount, reason) VALUES ($1, $2, $3, $4)`,
-      [createId(), characterId, cash, opts.reason ?? 'starting-money'],
+      `INSERT INTO ledger (id, character_id, amount, reason, kind, balance_after)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [createId(), characterId, cash, opts.reason ?? 'starting-money', 'starting_money', cash],
     )
   }
   const created = await client.query<GameStateRow>(
@@ -139,29 +140,82 @@ export async function writeCashChange(
   amount: number,
   reason: string,
   expectedVersion: number,
+  kind = 'other',
 ): Promise<{ ok: true; cash: number; version: number } | { ok: false; error: string; code: string }> {
+  const locked = await client.query<{ cash: string | number; version: number }>(
+    `SELECT cash, version FROM game_state WHERE character_id = $1 FOR UPDATE`,
+    [characterId],
+  )
+  const current = locked.rows[0]
+  if (!current || current.version !== expectedVersion) {
+    return { ok: false, error: 'VERSION_CONFLICT', code: 'VERSION_CONFLICT' }
+  }
+  const nextCash = asMoney(current.cash) + amount
+  if (nextCash < 0) {
+    return { ok: false, error: 'INSUFFICIENT_FUNDS', code: 'INSUFFICIENT_FUNDS' }
+  }
+
   const updated = await client.query<{ cash: string | number; version: number }>(
     `UPDATE game_state
-     SET cash = cash + $2, version = version + 1, updated_at = NOW()
+     SET cash = $2, version = version + 1, updated_at = NOW()
      WHERE character_id = $1 AND version = $3
      RETURNING cash, version`,
-    [characterId, amount, expectedVersion],
+    [characterId, nextCash, expectedVersion],
   )
   if (!updated.rows[0]) {
-    return { ok: false, error: 'Stale state. Refresh and try again.', code: 'version_conflict' }
+    return { ok: false, error: 'VERSION_CONFLICT', code: 'VERSION_CONFLICT' }
   }
-  await client.query(`INSERT INTO ledger (id, character_id, amount, reason) VALUES ($1, $2, $3, $4)`, [
-    createId(),
-    characterId,
-    amount,
-    reason,
-  ])
+  const cash = asMoney(updated.rows[0].cash)
+  await client.query(
+    `INSERT INTO ledger (id, character_id, amount, reason, kind, balance_after)
+     VALUES ($1, $2, $3, $4, $5, $6)`,
+    [createId(), characterId, amount, reason, kind, cash],
+  )
   await client.query(`UPDATE characters SET cash = $2, updated_at = NOW() WHERE id = $1`, [
     characterId,
-    asMoney(updated.rows[0].cash),
+    cash,
   ])
-  return { ok: true, cash: asMoney(updated.rows[0].cash), version: updated.rows[0].version }
+  return { ok: true, cash, version: updated.rows[0].version }
 }
+
+/** Apply a cash delta under an existing FOR UPDATE lock (no client version required). */
+export async function applyCash(
+  client: PoolClient,
+  characterId: string,
+  amount: number,
+  reason: string,
+  kind: string,
+): Promise<{ ok: true; cash: number; version: number } | { ok: false; error: string }> {
+  const locked = await client.query<{ cash: string | number; version: number }>(
+    `SELECT cash, version FROM game_state WHERE character_id = $1 FOR UPDATE`,
+    [characterId],
+  )
+  const current = locked.rows[0]
+  if (!current) return { ok: false, error: SETUP_INCOMPLETE }
+  const nextCash = asMoney(current.cash) + amount
+  if (nextCash < 0) return { ok: false, error: 'INSUFFICIENT_FUNDS' }
+
+  const updated = await client.query<{ cash: string | number; version: number }>(
+    `UPDATE game_state
+     SET cash = $2, version = version + 1, updated_at = NOW()
+     WHERE character_id = $1
+     RETURNING cash, version`,
+    [characterId, nextCash],
+  )
+  const cash = asMoney(updated.rows[0]!.cash)
+  await client.query(
+    `INSERT INTO ledger (id, character_id, amount, reason, kind, balance_after)
+     VALUES ($1, $2, $3, $4, $5, $6)`,
+    [createId(), characterId, amount, reason, kind, cash],
+  )
+  await client.query(`UPDATE characters SET cash = $2, updated_at = NOW() WHERE id = $1`, [
+    characterId,
+    cash,
+  ])
+  return { ok: true, cash, version: updated.rows[0]!.version }
+}
+
+export { asMoney, parseNeeds }
 
 type CharacterMeta = {
   id: string
@@ -375,10 +429,23 @@ export async function performGameAction(
     let nextVersion = row.version
 
     if (action.cost !== 0) {
-      const wrote = await writeCashChange(client, character.id, action.cost, action.id, row.version)
+      const wrote = await writeCashChange(
+        client,
+        character.id,
+        action.cost,
+        action.id,
+        row.version,
+        action.cost < 0 ? 'purchase' : 'job_pay',
+      )
       if (!wrote.ok) {
         await client.query('ROLLBACK')
-        return { ok: false, error: wrote.error, code: 409, conflict: true }
+        const conflict = wrote.code === 'VERSION_CONFLICT'
+        return {
+          ok: false,
+          error: wrote.error,
+          code: conflict ? 409 : 400,
+          conflict,
+        }
       }
       nextCash = wrote.cash
       nextVersion = wrote.version

@@ -94,13 +94,13 @@ Legend: ✅ DONE · 🟡 PARTIAL · ⬜ NOT STARTED
 | Phone | 🟡 | `components/hud/phone-dialog.tsx`, `bank-screen.tsx` | Gist feed + **Bank** (balance + `/ledger`). Other apps still Phase 5. |
 | 3D map – first slab | 🟡 | `lib/game/world-layout.ts` (`MAP_ZONES`, `ROAD_GAPS`, `TREE_SPOTS`, `FENCE_U`), `components/world/*` | Town side, gate, campus side and extended area are placed (see §4.7). **Zones are visual only** — gameplay still uses the 15 old `content.ts` locations; the two lists are not linked. |
 | Billboards / ads | ⬜ | — | Nothing in code. |
-| Economy (jobs, shop, rent, transactions ledger) | 🟡 | `lib/game/economy-api.ts`, `economy-mock.ts`, `hooks/use-economy.tsx`, `components/hud/{jobs-panel,shop-grid,buy-sheet,rent-card,bank-screen,inventory-panel}.tsx` | **Frontend Phase 2 done** against contracts (`GET/POST /jobs*`, `/shop*`, `/inventory`, `/rent*`, `/ledger`). Falls back to in-browser mock if API unreachable (`NEXT_PUBLIC_USE_ECONOMY_MOCK=1` forces mock). Backend economy routes still required for production. |
+| Economy (jobs, shop, rent, transactions ledger) | ✅ | Frontend: `lib/game/economy-api.ts`, `economy-mock.ts`, HUD panels. Backend: `backend/sql/007_phase2_economy.sql`, `backend/src/game/economy.ts`, `routes/economy.ts` | **Phase 2 backend live** — same routes/shapes as MSW mocks. Money via `applyCash()` + ledger under `SELECT … FOR UPDATE`. Setup guard returns `SETUP_INCOMPLETE`. Frontend can turn mocks off. |
 | Multiplayer / chat by area | ⬜ | — | |
 | Events / elections | 🟡 | `content.ts` `EVENTS` (6 random pop-ups), `quests.ts` city events | Fictional pop-ups only; no real-world events feed, no elections. |
 | Innovation Hub | 🟡 | location `innovation_hub`, action `feedback` | Action only; no form, nothing stored. |
 | Payments (Paystack) | ⬜ | — | |
 | Deploy (Cloudflare Pages + api.ekpomalife.app) | ⬜ | — | No DNS, no CI. |
-| Tests | ⬜ | — | No test runner in either package. |
+| Tests | 🟡 | Frontend Vitest + MSW; backend Vitest (`npm test` in `backend/`) | Backend: actions/needs/starting-money/setup-status + Phase 2 economy DB tests (funds, concurrency, ledger sum, setup guard). |
 | Docs | 🟡 | `MAP.md` (stale: says "only Admin Block"), `spec.md` (untracked, says Prisma — wrong), `backend/README.md`, `AGENTS.md` | Replace `spec.md` with this file; refresh `MAP.md`. |
 
 ---
@@ -275,7 +275,34 @@ Buying a phone unlocks apps inside the existing phone dialog/vaul sheet: **Messa
 | POST | `/character/starting-money` | once-only roll |
 
 ### 7.4 Planned routes
-`POST /auth/logout`, `POST /auth/forgot`, `POST /auth/reset` · `POST /character/live` · `GET /state` · `POST /actions/:id` · `POST /travel` · `POST /events/:id/choice` · `GET /jobs`, `POST /jobs/:id/work` · `GET /shop`, `POST /shop/buy` · `POST /rent/pay` · `GET /ledger` · `GET /dream` (server-computed) · `WS /ws` (presence, chat) · `GET/POST /friends` · `GET /feed/events`, `POST /feedback` · `GET /billboards` · `GET /elections`, `POST /elections/:id/nominate`, `POST /elections/:id/vote` · `POST /pay/topup`, `POST /pay/paystack/webhook`. CORS methods must grow beyond `GET, POST, OPTIONS` if needed.
+`POST /auth/logout` · `POST /character/live` · richer `/game/*` actions · `GET /dream` (server-computed) · `WS /ws` (presence, chat) · `GET/POST /friends` · `GET /feed/events`, `POST /feedback` · `GET /billboards` · `GET /elections`, `POST /elections/:id/nominate`, `POST /elections/:id/vote` · `POST /pay/topup`, `POST /pay/paystack/webhook`. CORS methods must grow beyond `GET, POST, OPTIONS` if needed.
+
+### 7.5 Phase 2 economy API (matches frontend MSW mocks)
+
+Auth required (session cookie). Incomplete setup → **409** `{ ok: false, error: "SETUP_INCOMPLETE" }` on every route below (and on `/game/*`).
+
+| Method | Path | Body / query | Success shape |
+|---|---|---|---|
+| GET | `/jobs` | `?placeId=` optional | `{ ok, jobs[], currentJobId }` — each job may include `locked`, `lockReason`, `currentLevel` |
+| POST | `/jobs/apply` | `{ jobId }` | `{ ok, job, message }` |
+| POST | `/jobs/shift` | `{}` | `{ ok, state, earned, xp, levelUp?, message }` |
+| GET | `/shop` | `?placeId=` | `{ ok, items[], placeId }` |
+| POST | `/shop/buy` | `{ itemId, qty? }` | `{ ok, state, inventory[], message, questComplete? }` |
+| GET | `/inventory` | — | `{ ok, items[] }` |
+| POST | `/inventory/use` | `{ itemId }` | `{ ok, state, inventory[], message }` |
+| GET | `/rent` | — | `{ ok, rent: { lodgingId, amount, dueAt, paidUntil, status, label? } }` |
+| POST | `/rent/pay` | `{}` | `{ ok, state, rent, message }` |
+| GET | `/ledger` | `?limit=` (default 20) | `{ ok, entries[], cash }` |
+
+`state` is the same `ServerGameState` object as `GET /game/state` (plus `ok: true` nested for economy success payloads).
+
+**Error codes** (in `{ ok: false, error }`): `SETUP_INCOMPLETE`, `INSUFFICIENT_FUNDS`, `NO_ENERGY`, `NOT_ELIGIBLE`, `VERSION_CONFLICT`. Job/item missing may also return human strings matching the mocks (`That job is gone.`, `Item not found.`, `Apply for a job first.`).
+
+**Tables** (`sql/007_phase2_economy.sql`): `jobs`, `shop_items`, `inventory`, `rent`, `player_jobs`; `ledger` gains `kind`, `balance_after`. Seed catalog copied from `lib/game/economy-mock.ts` (+ a few extra shop rows).
+
+**Money rule:** every cash change goes through `applyCash()` / `writeCashChange()` inside a transaction with `SELECT … FOR UPDATE` on `game_state`, rejects negative balances, bumps `version`, writes a ledger row, mirrors cash onto `characters.cash`.
+
+> Note: an older draft used `POST /jobs/:id/work`. The **live frontend** uses `/jobs/apply` + `/jobs/shift` — the backend matches that.
 
 ---
 
@@ -287,10 +314,11 @@ Buying a phone unlocks apps inside the existing phone dialog/vaul sheet: **Messa
 **Phase 1 — Server core loop & needs.** §5.1. Add `faculty-president` dream + range; `/character/live`; `player_state`; server actions/travel/events/needs/time; client becomes thin; link MAP_ZONES to locations; fix dream check; store email/DOB; logout.
 *Accept:* clearing localStorage loses nothing; editing cash in devtools changes nothing server-side; double-tapping an action charges once; create flow → /live → play works with server only; tests for actions, travel, needs drain, starting money once-only.
 
-**Phase 2 — Economy, jobs, shop, rent.** §5.2.
-*Frontend (this machine):* ✅ Jobs / Shop / Inventory / Rent / Bank UI wired to `lib/game/economy-api.ts` (mock fallback when API down).
-*Backend (other PC):* ⬜ Implement the contracts and ledger `applyCash()`.
-*Accept:* every cash change has a ledger row; balance never < 0 (tested); at least 6 jobs, 15 items, weekly rent with eviction; allowance on Mondays; traits change job outcomes; no client-only money paths remain (`grep STARTER_CASH`, `startCash`, `rollStartingMoneyLocal` → none).
+**Phase 2 — Economy, jobs, shop, rent.** §5.2 + §7.5.
+*Frontend:* ✅ Jobs / Shop / Inventory / Rent / Bank UI wired to `lib/game/economy-api.ts` (mock fallback when API down).
+*Backend:* ✅ Contracts match MSW mocks; `applyCash()` + ledger; Vitest DB tests green.
+*Still open vs full §5.2:* weekly eviction ladder, Monday allowance, remove client `STARTER_CASH` / lodging `startCash` / `rollStartingMoneyLocal`.
+*Accept (backend done):* every cash change has a ledger row; balance never < 0 (tested); 6 jobs + 15 shop items seeded; rent pay extends `due_at`; traits affect job lock/pay.
 
 **Phase 3 — World, models, buildings.** §5.3.
 *Accept:* every playable location is a tappable zone; all first-slab zones from §4.7 render with labels; low-perf mode holds ~30 fps on a mid Android; first load < 8 MB; credits complete; MAP.md updated.
