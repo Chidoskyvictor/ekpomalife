@@ -312,6 +312,59 @@
   text-decoration: none;
 }
 
+.stepLead {
+  margin: 0;
+  font-family: 'Boogaloo', sans-serif;
+  font-size: 1.45rem;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+  color: var(--foreground);
+}
+
+.stepCopy {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.stepCopy strong {
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+.resendRow {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.textLink {
+  justify-self: start;
+  color: var(--primary);
+  font-size: 0.95rem;
+  font-weight: 500;
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.textLink:hover {
+  color: color-mix(in oklab, var(--primary) 70%, black);
+}
+
+.textLink:disabled {
+  color: var(--text-secondary);
+  cursor: not-allowed;
+}
+
 .forgot:hover,
 .inlineLink:hover {
   color: color-mix(in oklab, var(--primary) 70%, black);

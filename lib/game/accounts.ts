@@ -120,6 +120,62 @@ export async function verifyLogin(usernameInput: string, password: string): Prom
   }
 }
 
+type OkOrFail = { ok: true } | { ok: false; error: string }
+
+/** Ask the server to email a 6-digit recovery code. */
+export async function requestPasswordReset(emailInput: string): Promise<OkOrFail> {
+  const email = emailInput.trim().toLowerCase()
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return { ok: false, error: 'Enter the email on your account.' }
+  }
+  try {
+    const response = await fetch(`${apiUrl()}/auth/forgot`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ email }),
+    })
+    const data = (await response.json()) as OkOrFail
+    if (!response.ok || !data.ok) {
+      return { ok: false, error: (data as { error?: string }).error || 'Could not send the code.' }
+    }
+    return { ok: true }
+  } catch {
+    return { ok: false, error: 'Cannot reach the server. Is the backend running?' }
+  }
+}
+
+/** Set a new password with the emailed code. */
+export async function resetPasswordWithCode(input: {
+  email: string
+  code: string
+  password: string
+}): Promise<OkOrFail> {
+  const email = input.email.trim().toLowerCase()
+  const code = input.code.replace(/\D/g, '')
+  const password = input.password
+  if (!email) return { ok: false, error: 'Enter your email.' }
+  if (code.length !== 6) return { ok: false, error: 'Enter the 6-digit code from your email.' }
+  if (password.length < MIN_PASSWORD_LENGTH) {
+    return { ok: false, error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters.` }
+  }
+  try {
+    const response = await fetch(`${apiUrl()}/auth/reset`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ email, code, password }),
+    })
+    const data = (await response.json()) as OkOrFail
+    if (!response.ok || !data.ok) {
+      return { ok: false, error: (data as { error?: string }).error || 'Could not reset the password.' }
+    }
+    return { ok: true }
+  } catch {
+    return { ok: false, error: 'Cannot reach the server. Is the backend running?' }
+  }
+}
+
 export function rememberProfile(account: PublicAccount) {
   window.localStorage.setItem(PROFILE_KEY, JSON.stringify(account))
 }
