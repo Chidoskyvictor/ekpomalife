@@ -42,3 +42,17 @@ From the other computer, set `FRONTEND_ORIGIN` to that frontend URL (for example
 ```json
 { "username": "ada_aau", "password": "secretword" }
 ```
+
+`POST /auth/forgot`
+
+```json
+{ "email": "ada@example.com" }
+```
+
+Always returns `{ "ok": true }`. If the email exists, a 6-digit code is stored hashed for ~12 minutes and emailed (Resend / SMTP). Without mail config, the code is printed in the API console.
+
+`POST /auth/reset`
+
+```json
+{ "email": "ada@example.com", "code": "123456", "password": "newsecret1" }
+```

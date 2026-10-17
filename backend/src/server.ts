@@ -6,6 +6,7 @@ import rateLimit from '@fastify/rate-limit'
 import { env } from './env.js'
 import { pool } from './db.js'
 import { characterRoutes } from './routes/character.js'
+import { forgotRoutes } from './routes/forgot.js'
 import { gameRoutes } from './routes/game.js'
 import { loginRoutes } from './routes/login.js'
 import { signupRoutes } from './routes/signup.js'
@@ -34,6 +35,8 @@ app.get('/', async () => ({
   health: '/health',
   signup: 'POST /auth/signup',
   login: 'POST /auth/login',
+  forgot: 'POST /auth/forgot',
+  reset: 'POST /auth/reset',
   character: 'GET /character',
   look: 'POST /character/look',
   traits: 'POST /character/traits',
@@ -47,6 +50,7 @@ app.get('/', async () => ({
 app.get('/health', async () => ({ ok: true }))
 await app.register(signupRoutes)
 await app.register(loginRoutes)
+await app.register(forgotRoutes)
 await app.register(characterRoutes)
 await app.register(gameRoutes)
 
