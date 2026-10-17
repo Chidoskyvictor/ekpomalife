@@ -79,6 +79,13 @@
   body {
     @apply h-full overflow-hidden bg-background text-foreground;
     overscroll-behavior: none;
+    max-width: 100%;
+  }
+
+  /* Catch stray overflow without changing desktop layouts */
+  #__next,
+  body > div {
+    max-width: 100%;
   }
 }
 

@@ -117,6 +117,7 @@ Legend: ✅ DONE · 🟡 PARTIAL · ⬜ NOT STARTED
 - Route guards (`AuthGate`): home routes bounce incomplete users to setup; setup routes bounce complete users home; public auth pages bounce logged-in users via `getPostAuthRoute`. Loading shell only — no HUD flash.
 - `GET /game/state` and `POST /game/action` return **409** `{ ok: false, error: "SETUP_INCOMPLETE" }` when setup is incomplete so the API cannot skip setup.
 - Password reset: after success, send to `/login?reset=1` (or log in and run `getPostAuthRoute`). Never send unfinished users to home.
+- **Responsive auth (mobile-first):** Login / signup / forgot share `auth.module.css`. Card is `width: min(100%, 420px)` with `clamp()` padding and 16px side gutters; page uses `min-height: 100dvh` + vertical scroll so the keyboard never hides submit; inputs/buttons ≥48px tall and ≥16px font (no iOS zoom). No horizontal scroll at 320–768px — check with `pnpm test:hscroll`.
 
 ### 4.2 Look
 `Appearance = { body:'man'|'woman', hair, outfit, fabric }` (+ colours added in `36545fb`).

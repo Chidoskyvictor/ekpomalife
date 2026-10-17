@@ -18,6 +18,9 @@ tsconfig.tsbuildinfo
 *.tsbuildinfo
 tmp/
 vaul-1.1.2.tgz
+test-results/
+playwright-report/
+blob-report/
 
 # Source archives in public/ are served as static files. Keep the 33 MB
 # apartment zip (and any other zips) off git and off the deploy.

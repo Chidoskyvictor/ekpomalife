@@ -43,18 +43,24 @@
 }
 
 .actions {
-  flex: 0 0 auto;
-  min-width: 16.5rem;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
 }
 
 @media (min-width: 640px) {
   .stats {
     display: flex;
   }
+
+  .actions {
+    flex: 0 0 auto;
+  }
 }
 
 @media (max-width: 479px) {
-  .actions {
-    min-width: 13.5rem;
+  .bar {
+    gap: var(--space-2);
+    padding: 8px 10px 10px 12px;
   }
 }

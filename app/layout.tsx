@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { Fredoka, Geist, Inter, Plus_Jakarta_Sans } from 'next/font/google'
+import { NoHScrollGuard } from '@/components/dev/no-hscroll-guard'
 import '@/components/arc/foundation.css'
 import './globals.css'
 
@@ -49,6 +50,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  viewportFit: 'cover',
 }
 
 export default function RootLayout({
@@ -59,6 +61,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${geist.variable} ${inter.variable} ${fredoka.variable} ${jakarta.variable}`}>
       <body className="font-sans antialiased">
+        {process.env.NODE_ENV === 'development' ? <NoHScrollGuard /> : null}
         {children}
       </body>
     </html>

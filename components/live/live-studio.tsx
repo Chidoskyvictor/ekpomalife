@@ -163,7 +163,7 @@ export function LiveStudio() {
   if (!username || !dreamId) return null
 
   return (
-    <main className="app-wash relative flex h-dvh flex-col overflow-hidden lg:flex-row">
+    <main className="app-wash relative flex h-dvh max-w-full flex-col overflow-x-hidden overflow-y-hidden lg:flex-row">
       {pocket ? (
         <div className={panelStyles.liveCash} aria-label="Starting money">
           <Coins className="size-3.5" aria-hidden="true" />

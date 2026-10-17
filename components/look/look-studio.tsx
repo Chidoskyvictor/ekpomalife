@@ -70,7 +70,7 @@ export function LookStudio() {
   if (!username) return null
 
   return (
-    <main className="app-wash flex h-dvh flex-col overflow-hidden lg:flex-row">
+    <main className="app-wash flex h-dvh max-w-full flex-col overflow-x-hidden overflow-y-hidden lg:flex-row">
       <CreateStage title="Look" step={1} backHref="/signup" appearance={preview} />
 
       <StudioPanel

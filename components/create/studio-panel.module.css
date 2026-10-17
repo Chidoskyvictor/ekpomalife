@@ -2,8 +2,10 @@
   display: flex;
   min-height: 0;
   width: 100%;
+  max-width: 100%;
   flex: 1;
   padding: 16px;
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
   box-sizing: border-box;
 }
 
@@ -192,8 +194,14 @@
 
 .pillsSplit {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
+}
+
+@media (max-width: 359px) {
+  .pillsSplit {
+    grid-template-columns: 1fr;
+  }
 }
 
 .pillsSplit .pill {
@@ -269,8 +277,14 @@
 
 .traitGrid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
+}
+
+@media (max-width: 359px) {
+  .traitGrid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .card {
@@ -318,9 +332,35 @@
   gap: 12px;
 }
 
+@media (max-width: 767px) {
+  .dreamList {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dream {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+}
+
+@media (max-width: 359px) {
+  .dreamList {
+    grid-template-columns: 1fr;
+  }
+
+  .dream {
+    flex-direction: row;
+    align-items: center;
+    gap: 14px;
+  }
+}
+
 .dream {
   display: flex;
   width: 100%;
+  min-width: 0;
   flex-direction: row;
   align-items: center;
   gap: 14px;
@@ -434,8 +474,14 @@
 
 .courseGrid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
+}
+
+@media (max-width: 359px) {
+  .courseGrid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .course {

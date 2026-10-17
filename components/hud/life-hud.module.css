@@ -228,7 +228,7 @@
   place-items: center;
   width: 34px;
   height: 34px;
-  min-width: 34px;
+  min-width: 44px;
   padding: 0;
   border: 0;
   border-radius: 12px;
@@ -261,7 +261,7 @@
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  max-width: min(22rem, calc(100vw - 32px));
+  max-width: min(22rem, calc(100% - 32px));
   padding: 10px 16px;
   border-radius: 999px;
   background: #111;
@@ -297,7 +297,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  max-width: min(22rem, calc(100vw - 5.5rem));
+  max-width: min(22rem, calc(100% - 5.5rem));
 }
 
 .upNext {

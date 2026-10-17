@@ -1,9 +1,9 @@
 .field { display: grid; min-width: 0; }
 .label { margin-bottom: 8px; color: var(--foreground); font-size: var(--text-sm); font-weight: 500; line-height: var(--leading-body); }
-.inputs { position: relative; display: flex; width: fit-content; max-width: 100%; gap: 8px; }
-.slot { position: relative; display: grid; width: 42px; height: 48px; min-width: 0; flex: 0 1 42px; }
+.inputs { position: relative; display: flex; width: 100%; max-width: 100%; gap: clamp(4px, 1.5vw, 8px); }
+.slot { position: relative; display: grid; width: 100%; max-width: 48px; height: 48px; min-width: 0; flex: 1 1 0; }
 /* The native text is transparent (caret stays visible); .glyph draws the digit so it can rise in. */
-.input { width: 100%; height: 100%; min-width: 0; border: 1px solid var(--border); border-radius: var(--radius-control); background: var(--surface); color: transparent; caret-color: var(--accent); font: inherit; font-size: var(--text-lg); font-variant-numeric: tabular-nums; text-align: center; outline: none; transition: border-color var(--duration-fast) var(--ease-standard), background-color var(--duration-fast) var(--ease-standard); }
+.input { width: 100%; height: 100%; min-width: 0; border: 1px solid var(--border); border-radius: var(--radius-control); background: var(--surface); color: transparent; caret-color: var(--accent); font: inherit; font-size: 16px; font-variant-numeric: tabular-nums; text-align: center; outline: none; transition: border-color var(--duration-fast) var(--ease-standard), background-color var(--duration-fast) var(--ease-standard); }
 @media (hover: hover) and (pointer: fine) { .input:hover:not(:disabled, [data-filled="true"], [aria-invalid="true"]) { border-color: var(--border-strong); background: var(--surface-muted); } }
 .input[data-filled="true"] { border-color: var(--accent); background: var(--accent-subtle); }
 .input:focus-visible { outline: none; }
@@ -22,6 +22,6 @@
 .words { position: relative; display: block; }
 .word { display: inline-block; white-space: pre; }
 .srOnly { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-@media (max-width: 360px) { .inputs { gap: 6px; }.slot { height: 44px; } }
+@media (max-width: 360px) { .inputs { gap: 4px; }.slot { height: 48px; max-width: none; } }
 @media (forced-colors: active) { .ring { display: none; } .input:focus-visible { outline: 2px solid CanvasText; outline-offset: 2px; } .input { color: CanvasText; } .glyph { display: none; } }
 @media (prefers-reduced-motion: reduce) { .input, .ring { transition: none; } }

@@ -73,7 +73,7 @@ export function DreamStudio() {
   if (!username) return null
 
   return (
-    <main className="app-wash flex h-dvh flex-col overflow-hidden lg:flex-row">
+    <main className="app-wash flex h-dvh max-w-full flex-col overflow-x-hidden overflow-y-hidden lg:flex-row">
       <CreateStage title="Dream" step={3} backHref="/traits" appearance={preview} />
 
       <StudioPanel

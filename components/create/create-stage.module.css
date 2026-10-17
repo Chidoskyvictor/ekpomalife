@@ -19,14 +19,29 @@
 
 @media (max-width: 1023px) {
   .stage {
-    flex: 0 0 58vh;
-    height: 58vh;
-    max-height: 58vh;
+    flex: 0 0 min(58dvh, 420px);
+    height: min(58dvh, 420px);
+    max-height: min(58dvh, 420px);
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
   }
 
   .hint {
     z-index: 2;
     bottom: 5.5rem;
+  }
+}
+
+@media (max-width: 1023px) and (orientation: landscape) {
+  .stage {
+    flex: 0 0 min(42dvh, 260px);
+    height: min(42dvh, 260px);
+    max-height: min(42dvh, 260px);
+  }
+
+  .hint {
+    bottom: 1rem;
   }
 }
 

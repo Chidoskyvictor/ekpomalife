@@ -77,7 +77,7 @@ export function TraitStudio() {
   const actionLabel = ready ? 'Next: Dream ▶' : remaining === 1 ? 'Choose 1 more' : `Choose ${remaining} more`
 
   return (
-    <main className="app-wash flex h-dvh flex-col overflow-hidden lg:flex-row">
+    <main className="app-wash flex h-dvh max-w-full flex-col overflow-x-hidden overflow-y-hidden lg:flex-row">
       <CreateStage title="Personality" step={2} backHref="/look" appearance={preview} />
 
       <StudioPanel
