@@ -45,7 +45,19 @@ Audience: 18+ (checkbox + DOB at signup; not real age verification).
 | Persistence today | Auth + character creation + starting money = **server**. Live game state (cash spent, needs, location, feed) = **browser localStorage** (`ekpoma-life-save-v3:<username>`) ← must move server-side (Phase 1) |
 | Hosting (decided) | Domain **ekpomalife.app** on Cloudflare (no DNS yet). Frontend → Cloudflare Pages. API → Node host at **api.ekpomalife.app**. **Vercel is no longer used** (but `@vercel/analytics` is still in `package.json` and the GitHub homepage still says ekpomalife.vercel.app — remove in Phase 7). |
 
-Commands: `pnpm dev` · `cd backend && npm run dev` · `cd backend && npm run db:migrate`. Env: frontend `NEXT_PUBLIC_API_URL` (defaults to `http://localhost:4000`); backend `DATABASE_URL`, `FRONTEND_ORIGIN`, `PORT`.
+Commands: `pnpm dev` · `cd backend && npm run dev` · `cd backend && npm run db:migrate`.
+
+**Frontend env** (see `.env.example`; local defaults in `.env.local`):
+| Var | Role |
+|---|---|
+| `NEXT_PUBLIC_API_URL` | API base for proxy target / docs. Local: `http://127.0.0.1:4000` (or LAN IP). Prod: `https://api.ekpomalife.app`. Browser traffic still goes same-origin `/api/*` unless `NEXT_PUBLIC_API_DIRECT_URL` is set. |
+| `API_PROXY_TARGET` | Server-side Next `/api` proxy → Fastify (preferred over putting the host only in `NEXT_PUBLIC_*`). |
+| `NEXT_PUBLIC_USE_MOCKS` | `false` by default. When `true`, economy client uses in-process mocks (`lib/game/economy-mock.ts`). Vitest sets this on. Keep MSW handlers in `lib/game/economy-msw.ts` for tests/offline. |
+| `NEXT_PUBLIC_USE_ECONOMY_MOCK` | Legacy alias (`1` = on). Prefer `NEXT_PUBLIC_USE_MOCKS`. |
+
+**Backend env:** `DATABASE_URL`, `FRONTEND_ORIGIN` (comma-separated origins allowed with credentials), `PORT`.
+
+**CORS / cookies (local):** Backend already enables `credentials: true` and allows origins listed in `FRONTEND_ORIGIN`. Session cookie `el_session` is `SameSite=Lax`; in development `Secure=false` and no `Domain` so it sticks on the Next origin via the `/api` proxy. If cookies fail in LAN/phone testing: (1) add every frontend origin you open (e.g. `http://192.168.x.x:3000`) to `FRONTEND_ORIGIN`, (2) do not set `NEXT_PUBLIC_API_DIRECT_URL` (that bypasses the proxy and breaks cross-origin cookies), (3) keep using the Next proxy so the cookie is first-party. Production: `Secure; SameSite=Lax; Domain=.ekpomalife.app` with CORS to the Pages origin — see §5.7.
 
 Folder map (real):
 
@@ -293,7 +305,7 @@ Auth required (session cookie). Incomplete setup → **409** `{ ok: false, error
 | POST | `/inventory/use` | `{ itemId }` | `{ ok, state, inventory[], message }` |
 | GET | `/rent` | — | `{ ok, rent: { lodgingId, amount, dueAt, paidUntil, status, label? } }` |
 | POST | `/rent/pay` | `{}` | `{ ok, state, rent, message }` |
-| GET | `/ledger` | `?limit=` (default 20) | `{ ok, entries[], cash }` |
+| GET | `/ledger` | `?limit=` (default 20), `?cursor=` (ledger entry id for next page) | `{ ok, entries[], cash, nextCursor }` |
 
 `state` is the same `ServerGameState` object as `GET /game/state` (plus `ok: true` nested for economy success payloads).
 
@@ -304,6 +316,47 @@ Auth required (session cookie). Incomplete setup → **409** `{ ok: false, error
 **Money rule:** every cash change goes through `applyCash()` / `writeCashChange()` inside a transaction with `SELECT … FOR UPDATE` on `game_state`, rejects negative balances, bumps `version`, writes a ledger row, mirrors cash onto `characters.cash`.
 
 > Note: an older draft used `POST /jobs/:id/work`. The **live frontend** uses `/jobs/apply` + `/jobs/shift` — the backend matches that.
+
+### 7.6 Building interiors (UI panels → `POST /game/action`)
+
+Frontend: `components/buildings/building-panel.tsx` + config `lib/game/buildings.ts`. Tapping a map zone opens a bottom sheet (mobile) / centered card (desktop). **No client money or grade math** — every action is `POST /game/action` with `{ actionId, targetPlaceId, version, payload? }`. Success returns the same `ServerGameState` as `GET /game/state`, plus optional fields below. Mocks: `lib/game/buildings-mock.ts` when `NEXT_PUBLIC_USE_MOCKS=true`; MSW stubs in `lib/game/economy-msw.ts`.
+
+**Extended `ServerGameState` fields (optional until backend ships):**
+| Field | Meaning |
+|---|---|
+| `campus` | `{ level, feesDue, feesPaid, registered, hasMatricGown, hasIdCard, examSeason, attendance, knowledge, gpaHistory, assignmentDueAt, clearanceDone, convocationReady, convocationDone, pendingExamScore, facultyNotices }` |
+| `confetti` | `true` for big moments (gown, ID, strong exam, convocation) |
+| `quiz` | `{ bankId, mode: 'quiz'\|'exam', questions: [{ id, prompt, choices }] }` — **never include answers** |
+| `resultView` / `notices` / `travelStub` / `examSubmitted` | UI hints |
+
+**Quiz / exam flow:** client may `POST` `quiz-start` or `exam-start` with `{ bankId }` to receive `quiz.questions`, then `POST` `take-quiz` / `write-exam` with `payload: { questionIds, answers }` (answer indexes). **Score is computed on the server** from knowledge + attendance + traits (`academic-weapon` bonus). Exam results surface later via `check-result` at Student Affairs (`pendingExamScore` → `gpaHistory`).
+
+**Action ids (building interiors)**
+
+| actionId | Typical place | Body / notes | Soft locks (server still validates) |
+|---|---|---|---|
+| `pay-school-fees` | `admin-block` (Student Affairs) | `payload.amount` partial OK | balance already 0 |
+| `course-registration` | admin-block | `{}` | fees unpaid; already registered |
+| `collect-matric-gown` | admin-block | one-time → inventory | not 100 Level; already collected |
+| `collect-id-card` | admin-block | one-time → inventory | already collected |
+| `convocation-clearance` | admin-block | final year | level &lt; 400 |
+| `convocation-gown` | admin-block | after clearance | no clearance |
+| `convocation-ceremony` | admin-block | confetti cutscene | gown not ready |
+| `check-result` | admin-block | opens GPA / pending score | — |
+| `attend-lecture` | halls (`hall-100`, `hall-200`, `etf-hall`, `mls-hall`, `twin-hall`, `cordelia-hall`, `education`, `mass-comm`, `bamssa`) | energy + time; +attendance/knowledge | e.g. 200 Level hall before level 200 |
+| `submit-assignment` | halls | deadline on `campus.assignmentDueAt`; late = softer gain | none due |
+| `take-quiz` | halls | mini-game 3–5 MCQs | — |
+| `night-class` | halls | after 20:00; `night-classer` bonus | before 8pm |
+| `exams-pointer` | halls / ict-lab | always soft-fail copy | "Exams hold at ICT" |
+| `write-exam` | `ict-exams` only | CBT 10 MCQs + timer; score server-side | not exam season; fees; registration |
+| `clinic-treat` | `clinic` | fee → health/energy | — |
+| `sports-train` | `sports-complex` | −energy, +fun; `gym-rat` bonus | — |
+| `centre-hangout` | `students-centre`, `relaxation-centre` | +social/fun; `social-butterfly` bonus | — |
+| `meet-hod` / `faculty-notices` | faculty buildings | notices from `campus.facultyNotices` | — |
+| `shuttle-travel` | `shuttle-park` | stub for other slabs | — |
+| Existing | shops / hostels / parks | `eat`, `sleep`, `shower`, `study`, `hangout`, `travel`, `work-placeholder` | as today |
+
+**Config map:** every slab-1 `MAP_ZONES` id should resolve via `getBuilding` / `resolveBuilding` in `lib/game/buildings.ts`. New buildings = data only.
 
 ---
 
@@ -316,12 +369,14 @@ Auth required (session cookie). Incomplete setup → **409** `{ ok: false, error
 *Accept:* clearing localStorage loses nothing; editing cash in devtools changes nothing server-side; double-tapping an action charges once; create flow → /live → play works with server only; tests for actions, travel, needs drain, starting money once-only.
 
 **Phase 2 — Economy, jobs, shop, rent.** §5.2 + §7.5.
-*Frontend:* ✅ Jobs / Shop / Inventory / Rent / Bank UI wired to `lib/game/economy-api.ts` (mock fallback when API down).
-*Backend:* ✅ Contracts match MSW mocks; `applyCash()` + ledger; Vitest DB tests green.
+*Frontend:* ✅ Jobs / Shop / Inventory (`POST /inventory/use`) / Rent / Bank (ledger cursor infinite scroll) → real API via `lib/api` + `lib/game/economy-api.ts`. Mocks **off** unless `NEXT_PUBLIC_USE_MOCKS=true`. HUD cash from server `state` after every action. Typed errors + friendly toasts / silent conflict refetch / setup + login redirects.
+*Backend:* ✅ Contracts match §7.5; `applyCash()` + ledger; ledger `cursor`/`nextCursor`; Vitest DB tests green.
 *Still open vs full §5.2:* weekly eviction ladder, Monday allowance, remove client `STARTER_CASH` / lodging `startCash` / `rollStartingMoneyLocal`.
-*Accept (backend done):* every cash change has a ledger row; balance never < 0 (tested); 6 jobs + 15 shop items seeded; rent pay extends `due_at`; traits affect job lock/pay.
+*Accept:* every cash change has a ledger row; balance never < 0 (tested); 6 jobs + 15 shop items seeded; rent pay extends `due_at`; traits affect job lock/pay; FE end-to-end with mocks off.
 
-**Phase 3 — World, models, buildings.** §5.3.
+**Phase 3 — World, models, buildings.** §5.3 + §7.6.
+*Frontend:* ✅ Building interiors as UI panels (`BuildingPanel` + `lib/game/buildings.ts`). Every slab-1 zone opens a panel; Student Affairs / halls / ICT / clinic / sports / leisure / faculty / shuttle wired; quiz + CBT mocks; SPEC lists action ids.
+*Backend (next):* implement §7.6 action ids + `campus` on game state.
 *Accept:* every playable location is a tappable zone; all first-slab zones from §4.7 render with labels; low-perf mode holds ~30 fps on a mid Android; first load < 8 MB; credits complete; MAP.md updated.
 
 **Phase 4 — Multiplayer & chat by area.** §5.4.

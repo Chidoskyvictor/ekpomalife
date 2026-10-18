@@ -27,7 +27,10 @@ type GameContextValue = {
   toast: Toast | null
   serverVersion: number
   select: (id: string | null) => void
-  act: (actionId: ActionId | GameActionId) => void
+  act: (
+    actionId: ActionId | GameActionId | string,
+    opts?: { payload?: { amount?: number; answers?: number[]; questionIds?: string[] } },
+  ) => Promise<ServerGameState | null>
   travelTo: (locationId: string, mode: TravelMode) => void
   chooseEvent: (choice: EventChoice) => void
   resetGame: () => void
@@ -63,16 +66,38 @@ const LEGACY_TO_SERVER: Partial<Record<ActionId, GameActionId>> = {
   buy_phone: 'work-placeholder',
 }
 
+const SERVER_ACTIONS = new Set<string>([
+  'eat',
+  'sleep',
+  'shower',
+  'study',
+  'hangout',
+  'travel',
+  'work-placeholder',
+  'pay-school-fees',
+  'course-registration',
+  'collect-matric-gown',
+  'collect-id-card',
+  'convocation-clearance',
+  'convocation-gown',
+  'convocation-ceremony',
+  'check-result',
+  'attend-lecture',
+  'submit-assignment',
+  'take-quiz',
+  'night-class',
+  'write-exam',
+  'exams-pointer',
+  'clinic-treat',
+  'sports-train',
+  'centre-hangout',
+  'meet-hod',
+  'faculty-notices',
+  'shuttle-travel',
+])
+
 function isServerAction(id: string): id is GameActionId {
-  return (
-    id === 'eat' ||
-    id === 'sleep' ||
-    id === 'shower' ||
-    id === 'study' ||
-    id === 'hangout' ||
-    id === 'travel' ||
-    id === 'work-placeholder'
-  )
+  return SERVER_ACTIONS.has(id)
 }
 
 export function startNewLife(
@@ -144,6 +169,8 @@ function applyServer(shell: GameState | null, server: ServerGameState, username:
     day: server.day,
     period: (server.period as TimePeriod) || 'morning',
     timeLabel: server.timeLabel,
+    gameTime: server.gameTime,
+    campus: server.campus ?? base.campus,
     dream: { ...base.dream, netWorth: server.cash },
   }
 }
@@ -209,7 +236,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       const result = await fetchGameState()
       if (cancelled) return
       if (!result.ok) {
-        if (result.error === 'SETUP_INCOMPLETE') {
+        if (result.error === 'SETUP_INCOMPLETE' || result.code === 'SETUP_INCOMPLETE') {
           setState(null)
           shellRef.current = null
           setBooting(false)
@@ -217,8 +244,17 @@ export function GameProvider({ children }: { children: ReactNode }) {
           if (!cancelled) window.location.assign(getPostAuthRoute(me))
           return
         }
+        if (result.code === 'UNAUTHORIZED' || result.status === 401) {
+          setBooting(false)
+          if (!cancelled) window.location.assign('/login')
+          return
+        }
         setBooting(false)
-        setBootError(result.error || 'Could not load your life.')
+        setBootError(
+          result.network
+            ? "Can't reach the server, retrying…"
+            : result.error || 'Could not load your life.',
+        )
         return
       }
       shellRef.current = shellRef.current ?? loadLocalShell()
@@ -278,27 +314,34 @@ export function GameProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const act = useCallback(
-    (actionId: ActionId | GameActionId) => {
+    async (
+      actionId: ActionId | GameActionId | string,
+      opts?: { payload?: { amount?: number; answers?: number[]; questionIds?: string[] } },
+    ) => {
       const serverId = isServerAction(actionId) ? actionId : LEGACY_TO_SERVER[actionId as ActionId]
       if (!serverId || !state) {
         notify('That action is not available yet.', false)
-        return
+        return null
       }
-      void (async () => {
-        const result = await postGameAction({
-          actionId: serverId,
-          targetPlaceId: selectedId && serverId === 'travel' ? selectedId : state.locationId,
-          version: versionRef.current,
+      const result = await postGameAction({
+        actionId: serverId,
+        targetPlaceId: selectedId ?? state.locationId,
+        version: versionRef.current,
+        payload: opts?.payload,
+        traits: state.traits,
+      })
+      if (!result.ok) {
+        const { handleApiFail } = await import('@/lib/api/handle-fail')
+        await handleApiFail(result, {
+          toast: (text, ok) => notify(text, ok ?? false),
+          refreshServer,
         })
-        if (!result.ok) {
-          notify(result.error, false)
-          if (result.conflict) await refreshServer()
-          return
-        }
-        mergeServer(result)
-        notify(result.message || 'Done.', true)
-        void syncDream()
-      })()
+        return null
+      }
+      mergeServer(result)
+      notify(result.message || 'Done.', true)
+      void syncDream()
+      return result
     },
     [state, selectedId, notify, mergeServer, refreshServer, syncDream],
   )
@@ -320,8 +363,11 @@ export function GameProvider({ children }: { children: ReactNode }) {
           version: versionRef.current,
         })
         if (!result.ok) {
-          notify(result.error, false)
-          if (result.conflict) await refreshServer()
+          const { handleApiFail } = await import('@/lib/api/handle-fail')
+          await handleApiFail(result, {
+            toast: (text, ok) => notify(text, ok ?? false),
+            refreshServer,
+          })
           return
         }
         mergeServer(result)

@@ -1,7 +1,6 @@
 /**
- * In-browser economy mock used when the Phase 2 API is unreachable
- * or NEXT_PUBLIC_USE_ECONOMY_MOCK=1. Cash never mutates client game state
- * here except returning fabricated ServerGameState snapshots for UI wiring.
+ * In-process economy mock for Vitest / offline dev.
+ * Enabled only when NEXT_PUBLIC_USE_MOCKS=true (or legacy USE_ECONOMY_MOCK=1).
  */
 import type {
   InventoryItem,
@@ -287,6 +286,22 @@ export function mockInventory() {
   return { ok: true as const, items: [...inventory] }
 }
 
+export function mockUseItem(itemId: string) {
+  const row = inventory.find((entry) => entry.itemId === itemId)
+  if (!row) return { ok: false as const, error: 'Item not found.' }
+  if (!row.useActionId) return { ok: false as const, error: 'You cannot use that here.' }
+  row.qty -= 1
+  if (row.qty <= 0) {
+    inventory = inventory.filter((entry) => entry.itemId !== itemId)
+  }
+  return {
+    ok: true as const,
+    state: snapshotState(),
+    inventory: [...inventory],
+    message: `Used ${row.name}.`,
+  }
+}
+
 export function mockRent() {
   return { ok: true as const, rent: { ...rent } }
 }
@@ -308,8 +323,21 @@ export function mockPayRent() {
   }
 }
 
-export function mockLedger(limit: number) {
-  return { ok: true as const, entries: ledger.slice(0, limit), cash }
+export function mockLedger(limit: number, cursor?: string) {
+  let start = 0
+  if (cursor) {
+    const idx = ledger.findIndex((entry) => entry.id === cursor)
+    start = idx >= 0 ? idx + 1 : 0
+  }
+  const entries = ledger.slice(start, start + limit)
+  const last = entries[entries.length - 1]
+  const hasMore = start + entries.length < ledger.length
+  return {
+    ok: true as const,
+    entries,
+    cash,
+    nextCursor: hasMore && last ? last.id : null,
+  }
 }
 
 /** Reset mock store (tests / storybook). */

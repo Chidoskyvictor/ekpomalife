@@ -70,7 +70,7 @@ function ActionButton({
   actionId: GameActionId
   onAct: (id: GameActionId) => void
 }) {
-  const meta = ACTION_LABELS[actionId]
+  const meta = ACTION_LABELS[actionId] ?? { label: actionId, hint: '' }
   return (
     <button
       type="button"

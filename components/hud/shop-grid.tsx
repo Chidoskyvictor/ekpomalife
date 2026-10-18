@@ -63,8 +63,7 @@ function ShopItemCard({
 
 export function ShopGrid({ items, onBought }: { items: ShopItem[]; onBought?: () => void }) {
   const { state, notifyToast } = useGame()
-  const { buy } = useEconomy()
-  const [busy, setBusy] = useState(false)
+  const { buy, busy } = useEconomy()
   const cash = state?.cash ?? 0
 
   if (items.length === 0) {
@@ -81,9 +80,7 @@ export function ShopGrid({ items, onBought }: { items: ShopItem[]; onBought?: ()
           busy={busy}
           onBuy={(qty) => {
             void (async () => {
-              setBusy(true)
               const result = await buy(item.id, qty)
-              setBusy(false)
               if (result?.questComplete === 'buy_phone') {
                 notifyToast('Phone unlocked. Check your Phone tab.', true)
               }

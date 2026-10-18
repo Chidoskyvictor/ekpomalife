@@ -72,7 +72,7 @@ function JobCard({
 export function JobsPanel({ placeId }: { placeId: string }) {
   const reduced = useReducedMotion() ?? false
   const { state } = useGame()
-  const { jobs, currentJobId, loading, working, loadJobs, apply, doShift } = useEconomy()
+  const { jobs, currentJobId, loading, working, busy, loadJobs, apply, doShift } = useEconomy()
   const [shiftProgress, setShiftProgress] = useState(0)
   const [floatPay, setFloatPay] = useState<number | null>(null)
 
@@ -127,7 +127,7 @@ export function JobsPanel({ placeId }: { placeId: string }) {
           key={job.id}
           job={job}
           isCurrent={job.id === currentJobId}
-          busy={working}
+          busy={working || busy}
           onApply={() => void apply(job.id)}
         />
       ))}
@@ -138,7 +138,7 @@ export function JobsPanel({ placeId }: { placeId: string }) {
             type="button"
             className={styles.btn}
             style={{ flex: 1 }}
-            disabled={working}
+            disabled={working || busy}
             onClick={() => void runShift()}
           >
             {working ? 'Working…' : 'Work shift'}

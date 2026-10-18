@@ -1,3 +1,4 @@
+import type { CampusState } from './campus'
 import type { DreamId, DreamSnapshot } from './dreams'
 import type { Appearance } from './look'
 import type { CharacterTypeId, LodgingId } from './live'
@@ -60,6 +61,10 @@ export type GameState = {
   hasPhone: boolean
   milestones: string[]
   feed: FeedEntry[]
+  /** Server-owned academic progress (fees, attendance, GPA). */
+  campus?: CampusState
+  /** In-game minutes from midnight when known from server. */
+  gameTime?: number
 }
 
 export type ActionId =

@@ -1,13 +1,10 @@
 'use client'
 
 import { useEconomy } from '@/hooks/use-economy'
-import { useGame } from '@/hooks/use-game'
-import type { GameActionId } from '@/lib/game/places'
 import styles from './economy.module.css'
 
 export function InventoryPanel() {
-  const { inventory, loadInventory } = useEconomy()
-  const { act, notifyToast } = useGame()
+  const { inventory, useItem, busy } = useEconomy()
 
   if (inventory.length === 0) {
     return <p className={styles.cardMeta}>Your bag is empty. Buy something first.</p>
@@ -23,14 +20,10 @@ export function InventoryPanel() {
             type="button"
             className={styles.itemCard}
             style={{ minHeight: 44 }}
+            disabled={busy || !item.useActionId}
             onClick={() => {
-              if (!item.useActionId) {
-                notifyToast('You cannot use that here.', false)
-                return
-              }
-              act(item.useActionId as GameActionId)
-              notifyToast(`Used ${item.name}.`, true)
-              void loadInventory()
+              if (!item.useActionId || busy) return
+              void useItem(item.itemId)
             }}
           >
             <span className={styles.emoji} aria-hidden="true">

@@ -738,7 +738,7 @@ export async function payRent(userId: string) {
   }
 }
 
-export async function listLedger(userId: string, limit = 20) {
+export async function listLedger(userId: string, limit = 20, cursor?: string | null) {
   const gate = await requireEconomySetup(userId)
   if (!gate.ok) return gate
   const take = Math.max(1, Math.min(100, Math.floor(limit)))
@@ -751,37 +751,73 @@ export async function listLedger(userId: string, limit = 20) {
     )
     if (!cashRow.rows[0]) return { ok: false as const, error: SETUP_INCOMPLETE, code: 409 }
 
-    const rows = await client.query<{
-      id: string
-      amount: string | number
-      reason: string
-      kind: string | null
-      balance_after: string | number | null
-      created_at: Date
-    }>(
-      `SELECT id, amount, reason, kind, balance_after, created_at
-       FROM ledger
-       WHERE character_id = $1
-       ORDER BY created_at DESC
-       LIMIT $2`,
-      [gate.character.id, take],
-    )
+    let cursorCreatedAt: Date | null = null
+    let cursorId: string | null = null
+    if (cursor) {
+      const anchor = await client.query<{ id: string; created_at: Date }>(
+        `SELECT id, created_at FROM ledger WHERE character_id = $1 AND id = $2`,
+        [gate.character.id, cursor],
+      )
+      if (anchor.rows[0]) {
+        cursorId = anchor.rows[0].id
+        cursorCreatedAt =
+          anchor.rows[0].created_at instanceof Date
+            ? anchor.rows[0].created_at
+            : new Date(anchor.rows[0].created_at)
+      }
+    }
 
+    const rows = cursorCreatedAt && cursorId
+      ? await client.query<{
+          id: string
+          amount: string | number
+          reason: string
+          kind: string | null
+          balance_after: string | number | null
+          created_at: Date
+        }>(
+          `SELECT id, amount, reason, kind, balance_after, created_at
+           FROM ledger
+           WHERE character_id = $1
+             AND (created_at, id) < ($2, $3)
+           ORDER BY created_at DESC, id DESC
+           LIMIT $4`,
+          [gate.character.id, cursorCreatedAt, cursorId, take],
+        )
+      : await client.query<{
+          id: string
+          amount: string | number
+          reason: string
+          kind: string | null
+          balance_after: string | number | null
+          created_at: Date
+        }>(
+          `SELECT id, amount, reason, kind, balance_after, created_at
+           FROM ledger
+           WHERE character_id = $1
+           ORDER BY created_at DESC, id DESC
+           LIMIT $2`,
+          [gate.character.id, take],
+        )
+
+    const entries = rows.rows.map((row) => ({
+      id: row.id,
+      amount: asMoney(row.amount),
+      reason: row.reason,
+      kind: row.kind ?? undefined,
+      createdAt: (row.created_at instanceof Date
+        ? row.created_at
+        : new Date(row.created_at)
+      ).toISOString(),
+      balanceAfter:
+        row.balance_after == null ? undefined : asMoney(row.balance_after),
+    }))
+    const last = entries[entries.length - 1]
     return {
       ok: true as const,
       cash: asMoney(cashRow.rows[0].cash),
-      entries: rows.rows.map((row) => ({
-        id: row.id,
-        amount: asMoney(row.amount),
-        reason: row.reason,
-        kind: row.kind ?? undefined,
-        createdAt: (row.created_at instanceof Date
-          ? row.created_at
-          : new Date(row.created_at)
-        ).toISOString(),
-        balanceAfter:
-          row.balance_after == null ? undefined : asMoney(row.balance_after),
-      })),
+      entries,
+      nextCursor: entries.length === take && last ? last.id : null,
     }
   } finally {
     client.release()

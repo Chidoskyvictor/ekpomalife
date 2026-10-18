@@ -59,8 +59,12 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={`${geist.variable} ${inter.variable} ${fredoka.variable} ${jakarta.variable}`}>
-      <body className="font-sans antialiased">
+    <html
+      lang="en"
+      data-theme="light"
+      className={`${geist.variable} ${inter.variable} ${fredoka.variable} ${jakarta.variable}`}
+    >
+      <body className="font-sans antialiased" style={{ colorScheme: 'light' }}>
         {process.env.NODE_ENV === 'development' ? <NoHScrollGuard /> : null}
         {children}
       </body>

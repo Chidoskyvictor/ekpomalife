@@ -8,6 +8,27 @@ export type GameActionId =
   | 'hangout'
   | 'travel'
   | 'work-placeholder'
+  // Building interiors (Phase 3 UI → server POST /game/action)
+  | 'pay-school-fees'
+  | 'course-registration'
+  | 'collect-matric-gown'
+  | 'collect-id-card'
+  | 'convocation-clearance'
+  | 'convocation-gown'
+  | 'convocation-ceremony'
+  | 'check-result'
+  | 'attend-lecture'
+  | 'submit-assignment'
+  | 'take-quiz'
+  | 'night-class'
+  | 'write-exam'
+  | 'exams-pointer'
+  | 'clinic-treat'
+  | 'sports-train'
+  | 'centre-hangout'
+  | 'meet-hod'
+  | 'faculty-notices'
+  | 'shuttle-travel'
 
 export type PlaceType =
   | 'campus'
@@ -30,7 +51,7 @@ export type Place = {
   openHours: OpenHours | null
 }
 
-export const ACTION_LABELS: Record<GameActionId, { label: string; hint: string }> = {
+export const ACTION_LABELS: Partial<Record<GameActionId, { label: string; hint: string }>> = {
   eat: { label: 'Eat', hint: 'Plate of rice. Fill hunger.' },
   sleep: { label: 'Sleep', hint: 'Rest and refill energy.' },
   shower: { label: 'Shower', hint: 'Fresh body, clear head.' },

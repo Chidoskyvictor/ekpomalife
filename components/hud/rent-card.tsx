@@ -5,7 +5,7 @@ import { formatNaira } from '@/lib/game/live'
 import styles from './economy.module.css'
 
 export function RentCard({ compact = false }: { compact?: boolean }) {
-  const { rent, pay } = useEconomy()
+  const { rent, pay, busy } = useEconomy()
   if (!rent || rent.status === 'ok') return null
 
   const late = rent.status === 'late'
@@ -32,7 +32,7 @@ export function RentCard({ compact = false }: { compact?: boolean }) {
         <span className={styles.pay}>{formatNaira(rent.amount)}</span>
       </div>
       {!compact ? (
-        <button type="button" className={styles.btn} onClick={() => void pay()}>
+        <button type="button" className={styles.btn} disabled={busy} onClick={() => void pay()}>
           Pay rent
         </button>
       ) : null}

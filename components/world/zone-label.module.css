@@ -1,0 +1,73 @@
+.sticker {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  max-width: min(70vw, 16rem);
+  margin: 0;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 4px 14px rgba(16, 24, 40, 0.14);
+  color: #111;
+  cursor: pointer;
+  font: inherit;
+  line-height: 1;
+  overflow: hidden;
+  transition:
+    gap 0.28s var(--ease-enter, cubic-bezier(0.16, 1, 0.3, 1)),
+    padding 0.28s var(--ease-enter, cubic-bezier(0.16, 1, 0.3, 1)),
+    box-shadow 0.2s ease;
+}
+
+.sticker:hover,
+.sticker:focus-visible,
+.sticker[data-open='true'] {
+  gap: 6px;
+  padding-right: 10px;
+  box-shadow: 0 8px 22px rgba(16, 24, 40, 0.18);
+  outline: none;
+}
+
+.emoji {
+  display: grid;
+  place-items: center;
+  width: 1.85rem;
+  height: 1.85rem;
+  flex: none;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.name {
+  display: inline-block;
+  max-width: 0;
+  opacity: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  font-family: var(--font-jakarta), 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  transform: translateX(-6px);
+  transition:
+    max-width 0.32s var(--ease-enter, cubic-bezier(0.16, 1, 0.3, 1)),
+    opacity 0.22s ease,
+    transform 0.32s var(--ease-enter, cubic-bezier(0.16, 1, 0.3, 1));
+}
+
+.sticker:hover .name,
+.sticker:focus-visible .name,
+.sticker[data-open='true'] .name {
+  max-width: 14rem;
+  opacity: 1;
+  transform: translateX(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sticker,
+  .name {
+    transition: none;
+  }
+}

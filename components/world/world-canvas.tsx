@@ -120,6 +120,10 @@ export function WorldCanvas() {
           near: 0.5,
           far: 420,
         }}
+        onCreated={({ gl }) => {
+          // Avoid a black clear-color flash before the water color attaches.
+          gl.setClearColor(water, 1)
+        }}
         onPointerMissed={() => select(null)}
       >
         <MapLoadReporter onProgress={onProgress} />

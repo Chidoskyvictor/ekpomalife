@@ -1,7 +1,11 @@
 .page {
+  /* Body is overflow:hidden for the game — this must be the scrollport. */
   position: relative;
   box-sizing: border-box;
-  min-height: 100dvh;
+  height: 100dvh;
+  height: 100svh;
+  max-height: 100dvh;
+  max-height: 100svh;
   width: 100%;
   max-width: 100%;
   overflow-x: hidden;

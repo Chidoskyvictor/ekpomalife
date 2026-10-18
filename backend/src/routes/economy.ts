@@ -184,12 +184,19 @@ export async function economyRoutes(app: FastifyInstance) {
   app.get('/ledger', async (request, reply) => {
     const user = await getSessionUser(request)
     if (!user) return reply.code(401).send({ ok: false, error: 'Log in to play.' })
-    const limitRaw = (request.query as { limit?: string; cursor?: string }).limit
+    const query = request.query as { limit?: string; cursor?: string }
+    const limitRaw = query.limit
     const limit = limitRaw ? Number(limitRaw) : 20
+    const cursor = query.cursor?.trim() || null
     try {
-      const result = await listLedger(user.id, Number.isFinite(limit) ? limit : 20)
+      const result = await listLedger(user.id, Number.isFinite(limit) ? limit : 20, cursor)
       if (!result.ok) return fail(reply, result)
-      return reply.send({ ok: true, entries: result.entries, cash: result.cash })
+      return reply.send({
+        ok: true,
+        entries: result.entries,
+        cash: result.cash,
+        nextCursor: result.nextCursor ?? null,
+      })
     } catch (error) {
       request.log.error(error)
       return reply.code(500).send({ ok: false, error: 'Could not load ledger.' })

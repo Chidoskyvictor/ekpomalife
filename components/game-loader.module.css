@@ -6,7 +6,16 @@
   align-items: center;
   justify-content: center;
   gap: 1rem;
-  background: var(--app-wash);
+  /* Explicit light wash — never inherit a dark Arc/theme flash into home. */
+  color-scheme: light;
+  color: #122846;
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, #3d9ad6 16%, white) 0%,
+    color-mix(in oklab, #3d9ad6 10%, white) 28%,
+    color-mix(in oklab, #3d9ad6 5%, white) 52%,
+    white 78%
+  );
 }
 
 .crest {

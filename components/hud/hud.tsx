@@ -9,7 +9,7 @@ import { DreamCelebration } from '@/components/hud/dream-celebration'
 import { EventDialog } from '@/components/hud/event-dialog'
 import { HudToast } from '@/components/hud/hud-toast'
 import { IslandToast } from '@/components/hud/island-toast'
-import { LocationSheet } from '@/components/hud/location-sheet'
+import { BuildingPanel } from '@/components/buildings/building-panel'
 import { MeCard } from '@/components/hud/me-card'
 import { PhoneDialog } from '@/components/hud/phone-dialog'
 import { PlayNav, type PlayTab } from '@/components/hud/play-nav'
@@ -126,7 +126,6 @@ export function Hud() {
       ) : null}
 
       <div className={styles.bottomDock}>
-        {state && selectedId ? <LocationSheet /> : null}
         <div className={styles.bottomRow}>
           <div className={styles.navSlot}>
             <PlayNav value={tab} onValueChange={onTab} badges={{ phone: unread }} />
@@ -177,6 +176,7 @@ export function Hud() {
       <ChangeDreamDialog open={dreamOpen} onOpenChange={setDreamOpen} />
       <DreamCelebration />
       <EventDialog />
+      {state && selectedId ? <BuildingPanel /> : null}
     </div>
   )
 }

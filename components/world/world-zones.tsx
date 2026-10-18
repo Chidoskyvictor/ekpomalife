@@ -15,9 +15,11 @@ import { kenneyUrl } from '@/lib/game/kenney-buildings'
 import { MAP } from '@/lib/game/map-theme'
 import { isGameplayPlace } from '@/lib/game/places'
 import { MAP_ZONES, type MapZone } from '@/lib/game/world-layout'
+import { stickerForZone } from '@/lib/game/zone-stickers'
 import { useGame } from '@/hooks/use-game'
 import { Block } from './materials'
 import type { ThreeEvent } from '@react-three/fiber'
+import labelStyles from './zone-label.module.css'
 
 const ADMIN_URL = '/models/admin-block.glb'
 const PARKING_URL = '/models/parkinglot.glb'
@@ -116,26 +118,42 @@ function paintAdmin(source: Object3D) {
   return root
 }
 
-function ZoneLabel({ label, height }: { label: string; height: number }) {
+function ZoneLabel({
+  zoneId,
+  label,
+  height,
+}: {
+  zoneId: string
+  label: string
+  height: number
+}) {
+  const [open, setOpen] = useState(false)
+  const sticker = stickerForZone(zoneId, label)
+
   return (
-    <Html position={[0, height, 0]} center distanceFactor={48} zIndexRange={[12, 4]} style={{ pointerEvents: 'none' }}>
-      <div
-        style={{
-          padding: '3px 8px',
-          borderRadius: 999,
-          background: 'rgba(255,255,255,0.92)',
-          border: '1px solid rgba(0,0,0,0.08)',
-          boxShadow: '0 4px 14px rgba(0,0,0,0.12)',
-          color: '#111',
-          fontSize: 11,
-          fontWeight: 600,
-          letterSpacing: '-0.01em',
-          whiteSpace: 'nowrap',
-          fontFamily: 'var(--font-jakarta), Plus Jakarta Sans, system-ui, sans-serif',
-        }}
+    <Html
+      position={[0, height, 0]}
+      center
+      distanceFactor={48}
+      zIndexRange={[12, 4]}
+      style={{ pointerEvents: 'auto' }}
+    >
+      <button
+        type="button"
+        className={labelStyles.sticker}
+        data-open={open ? 'true' : 'false'}
+        aria-label={label}
+        aria-expanded={open}
+        onPointerEnter={() => setOpen(true)}
+        onPointerLeave={() => setOpen(false)}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setOpen(false)}
       >
-        {label}
-      </div>
+        <span className={labelStyles.emoji} aria-hidden="true">
+          {sticker}
+        </span>
+        <span className={labelStyles.name}>{label}</span>
+      </button>
     </Html>
   )
 }
@@ -170,7 +188,7 @@ function KenneyZone({ zone }: { zone: MapZone }) {
       <Pad w={fw} d={fd} />
       {/* no `deep` — drei deep-clones materials and crashes on multi-material arrays */}
       <Clone object={prepared} position={[0, 0.14, 0]} scale={scale} castShadow receiveShadow />
-      <ZoneLabel label={zone.label} height={labelH} />
+      <ZoneLabel zoneId={zone.id} label={zone.label} height={labelH} />
     </group>
   )
 }
@@ -223,7 +241,7 @@ function AdminZone({ zone }: { zone: MapZone }) {
         receiveShadow
       />
       <Clone object={prepared} position={[0, 0.14, 0]} scale={scale} castShadow receiveShadow />
-      <ZoneLabel label={zone.label} height={labelH} />
+      <ZoneLabel zoneId={zone.id} label={zone.label} height={labelH} />
     </group>
   )
 }
@@ -234,7 +252,7 @@ function PadZone({ zone }: { zone: MapZone }) {
     <group position={[zone.position[0], 0, zone.position[1]]} rotation={[0, zone.rotation, 0]}>
       <Pad w={fw} d={fd} />
       <Block position={[0, 0.2, 0]} size={[fw * 0.7, 0.08, fd * 0.55]} color={MAP.road} shadow={false} />
-      <ZoneLabel label={zone.label} height={2.6} />
+      <ZoneLabel zoneId={zone.id} label={zone.label} height={2.6} />
     </group>
   )
 }
@@ -248,7 +266,7 @@ function ParkingZone({ zone }: { zone: MapZone }) {
   return (
     <group position={[zone.position[0], 0, zone.position[1]]} rotation={[0, zone.rotation, 0]}>
       <Clone object={scene} position={[0, 0.08, 0]} scale={scale} castShadow receiveShadow />
-      <ZoneLabel label={zone.label} height={labelH} />
+      <ZoneLabel zoneId={zone.id} label={zone.label} height={labelH} />
     </group>
   )
 }
@@ -261,7 +279,7 @@ function StadiumZone({ zone }: { zone: MapZone }) {
   return (
     <group position={[zone.position[0], 0, zone.position[1]]} rotation={[0, zone.rotation, 0]}>
       <Clone object={scene} position={[0, 0.06, 0]} scale={scale} castShadow receiveShadow />
-      <ZoneLabel label={zone.label} height={labelH} />
+      <ZoneLabel zoneId={zone.id} label={zone.label} height={labelH} />
     </group>
   )
 }
@@ -280,7 +298,7 @@ function HostelZone({ zone }: { zone: MapZone }) {
     <group position={[zone.position[0], 0, zone.position[1]]} rotation={[0, zone.rotation, 0]}>
       <Pad w={padW} d={padD} />
       <Clone object={prepared} position={[0, 0.14, 0]} scale={scale} castShadow receiveShadow />
-      <ZoneLabel label={zone.label} height={labelH} />
+      <ZoneLabel zoneId={zone.id} label={zone.label} height={labelH} />
     </group>
   )
 }
@@ -291,7 +309,7 @@ function ZoneFallback({ zone }: { zone: MapZone }) {
   return (
     <group position={[zone.position[0], 0, zone.position[1]]}>
       {bare ? null : <Pad w={fw} d={fd} />}
-      <ZoneLabel label={zone.label} height={3} />
+      <ZoneLabel zoneId={zone.id} label={zone.label} height={3} />
     </group>
   )
 }

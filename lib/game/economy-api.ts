@@ -1,4 +1,5 @@
-import { apiUrl } from './api'
+import { apiGet, apiPost, useMocks } from '@/lib/api/client'
+import { friendlyApiMessage, type ApiFail } from '@/lib/api/errors'
 import type { ServerGameState } from './game-api'
 import * as mock from './economy-mock'
 
@@ -72,7 +73,7 @@ export type LedgerEntry = {
   balanceAfter?: number
 }
 
-export type EconomyFail = { ok: false; error: string }
+export type EconomyFail = ApiFail
 
 type OkJobs = { ok: true; jobs: Job[]; currentJobId: string | null }
 type OkApply = { ok: true; job: Job; message: string }
@@ -93,152 +94,81 @@ type OkBuy = {
   questComplete?: string
 }
 type OkInventory = { ok: true; items: InventoryItem[] }
+type OkUse = {
+  ok: true
+  state: ServerGameState
+  inventory: InventoryItem[]
+  message: string
+}
 type OkRent = { ok: true; rent: RentInfo }
 type OkPayRent = { ok: true; state: ServerGameState; rent: RentInfo; message: string }
-type OkLedger = { ok: true; entries: LedgerEntry[]; cash: number }
-
-const FETCH_MS = 8000
-const useForcedMock = () =>
-  typeof process !== 'undefined' && process.env.NEXT_PUBLIC_USE_ECONOMY_MOCK === '1'
-
-async function apiFetch(path: string, init?: RequestInit) {
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), FETCH_MS)
-  try {
-    return await fetch(`${apiUrl()}${path}`, {
-      ...init,
-      credentials: 'include',
-      signal: controller.signal,
-    })
-  } finally {
-    clearTimeout(timer)
-  }
-}
-
-async function readJson<T>(response: Response): Promise<T | EconomyFail> {
-  let data: T | EconomyFail
-  try {
-    data = (await response.json()) as T | EconomyFail
-  } catch {
-    return { ok: false, error: 'Network wahala, try again.' }
-  }
-  if (!response.ok || (typeof data === 'object' && data && 'ok' in data && data.ok === false)) {
-    const fail = data as EconomyFail
-    return { ok: false, error: fail.error || 'Network wahala, try again.' }
-  }
-  return data as T
-}
-
-async function withFallback<T extends { ok: true }>(
-  live: () => Promise<T | EconomyFail>,
-  fallback: () => Promise<T | EconomyFail> | T | EconomyFail,
-): Promise<T | EconomyFail> {
-  if (useForcedMock()) return fallback()
-  try {
-    const result = await live()
-    if (
-      !result.ok &&
-      /Cannot reach|Network wahala|fetch|abort|404|Not Found|Failed to fetch|Request failed/i.test(
-        result.error,
-      )
-    ) {
-      return fallback()
-    }
-    return result
-  } catch {
-    return fallback()
-  }
-}
-
-async function tryLive<T extends { ok: true }>(
-  path: string,
-  init?: RequestInit,
-): Promise<T | EconomyFail> {
-  try {
-    const response = await apiFetch(path, init)
-    if (response.status === 404) return { ok: false, error: 'Not Found' }
-    return readJson<T>(response)
-  } catch {
-    return { ok: false, error: 'Network wahala, try again.' }
-  }
-}
+type OkLedger = { ok: true; entries: LedgerEntry[]; cash: number; nextCursor?: string | null }
 
 export async function fetchJobs(placeId?: string | null): Promise<OkJobs | EconomyFail> {
+  if (useMocks()) return mock.mockJobs(placeId)
   const query = placeId ? `?placeId=${encodeURIComponent(placeId)}` : ''
-  return withFallback(() => tryLive<OkJobs>(`/jobs${query}`), () => mock.mockJobs(placeId))
+  return apiGet<OkJobs>(`/jobs${query}`)
 }
 
 export async function applyForJob(jobId: string): Promise<OkApply | EconomyFail> {
-  return withFallback(
-    () =>
-      tryLive<OkApply>('/jobs/apply', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jobId }),
-      }),
-    () => mock.mockApply(jobId),
-  )
+  if (useMocks()) return mock.mockApply(jobId)
+  return apiPost<OkApply>('/jobs/apply', { jobId })
 }
 
 export async function workShift(): Promise<OkShift | EconomyFail> {
-  return withFallback(
-    () =>
-      tryLive<OkShift>('/jobs/shift', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
-      }),
-    () => mock.mockShift(),
-  )
+  if (useMocks()) return mock.mockShift()
+  return apiPost<OkShift>('/jobs/shift')
 }
 
 export async function fetchShop(placeId: string): Promise<OkShop | EconomyFail> {
-  return withFallback(
-    () => tryLive<OkShop>(`/shop?placeId=${encodeURIComponent(placeId)}`),
-    () => mock.mockShop(placeId),
-  )
+  if (useMocks()) return mock.mockShop(placeId)
+  return apiGet<OkShop>(`/shop?placeId=${encodeURIComponent(placeId)}`)
 }
 
 export async function buyShopItem(itemId: string, qty: number): Promise<OkBuy | EconomyFail> {
-  return withFallback(
-    () =>
-      tryLive<OkBuy>('/shop/buy', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ itemId, qty }),
-      }),
-    () => mock.mockBuy(itemId, qty),
-  )
+  if (useMocks()) return mock.mockBuy(itemId, qty)
+  return apiPost<OkBuy>('/shop/buy', { itemId, qty })
 }
 
 export async function fetchInventory(): Promise<OkInventory | EconomyFail> {
-  return withFallback(() => tryLive<OkInventory>('/inventory'), () => mock.mockInventory())
+  if (useMocks()) return mock.mockInventory()
+  return apiGet<OkInventory>('/inventory')
+}
+
+export async function useInventoryItem(itemId: string): Promise<OkUse | EconomyFail> {
+  if (useMocks()) return mock.mockUseItem(itemId)
+  return apiPost<OkUse>('/inventory/use', { itemId })
 }
 
 export async function fetchRent(): Promise<OkRent | EconomyFail> {
-  return withFallback(() => tryLive<OkRent>('/rent'), () => mock.mockRent())
+  if (useMocks()) return mock.mockRent()
+  return apiGet<OkRent>('/rent')
 }
 
 export async function payRent(): Promise<OkPayRent | EconomyFail> {
-  return withFallback(
-    () =>
-      tryLive<OkPayRent>('/rent/pay', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
-      }),
-    () => mock.mockPayRent(),
-  )
+  if (useMocks()) return mock.mockPayRent()
+  return apiPost<OkPayRent>('/rent/pay')
 }
 
-export async function fetchLedger(limit = 20): Promise<OkLedger | EconomyFail> {
-  return withFallback(
-    () => tryLive<OkLedger>(`/ledger?limit=${limit}`),
-    () => mock.mockLedger(limit),
-  )
+export async function fetchLedger(
+  limitOrOpts: number | { limit?: number; cursor?: string } = 20,
+): Promise<OkLedger | EconomyFail> {
+  const resolved =
+    typeof limitOrOpts === 'number'
+      ? { limit: limitOrOpts, cursor: undefined as string | undefined }
+      : { limit: limitOrOpts.limit ?? 20, cursor: limitOrOpts.cursor }
+
+  if (useMocks()) return mock.mockLedger(resolved.limit, resolved.cursor)
+
+  const params = new URLSearchParams()
+  params.set('limit', String(resolved.limit))
+  if (resolved.cursor) params.set('cursor', resolved.cursor)
+  return apiGet<OkLedger>(`/ledger?${params.toString()}`)
 }
 
-export function friendlyEconomyError(error: string) {
-  if (/network|reach|abort|fetch|failed/i.test(error)) return 'Network wahala, try again.'
-  return error || 'Network wahala, try again.'
+export function friendlyEconomyError(fail: string | EconomyFail) {
+  if (typeof fail === 'string') {
+    return friendlyApiMessage({ ok: false, error: fail })
+  }
+  return friendlyApiMessage(fail)
 }

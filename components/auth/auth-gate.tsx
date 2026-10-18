@@ -1,7 +1,7 @@
 'use client'
 
 import { usePathname, useRouter } from 'next/navigation'
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { TextShimmer } from '@/components/arc/text-shimmer/text-shimmer'
 import { fetchAuthMe } from '@/lib/auth/fetch-auth-me'
 import {
@@ -21,7 +21,6 @@ export function AuthGate({ mode, children }: { mode: AuthGateMode; children: Rea
   const router = useRouter()
   const pathname = usePathname()
   const [allowed, setAllowed] = useState(false)
-  const allowedOnce = useRef(false)
 
   useEffect(() => {
     let cancelled = false
@@ -34,7 +33,6 @@ export function AuthGate({ mode, children }: { mode: AuthGateMode; children: Rea
         router.replace(dest)
         return
       }
-      allowedOnce.current = true
       setAllowed(true)
     })()
     return () => {
@@ -42,10 +40,11 @@ export function AuthGate({ mode, children }: { mode: AuthGateMode; children: Rea
     }
   }, [mode, pathname, router])
 
-  // First visit only — after that keep the setup tree mounted across look/traits/dream/live.
-  if (!allowed && !allowedOnce.current) {
+  // Never return null — a blank frame under body overflow:hidden reads as a dark flash
+  // when the landing/auth gate hands off to home.
+  if (!allowed) {
     return (
-      <div className={styles.loading} aria-busy="true" aria-live="polite">
+      <div className={styles.loading} data-theme="light" aria-busy="true" aria-live="polite">
         <img src="/logo.png" alt="" className={styles.crest} width={88} height={88} />
         <h1 className={styles.mark}>
           <TextShimmer>Ekpoma Life</TextShimmer>
@@ -53,8 +52,6 @@ export function AuthGate({ mode, children }: { mode: AuthGateMode; children: Rea
       </div>
     )
   }
-
-  if (!allowed) return null
 
   return children
 }
