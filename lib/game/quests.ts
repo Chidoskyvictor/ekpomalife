@@ -158,15 +158,24 @@ export function questStackFor(state: GameState): QuestPill[] {
 export function rentPill(rent: RentInfo | null | undefined): QuestPill | null {
   if (!rent || rent.status === 'ok') return null
   const amount = `₦${rent.amount.toLocaleString()}`
+  const title =
+    rent.status === 'evicted'
+      ? 'Evicted — pay rent'
+      : rent.status === 'late'
+        ? 'Rent is waiting'
+        : 'Rent due'
+  const hint =
+    rent.status === 'evicted'
+      ? `${amount} · Off-campus Hostels`
+      : rent.status === 'late'
+        ? `${amount} · a bit late, pay when you can`
+        : `${amount} · Baba Landlord`
   return {
     id: 'task-rent-due',
     kind: 'task',
     emoji: '/emoji/house.png',
-    title: rent.status === 'late' ? 'Rent is waiting' : 'Rent due',
-    hint:
-      rent.status === 'late'
-        ? `${amount} · a bit late, pay when you can`
-        : `${amount} · Baba Landlord`,
+    title,
+    hint,
     rentPay: true,
   }
 }

@@ -53,6 +53,11 @@ export async function createEconomyHandlers(): Promise<Handler[]> {
       }),
       http.get('/rent', () => json(mock.mockRent())),
       http.post('/rent/pay', () => json(mock.mockPayRent())),
+      http.get('/hustles', () => json(mock.mockHustles())),
+      http.post('/hustles/run', async ({ request }) => {
+        const body = (await request.json()) as { hustleId?: string }
+        return json(mock.mockRunHustle(body.hustleId ?? ''))
+      }),
       http.get('/ledger', ({ request }) => {
         const url = new URL(request.url)
         const limit = Number(url.searchParams.get('limit') ?? 20)

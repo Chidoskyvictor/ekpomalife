@@ -3,6 +3,7 @@
  * Enabled only when NEXT_PUBLIC_USE_MOCKS=true (or legacy USE_ECONOMY_MOCK=1).
  */
 import type {
+  Hustle,
   InventoryItem,
   Job,
   JobLevel,
@@ -161,8 +162,35 @@ const SHOP: Record<string, ShopItem[]> = {
       category: 'licence',
       effects: { item: 'keke-licence' },
     },
+    {
+      id: 'lodge-deed',
+      name: 'Lodge deed',
+      emoji: '🏡',
+      price: 250000,
+      category: 'licence',
+      effects: { item: 'lodge-deed' },
+    },
   ],
 }
+
+const HUSTLES: Hustle[] = [
+  {
+    id: 'sort-lecturer',
+    title: 'Sort lecturer',
+    hint: 'A campus favour gone sideways. Outcome is luck — no tips, no how-to.',
+    placeId: 'admin-block',
+    energyCost: 15,
+    periods: ['morning', 'afternoon', 'evening'],
+  },
+  {
+    id: 'junction-runs',
+    title: 'Runs at the junction',
+    hint: 'Something shady by the road. Pure chance — keep it fictional.',
+    placeId: 'keke-park',
+    energyCost: 20,
+    periods: ['afternoon', 'evening', 'night'],
+  },
+]
 
 let currentJobId: string | null = null
 let cash = 125_000
@@ -174,6 +202,10 @@ let rent: RentInfo = {
   paidUntil: new Date(Date.now() - 5 * 86400000).toISOString(),
   status: 'due',
   label: 'Baba Landlord',
+  warnings: 0,
+  lastWarnedAt: null,
+  evictedAt: null,
+  message: null,
 }
 let ledger: LedgerEntry[] = [
   {
@@ -312,6 +344,10 @@ export function mockPayRent() {
   rent = {
     ...rent,
     status: 'ok',
+    warnings: 0,
+    lastWarnedAt: null,
+    evictedAt: null,
+    message: null,
     paidUntil: new Date(Date.now() + 7 * 86400000).toISOString(),
     dueAt: new Date(Date.now() + 7 * 86400000).toISOString(),
   }
@@ -319,7 +355,30 @@ export function mockPayRent() {
     ok: true as const,
     state: snapshotState(),
     rent: { ...rent },
-    message: 'Rent paid. Baba Landlord is smiling.',
+    message: 'Rent paid. Baba Landlord is smiling. Warnings cleared.',
+  }
+}
+
+export function mockHustles() {
+  return {
+    ok: true as const,
+    hustles: HUSTLES.map((h) => ({ ...h })),
+    hustleLockoutUntil: null as number | null,
+  }
+}
+
+export function mockRunHustle(hustleId: string) {
+  const hustle = HUSTLES.find((h) => h.id === hustleId)
+  if (!hustle) return { ok: false as const, error: 'That hustle is gone.' }
+  const earned = 1200
+  pushLedger(earned, hustle.title, 'event')
+  return {
+    ok: true as const,
+    state: snapshotState(`Mock hustle: ${hustle.title}`),
+    outcome: 'reward',
+    earned,
+    fine: 0,
+    message: `${hustle.title}: somehow it paid. +₦${earned.toLocaleString()}`,
   }
 }
 
@@ -352,6 +411,10 @@ export function resetEconomyMock() {
     paidUntil: new Date(Date.now() - 5 * 86400000).toISOString(),
     status: 'due',
     label: 'Baba Landlord',
+    warnings: 0,
+    lastWarnedAt: null,
+    evictedAt: null,
+    message: null,
   }
   ledger = [
     {

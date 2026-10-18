@@ -96,23 +96,23 @@ Legend: ✅ DONE · 🟡 PARTIAL · ⬜ NOT STARTED
 | Look (body, hair, outfit, fabric/colours, GLB) | ✅ | `app/look`, `components/look/*`, `lib/game/look.ts`, `hair-config.ts`, `outfit-config.ts`, `backend/src/game/look.ts` | Server-validated via `POST /character/look`. Hair GLBs fitted per style; dev-only debug panel. |
 | Traits (pick exactly 2 of 10) | ✅ | `app/traits`, `components/traits/*`, `lib/game/traits.ts`, `backend/src/game/traits.ts` | Server rejects if look not done. Traits have **no in-game effect yet** except starting-money modifiers. |
 | Dreams | 🟡 | `app/dream`, `components/dreams/*`, `lib/game/dreams.ts`, `backend/src/game/dreams.ts`, `share-dream.ts` | **6 dreams, not 7** — `faculty-president` is missing (goal type `election` exists but no dream uses it). Dream progress check trusts a client-sent snapshot. |
-| Live step (character type, lodging, course) | 🟡 | `app/live`, `components/live/live-studio.tsx`, `lib/game/live.ts`, `lib/game/creation.ts` | UI done. **Saved only in browser** (no server column/route). Lodging carries its own `startCash` (₦100k–₦600k) which conflicts with the server spin. |
-| Starting-money spin | 🟡 | `components/create/starting-money-spin.tsx`, `backend/src/game/starting-money.ts`, `POST /character/starting-money`, `sql/004`, `share-starting-money.ts` | Server rolls once (transaction + `cash_rolled_at`) ✅. Missing faculty-president range. Local fallback `rollStartingMoneyLocal` still exists on client. |
+| Live step (character type, lodging, course) | 🟡 | `app/live`, `components/live/live-studio.tsx`, `lib/game/live.ts`, `lib/game/creation.ts` | UI + `POST /character/setup` (type/lodging/course). Lodging `startCash` removed — server spin only. |
+| Starting-money spin | 🟡 | `components/create/starting-money-spin.tsx`, `backend/src/game/starting-money.ts`, `POST /character/starting-money`, `sql/004`, `share-starting-money.ts` | Server rolls once (transaction + `cash_rolled_at`) ✅. Missing faculty-president range. Client `rollStartingMoneyLocal` removed. |
 | Onboarding gate (look→traits→dream→live→play) | 🟡 | `lib/game/onboarding.ts`, `backend/src/game/onboarding.ts` | Server knows look/traits/dream only; `live` step is client-side. |
-| Game state + core actions | 🟡 | `hooks/use-game.tsx`, `lib/game/rules.ts`, `content.ts`, `types.ts` | Works in the browser: actions, travel (walk/keke), events, objectives. **All client-side + localStorage**; `STARTER_CASH = 5000` still in rules.ts. |
+| Game state + core actions | 🟡 | `hooks/use-game.tsx`, `lib/game/rules.ts`, `content.ts`, `types.ts`, `backend/src/game/game-state.ts` | Server `game_state` + `/game/*` for play path; client preview remains. `STARTER_CASH` removed. |
 | Needs (6) + XP/level + mood | 🟡 | `lib/game/needs.ts`, `components/hud/needs-stack.tsx` | Client-only decay per time period. |
 | Time (day + 4 periods, calendar, rent day) | 🟡 | `rules.ts`, `needs.ts` (`calendarForDay`, `PERIOD_CLOCK`), `clock-pill.tsx` | Client-only; rent is a reminder pill, no charge. |
 | HUD (Apple-glass) | 🟡 | `components/hud/hud.tsx` + ~30 parts | Status bar, money pill, needs, Up Next pill with **bell**, quest stack, play nav (home/buy/phone…), vaul sheets (today/profile/settings), Island toast, me-card avatar ring — present. Some pills point at placeholder data (e.g. "Daily Okada Coins", hard-coded city events). |
 | Phone | 🟡 | `components/hud/phone-dialog.tsx`, `bank-screen.tsx` | Gist feed + **Bank** (balance + `/ledger`). Other apps still Phase 5. |
 | 3D map – first slab | 🟡 | `lib/game/world-layout.ts` (`MAP_ZONES`, `ROAD_GAPS`, `TREE_SPOTS`, `FENCE_U`), `components/world/*` | Town side, gate, campus side and extended area are placed (see §4.7). **Zones are visual only** — gameplay still uses the 15 old `content.ts` locations; the two lists are not linked. |
 | Billboards / ads | ⬜ | — | Nothing in code. |
-| Economy (jobs, shop, rent, transactions ledger) | ✅ | Frontend: `lib/game/economy-api.ts`, `economy-mock.ts`, HUD panels. Backend: `backend/sql/007_phase2_economy.sql`, `backend/src/game/economy.ts`, `routes/economy.ts` | **Phase 2 backend live** — same routes/shapes as MSW mocks. Money via `applyCash()` + ledger under `SELECT … FOR UPDATE`. Setup guard returns `SETUP_INCOMPLETE`. Frontend can turn mocks off. |
+| Economy (jobs, shop, rent, transactions ledger) | ✅ | Frontend: `lib/game/economy-api.ts`, `economy-mock.ts`, HUD panels. Backend: `sql/007` + `sql/008`, `economy.ts`, `payouts.ts`, `rent-ladder.ts`, `hustles.ts`, `idempotency.ts` | Phase 2 complete: jobs/shop/rent + Monday allowance, rent warning ladder → eviction, landlord income (deed), abstract hustles, `idempotency_keys`, `payouts`. Degree-class pay bonus still open. |
 | Multiplayer / chat by area | ⬜ | — | |
 | Events / elections | 🟡 | `content.ts` `EVENTS` (6 random pop-ups), `quests.ts` city events | Fictional pop-ups only; no real-world events feed, no elections. |
 | Innovation Hub | 🟡 | location `innovation_hub`, action `feedback` | Action only; no form, nothing stored. |
 | Payments (Paystack) | ⬜ | — | |
 | Deploy (Cloudflare + api.ekpomalife.app) | 🟡 | `DEPLOY.md`, `wrangler.jsonc`, `open-next.config.ts`, `render.yaml`, `backend/Dockerfile` | Config + hand-run guide ready. OpenNext (Next 16) → Cloudflare Worker; API → Render + Neon. DNS/SSL/Resend steps in DEPLOY.md — not live until you run them. |
-| Tests | 🟡 | Frontend Vitest + MSW; backend Vitest (`npm test` in `backend/`) | Backend: actions/needs/starting-money/setup-status + Phase 2 economy DB tests (funds, concurrency, ledger sum, setup guard). |
+| Tests | 🟡 | Frontend Vitest + MSW; backend Vitest (`npm test` in `backend/`) | Backend: Phase 2 + complete suite (allowance concurrency/catch-up, rent ladder, landlord deed income, hustle fine/lockout, ledger = balance). |
 | Docs | 🟡 | `MAP.md` (stale: says "only Admin Block"), `spec.md` (untracked, says Prisma — wrong), `backend/README.md`, `AGENTS.md` | Replace `spec.md` with this file; refresh `MAP.md`. |
 
 ---
@@ -303,17 +303,23 @@ Auth required (session cookie). Incomplete setup → **409** `{ ok: false, error
 | POST | `/shop/buy` | `{ itemId, qty? }` | `{ ok, state, inventory[], message, questComplete? }` |
 | GET | `/inventory` | — | `{ ok, items[] }` |
 | POST | `/inventory/use` | `{ itemId }` | `{ ok, state, inventory[], message }` |
-| GET | `/rent` | — | `{ ok, rent: { lodgingId, amount, dueAt, paidUntil, status, label? } }` |
-| POST | `/rent/pay` | `{}` | `{ ok, state, rent, message }` |
+| GET | `/rent` | — | `{ ok, rent: { lodgingId, amount, dueAt, paidUntil, status, label?, warnings, lastWarnedAt, evictedAt, message } }` — `status`: `ok \| due \| late \| evicted` |
+| POST | `/rent/pay` | `{}` | `{ ok, state, rent, message }` — clears warnings / eviction flags |
+| GET | `/hustles` | — | `{ ok, hustles[], hustleLockoutUntil }` — abstract risky activities |
+| POST | `/hustles/run` | `{ hustleId }` | `{ ok, state, outcome, earned, fine, message }` — `outcome`: `reward \| fine \| rep_loss \| lockout` |
 | GET | `/ledger` | `?limit=` (default 20), `?cursor=` (ledger entry id for next page) | `{ ok, entries[], cash, nextCursor }` |
 
-`state` is the same `ServerGameState` object as `GET /game/state` (plus `ok: true` nested for economy success payloads).
+`state` is the same `ServerGameState` object as `GET /game/state` (plus `ok: true` nested for economy success payloads). Optional: `toast`, `notices[]`, `reputation`, `hustleLockoutUntil`.
 
-**Error codes** (in `{ ok: false, error }`): `SETUP_INCOMPLETE`, `INSUFFICIENT_FUNDS`, `NO_ENERGY`, `NOT_ELIGIBLE`, `VERSION_CONFLICT`. Job/item missing may also return human strings matching the mocks (`That job is gone.`, `Item not found.`, `Apply for a job first.`).
+**Mutating POSTs** require header `Idempotency-Key` (≤128 chars). Same key returns the stored `{ status, body }` from `idempotency_keys` (created in `sql/008` — **reuse in later migrations**).
 
-**Tables** (`sql/007_phase2_economy.sql`): `jobs`, `shop_items`, `inventory`, `rent`, `player_jobs`; `ledger` gains `kind`, `balance_after`. Seed catalog copied from `lib/game/economy-mock.ts` (+ a few extra shop rows).
+**Error codes** (in `{ ok: false, error }`): `SETUP_INCOMPLETE`, `INSUFFICIENT_FUNDS`, `NO_ENERGY`, `NOT_ELIGIBLE`, `VERSION_CONFLICT`, `HUSTLE_LOCKED`. Job/item missing may also return human strings matching the mocks (`That job is gone.`, `Item not found.`, `Apply for a job first.`).
 
-**Money rule:** every cash change goes through `applyCash()` / `writeCashChange()` inside a transaction with `SELECT … FOR UPDATE` on `game_state`, rejects negative balances, bumps `version`, writes a ledger row, mirrors cash onto `characters.cash`.
+**Tables** (`sql/007_phase2_economy.sql` + `sql/008_phase2_economy_complete.sql`): `jobs`, `shop_items`, `inventory`, `rent` (+ warnings / eviction / game-day columns), `player_jobs`, `payouts` `(character_id, kind, game_week)`, `idempotency_keys`; `game_state` gains `hustle_lockout_until`, `reputation`, `pending_toast`; shop seed includes `lodge-deed`.
+
+**Weekly (lazy on state read / economy actions, game clock):** student Monday allowance ₦3,000 (`kind: allowance`, catch-up ≤4 weeks); landlord income when `lodge-deed` owned (`ledger kind: rent` positive; payouts kind `landlord_income`); rent ladder on Saturday rent day → warning 1 → 2 → eviction to `selfcon-oxford` (Off-campus Hostels).
+
+**Money rule:** every cash change goes through `applyCash()` / `writeCashChange()` inside a transaction with `SELECT … FOR UPDATE` on `game_state`, rejects negative balances, bumps `version`, writes a ledger row, mirrors cash onto `characters.cash`. Fines clip to available cash (never below 0).
 
 > Note: an older draft used `POST /jobs/:id/work`. The **live frontend** uses `/jobs/apply` + `/jobs/shift` — the backend matches that.
 
@@ -369,10 +375,10 @@ Frontend: `components/buildings/building-panel.tsx` + config `lib/game/buildings
 *Accept:* clearing localStorage loses nothing; editing cash in devtools changes nothing server-side; double-tapping an action charges once; create flow → /live → play works with server only; tests for actions, travel, needs drain, starting money once-only.
 
 **Phase 2 — Economy, jobs, shop, rent.** §5.2 + §7.5.
-*Frontend:* ✅ Jobs / Shop / Inventory (`POST /inventory/use`) / Rent / Bank (ledger cursor infinite scroll) → real API via `lib/api` + `lib/game/economy-api.ts`. Mocks **off** unless `NEXT_PUBLIC_USE_MOCKS=true`. HUD cash from server `state` after every action. Typed errors + friendly toasts / silent conflict refetch / setup + login redirects.
-*Backend:* ✅ Contracts match §7.5; `applyCash()` + ledger; ledger `cursor`/`nextCursor`; Vitest DB tests green.
-*Still open vs full §5.2:* weekly eviction ladder, Monday allowance, remove client `STARTER_CASH` / lodging `startCash` / `rollStartingMoneyLocal`.
-*Accept:* every cash change has a ledger row; balance never < 0 (tested); 6 jobs + 15 shop items seeded; rent pay extends `due_at`; traits affect job lock/pay; FE end-to-end with mocks off.
+*Frontend:* ✅ Jobs / Shop / Inventory / Rent / Bank → real API. Mocks off unless `NEXT_PUBLIC_USE_MOCKS=true`. Minimal `evicted` rent status + hustle API types/mocks. **Follow-up:** send `Idempotency-Key` on mutating POSTs; wire `state.toast` / allowance+landlord ledger rows in Bank + Island toast; hustle UI panel.
+*Backend:* ✅ §7.5 + allowance, rent ladder, landlord deed income, hustles, `idempotency_keys`, `payouts`; Vitest DB tests green.
+*Still open vs full §5.2:* degree-class pay bonus after graduation.
+*Accept:* every cash change has a ledger row; balance never < 0 (tested); 6 jobs + shop items (+ lodge-deed); rent pay clears warnings; traits affect job lock/pay; FE end-to-end with mocks off (after Idempotency-Key follow-up).
 
 **Phase 3 — World, models, buildings.** §5.3 + §7.6.
 *Frontend:* ✅ Building interiors as UI panels (`BuildingPanel` + `lib/game/buildings.ts`). Every slab-1 zone opens a panel; Student Affairs / halls / ICT / clinic / sports / leisure / faculty / shuttle wired; quiz + CBT mocks; SPEC lists action ids.

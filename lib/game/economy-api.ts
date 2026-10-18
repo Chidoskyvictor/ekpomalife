@@ -60,8 +60,23 @@ export type RentInfo = {
   amount: number
   dueAt: string
   paidUntil: string
-  status: 'ok' | 'due' | 'late'
+  status: 'ok' | 'due' | 'late' | 'evicted'
   label?: string
+  warnings?: number
+  lastWarnedAt?: string | null
+  evictedAt?: string | null
+  message?: string | null
+}
+
+export type Hustle = {
+  id: string
+  title: string
+  hint: string
+  placeId: string
+  energyCost: number
+  periods: string[]
+  locked?: boolean
+  lockReason?: string
 }
 
 export type LedgerEntry = {
@@ -103,6 +118,19 @@ type OkUse = {
 type OkRent = { ok: true; rent: RentInfo }
 type OkPayRent = { ok: true; state: ServerGameState; rent: RentInfo; message: string }
 type OkLedger = { ok: true; entries: LedgerEntry[]; cash: number; nextCursor?: string | null }
+type OkHustles = {
+  ok: true
+  hustles: Hustle[]
+  hustleLockoutUntil?: number | null
+}
+type OkHustleRun = {
+  ok: true
+  state: ServerGameState
+  outcome: string
+  earned: number
+  fine: number
+  message: string
+}
 
 export async function fetchJobs(placeId?: string | null): Promise<OkJobs | EconomyFail> {
   if (useMocks()) return mock.mockJobs(placeId)
@@ -164,6 +192,16 @@ export async function fetchLedger(
   params.set('limit', String(resolved.limit))
   if (resolved.cursor) params.set('cursor', resolved.cursor)
   return apiGet<OkLedger>(`/ledger?${params.toString()}`)
+}
+
+export async function fetchHustles(): Promise<OkHustles | EconomyFail> {
+  if (useMocks()) return mock.mockHustles()
+  return apiGet<OkHustles>('/hustles')
+}
+
+export async function runHustle(hustleId: string): Promise<OkHustleRun | EconomyFail> {
+  if (useMocks()) return mock.mockRunHustle(hustleId)
+  return apiPost<OkHustleRun>('/hustles/run', { hustleId })
 }
 
 export function friendlyEconomyError(fail: string | EconomyFail) {

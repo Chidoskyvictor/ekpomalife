@@ -23,6 +23,10 @@ export type ServerGameState = {
   version: number
   places: Place[]
   message?: string
+  /** Island toast from weekly payouts / rent ladder */
+  toast?: string | null
+  reputation?: number
+  hustleLockoutUntil?: number | null
   /** Academic / campus progress — server owned */
   campus?: CampusState
   confetti?: boolean
