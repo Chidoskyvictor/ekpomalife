@@ -203,6 +203,44 @@ export function getPlaceByZone(zoneId: string | null | undefined): Place | null 
 
 export const PLACE_IDS = PLACES.map((place) => place.id)
 
+/**
+ * Rough UV from MAP_ZONES (plus hostel placeholders not on the map).
+ * Used for ride hop distance — not for rendering.
+ */
+export const PLACE_UV: Record<string, { u: number; v: number }> = {
+  'college-of-medicine': { u: 0.085, v: 0.8 },
+  'town-shop-1': { u: 0.245, v: 0.28 },
+  bukka: { u: 0.245, v: 0.76 },
+  'off-campus-hostels': { u: 0.32, v: 0.12 },
+  market: { u: 0.335, v: 0.72 },
+  clinic: { u: 0.46, v: 0.2 },
+  'sports-complex': { u: 0.48, v: 0.56 },
+  'ict-exams': { u: 0.54, v: 0.26 },
+  education: { u: 0.54, v: 0.38 },
+  'mass-comm': { u: 0.6, v: 0.46 },
+  'admin-block': { u: 0.54, v: 0.72 },
+  'students-centre': { u: 0.7, v: 0.54 },
+  'cordelia-hall': { u: 0.7, v: 0.7 },
+  'law-campus': { u: 0.7, v: 0.38 },
+  engineering: { u: 0.84, v: 0.58 },
+  'shuttle-park': { u: 0.975, v: 0.84 },
+  'keke-park': { u: 0.47, v: 0.74 },
+  'relaxation-centre': { u: 0.055, v: 0.48 },
+  // Hostels removed from map — near campus edge for fare math
+  'school-hostels-1': { u: 0.5, v: 0.15 },
+  'school-hostels-2': { u: 0.55, v: 0.15 },
+}
+
+/** Zone-distance units between two places (min 1 when distinct). */
+export function hopDistance(fromPlaceId: string, toPlaceId: string): number | null {
+  const a = PLACE_UV[fromPlaceId]
+  const b = PLACE_UV[toPlaceId]
+  if (!a || !b) return null
+  if (fromPlaceId === toPlaceId) return 0
+  const hops = Math.round(Math.hypot(a.u - b.u, a.v - b.v) / 0.12)
+  return Math.max(1, hops)
+}
+
 /** Lodging start → place id. */
 export function startPlaceForLodging(lodgingId: string | null | undefined): string {
   if (lodgingId === 'hostel-poultry') return 'school-hostels-1'

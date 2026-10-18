@@ -103,7 +103,7 @@ Legend: ✅ DONE · 🟡 PARTIAL · ⬜ NOT STARTED
 | Needs (6) + XP/level + mood | 🟡 | `lib/game/needs.ts`, `components/hud/needs-stack.tsx` | Client-only decay per time period. |
 | Time (day + 4 periods, calendar, rent day) | 🟡 | `rules.ts`, `needs.ts` (`calendarForDay`, `PERIOD_CLOCK`), `clock-pill.tsx` | Client-only; rent is a reminder pill, no charge. |
 | HUD (Apple-glass) | 🟡 | `components/hud/hud.tsx` + ~30 parts | Status bar, money pill, needs, Up Next pill with **bell**, quest stack, play nav (home/buy/phone…), vaul sheets (today/profile/settings), Island toast, me-card avatar ring — present. Some pills point at placeholder data (e.g. "Daily Okada Coins", hard-coded city events). |
-| Phone | 🟡 | `components/hud/phone-dialog.tsx`, `bank-screen.tsx` | Gist feed + **Bank** (balance + `/ledger`). Other apps still Phase 5. |
+| Phone | 🟡 | Backend: `sql/010_phone.sql`, `game/phone.ts`, `routes/phone.ts`. Shared: `lib/game/phone.ts` ⇄ `backend/src/game/phone.ts`. FE: `phone-dialog.tsx`, `bank-screen.tsx` | **Backend done** (battery/data/rides/idempotency, Vitest). FE apps still Phase 5 (Messages/Gist/etc. wire-up). |
 | 3D map – first slab | 🟡 | `lib/game/world-layout.ts` (`MAP_ZONES`, `ROAD_GAPS`, `TREE_SPOTS`, `FENCE_U`), `components/world/*` | Town side, gate, campus side and extended area are placed (see §4.7). **Zones are visual only** — gameplay still uses the 15 old `content.ts` locations; the two lists are not linked. |
 | Billboards / ads | ⬜ | — | Nothing in code. |
 | Economy (jobs, shop, rent, transactions ledger) | ✅ | Frontend: `lib/game/economy-api.ts`, `economy-mock.ts`, HUD panels. Backend: `sql/007` + `sql/008`, `economy.ts`, `payouts.ts`, `rent-ladder.ts`, `hustles.ts`, `idempotency.ts` | Phase 2 complete: jobs/shop/rent + Monday allowance, rent warning ladder → eviction, landlord income (deed), abstract hustles, `idempotency_keys`, `payouts`. Degree-class pay bonus still open. |
@@ -113,7 +113,7 @@ Legend: ✅ DONE · 🟡 PARTIAL · ⬜ NOT STARTED
 | Innovation Hub | 🟡 | location `innovation_hub`, action `feedback` | Action only; no form, nothing stored. |
 | Payments (Paystack) | ⬜ | — | |
 | Deploy (Cloudflare + api.ekpomalife.app) | 🟡 | `DEPLOY.md`, `wrangler.jsonc`, `open-next.config.ts`, `render.yaml`, `backend/Dockerfile` | Config + hand-run guide ready. OpenNext (Next 16) → Cloudflare Worker; API → Render + Neon. DNS/SSL/Resend steps in DEPLOY.md — not live until you run them. |
-| Tests | 🟡 | Frontend Vitest + MSW; backend Vitest (`npm test` in `backend/`) | Backend: Phase 2 + room (`room-rules` + DB: buy/layout/style/sell/idempotency/sleep bonus). |
+| Tests | 🟡 | Frontend Vitest + MSW; backend Vitest (`npm test` in `backend/`) | Backend: Phase 2 + room + phone (`phone.test.ts`: battery, rides, idempotency, contract keys). |
 | Docs | 🟡 | `MAP.md` (stale: says "only Admin Block"), `spec.md` (untracked, says Prisma — wrong), `backend/README.md`, `AGENTS.md` | Replace `spec.md` with this file; refresh `MAP.md`. |
 
 ---
@@ -234,6 +234,8 @@ Tiers by amount: < ₦250k **Hustle Mode** · < ₦500k **Steady Start** · < �
 
 ### 5.5 Phone (Phase 5)
 Buying a phone unlocks apps inside the existing phone dialog/vaul sheet: **Messages** (DMs), **Gist** (area feed), **Bank** (balance + ledger), **Jobs**, **Ekpoma Market** (shop delivery for a fee), **Calendar** (lectures, rent day, events), **Dream tracker**, **Settings**. Phone tiers change features (e.g. cheap phone: no camera/share cards).
+
+**Backend (done — see §7.8):** persistent `phone_state`, battery/data/wallpaper/badges, data bundles + paid rides via `applyCash`, notifications. Shared ids in `lib/game/phone.ts` ⇄ `backend/src/game/phone.ts`.
 
 ### 5.6 Events, billboards, elections (Phase 6)
 - Events feed: `events` table with `kind: 'real' | 'game'`, `verification: unverified|verified|rejected`, `published`. Real-world Ekpoma events only from admins; unverified never shown as fact. Report-wrong-info button.
@@ -395,6 +397,59 @@ Frontend: `components/buildings/building-panel.tsx` + config `lib/game/buildings
 
 **Config map:** every slab-1 `MAP_ZONES` id should resolve via `getBuilding` / `resolveBuilding` in `lib/game/buildings.ts`. New buildings = data only.
 
+### 7.8 Phone API (in-game phone + rides)
+
+<!-- phone-contract v1 -->
+
+Shared ids/constants: `lib/game/phone.ts` ⇄ `backend/src/game/phone.ts` (header: "mirror lib/game/phone.ts").
+
+**Migration:** `backend/sql/010_phone.sql` → `phone_state`. Reuses `idempotency_keys` from 008/009 (do not recreate).
+
+**Types / constants**
+
+```ts
+export type PhoneAppId =
+  | 'jobs' | 'bank' | 'messages' | 'gist' | 'market' | 'ride'
+  | 'map' | 'calendar' | 'portal' | 'music' | 'games' | 'settings'
+export type WallpaperId = 'aau-dusk' | 'ekpoma-night' | 'harmattan' | 'green-white'
+export type DataBundleId = 'data-100' | 'data-350' | 'data-1000'
+export const DATA_BUNDLES = [
+  { id: 'data-100',  label: '100MB · 1 day',  mb: 100,  price: 100 },
+  { id: 'data-350',  label: '350MB · 3 days', mb: 350, price: 300 },
+  { id: 'data-1000', label: '1GB · 7 days',   mb: 1000, price: 750 },
+] as const
+export type RideMode = 'keke' | 'okada'
+export const RIDE_BASE = { keke: 150, okada: 250 } as const
+export const RIDE_PER_HOP = { keke: 50, okada: 80 } as const
+export const RIDE_MINUTES = { keke: 20, okada: 10 } as const
+export const BATTERY = { drainPerAppOpen: 1, drainPerGameHour: 2, chargePerGameMinuteAtHostel: 1, lowAt: 20 } as const
+export const DATA_COST_MB: Partial<Record<PhoneAppId, number>> = { gist: 2, messages: 1, music: 5, games: 3, map: 1 }
+export const HOSTEL_PLACE_IDS = ['school-hostels-1', 'school-hostels-2', 'off-campus-hostels'] as const
+```
+
+**Battery / data:** Battery drains with game time (`drainPerGameHour`) and app opens; charges only at hostel places (`chargePerGameMinuteAtHostel`, ×2 if room owns `rechargeable-lamp` or `small-gen`). Clamped 0–100; auto-stop at 100 or when leaving hostel. Data spends per `DATA_COST_MB` (still opens with `offline:true` when short).
+
+**Idempotency:** all money POSTs take `idempotencyKey` uuid in the body; replays return `replayed:true` (same response, no second charge). Concurrent double-tap → single charge via existing `idempotency_keys` + advisory lock.
+
+**Ledger kinds:** `phone_data`, `ride` (via `applyCash`, which returns `ledgerId`).
+
+**Endpoints** (session cookie; 401 `{ ok:false, error:"Log in to play." }`; 400 on zod; 403 `NO_PHONE` without category=`phone` inventory item):
+
+| Method | Path | Body / query | Success |
+|---|---|---|---|
+| GET | `/phone` | — | `{ ok, phone, clock, location, promos, bundles, cash }` |
+| POST | `/phone/data/buy` | `{ bundleId, idempotencyKey }` | `{ ok, phone, cash, ledgerId, message, replayed }` |
+| POST | `/phone/charge` | `{ action: 'start'\|'stop' }` | `{ ok, phone, message }` — start only at hostel |
+| POST | `/phone/open` | `{ appId }` | `{ ok, phone, offline }` — `BATTERY_DEAD` at 0 |
+| PATCH | `/phone/settings` | `{ wallpaper }` | `{ ok, phone }` |
+| GET | `/phone/notifications` | — | `{ ok, unread, newApps, items[] }` (max 20) |
+| GET | `/ride/quote` | `?to=<placeId>` | `{ ok, from, to, quotes[] }` |
+| POST | `/ride` | `{ to, mode, idempotencyKey }` | `{ ok, state, fare, cash, ledgerId, message, replayed }` |
+
+**Error codes:** `NO_PHONE`, `BAD_BUNDLE`, `NOT_AT_HOSTEL`, `BATTERY_DEAD`, `SAME_PLACE`, `BAD_PLACE`, `CLOSED`, `INSUFFICIENT_FUNDS` — friendly pidgin, never shaming.
+
+<!-- /phone-contract v1 -->
+
 ---
 
 ## 8. Roadmap (each phase = one big Cursor prompt)
@@ -419,8 +474,10 @@ Frontend: `components/buildings/building-panel.tsx` + config `lib/game/buildings
 **Phase 4 — Multiplayer & chat by area.** §5.4.
 *Accept:* two browsers see each other in the same area; area chat + DMs with rate limit, report, block; friends list feeds campus-celeb; honest online count.
 
-**Phase 5 — Phone.** §5.5.
-*Accept:* no phone → apps locked with explanation; phone bought → Messages, Gist, Bank, Jobs, Market, Calendar, Dream apps work using Phase 1–4 APIs.
+**Phase 5 — Phone.** §5.5 + §7.8.
+*Backend:* ✅ `010_phone.sql`, phone/ride routes, battery/data/rides, idempotent money, Vitest.
+*Frontend (next):* wire phone UI to §7.8 APIs; Messages/Gist/etc. still need Phase 4 chat where noted.
+*Accept:* no phone → 403 `NO_PHONE`; phone bought → battery/data/rides/bank badges work server-side; FE apps use Phase 1–4 APIs.
 
 **Phase 6 — Events, billboards, elections, Innovation Hub.** §5.6.
 *Accept:* events labelled real/game and verified/unverified; scheduled game events change rules (e.g. exam week XP ×2); billboards render on map + HUD from DB; one full election cycle runs and can complete faculty-president; feedback is stored and the UI says so truthfully.

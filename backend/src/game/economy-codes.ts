@@ -3,7 +3,26 @@ export const INSUFFICIENT_FUNDS = 'INSUFFICIENT_FUNDS'
 export const NO_ENERGY = 'NO_ENERGY'
 export const NOT_ELIGIBLE = 'NOT_ELIGIBLE'
 export const VERSION_CONFLICT = 'VERSION_CONFLICT'
+export const NO_PHONE = 'NO_PHONE'
+export const BAD_BUNDLE = 'BAD_BUNDLE'
+export const NOT_AT_HOSTEL = 'NOT_AT_HOSTEL'
+export const BATTERY_DEAD = 'BATTERY_DEAD'
+export const SAME_PLACE = 'SAME_PLACE'
+export const BAD_PLACE = 'BAD_PLACE'
+export const CLOSED = 'CLOSED'
 export { SETUP_INCOMPLETE } from './setup-status.js'
+
+/** Friendly phone / ride copy — never shaming. */
+export const PHONE_ERROR_COPY: Record<string, string> = {
+  INSUFFICIENT_FUNDS: 'Not enough cash for this one — a shift at work go sort am',
+  NO_PHONE: 'Buy a phone at Campus Shop first.',
+  BAD_BUNDLE: 'That data bundle no dey.',
+  NOT_AT_HOSTEL: 'You fit only charge for hostel.',
+  BATTERY_DEAD: 'Phone don die. Charge am for hostel.',
+  SAME_PLACE: 'You dey here already.',
+  BAD_PLACE: 'That place no dey on the map.',
+  CLOSED: 'Keke don close for today. Waka or wait till morning.',
+}
 
 import type { RoomErrorCode } from './room-types.js'
 

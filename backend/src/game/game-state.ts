@@ -219,7 +219,9 @@ export async function applyCash(
   amount: number,
   reason: string,
   kind: string,
-): Promise<{ ok: true; cash: number; version: number } | { ok: false; error: string }> {
+): Promise<
+  { ok: true; cash: number; version: number; ledgerId: string } | { ok: false; error: string }
+> {
   const locked = await client.query<{ cash: string | number; version: number }>(
     `SELECT cash, version FROM game_state WHERE character_id = $1 FOR UPDATE`,
     [characterId],
@@ -237,16 +239,17 @@ export async function applyCash(
     [characterId, nextCash],
   )
   const cash = asMoney(updated.rows[0]!.cash)
+  const ledgerId = createId()
   await client.query(
     `INSERT INTO ledger (id, character_id, amount, reason, kind, balance_after)
      VALUES ($1, $2, $3, $4, $5, $6)`,
-    [createId(), characterId, amount, reason, kind, cash],
+    [ledgerId, characterId, amount, reason, kind, cash],
   )
   await client.query(`UPDATE characters SET cash = $2, updated_at = NOW() WHERE id = $1`, [
     characterId,
     cash,
   ])
-  return { ok: true, cash, version: updated.rows[0]!.version }
+  return { ok: true, cash, version: updated.rows[0]!.version, ledgerId }
 }
 
 export { asMoney, parseNeeds }
