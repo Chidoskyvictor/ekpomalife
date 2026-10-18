@@ -107,12 +107,13 @@ Legend: ✅ DONE · 🟡 PARTIAL · ⬜ NOT STARTED
 | 3D map – first slab | 🟡 | `lib/game/world-layout.ts` (`MAP_ZONES`, `ROAD_GAPS`, `TREE_SPOTS`, `FENCE_U`), `components/world/*` | Town side, gate, campus side and extended area are placed (see §4.7). **Zones are visual only** — gameplay still uses the 15 old `content.ts` locations; the two lists are not linked. |
 | Billboards / ads | ⬜ | — | Nothing in code. |
 | Economy (jobs, shop, rent, transactions ledger) | ✅ | Frontend: `lib/game/economy-api.ts`, `economy-mock.ts`, HUD panels. Backend: `sql/007` + `sql/008`, `economy.ts`, `payouts.ts`, `rent-ladder.ts`, `hustles.ts`, `idempotency.ts` | Phase 2 complete: jobs/shop/rent + Monday allowance, rent warning ladder → eviction, landlord income (deed), abstract hustles, `idempotency_keys`, `payouts`. Degree-class pay bonus still open. |
+| My room (hostel interior) | ✅ | Backend: `sql/009_room.sql`, `room.ts`, `room-rules.ts`, `room-constants.ts`, `routes/room.ts`. Shared: `lib/game/room-*.ts` | Phase 2.5 — GET/POST/PUT room APIs, furniture catalog (18), layout/style/buy/sell, comfort → sleep energy + daily fun. Visit stub 403 unless `ROOM_VISITS_ENABLED`. |
 | Multiplayer / chat by area | ⬜ | — | |
 | Events / elections | 🟡 | `content.ts` `EVENTS` (6 random pop-ups), `quests.ts` city events | Fictional pop-ups only; no real-world events feed, no elections. |
 | Innovation Hub | 🟡 | location `innovation_hub`, action `feedback` | Action only; no form, nothing stored. |
 | Payments (Paystack) | ⬜ | — | |
 | Deploy (Cloudflare + api.ekpomalife.app) | 🟡 | `DEPLOY.md`, `wrangler.jsonc`, `open-next.config.ts`, `render.yaml`, `backend/Dockerfile` | Config + hand-run guide ready. OpenNext (Next 16) → Cloudflare Worker; API → Render + Neon. DNS/SSL/Resend steps in DEPLOY.md — not live until you run them. |
-| Tests | 🟡 | Frontend Vitest + MSW; backend Vitest (`npm test` in `backend/`) | Backend: Phase 2 + complete suite (allowance concurrency/catch-up, rent ladder, landlord deed income, hustle fine/lockout, ledger = balance). |
+| Tests | 🟡 | Frontend Vitest + MSW; backend Vitest (`npm test` in `backend/`) | Backend: Phase 2 + room (`room-rules` + DB: buy/layout/style/sell/idempotency/sleep bonus). |
 | Docs | 🟡 | `MAP.md` (stale: says "only Admin Block"), `spec.md` (untracked, says Prisma — wrong), `backend/README.md`, `AGENTS.md` | Replace `spec.md` with this file; refresh `MAP.md`. |
 
 ---
@@ -218,7 +219,7 @@ Tiers by amount: < ₦250k **Hustle Mode** · < ₦500k **Steady Start** · < �
 
 ### 5.3 World, models, buildings (Phase 3)
 - Every listed zone has a model, roof label, and (if playable) actions.
-- Interiors are sheets, not 3D rooms (low data).
+- Interiors are sheets, not 3D rooms (low data) — **exception: My Room** (Phase 2.5) is a real 3D hostel interior with furniture GLBs / primitives under `/models/room/`.
 - Player avatar walks between zones on road graph (visual only; server decides arrival).
 - Add missing town spots as zones: Mama Amina Bukka, Keke Park/Shuttle Park link, Viewing Centre, church, mosque, Maryvale.
 - Asset budget: lazy-load GLBs per area; meshopt; total first load target < 8 MB; low-perf mode drops trees/shadows.
@@ -255,7 +256,7 @@ Buying a phone unlocks apps inside the existing phone dialog/vaul sheet: **Messa
 2. Money is integer naira in `BIGINT`. No floats in money math (round before storing).
 3. One `applyCash()` pathway, inside a DB transaction, writes the ledger and blocks negative balances.
 4. Starting money is rolled once (`cash_rolled_at`). No other starting grant exists.
-5. Every mutating request: authenticated session, zod-validated body, idempotency key, rate limit.
+5. Every mutating request: authenticated session, zod-validated body, idempotency key, rate limit. **Idempotency is live for `/room/*` mutating routes** (`idempotency_keys` from sql/008, evolved in sql/009). Retrofit `/shop/buy`, `/rent/pay`, `/jobs/shift` in a later prompt — do not change those in the room prompt.
 6. Randomness on the server only (`crypto.randomInt`); seeded/injectable for tests.
 7. Dream completion is computed from server state, never from a client snapshot (fix `/character/dream/check`).
 8. Paystack credits only via verified webhook.
@@ -271,8 +272,9 @@ Buying a phone unlocks apps inside the existing phone dialog/vaul sheet: **Messa
 - `sessions(id, user_id, token_hash UNIQUE, expires_at, created_at)`
 - `characters(id, user_id UNIQUE, dream_id, snapshot JSONB, badges TEXT[], dream_completed_at, updated_at, appearance JSONB, traits TEXT[], cash BIGINT, starting_cash BIGINT, starting_tier TEXT, cash_rolled_at)`
 
-### 7.2 Planned tables
-`player_state`, `transactions`, `items`, `inventory`, `jobs_log`, `lodges` (ownership), `areas`/`presence` (ephemeral), `messages`, `friends`, `events`, `billboards`, `elections`, `candidates`, `votes`, `feedback`, `payments`, `idempotency_keys`. Add `users.email`, `users.date_of_birth`, `characters.character_type/lodging_id/course_id`.
+### 7.2 Planned / built tables
+**Built:** `game_state`, `ledger`, `jobs`, `shop_items`, `inventory`, `rent`, `player_jobs`, `payouts`, `idempotency_keys` (sql/008 + request_hash/character_id in sql/009), `furniture_catalog`, `room_items`, `room_style`.
+**Still planned:** `areas`/`presence` (ephemeral), `messages`, `friends`, `events`, `billboards`, `elections`, `candidates`, `votes`, `feedback`, `payments`.
 
 ### 7.3 Existing routes
 | Method | Path | Notes |
@@ -323,7 +325,36 @@ Auth required (session cookie). Incomplete setup → **409** `{ ok: false, error
 
 > Note: an older draft used `POST /jobs/:id/work`. The **live frontend** uses `/jobs/apply` + `/jobs/shift` — the backend matches that.
 
-### 7.6 Building interiors (UI panels → `POST /game/action`)
+### 7.6 Room API (My Room / hostel interior)
+
+<!-- room-contract v1 -->
+
+Shared contract (backend + frontend). Types/constants/rules live in `backend/src/game/room-*.ts` and `lib/game/room-*.ts`.
+
+**Endpoints** (session required; setup incomplete → 409 `SETUP_INCOMPLETE`):
+
+| Method | Path | Body | Success |
+|---|---|---|---|
+| GET | `/room` | — | `{ ok, room: RoomState, catalog: FurnitureItem[] }` |
+| GET | `/room/:username` | — | `{ ok, room, readOnly:true }` or 403 `VISITS_DISABLED` (unless self / `ROOM_VISITS_ENABLED=1`) |
+| POST | `/room/buy` | `{ itemId, qty? }` | `{ ok, room, state, bought[], message }` — Idempotency-Key required |
+| PUT | `/room/layout` | `{ version, items[] }` | `{ ok, room }` — Idempotency-Key required |
+| PUT | `/room/style` | `{ version, wallColor?, floorId? }` | `{ ok, room, state, charged, message }` — Idempotency-Key required |
+| POST | `/room/sell` | `{ uid }` | `{ ok, room, state, refunded, message }` — Idempotency-Key required |
+
+**Idempotency:** missing/invalid UUID → 400 `IDEMPOTENCY_KEY_REQUIRED`. Same key + same body → stored response (no double charge). Same key + different body → 409 `IDEMPOTENCY_CONFLICT`.
+
+**Placement / comfort:** `validateLayout` + `computeComfort` (pure). Worked example: mattress-floor + standing-fan + poster-afrobeats + default style → score **13**, label **Bare**, `sleepEnergyBonusPct` 8, `dailyFunBonus` 0.
+
+**Money:** all charges/refunds via `applyCash` (`purchase` / `refund`). Starter mattress free (no ledger). Paint ₦1500 (default colour free). Floors charged once via `owned_floors`.
+
+**Game effects:** sleep energy × `(1 + sleepEnergyBonusPct/100)` capped at 2×; `dailyFunBonus` once per game day on `room_style.last_fun_bonus_day`.
+
+**Friendly copy** (server `error` string): see `ROOM_ERROR_COPY` in `economy-codes.ts` (`INSUFFICIENT_FUNDS`, `TIER_LOCKED`, `OVERLAP`, `OUT_OF_BOUNDS`, `TOO_MANY`, `VERSION_CONFLICT`, …).
+
+<!-- /room-contract v1 -->
+
+### 7.7 Building interiors (UI panels → `POST /game/action`)
 
 Frontend: `components/buildings/building-panel.tsx` + config `lib/game/buildings.ts`. Tapping a map zone opens a bottom sheet (mobile) / centered card (desktop). **No client money or grade math** — every action is `POST /game/action` with `{ actionId, targetPlaceId, version, payload? }`. Success returns the same `ServerGameState` as `GET /game/state`, plus optional fields below. Mocks: `lib/game/buildings-mock.ts` when `NEXT_PUBLIC_USE_MOCKS=true`; MSW stubs in `lib/game/economy-msw.ts`.
 
