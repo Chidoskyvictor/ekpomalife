@@ -42,6 +42,11 @@ const envSchema = z.object({
     (value) => (value == null || value === '' ? 'ekpoma-dev-reset-pepper' : value),
     z.string().min(8),
   ),
+  /** Phase 4 room visits. Off by default — GET /room/:username only for self. */
+  ROOM_VISITS_ENABLED: z
+    .enum(['true', 'false', '1', '0'])
+    .optional()
+    .transform((value) => value === 'true' || value === '1'),
 })
 
 export const env = envSchema.parse(process.env)

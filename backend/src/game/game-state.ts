@@ -130,7 +130,30 @@ export async function tickGameState(
     return { ...row, last_tick_at: now }
   }
 
-  const needs = decayNeeds(parseNeeds(row.needs), gameMinutes, traits, lodgingDecayMult)
+  let needs = decayNeeds(parseNeeds(row.needs), gameMinutes, traits, lodgingDecayMult)
+  const prevDay = clockFromGameTime(prevTime).day
+  const nextDay = clockFromGameTime(nextTime).day
+  if (nextDay > prevDay) {
+    try {
+      const { applyDailyFunBonus } = await import('./room.js')
+      const lodging = await client.query<{ lodging_id: string | null }>(
+        `SELECT lodging_id FROM characters WHERE id = $1`,
+        [row.character_id],
+      )
+      const bonus = await applyDailyFunBonus(
+        client,
+        row.character_id,
+        lodging.rows[0]?.lodging_id ?? null,
+        nextDay,
+        needs.fun,
+      )
+      if (bonus.granted > 0) {
+        needs = { ...needs, fun: bonus.fun }
+      }
+    } catch {
+      // Room tables may not exist yet in mid-migration tests.
+    }
+  }
   await client.query(
     `UPDATE game_state
      SET needs = $2::jsonb, game_time = $3, last_tick_at = $4, updated_at = NOW()
@@ -484,7 +507,15 @@ export async function performGameAction(
       }
     }
 
-    let needs = applyNeedDelta(parseNeeds(row.needs), action.needEffects)
+    let effects = { ...action.needEffects }
+    if (action.id === 'sleep' && typeof effects.energy === 'number' && effects.energy > 0) {
+      const { sleepEnergyMultiplier } = await import('./room.js')
+      const mult = await sleepEnergyMultiplier(client, character.id, character.lodging_id)
+      // Cap: never more than double energy from sleep.
+      const capped = Math.min(2, mult)
+      effects = { ...effects, energy: Math.round(effects.energy * capped) }
+    }
+    let needs = applyNeedDelta(parseNeeds(row.needs), effects)
     const nextTime = row.game_time + action.duration
     let nextCash = cash
     let nextVersion = row.version

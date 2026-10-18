@@ -7,6 +7,7 @@ import { env } from './env.js'
 import { pool } from './db.js'
 import { characterRoutes } from './routes/character.js'
 import { economyRoutes } from './routes/economy.js'
+import { roomRoutes } from './routes/room.js'
 import { forgotRoutes } from './routes/forgot.js'
 import { gameRoutes } from './routes/game.js'
 import { loginRoutes } from './routes/login.js'
@@ -33,7 +34,7 @@ await app.register(cors, {
     callback(null, false)
   },
   credentials: true,
-  methods: ['GET', 'POST', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'OPTIONS'],
 })
 await app.register(cookie)
 await app.register(rateLimit, {
@@ -71,6 +72,12 @@ app.get('/', async () => ({
   hustles: 'GET /hustles',
   hustlesRun: 'POST /hustles/run',
   ledger: 'GET /ledger',
+  room: 'GET /room',
+  roomVisit: 'GET /room/:username',
+  roomBuy: 'POST /room/buy',
+  roomLayout: 'PUT /room/layout',
+  roomStyle: 'PUT /room/style',
+  roomSell: 'POST /room/sell',
 }))
 
 app.get('/health', async (request, reply) => {
@@ -90,6 +97,7 @@ await app.register(forgotRoutes)
 await app.register(characterRoutes)
 await app.register(gameRoutes)
 await app.register(economyRoutes)
+await app.register(roomRoutes)
 
 const shutdown = async () => {
   await app.close()
