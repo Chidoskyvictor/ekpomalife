@@ -399,6 +399,14 @@ export function mockLedger(limit: number, cursor?: string) {
   }
 }
 
+export function getMockCash() {
+  return cash
+}
+
+export function setMockCash(next: number) {
+  cash = Math.max(0, Math.floor(next))
+}
+
 /** Reset mock store (tests / storybook). */
 export function resetEconomyMock() {
   currentJobId = null

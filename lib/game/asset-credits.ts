@@ -9,6 +9,13 @@ export type AssetCredit = {
 
 export const ASSET_CREDITS: AssetCredit[] = [
   {
+    title: 'Kenney Furniture Kit',
+    author: 'Kenney',
+    license: 'CC0',
+    via: 'kenney.nl',
+    file: 'public/models/room/ (TODO: meshopt GLBs; primitives used until download)',
+  },
+  {
     title: 'Parking Lot',
     author: 'Alex Safayan',
     license: 'CC-BY',

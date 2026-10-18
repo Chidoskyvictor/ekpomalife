@@ -28,6 +28,11 @@ function cellsCovered(x: number, z: number, w: number, d: number): string[] {
   return cells
 }
 
+export function cellsOf(item: RoomItem, def: FurnitureItem): string[] {
+  const { w, d } = rotatedFootprint(def.footprint, item.rotation)
+  return cellsCovered(item.x, item.z, w, d)
+}
+
 export type LayoutFail = { ok: false; code: RoomErrorCode; uid: string }
 export type LayoutOk = { ok: true }
 

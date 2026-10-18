@@ -1,6 +1,7 @@
 'use client'
 
 import { MoreHorizontal } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { useMemo, useState } from 'react'
 import { BuySheet } from '@/components/hud/buy-sheet'
 import { ChangeDreamDialog } from '@/components/hud/change-dream-dialog'
@@ -21,6 +22,8 @@ import { UpNext } from '@/components/hud/up-next'
 import { useEconomy } from '@/hooks/use-economy'
 import { useGame } from '@/hooks/use-game'
 import { useLowPerf } from '@/hooks/use-low-perf'
+import { usePhone } from '@/hooks/use-phone'
+import { BATTERY } from '@/lib/game/phone'
 import type { ContextAction, QuestPill } from '@/lib/game/quests'
 import { cn } from '@/lib/utils'
 import styles from './life-hud.module.css'
@@ -36,6 +39,7 @@ export function Hud() {
   const [todayOpen, setTodayOpen] = useState(false)
   const [dreamOpen, setDreamOpen] = useState(false)
   const [tab, setTab] = useState<PlayTab>('home')
+  const router = useRouter()
   const unread = useMemo(() => {
     if (!state?.hasPhone) return 0
     return Math.min(9, state.feed.filter((entry) => entry.day === state.day).length)
@@ -120,7 +124,12 @@ export function Hud() {
           />
           <MeCard state={state} onOpen={() => setProfileOpen(true)} />
           <div className={styles.mobileCorner}>
-            <ContextDock state={state} onMore={() => setSettingsOpen(true)} onAction={onContext} />
+            <ContextDock
+              state={state}
+              onMore={() => setSettingsOpen(true)}
+              onAction={onContext}
+              onRoom={() => router.push('/room')}
+            />
           </div>
         </>
       ) : null}
@@ -128,10 +137,21 @@ export function Hud() {
       <div className={styles.bottomDock}>
         <div className={styles.bottomRow}>
           <div className={styles.navSlot}>
-            <PlayNav value={tab} onValueChange={onTab} badges={{ phone: unread }} />
+            <PlayNav
+              value={tab}
+              onValueChange={onTab}
+              badges={{ phone: unread }}
+              onOpenRoom={() => router.push('/room')}
+            />
           </div>
+              phoneBatteryLow={batteryLow}
           {state ? (
-            <ContextDock state={state} onMore={() => setSettingsOpen(true)} onAction={onContext} />
+            <ContextDock
+              state={state}
+              onMore={() => setSettingsOpen(true)}
+              onAction={onContext}
+              onRoom={() => router.push('/room')}
+            />
           ) : (
             <div className={styles.cornerActions}>
               <button

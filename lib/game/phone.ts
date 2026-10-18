@@ -77,3 +77,64 @@ export type PhonePromo = {
   emoji: string
   action: { type: 'app'; appId: PhoneAppId } | { type: 'place'; placeId: string }
 }
+
+export type PhoneAppMeta = {
+  id: PhoneAppId
+  label: string
+  emoji: string
+  status: 'live' | 'soon'
+  tint: string
+}
+
+export const PHONE_APPS: PhoneAppMeta[] = [
+  { id: 'jobs', label: 'Jobs', emoji: '💼', status: 'live', tint: '#3d9ad6' },
+  { id: 'bank', label: 'Bank', emoji: '🏦', status: 'live', tint: '#16a34a' },
+  { id: 'messages', label: 'Messages', emoji: '💬', status: 'soon', tint: '#6366f1' },
+  { id: 'gist', label: 'Campus Gist', emoji: '📰', status: 'live', tint: '#ea580c' },
+  { id: 'market', label: 'Market', emoji: '🛍️', status: 'live', tint: '#db2777' },
+  { id: 'ride', label: 'Ride', emoji: '🛺', status: 'live', tint: '#ca8a04' },
+  { id: 'map', label: 'Map', emoji: '🗺️', status: 'live', tint: '#0d9488' },
+  { id: 'calendar', label: 'Calendar', emoji: '📅', status: 'live', tint: '#2563eb' },
+  { id: 'portal', label: 'Results', emoji: '🎓', status: 'soon', tint: '#7c3aed' },
+  { id: 'music', label: 'Music', emoji: '🎧', status: 'soon', tint: '#e11d48' },
+  { id: 'games', label: 'Games', emoji: '🎮', status: 'soon', tint: '#0891b2' },
+  { id: 'settings', label: 'Settings', emoji: '⚙️', status: 'live', tint: '#64748b' },
+]
+
+export const PHONE_DOCK: PhoneAppId[] = ['messages', 'bank', 'map', 'ride']
+
+export const WALLPAPERS: Record<WallpaperId, { label: string; css: string }> = {
+  'aau-dusk': {
+    label: 'AAU dusk',
+    css: 'linear-gradient(180deg, #4c1d95 0%, #c2410c 55%, #fbbf24 100%)',
+  },
+  'ekpoma-night': {
+    label: 'Ekpoma night',
+    css: 'linear-gradient(180deg, #0f172a 0%, #1e1b4b 60%, #312e81 100%)',
+  },
+  harmattan: {
+    label: 'Harmattan',
+    css: 'linear-gradient(180deg, #fdba74 0%, #fed7aa 45%, #ffedd5 100%)',
+  },
+  'green-white': {
+    label: 'Green & white',
+    css: 'linear-gradient(180deg, #166534 0%, #86efac 50%, #f8fafc 100%)',
+  },
+}
+
+export const COMING_SOON_COPY: Record<PhoneAppId, string> = {
+  jobs: '',
+  bank: '',
+  messages: 'Messages dey come — your guys never reach Ekpoma signal yet.',
+  gist: '',
+  market: '',
+  ride: '',
+  map: '',
+  calendar: '',
+  portal: 'Portal go open after exams. Check Result at Student Affairs for now.',
+  music: 'DJ Ojemu still mastering the mix. Hold your neck.',
+  games: 'Campus games loading. Go touch grass at Sports Complex meantime.',
+  settings: '',
+}
+
+export const PHONE_MODE_KEY = 'ekpoma-phone-mode'

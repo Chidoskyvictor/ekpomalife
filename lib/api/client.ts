@@ -33,20 +33,27 @@ async function raceFetch(path: string, init?: RequestInit): Promise<Response> {
 function failFromBody(status: number, raw: unknown): ApiFail {
   const body = (typeof raw === 'object' && raw ? raw : {}) as {
     error?: string
+    code?: string
     conflict?: boolean
+    room?: unknown
+    uid?: string
   }
   const error = body.error || (status === 401 ? 'UNAUTHORIZED' : 'Request failed.')
   const code =
     status === 401
       ? 'UNAUTHORIZED'
-      : asApiErrorCode(error) ?? (body.conflict ? 'VERSION_CONFLICT' : undefined)
+      : asApiErrorCode(error) ??
+        (body.conflict || body.code === 'VERSION_CONFLICT' ? 'VERSION_CONFLICT' : undefined)
   return {
     ok: false,
     error,
-    code,
-    conflict: Boolean(body.conflict) || code === 'VERSION_CONFLICT',
+    code: code ?? (body.code as ApiFail['code']),
+    conflict: Boolean(body.conflict) || code === 'VERSION_CONFLICT' || body.code === 'VERSION_CONFLICT',
     status,
-  }
+    // room / uid attach for callers that cast to RoomFail
+    ...(body.room ? { room: body.room } : {}),
+    ...(body.uid ? { uid: body.uid } : {}),
+  } as ApiFail
 }
 
 /**
@@ -89,10 +96,35 @@ export async function apiGet<T extends { ok: true }>(path: string): Promise<T | 
 export async function apiPost<T extends { ok: true }>(
   path: string,
   body?: unknown,
+  extraHeaders?: Record<string, string>,
 ): Promise<T | ApiFail> {
   return apiRequest<T>(path, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...extraHeaders },
+    body: JSON.stringify(body ?? {}),
+  })
+}
+
+export async function apiPut<T extends { ok: true }>(
+  path: string,
+  body?: unknown,
+  extraHeaders?: Record<string, string>,
+): Promise<T | ApiFail> {
+  return apiRequest<T>(path, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...extraHeaders },
+    body: JSON.stringify(body ?? {}),
+  })
+}
+
+export async function apiPatch<T extends { ok: true }>(
+  path: string,
+  body?: unknown,
+  extraHeaders?: Record<string, string>,
+): Promise<T | ApiFail> {
+  return apiRequest<T>(path, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...extraHeaders },
     body: JSON.stringify(body ?? {}),
   })
 }

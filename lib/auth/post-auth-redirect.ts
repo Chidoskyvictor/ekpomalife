@@ -32,7 +32,7 @@ export function isSetupPath(pathname: string) {
 }
 
 export function isHomePath(pathname: string) {
-  return pathname === '/' || pathname === ''
+  return pathname === '/' || pathname === '' || pathname === '/room' || pathname.startsWith('/room/')
 }
 
 /**

@@ -13,7 +13,8 @@ export type ApiErrorCode = (typeof API_ERROR_CODES)[number]
 export type ApiFail = {
   ok: false
   error: string
-  code?: ApiErrorCode
+  /** Known economy codes or route-specific strings (e.g. NO_PHONE, BATTERY_DEAD). */
+  code?: ApiErrorCode | string
   conflict?: boolean
   status?: number
   network?: boolean

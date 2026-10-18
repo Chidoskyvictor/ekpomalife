@@ -103,11 +103,11 @@ Legend: ✅ DONE · 🟡 PARTIAL · ⬜ NOT STARTED
 | Needs (6) + XP/level + mood | 🟡 | `lib/game/needs.ts`, `components/hud/needs-stack.tsx` | Client-only decay per time period. |
 | Time (day + 4 periods, calendar, rent day) | 🟡 | `rules.ts`, `needs.ts` (`calendarForDay`, `PERIOD_CLOCK`), `clock-pill.tsx` | Client-only; rent is a reminder pill, no charge. |
 | HUD (Apple-glass) | 🟡 | `components/hud/hud.tsx` + ~30 parts | Status bar, money pill, needs, Up Next pill with **bell**, quest stack, play nav (home/buy/phone…), vaul sheets (today/profile/settings), Island toast, me-card avatar ring — present. Some pills point at placeholder data (e.g. "Daily Okada Coins", hard-coded city events). |
-| Phone | 🟡 | Backend: `sql/010_phone.sql`, `game/phone.ts`, `routes/phone.ts`. Shared: `lib/game/phone.ts` ⇄ `backend/src/game/phone.ts`. FE: `phone-dialog.tsx`, `bank-screen.tsx` | **Backend done** (battery/data/rides/idempotency, Vitest). FE apps still Phase 5 (Messages/Gist/etc. wire-up). |
+| Phone | 🟢 | Backend: `sql/010_phone.sql`, `game/phone.ts`, `routes/phone.ts`. Shared: `lib/game/phone.ts` ⇄ `backend/src/game/phone.ts`. FE: `phone-dialog` → `components/hud/phone/*`, `phone-api`/`phone-mock`/`phone-msw`, `hooks/use-phone.ts` | **Backend done.** FE phone shell + home/apps against contract + mocks (Jobs/Bank/Market/Map/Gist/Ride/Settings/Calendar live; Messages/Portal/Music/Games soon). |
 | 3D map – first slab | 🟡 | `lib/game/world-layout.ts` (`MAP_ZONES`, `ROAD_GAPS`, `TREE_SPOTS`, `FENCE_U`), `components/world/*` | Town side, gate, campus side and extended area are placed (see §4.7). **Zones are visual only** — gameplay still uses the 15 old `content.ts` locations; the two lists are not linked. |
 | Billboards / ads | ⬜ | — | Nothing in code. |
 | Economy (jobs, shop, rent, transactions ledger) | ✅ | Frontend: `lib/game/economy-api.ts`, `economy-mock.ts`, HUD panels. Backend: `sql/007` + `sql/008`, `economy.ts`, `payouts.ts`, `rent-ladder.ts`, `hustles.ts`, `idempotency.ts` | Phase 2 complete: jobs/shop/rent + Monday allowance, rent warning ladder → eviction, landlord income (deed), abstract hustles, `idempotency_keys`, `payouts`. Degree-class pay bonus still open. |
-| My room (hostel interior) | ✅ | Backend: `sql/009_room.sql`, `room.ts`, `room-rules.ts`, `room-constants.ts`, `routes/room.ts`. Shared: `lib/game/room-*.ts` | Phase 2.5 — GET/POST/PUT room APIs, furniture catalog (18), layout/style/buy/sell, comfort → sleep energy + daily fun. Visit stub 403 unless `ROOM_VISITS_ENABLED`. |
+| My room (hostel interior) | 🟡 | Backend: `sql/009_room.sql`, `routes/room.ts`. Frontend: `app/room`, `components/room/*`, `lib/game/room-api.ts` (mocks when `NEXT_PUBLIC_USE_MOCKS`) | 3D dollhouse + catalog/edit on mocks. Comfort display only. Kenney GLBs still primitive fallbacks. |
 | Multiplayer / chat by area | ⬜ | — | |
 | Events / elections | 🟡 | `content.ts` `EVENTS` (6 random pop-ups), `quests.ts` city events | Fictional pop-ups only; no real-world events feed, no elections. |
 | Innovation Hub | 🟡 | location `innovation_hub`, action `feedback` | Action only; no form, nothing stored. |
@@ -236,6 +236,8 @@ Tiers by amount: < ₦250k **Hustle Mode** · < ₦500k **Steady Start** · < �
 Buying a phone unlocks apps inside the existing phone dialog/vaul sheet: **Messages** (DMs), **Gist** (area feed), **Bank** (balance + ledger), **Jobs**, **Ekpoma Market** (shop delivery for a fee), **Calendar** (lectures, rent day, events), **Dream tracker**, **Settings**. Phone tiers change features (e.g. cheap phone: no camera/share cards).
 
 **Backend (done — see §7.8):** persistent `phone_state`, battery/data/wallpaper/badges, data bundles + paid rides via `applyCash`, notifications. Shared ids in `lib/game/phone.ts` ⇄ `backend/src/game/phone.ts`.
+
+**Frontend (done against mocks):** `components/hud/phone/*` shell (mobile full-sheet / desktop bezel), home grid + promos, live apps reuse Jobs/Bank/Shop/Gist; Ride/Settings/Calendar against `/phone*` + `/ride*`; `hooks/use-phone.ts` polls unread for Play nav badge.
 
 ### 5.6 Events, billboards, elections (Phase 6)
 - Events feed: `events` table with `kind: 'real' | 'game'`, `verification: unverified|verified|rejected`, `published`. Real-world Ekpoma events only from admins; unverified never shown as fact. Report-wrong-info button.

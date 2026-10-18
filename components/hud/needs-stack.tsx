@@ -1,6 +1,7 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { fetchRoom } from '@/lib/game/room-api'
 import { NEED_META, needTone, needValue, type NeedId } from '@/lib/game/needs'
 import type { GameState } from '@/lib/game/types'
 import styles from './life-hud.module.css'
@@ -16,6 +17,13 @@ const TONE_COLOR = {
 export function NeedsStack({ state }: { state: GameState }) {
   const [open, setOpen] = useState(true)
   const [focus, setFocus] = useState<NeedId | null>(null)
+  const [sleepBonus, setSleepBonus] = useState<number | null>(null)
+
+  useEffect(() => {
+    void fetchRoom().then((result) => {
+      if (result.ok) setSleepBonus(result.room.comfort.sleepEnergyBonusPct)
+    })
+  }, [])
 
   const critical = useMemo(
     () => ORDER.find((id) => needValue(state, id) < 25) ?? null,
@@ -54,7 +62,12 @@ export function NeedsStack({ state }: { state: GameState }) {
             })
           : null}
       </div>
-      {open && tip ? <p className={`${styles.panel} ${styles.needTip}`}>{tip}</p> : null}
+      {open && tip ? (
+        <p className={`${styles.panel} ${styles.needTip}`}>
+          {tip}
+          {tipId === 'energy' && sleepBonus != null ? ` Room comfort +${sleepBonus}% sleep.` : ''}
+        </p>
+      ) : null}
     </aside>
   )
 }
