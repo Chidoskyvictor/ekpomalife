@@ -1,0 +1,32 @@
+# Render Blueprint — API at https://api.ekpomalife.app
+# Why Render (not Railway): checked-in render.yaml, first-class preDeployCommand
+# for migrations, Docker + health checks, and simple custom-domain TLS.
+# Pair with Neon Postgres (sslmode=require) — see DEPLOY.md.
+
+services:
+  - type: web
+    name: ekpomalife-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    region: frankfurt
+    plan: starter
+    healthCheckPath: /health
+    preDeployCommand: node dist/migrate.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "4000"
+      - key: FRONTEND_ORIGIN
+        value: https://ekpomalife.app,https://www.ekpomalife.app
+      - key: MAIL_FROM
+        value: Ekpoma Life <noreply@mail.ekpomalife.app>
+      - key: DATABASE_URL
+        sync: false
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: RESET_CODE_PEPPER
+        generateValue: true
+      - key: RESEND_API_KEY
+        sync: false

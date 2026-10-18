@@ -12,7 +12,10 @@ export function createSessionToken() {
 }
 
 export function hashSessionToken(token: string) {
-  return createHash('sha256').update(token).digest('hex')
+  const pepper = process.env.SESSION_SECRET ?? ''
+  // Unpeppered hash keeps existing local sessions; production always sets SESSION_SECRET.
+  if (!pepper) return createHash('sha256').update(token).digest('hex')
+  return createHash('sha256').update(`${pepper}:${token}`).digest('hex')
 }
 
 export async function createSession(userId: string) {

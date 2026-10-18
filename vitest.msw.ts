@@ -27,7 +27,8 @@ export function resetFixtures() {
 }
 
 export const server = setupServer(
-  http.get('http://localhost/api/auth/me', () => {
+  // Local `/api/*` proxy and production `https://api…/*` (optional `/api` prefix).
+  http.get(/\/(?:api\/)?auth\/me$/, () => {
     const me = fixtures.me
     if (!me) return HttpResponse.json({ ok: false, error: 'Log in.' }, { status: 401 })
     return HttpResponse.json({
@@ -37,7 +38,7 @@ export const server = setupServer(
       setupStep: me.setupStep,
     })
   }),
-  http.get('http://localhost/api/game/state', () => {
+  http.get(/\/(?:api\/)?game\/state$/, () => {
     if (fixtures.gameStateStatus === 401) {
       return HttpResponse.json({ ok: false, error: 'Log in to play.' }, { status: 401 })
     }

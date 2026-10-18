@@ -7,9 +7,8 @@ const nextConfig = {
     '192.168.0.197',
     '127.0.0.1',
     'localhost',
-  ], // FE LAN + backend host (200) for phone/dev access
-  // /api/* is handled by app/api/[...path]/route.ts (forwards Cookie/Set-Cookie,
-  // strips Domain so el_session sticks to the frontend origin — not the API IP).
+  ],
+  // Dev: /api/* → app/api/[...path] proxy. Prod: browser calls NEXT_PUBLIC_API_URL directly.
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -19,3 +18,10 @@ const nextConfig = {
 }
 
 export default nextConfig
+
+// OpenNext Cloudflare — enables bindings during `next dev` when the package is installed.
+import('@opennextjs/cloudflare')
+  .then((mod) => mod.initOpenNextCloudflareForDev())
+  .catch(() => {
+    // Optional until first Cloudflare build.
+  })

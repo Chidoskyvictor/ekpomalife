@@ -16,6 +16,7 @@ import { signupRoutes } from './routes/signup.js'
 const app = Fastify({
   logger: true,
   bodyLimit: 4096,
+  // Render / Railway terminate TLS — trust X-Forwarded-* for HTTPS + client IP.
   trustProxy: true,
 })
 
@@ -24,7 +25,7 @@ const allowedOrigins = env.FRONTEND_ORIGIN.split(',').map((value) => value.trim(
 
 await app.register(cors, {
   origin(origin, callback) {
-    // Same-origin Next /api proxy, curl, and mobile WebViews may omit Origin.
+    // Same-origin tooling, curl, and health checks may omit Origin.
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true)
       return
@@ -69,7 +70,17 @@ app.get('/', async () => ({
   rentPay: 'POST /rent/pay',
   ledger: 'GET /ledger',
 }))
-app.get('/health', async () => ({ ok: true }))
+
+app.get('/health', async (request, reply) => {
+  try {
+    await pool.query('SELECT 1')
+    return { ok: true, db: true }
+  } catch (error) {
+    request.log.error(error)
+    return reply.code(503).send({ ok: false, db: false, error: 'Database unavailable' })
+  }
+})
+
 await app.register(signupRoutes)
 await app.register(loginRoutes)
 await app.register(meRoutes)

@@ -4,16 +4,30 @@ import { z } from 'zod'
 config()
 
 const emptyToUndefined = (value: unknown) => (value == null || value === '' ? undefined : value)
+const isProd = process.env.NODE_ENV === 'production'
 
 const envSchema = z.object({
+  NODE_ENV: z.enum(['development', 'test', 'production']).optional().default('development'),
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
   PORT: z.preprocess((value) => (value == null || value === '' ? 4000 : value), z.coerce.number().int().positive()),
-  /** Comma-separated allowed browser origins (e.g. localhost + LAN IP + production URL). */
-  FRONTEND_ORIGIN: z.preprocess(
-    (value) => (value == null || value === '' ? 'http://localhost:3000' : value),
-    z.string().min(1),
-  ),
-  /** Legacy flag — session cookies now follow NODE_ENV (see auth/session.ts). Kept so old .env files still parse. */
+  /**
+   * Comma-separated browser origins allowed for CORS + cookies.
+   * Production default: ekpomalife.app (+ www).
+   */
+  FRONTEND_ORIGIN: z.preprocess((value) => {
+    if (value == null || value === '') {
+      return isProd
+        ? 'https://ekpomalife.app,https://www.ekpomalife.app'
+        : 'http://localhost:3000'
+    }
+    return value
+  }, z.string().min(1)),
+  /**
+   * Peppers session token hashes. Required in production.
+   * Generate with: openssl rand -hex 32
+   */
+  SESSION_SECRET: z.preprocess(emptyToUndefined, z.string().min(16).optional()),
+  /** Legacy flag — session cookies follow NODE_ENV (see auth/session.ts). */
   COOKIE_SECURE: z
     .enum(['true', 'false'])
     .optional()
@@ -31,3 +45,7 @@ const envSchema = z.object({
 })
 
 export const env = envSchema.parse(process.env)
+
+if (env.NODE_ENV === 'production' && !env.SESSION_SECRET) {
+  throw new Error('SESSION_SECRET is required when NODE_ENV=production (openssl rand -hex 32)')
+}

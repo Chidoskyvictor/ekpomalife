@@ -94,6 +94,16 @@ async function proxy(request: NextRequest, pathParts: string[]) {
 type Ctx = { params: Promise<{ path: string[] }> | { path: string[] } }
 
 async function handle(request: NextRequest, context: Ctx) {
+  // Production talks to api.ekpomalife.app directly — proxy is local/LAN only.
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: 'API proxy is disabled in production. Use NEXT_PUBLIC_API_URL (https://api.ekpomalife.app).',
+      },
+      { status: 404 },
+    )
+  }
   const params = await context.params
   const path = params.path ?? []
   return proxy(request, path)

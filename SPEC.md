@@ -37,7 +37,7 @@ Audience: 18+ (checkbox + DOB at signup; not real age verification).
 
 | Layer | What is actually in the repo |
 |---|---|
-| Frontend | Next.js **16.3** App Router, React 19, TypeScript, pnpm |
+| Frontend | Next.js **16.4** App Router, React 19, TypeScript (OpenNext → Cloudflare) |
 | 3D | three 0.186, @react-three/fiber 9, drei 10; GLBs in `public/models/` (Kenney city kit, admin-block, parking lot, football stadium, trees, campusroad City Bits), meshopt (`lib/game/meshopt.ts`), `scripts/convert-buildings.mjs`, @gltf-transform dev deps |
 | UI | CSS modules + Tailwind 4 globals, Arc components (`components/arc`), shadcn/radix bits (`components/ui`), framer-motion/motion, **vaul** drawers, @number-flow/react, canvas-confetti, lucide icons |
 | Backend | `backend/` — **Fastify 5 + `pg` (raw SQL, no Prisma)**, zod, Argon2 (`argon2`), HttpOnly session cookie, @fastify/helmet, cors (credentials, `FRONTEND_ORIGIN`), rate-limit (100/min global, 5 per 15 min on signup) |
@@ -111,7 +111,7 @@ Legend: ✅ DONE · 🟡 PARTIAL · ⬜ NOT STARTED
 | Events / elections | 🟡 | `content.ts` `EVENTS` (6 random pop-ups), `quests.ts` city events | Fictional pop-ups only; no real-world events feed, no elections. |
 | Innovation Hub | 🟡 | location `innovation_hub`, action `feedback` | Action only; no form, nothing stored. |
 | Payments (Paystack) | ⬜ | — | |
-| Deploy (Cloudflare Pages + api.ekpomalife.app) | ⬜ | — | No DNS, no CI. |
+| Deploy (Cloudflare + api.ekpomalife.app) | 🟡 | `DEPLOY.md`, `wrangler.jsonc`, `open-next.config.ts`, `render.yaml`, `backend/Dockerfile` | Config + hand-run guide ready. OpenNext (Next 16) → Cloudflare Worker; API → Render + Neon. DNS/SSL/Resend steps in DEPLOY.md — not live until you run them. |
 | Tests | 🟡 | Frontend Vitest + MSW; backend Vitest (`npm test` in `backend/`) | Backend: actions/needs/starting-money/setup-status + Phase 2 economy DB tests (funds, concurrency, ledger sum, setup guard). |
 | Docs | 🟡 | `MAP.md` (stale: says "only Admin Block"), `spec.md` (untracked, says Prisma — wrong), `backend/README.md`, `AGENTS.md` | Replace `spec.md` with this file; refresh `MAP.md`. |
 

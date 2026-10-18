@@ -2,9 +2,14 @@
   "name": "ekpoma-life-api",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "tsx watch --env-file=.env src/server.ts",
-    "start": "tsx --env-file=.env src/server.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/server.js",
+    "migrate": "node dist/migrate.js",
     "db:migrate": "tsx --env-file=.env src/migrate.ts",
     "test": "vitest run || tsx src/game/run-tests.ts",
     "test:watch": "vitest",
@@ -15,6 +20,7 @@
     "@fastify/cors": "^11.3.1",
     "@fastify/helmet": "^13.1.2",
     "@fastify/rate-limit": "^11.2.1",
+    "@opennextjs/cloudflare": "^1.20.12",
     "argon2": "^0.45.1",
     "dotenv": "^16.6.1",
     "fastify": "^5.12.5",
