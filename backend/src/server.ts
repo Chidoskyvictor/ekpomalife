@@ -68,6 +68,8 @@ app.get('/', async () => ({
   inventoryUse: 'POST /inventory/use',
   rent: 'GET /rent',
   rentPay: 'POST /rent/pay',
+  hustles: 'GET /hustles',
+  hustlesRun: 'POST /hustles/run',
   ledger: 'GET /ledger',
 }))
 

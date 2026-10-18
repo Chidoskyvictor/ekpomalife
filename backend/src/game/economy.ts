@@ -15,10 +15,14 @@ import {
   tickGameState,
   type PublicGameState,
 } from './game-state.js'
-import { normalizeLodgingId, rentWeeklyForLodging } from './lodging.js'
+import { clockFromGameTime } from './time.js'
+import { LODGE_DEED_ITEM_ID, lodgingDecayMultiplier } from './lodging.js'
 import { applyNeedDelta, clampNeeds, type Needs } from './needs.js'
 import { computeSetupStatus } from './setup-status.js'
 import { checkTraits, type TraitId } from './traits.js'
+import { ensureRentRow, markRentPaid } from './rent-ladder.js'
+import { processWeeklyEconomy } from './weekly.js'
+import { getHustle, listHustleDefs, rollHustleOutcome } from './hustles.js'
 
 export type JobRequirements = {
   skill?: string
@@ -67,6 +71,7 @@ type CharacterCtx = {
   traits: string[]
   dream_id: string | null
   lodging_id: string | null
+  character_type: string | null
   starting_cash: string | number | null
   cash: string | number | null
 }
@@ -82,11 +87,42 @@ function parseJson<T>(raw: T | string, fallback: T): T {
 
 async function loadCharacter(userId: string) {
   const found = await pool.query<CharacterCtx>(
-    `SELECT id, appearance, traits, dream_id, lodging_id, starting_cash, cash
+    `SELECT id, appearance, traits, dream_id, lodging_id, character_type, starting_cash, cash
      FROM characters WHERE user_id = $1`,
     [userId],
   )
   return found.rows[0] ?? null
+}
+
+async function tickAndWeekly(
+  client: import('pg').PoolClient,
+  character: CharacterCtx,
+  traits: TraitId[],
+) {
+  let row = await ensureGameState(client, character.id, {
+    cash: asMoney(character.starting_cash ?? character.cash),
+    lodgingId: character.lodging_id,
+  })
+  row = await tickGameState(
+    client,
+    row,
+    traits,
+    new Date(),
+    lodgingDecayMultiplier(character.lodging_id),
+  )
+  const weekly = await processWeeklyEconomy(client, {
+    characterId: character.id,
+    characterType: character.character_type,
+    lodgingId: character.lodging_id,
+    gameTime: row.game_time,
+  })
+  const refreshed = await client.query<import('./game-state.js').GameStateRow>(
+    `SELECT character_id, cash, needs, location_id, game_time, last_tick_at, version,
+            hustle_lockout_until, reputation, pending_toast
+     FROM game_state WHERE character_id = $1`,
+    [character.id],
+  )
+  return { row: refreshed.rows[0] ?? row, weekly }
 }
 
 async function hasGameState(characterId: string) {
@@ -199,33 +235,6 @@ function mapJob(
   }
 }
 
-export async function ensureRentRow(
-  client: PoolClient,
-  characterId: string,
-  lodgingId: string | null | undefined,
-) {
-  const lodging = normalizeLodgingId(lodgingId)
-  const amount = rentWeeklyForLodging(lodging)
-  const existing = await client.query(`SELECT character_id FROM rent WHERE character_id = $1`, [
-    characterId,
-  ])
-  if (existing.rows[0]) return
-  const dueAt = new Date(Date.now() + 2 * 86400000)
-  const paidUntil = new Date(Date.now() - 5 * 86400000)
-  await client.query(
-    `INSERT INTO rent (character_id, lodging_id, amount, due_at, paid_until, status, label)
-     VALUES ($1, $2, $3, $4, $5, 'due', 'Baba Landlord')`,
-    [characterId, lodging, amount, dueAt, paidUntil],
-  )
-}
-
-function rentStatus(dueAt: Date, now = new Date()): 'ok' | 'due' | 'late' {
-  const ms = dueAt.getTime() - now.getTime()
-  if (ms < -86400000) return 'late'
-  if (ms <= 2 * 86400000) return 'due'
-  return 'ok'
-}
-
 export async function listJobs(userId: string, placeId?: string | null) {
   const gate = await requireEconomySetup(userId)
   if (!gate.ok) return gate
@@ -233,12 +242,7 @@ export async function listJobs(userId: string, placeId?: string | null) {
   const client = await pool.connect()
   try {
     await client.query('BEGIN')
-    let row = await ensureGameState(client, gate.character.id, {
-      cash: asMoney(gate.character.starting_cash ?? gate.character.cash),
-      lodgingId: gate.character.lodging_id,
-      reason: 'starting-money',
-    })
-    row = await tickGameState(client, row, gate.traits)
+    const { row } = await tickAndWeekly(client, gate.character, gate.traits)
     const items = await ownedItemIds(client, gate.character.id)
     const jobRow = await client.query<{ job_id: string; level: number }>(
       `SELECT job_id, level FROM player_jobs WHERE character_id = $1`,
@@ -285,11 +289,7 @@ export async function applyForJob(userId: string, jobId: string) {
   const client = await pool.connect()
   try {
     await client.query('BEGIN')
-    let row = await ensureGameState(client, gate.character.id, {
-      cash: asMoney(gate.character.starting_cash ?? gate.character.cash),
-      lodgingId: gate.character.lodging_id,
-    })
-    row = await tickGameState(client, row, gate.traits)
+    const { row } = await tickAndWeekly(client, gate.character, gate.traits)
     const found = await client.query<JobRow>(`SELECT * FROM jobs WHERE id = $1`, [jobId])
     const job = found.rows[0]
     if (!job) {
@@ -338,11 +338,7 @@ export async function workShift(userId: string) {
   const client = await pool.connect()
   try {
     await client.query('BEGIN')
-    let row = await ensureGameState(client, gate.character.id, {
-      cash: asMoney(gate.character.starting_cash ?? gate.character.cash),
-      lodgingId: gate.character.lodging_id,
-    })
-    row = await tickGameState(client, row, gate.traits)
+    let { row } = await tickAndWeekly(client, gate.character, gate.traits)
 
     const pj = await client.query<{ job_id: string; level: number }>(
       `SELECT job_id, level FROM player_jobs WHERE character_id = $1 FOR UPDATE`,
@@ -518,8 +514,14 @@ export async function buyItem(userId: string, itemId: string, qty: number) {
     }
 
     const effects = parseJson<ShopEffects>(item.effects, {})
-    if (effects.item === 'phone') {
-      // phone unlock is tracked via inventory item id phone-basic
+    if (itemId === LODGE_DEED_ITEM_ID || effects.item === LODGE_DEED_ITEM_ID) {
+      await client.query(
+        `UPDATE characters
+         SET snapshot = COALESCE(snapshot, '{}'::jsonb) || jsonb_build_object('ownsLodge', true),
+             updated_at = NOW()
+         WHERE id = $1`,
+        [gate.character.id],
+      )
     }
 
     const inventory = await listInventoryItems(client, gate.character.id)
@@ -561,11 +563,7 @@ export async function useInventoryItem(userId: string, itemId: string) {
   const client = await pool.connect()
   try {
     await client.query('BEGIN')
-    let row = await ensureGameState(client, gate.character.id, {
-      cash: asMoney(gate.character.starting_cash ?? gate.character.cash),
-      lodgingId: gate.character.lodging_id,
-    })
-    row = await tickGameState(client, row, gate.traits)
+    const { row } = await tickAndWeekly(client, gate.character, gate.traits)
 
     const inv = await client.query<{ qty: number }>(
       `SELECT qty FROM inventory WHERE character_id = $1 AND item_id = $2 FOR UPDATE`,
@@ -628,43 +626,11 @@ export async function getRent(userId: string) {
   const client = await pool.connect()
   try {
     await client.query('BEGIN')
-    await ensureGameState(client, gate.character.id, {
-      cash: asMoney(gate.character.starting_cash ?? gate.character.cash),
-      lodgingId: gate.character.lodging_id,
-    })
-    await ensureRentRow(client, gate.character.id, gate.character.lodging_id)
-    const found = await client.query<{
-      lodging_id: string
-      amount: string | number
-      due_at: Date
-      paid_until: Date
-      status: string
-      label: string
-    }>(`SELECT * FROM rent WHERE character_id = $1`, [gate.character.id])
-    const row = found.rows[0]!
-    const dueAt = row.due_at instanceof Date ? row.due_at : new Date(row.due_at)
-    const status = rentStatus(dueAt)
-    if (status !== row.status) {
-      await client.query(`UPDATE rent SET status = $2 WHERE character_id = $1`, [
-        gate.character.id,
-        status,
-      ])
-    }
+    const { weekly } = await tickAndWeekly(client, gate.character, gate.traits)
     await client.query('COMMIT')
-    return {
-      ok: true as const,
-      rent: {
-        lodgingId: row.lodging_id,
-        amount: asMoney(row.amount),
-        dueAt: dueAt.toISOString(),
-        paidUntil: (row.paid_until instanceof Date
-          ? row.paid_until
-          : new Date(row.paid_until)
-        ).toISOString(),
-        status,
-        label: row.label,
-      },
-    }
+    const rent = weekly.rent
+    if (!rent) return { ok: false as const, error: SETUP_INCOMPLETE, code: 409 }
+    return { ok: true as const, rent }
   } catch (error) {
     await client.query('ROLLBACK')
     throw error
@@ -680,11 +646,8 @@ export async function payRent(userId: string) {
   const client = await pool.connect()
   try {
     await client.query('BEGIN')
-    await ensureGameState(client, gate.character.id, {
-      cash: asMoney(gate.character.starting_cash ?? gate.character.cash),
-      lodgingId: gate.character.lodging_id,
-    })
-    await ensureRentRow(client, gate.character.id, gate.character.lodging_id)
+    const { row } = await tickAndWeekly(client, gate.character, gate.traits)
+    await ensureRentRow(client, gate.character.id, gate.character.lodging_id, row.game_time)
     const found = await client.query<{
       lodging_id: string
       amount: string | number
@@ -706,13 +669,16 @@ export async function payRent(userId: string) {
       return { ok: false as const, error: INSUFFICIENT_FUNDS, code: 400 }
     }
 
-    const paidUntil = new Date(Date.now() + 7 * 86400000)
-    await client.query(
-      `UPDATE rent
-       SET status = 'ok', paid_until = $2, due_at = $2
-       WHERE character_id = $1`,
-      [gate.character.id, paidUntil],
+    // Refresh lodging from characters (may have been evicted earlier).
+    const lodgingRow = await client.query<{ lodging_id: string | null }>(
+      `SELECT lodging_id FROM characters WHERE id = $1`,
+      [gate.character.id],
     )
+    const rentInfo = await markRentPaid(client, {
+      characterId: gate.character.id,
+      gameTime: row.game_time,
+      lodgingId: lodgingRow.rows[0]?.lodging_id ?? rent.lodging_id,
+    })
     await client.query('COMMIT')
 
     const state = await getPublicState(userId)
@@ -720,15 +686,158 @@ export async function payRent(userId: string) {
     return {
       ok: true as const,
       state: { ok: true as const, ...state.state },
-      rent: {
-        lodgingId: rent.lodging_id,
-        amount,
-        dueAt: paidUntil.toISOString(),
-        paidUntil: paidUntil.toISOString(),
-        status: 'ok' as const,
-        label: rent.label,
-      },
-      message: 'Rent paid. Baba Landlord is smiling.',
+      rent: rentInfo,
+      message: 'Rent paid. Baba Landlord is smiling. Warnings cleared.',
+    }
+  } catch (error) {
+    await client.query('ROLLBACK')
+    throw error
+  } finally {
+    client.release()
+  }
+}
+
+export async function listHustles(userId: string) {
+  const gate = await requireEconomySetup(userId)
+  if (!gate.ok) return gate
+
+  const client = await pool.connect()
+  try {
+    await client.query('BEGIN')
+    const { row } = await tickAndWeekly(client, gate.character, gate.traits)
+    const clock = clockFromGameTime(row.game_time)
+    const lockout = row.hustle_lockout_until ?? null
+    const locked = typeof lockout === 'number' && row.game_time < lockout
+    await client.query('COMMIT')
+
+    return {
+      ok: true as const,
+      hustles: listHustleDefs().map((h) => ({
+        ...h,
+        locked: locked || (h.periods.length > 0 && !h.periods.includes(clock.period as never)),
+        lockReason: locked
+          ? 'You are locked out of risky hustles for a bit.'
+          : h.periods.length > 0 && !h.periods.includes(clock.period as never)
+            ? 'Wrong time of day for that.'
+            : undefined,
+      })),
+      hustleLockoutUntil: lockout,
+    }
+  } catch (error) {
+    await client.query('ROLLBACK')
+    throw error
+  } finally {
+    client.release()
+  }
+}
+
+export async function runHustle(userId: string, hustleId: string) {
+  const gate = await requireEconomySetup(userId)
+  if (!gate.ok) return gate
+
+  const hustle = getHustle(hustleId)
+  if (!hustle) return { ok: false as const, error: 'That hustle is gone.', code: 404 }
+
+  const client = await pool.connect()
+  try {
+    await client.query('BEGIN')
+    let { row } = await tickAndWeekly(client, gate.character, gate.traits)
+
+    const lockout = row.hustle_lockout_until ?? null
+    if (typeof lockout === 'number' && row.game_time < lockout) {
+      await client.query('ROLLBACK')
+      return { ok: false as const, error: 'HUSTLE_LOCKED', code: 400 }
+    }
+
+    const clock = clockFromGameTime(row.game_time)
+    if (hustle.periods.length > 0 && !hustle.periods.includes(clock.period as never)) {
+      await client.query('ROLLBACK')
+      return { ok: false as const, error: NOT_ELIGIBLE, code: 400 }
+    }
+
+    let needs = parseNeeds(row.needs)
+    if (needs.energy < hustle.energyCost) {
+      await client.query('ROLLBACK')
+      return { ok: false as const, error: NO_ENERGY, code: 400 }
+    }
+
+    needs = applyNeedDelta(needs, { energy: -hustle.energyCost })
+    const outcome = rollHustleOutcome(hustle, row.game_time)
+    let message = ''
+    let earned = 0
+    let fine = 0
+
+    if (outcome.kind === 'reward') {
+      const wrote = await applyCash(
+        client,
+        gate.character.id,
+        outcome.amount,
+        hustle.title,
+        'event',
+      )
+      if (!wrote.ok) {
+        await client.query('ROLLBACK')
+        return { ok: false as const, error: wrote.error, code: 400 }
+      }
+      earned = outcome.amount
+      message = `${hustle.title}: somehow it paid. +₦${outcome.amount.toLocaleString()}`
+    } else if (outcome.kind === 'fine') {
+      const cash = asMoney(row.cash)
+      const take = Math.min(outcome.amount, cash) // never below zero
+      if (take > 0) {
+        const wrote = await applyCash(
+          client,
+          gate.character.id,
+          -take,
+          `${hustle.title} fine`,
+          'fine',
+        )
+        if (!wrote.ok) {
+          await client.query('ROLLBACK')
+          return { ok: false as const, error: wrote.error, code: 400 }
+        }
+      }
+      fine = take
+      message =
+        take < outcome.amount
+          ? `${hustle.title}: fine clipped to what you had (₦${take.toLocaleString()}).`
+          : `${hustle.title}: fine ₦${take.toLocaleString()}.`
+    } else if (outcome.kind === 'rep_loss') {
+      await client.query(
+        `UPDATE game_state
+         SET reputation = GREATEST(0, COALESCE(reputation, 50) - $2),
+             version = version + 1, updated_at = NOW()
+         WHERE character_id = $1`,
+        [gate.character.id, outcome.amount],
+      )
+      message = `${hustle.title}: your name took a hit (−${outcome.amount} rep).`
+    } else {
+      await client.query(
+        `UPDATE game_state
+         SET hustle_lockout_until = $2, version = version + 1, updated_at = NOW()
+         WHERE character_id = $1`,
+        [gate.character.id, outcome.untilGameTime],
+      )
+      message = `${hustle.title}: locked out for a while. Cool off.`
+    }
+
+    await client.query(
+      `UPDATE game_state
+       SET needs = $2::jsonb, game_time = $3, version = version + 1, updated_at = NOW(), last_tick_at = NOW()
+       WHERE character_id = $1`,
+      [gate.character.id, JSON.stringify(clampNeeds(needs)), row.game_time + 30],
+    )
+
+    await client.query('COMMIT')
+    const state = await getPublicState(userId)
+    if (!state.ok) return state
+    return {
+      ok: true as const,
+      state: { ok: true as const, ...state.state },
+      outcome: outcome.kind,
+      earned,
+      fine,
+      message,
     }
   } catch (error) {
     await client.query('ROLLBACK')

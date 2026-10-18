@@ -11,7 +11,8 @@
     "start": "node dist/server.js",
     "migrate": "node dist/migrate.js",
     "db:migrate": "tsx --env-file=.env src/migrate.ts",
-    "test": "vitest run || tsx src/game/run-tests.ts",
+    "test": "vitest run",
+    "test:legacy": "tsx src/game/run-tests.ts",
     "test:watch": "vitest",
     "test:node": "tsx src/game/run-tests.ts"
   },

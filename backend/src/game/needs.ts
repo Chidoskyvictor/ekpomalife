@@ -47,17 +47,23 @@ export function decayRatesForTraits(traits: TraitId[]): Needs {
   return rates
 }
 
-export function decayNeeds(needs: Needs, gameMinutesElapsed: number, traits: TraitId[]): Needs {
+export function decayNeeds(
+  needs: Needs,
+  gameMinutesElapsed: number,
+  traits: TraitId[],
+  lodgingDecayMult = 1,
+): Needs {
   if (gameMinutesElapsed <= 0) return needs
   const hours = gameMinutesElapsed / 60
   const rates = decayRatesForTraits(traits)
+  const mult = lodgingDecayMult > 0 ? lodgingDecayMult : 1
   return clampNeeds({
-    hunger: needs.hunger - rates.hunger * hours,
-    energy: needs.energy - rates.energy * hours,
-    hygiene: needs.hygiene - rates.hygiene * hours,
-    fun: needs.fun - rates.fun * hours,
-    social: needs.social - rates.social * hours,
-    study: needs.study - rates.study * hours,
+    hunger: needs.hunger - rates.hunger * hours * mult,
+    energy: needs.energy - rates.energy * hours * mult,
+    hygiene: needs.hygiene - rates.hygiene * hours * mult,
+    fun: needs.fun - rates.fun * hours * mult,
+    social: needs.social - rates.social * hours * mult,
+    study: needs.study - rates.study * hours * mult,
   })
 }
 

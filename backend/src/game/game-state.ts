@@ -17,6 +17,8 @@ import { advanceGameTime, clockFromGameTime, isOpenAt, DEFAULT_GAME_TIME } from 
 import type { TraitId } from './traits.js'
 import { checkTraits } from './traits.js'
 import { computeSetupStatus, SETUP_INCOMPLETE } from './setup-status.js'
+import { lodgingDecayMultiplier } from './lodging.js'
+import { consumePendingToast, processWeeklyEconomy } from './weekly.js'
 
 export type GameStateRow = {
   character_id: string
@@ -26,6 +28,9 @@ export type GameStateRow = {
   game_time: number
   last_tick_at: Date
   version: number
+  hustle_lockout_until?: number | null
+  reputation?: number | null
+  pending_toast?: string | null
 }
 
 export type PublicGameState = {
@@ -41,6 +46,11 @@ export type PublicGameState = {
   upNext: { actionId: GameActionId; placeId: string; need: keyof Needs; label: string }
   version: number
   places: Place[]
+  /** Island toast / Bank hints from weekly payouts or rent ladder. */
+  toast?: string | null
+  notices?: string[]
+  reputation?: number
+  hustleLockoutUntil?: number | null
 }
 
 function asMoney(value: string | number | null | undefined): number {
@@ -103,6 +113,7 @@ export async function tickGameState(
   row: GameStateRow,
   traits: TraitId[],
   now = new Date(),
+  lodgingDecayMult = 1,
 ): Promise<GameStateRow> {
   const last = row.last_tick_at instanceof Date ? row.last_tick_at : new Date(row.last_tick_at)
   const elapsedMs = Math.max(0, now.getTime() - last.getTime())
@@ -119,7 +130,7 @@ export async function tickGameState(
     return { ...row, last_tick_at: now }
   }
 
-  const needs = decayNeeds(parseNeeds(row.needs), gameMinutes, traits)
+  const needs = decayNeeds(parseNeeds(row.needs), gameMinutes, traits, lodgingDecayMult)
   await client.query(
     `UPDATE game_state
      SET needs = $2::jsonb, game_time = $3, last_tick_at = $4, updated_at = NOW()
@@ -224,13 +235,15 @@ type CharacterMeta = {
   dream_id: string | null
   snapshot: unknown
   lodging_id: string | null
+  character_type: string | null
   starting_cash: string | number | null
   cash: string | number | null
 }
 
 async function loadCharacterMeta(userId: string) {
   const found = await pool.query<CharacterMeta>(
-    `SELECT id, appearance, traits, dream_id, snapshot, lodging_id, starting_cash, cash
+    `SELECT id, appearance, traits, dream_id, snapshot, lodging_id, character_type,
+            starting_cash, cash
      FROM characters WHERE user_id = $1`,
     [userId],
   )
@@ -281,7 +294,29 @@ export async function getPublicState(userId: string): Promise<
       lodgingId: character.lodging_id,
       reason: 'starting-money',
     })
-    row = await tickGameState(client, row, traitsOf(character))
+    const decayMult = lodgingDecayMultiplier(character.lodging_id)
+    row = await tickGameState(client, row, traitsOf(character), new Date(), decayMult)
+    const weekly = await processWeeklyEconomy(client, {
+      characterId: character.id,
+      characterType: character.character_type,
+      lodgingId: character.lodging_id,
+      gameTime: row.game_time,
+    })
+    // One-shot toast: prefer this tick's message, always clear stored pending.
+    const toast = weekly.toast ?? (await consumePendingToast(client, character.id))
+    if (weekly.toast) {
+      await client.query(
+        `UPDATE game_state SET pending_toast = NULL WHERE character_id = $1`,
+        [character.id],
+      )
+    }
+    const cashRow = await client.query<GameStateRow>(
+      `SELECT character_id, cash, needs, location_id, game_time, last_tick_at, version,
+              hustle_lockout_until, reputation, pending_toast
+       FROM game_state WHERE character_id = $1`,
+      [character.id],
+    )
+    row = cashRow.rows[0] ?? row
     await client.query('COMMIT')
 
     const cash = asMoney(row.cash)
@@ -291,6 +326,10 @@ export async function getPublicState(userId: string): Promise<
     const progress = dream ? dreamProgress(dream, snapshotOf(character, cash)) : null
     const urgent = mostUrgentNeed(needs)
     const suggest = actionForNeed(urgent)
+    const notices = [
+      ...weekly.notices.map((n) => n.message),
+      ...weekly.rentNotices,
+    ]
 
     return {
       ok: true,
@@ -312,6 +351,10 @@ export async function getPublicState(userId: string): Promise<
         },
         version: row.version,
         places: (await import('./places.js')).PLACES,
+        toast,
+        notices: notices.length ? notices : undefined,
+        reputation: row.reputation ?? 50,
+        hustleLockoutUntil: row.hustle_lockout_until ?? null,
       },
     }
   } catch (error) {
@@ -362,7 +405,25 @@ export async function performGameAction(
       lodgingId: character.lodging_id,
       reason: 'starting-money',
     })
-    row = await tickGameState(client, row, traits)
+    row = await tickGameState(
+      client,
+      row,
+      traits,
+      new Date(),
+      lodgingDecayMultiplier(character.lodging_id),
+    )
+    await processWeeklyEconomy(client, {
+      characterId: character.id,
+      characterType: character.character_type,
+      lodgingId: character.lodging_id,
+      gameTime: row.game_time,
+    })
+    const afterWeekly = await client.query<GameStateRow>(
+      `SELECT character_id, cash, needs, location_id, game_time, last_tick_at, version
+       FROM game_state WHERE character_id = $1`,
+      [character.id],
+    )
+    row = afterWeekly.rows[0] ?? row
 
     if (row.version !== input.version) {
       await client.query('ROLLBACK')
