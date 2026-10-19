@@ -12,6 +12,8 @@ __v0_jsx-dev-runtime.ts
 
 # Common ignores
 node_modules
+node_modules.win.bak/
+vendor/
 .next/
 .open-next/
 .wrangler/

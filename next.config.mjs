@@ -1,3 +1,7 @@
+import { createRequire } from 'node:module'
+
+const require = createRequire(import.meta.url)
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Phone / other PCs hitting this machine by LAN IP (dev only).
@@ -14,6 +18,18 @@ const nextConfig = {
   },
   images: {
     unoptimized: true,
+  },
+  // Local source archives (vendor/) must not be traced into the Worker bundle.
+  outputFileTracingExcludes: {
+    '*': ['./vendor/**'],
+  },
+  // drei/VideoTexture optional peer — pin resolve for webpack/OpenNext.
+  webpack: (config) => {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      'hls.js': require.resolve('hls.js'),
+    }
+    return config
   },
 }
 
