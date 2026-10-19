@@ -1,7 +1,11 @@
 import { config } from 'dotenv'
+import { resolve } from 'node:path'
 import { z } from 'zod'
 
-config()
+// Repo root `.env` from `neon env pull`; `backend/.env` overrides for local overrides.
+const repoRoot = resolve(import.meta.dirname, '../..')
+config({ path: resolve(repoRoot, '.env') })
+config({ path: resolve(import.meta.dirname, '../.env') })
 
 const emptyToUndefined = (value: unknown) => (value == null || value === '' ? undefined : value)
 const isProd = process.env.NODE_ENV === 'production'
@@ -9,6 +13,8 @@ const isProd = process.env.NODE_ENV === 'production'
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).optional().default('development'),
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
+  /** Direct (non-pooler) URL — use for migrations; Neon sets this via `neon env pull`. */
+  DATABASE_URL_UNPOOLED: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
   PORT: z.preprocess((value) => (value == null || value === '' ? 4000 : value), z.coerce.number().int().positive()),
   /**
    * Comma-separated browser origins allowed for CORS + cookies.

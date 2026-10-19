@@ -32,3 +32,4 @@ blob-report/
 # Source archives in public/ are served as static files. Keep the 33 MB
 # apartment zip (and any other zips) off git and off the deploy.
 public/models/*.zip
+.neon
