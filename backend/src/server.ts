@@ -5,6 +5,7 @@ import helmet from '@fastify/helmet'
 import rateLimit from '@fastify/rate-limit'
 import { env } from './env.js'
 import { pool } from './db.js'
+import { runMigrations } from './migrations.js'
 import { characterRoutes } from './routes/character.js'
 import { economyRoutes } from './routes/economy.js'
 import { roomRoutes } from './routes/room.js'
@@ -118,4 +119,5 @@ const shutdown = async () => {
 process.on('SIGINT', shutdown)
 process.on('SIGTERM', shutdown)
 
+await runMigrations()
 await app.listen({ port: env.PORT, host: '0.0.0.0' })

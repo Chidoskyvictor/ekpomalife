@@ -10,7 +10,7 @@ Domain is already on Cloudflare; `.app` is HTTPS-only (HSTS preload). **Never co
 | Piece | Choice | Why |
 |---|---|---|
 | Frontend | **Cloudflare Workers via OpenNext** (`@opennextjs/cloudflare`) + custom domains on `ekpomalife.app` / `www` | Next.js **16.4+** (bumped from 16.3 for OpenNext peer range) needs Node compat; `@cloudflare/next-on-pages` is Edge-only and incomplete for App Router. OpenNext is Cloudflare’s supported path. DNS still lives in Cloudflare (same as “Pages custom domain” UX). |
-| API | **Render** (Docker) | Checked-in `render.yaml`, `preDeployCommand` for migrations, health checks, custom domain TLS, simple rollback. |
+| API | **Render** (Docker, **free** plan) | Checked-in `render.yaml`, migrations on **startup** (`schema_migrations`, idempotent), health checks, custom domain TLS. Free tier has no pre-deploy hook and may spin down when idle. |
 | DB | **Neon Postgres** (`sslmode=require`) | Managed Postgres with SSL, branching/backups, not locked to Render’s region; connection string only in Render env. |
 
 Local LAN still uses the Next `/api` proxy. **Production does not** — the browser calls `https://api.ekpomalife.app` with cookies `Domain=.ekpomalife.app`.
@@ -27,15 +27,23 @@ Local LAN still uses the Next `/api` proxy. **Production does not** — the brow
 
 ---
 
-## 1. Database (Neon)
+## 1. Database (Neon — free)
 
-1. Neon → **New project** → region close to Render (e.g. Frankfurt / EU if you use `region: frankfurt` in `render.yaml`).
-2. Copy the connection string. It must include SSL, e.g.  
-   `postgresql://USER:PASS@HOST/DB?sslmode=require`
-3. **Backup note:** Neon → project → **Backups** / PITR. Before risky migrations, create a branch or snapshot. Restore from Neon UI if a deploy corrupts data.
-4. Do **not** put `DATABASE_URL` in git.
+1. Open [console.neon.tech](https://console.neon.tech) and sign in (GitHub is fine).
+2. Click **New project** (or **Create a project**).
+3. **Project name:** e.g. `ekpomalife` (any name).
+4. **Region:** pick **EU (Frankfurt)** if you keep `region: frankfurt` in `render.yaml` (or match whatever region you choose on Render).
+5. **Postgres version:** default is fine. Leave compute on the **free** tier if offered.
+6. Click **Create project**.
+7. On the project **Dashboard**, find **Connection details** (or **Connect**).
+8. Set **Branch** to `main` (default), **Database** to `neondb` (default), **Role** to the default user.
+9. Enable **Connection pooling** only if you want; for a single Render free instance, the direct connection string is fine.
+10. Copy the **connection string** (URI). Append SSL if it is missing:  
+    `?sslmode=require` (or `&sslmode=require` if the URL already has query params).  
+    Example shape: `postgresql://USER:PASS@ep-….eu-central-1.aws.neon.tech/neondb?sslmode=require`
+11. **Do not** commit this URL. Store it for Render step 3 as `DATABASE_URL`.
 
-You will paste this URL into Render in step 3.
+**Backup note (when you upgrade):** Neon → project → **Backups** / PITR. On free tier, note what retention you get before risky migrations.
 
 ---
 
@@ -133,7 +141,7 @@ npm run build
 |---|---|
 | Build | `npm run build` → `tsc` → `dist/` |
 | Start | `node dist/server.js` |
-| Migrate | `node dist/migrate.js` (also `preDeployCommand` on Render) |
+| Migrate | Automatic on API startup (`runMigrations` → `schema_migrations`). Manual: `node dist/migrate.js` or `npm run db:migrate` locally. |
 | Listen | `0.0.0.0:$PORT` |
 | Health | `GET /health` runs `SELECT 1` (503 if DB down) |
 | Cookies | `Secure; HttpOnly; SameSite=Lax; Domain=.ekpomalife.app; Path=/` |
@@ -141,21 +149,29 @@ npm run build
 | Proxy | `trustProxy: true` |
 | Auth rate limits | signup 5/15m, login 10/15m, forgot/reset limited |
 
-### 3.3 Create the Render service
+### 3.3 Create the Render service (free)
+
+`render.yaml` uses `plan: free` (no `preDeployCommand` — that hook is not available on free). The Docker **start** command runs `node dist/server.js`, which applies pending SQL from `backend/sql/` before listening (safe to run on every boot).
 
 **Option A — Blueprint (recommended)**  
-1. Render → **New** → **Blueprint**  
-2. Connect the GitHub repo  
-3. Select `render.yaml`  
-4. Fill `DATABASE_URL` and `RESEND_API_KEY` (secrets)  
-5. Deploy  
+1. Open [dashboard.render.com](https://dashboard.render.com) and sign in.
+2. Click **New +** (top right) → **Blueprint**.
+3. Connect **GitHub** if asked, then select the **ekpomalife** repository.
+4. Render detects `render.yaml` at the repo root. Click **Apply** (or **Create blueprint**).
+5. When prompted for **Environment Variables** / secret inputs:
+   - **`DATABASE_URL`** — paste the full Neon URI from §1 (with `sslmode=require`).
+   - **`RESEND_API_KEY`** — paste from Resend → **API Keys** → **Create API Key** (any name; copy once).
+6. Leave **`SESSION_SECRET`** and **`RESET_CODE_PEPPER`** as **Generate** (Render fills them).
+7. Click **Apply** / **Create services** and wait for the first deploy (Docker build + start). First request after idle may be slow (free spin-down).
+8. Open the service → **Logs** and confirm lines like `Applied 001_init.sql` or `Skip … (already applied)` before `Server listening`.
 
 **Option B — Manual Docker**  
-1. Render → **New Web Service** → this repo  
-2. Runtime **Docker**, Dockerfile path `backend/Dockerfile`, context `backend`  
-3. Health check path `/health`  
-4. Pre-deploy command: `node dist/migrate.js`  
-5. Add env vars from the table above  
+1. Render → **New +** → **Web Service** → connect this repo.  
+2. Runtime **Docker**, Dockerfile path `backend/Dockerfile`, context `backend`.  
+3. **Instance type:** **Free**.  
+4. Health check path `/health`.  
+5. **Do not** set a pre-deploy command (not on free); migrations run on startup.  
+6. Add env vars from the table above (same as blueprint).  
 
 ### 3.4 Custom domain on Render
 
@@ -233,8 +249,8 @@ npm run deploy
 
 ## 6. Order of operations (first launch)
 
-1. Create Neon DB → copy `DATABASE_URL`  
-2. Deploy API on Render with env vars → wait for `GET https://api.ekpomalife.app/health` → `{"ok":true,"db":true}`  
+1. Neon free project → copy `DATABASE_URL` (§1)  
+2. Render Blueprint from repo → paste `DATABASE_URL` + `RESEND_API_KEY` → wait for deploy logs (migrations on startup) → `GET https://api.ekpomalife.app/health` → `{"ok":true,"db":true}`  
 3. Add Cloudflare DNS for `api` + SSL Full (strict)  
 4. Deploy frontend with prod `NEXT_PUBLIC_*`  
 5. Attach `ekpomalife.app` + `www` to the Worker; set www→apex redirect  

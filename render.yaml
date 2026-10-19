@@ -1,6 +1,5 @@
 # Render Blueprint — API at https://api.ekpomalife.app
-# Why Render (not Railway): checked-in render.yaml, first-class preDeployCommand
-# for migrations, Docker + health checks, and simple custom-domain TLS.
+# Free web service: migrations run on container startup (schema_migrations).
 # Pair with Neon Postgres (sslmode=require) — see DEPLOY.md.
 
 services:
@@ -10,9 +9,8 @@ services:
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
     region: frankfurt
-    plan: starter
+    plan: free
     healthCheckPath: /health
-    preDeployCommand: node dist/migrate.js
     envVars:
       - key: NODE_ENV
         value: production
