@@ -1,8 +1,8 @@
 'use client'
 
-import { MapControls } from '@react-three/drei'
+import { MapControls, PerformanceMonitor } from '@react-three/drei'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { Suspense, useEffect, useRef, useState } from 'react'
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { NoToneMapping, Vector3 } from 'three'
 import { getPlace, getPlaceByZone } from '@/lib/game/places'
 import { MAP } from '@/lib/game/map-theme'
@@ -29,6 +29,10 @@ const CAMERA_OFFSET = new Vector3(
   DISTANCE * Math.cos(PITCH),
   DISTANCE * Math.sin(PITCH) * Math.cos(HEADING),
 )
+
+function mobileDprCap() {
+  return Math.min(2, window.devicePixelRatio || 1)
+}
 
 type PanControls = { target: Vector3; update: () => void }
 
@@ -75,6 +79,16 @@ function CameraRig({ focusId }: { focusId: string | null }) {
   return null
 }
 
+function MobileDprMonitor({
+  onDecline,
+  onIncline,
+}: {
+  onDecline: () => void
+  onIncline: () => void
+}) {
+  return <PerformanceMonitor onDecline={onDecline} onIncline={onIncline} />
+}
+
 export function WorldCanvas() {
   const { state, selectedId, select } = useGame()
   const night = state?.period === 'evening' || state?.period === 'night'
@@ -82,12 +96,32 @@ export function WorldCanvas() {
   const [mobile, setMobile] = useState(
     () => window.matchMedia('(max-width: 767px), (pointer: coarse)').matches,
   )
+  const [mobileDpr, setMobileDpr] = useState(() =>
+    typeof window !== 'undefined' ? mobileDprCap() : 2,
+  )
 
   useEffect(() => {
     const query = window.matchMedia('(max-width: 767px), (pointer: coarse)')
     const sync = () => setMobile(query.matches)
     query.addEventListener('change', sync)
     return () => query.removeEventListener('change', sync)
+  }, [])
+
+  useEffect(() => {
+    if (mobile) setMobileDpr(mobileDprCap())
+  }, [mobile])
+
+  const onMobileDprDecline = useCallback(() => {
+    setMobileDpr((current) => (current > 1.5 ? 1.5 : 1.25))
+  }, [])
+
+  const onMobileDprIncline = useCallback(() => {
+    setMobileDpr((current) => {
+      const cap = mobileDprCap()
+      if (current < 1.5) return 1.5
+      if (current < cap) return cap
+      return current
+    })
   }, [])
 
   const ambient = night ? 0.18 : 0.55
@@ -106,10 +140,10 @@ export function WorldCanvas() {
       <MapLoadOverlay targetPercent={targetPercent} assetsDone={assetsDone} />
       <Canvas
         shadows={!mobile}
-        dpr={mobile ? [1, 1] : [1, 1.75]}
+        dpr={mobile ? mobileDpr : [1, 1.75]}
         gl={{
-          antialias: !mobile,
-          powerPreference: mobile ? 'low-power' : 'high-performance',
+          antialias: true,
+          ...(mobile ? {} : { powerPreference: 'high-performance' as const }),
           failIfMajorPerformanceCaveat: false,
           toneMapping: NoToneMapping,
           toneMappingExposure: night ? 0.72 : 1,
@@ -126,6 +160,9 @@ export function WorldCanvas() {
         }}
         onPointerMissed={() => select(null)}
       >
+        {mobile ? (
+          <MobileDprMonitor onDecline={onMobileDprDecline} onIncline={onMobileDprIncline} />
+        ) : null}
         <MapLoadReporter onProgress={onProgress} />
         <color attach="background" args={[water]} />
         <ambientLight intensity={ambient} />

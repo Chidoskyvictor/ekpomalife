@@ -1,7 +1,8 @@
 'use client'
 
 import { Clone, Html, useGLTF } from '@react-three/drei'
-import { Suspense, useEffect, useMemo, useState } from 'react'
+import { useThree } from '@react-three/fiber'
+import { Suspense, useEffect, useLayoutEffect, useMemo, useState } from 'react'
 import {
   Box3,
   Color,
@@ -17,6 +18,7 @@ import { isGameplayPlace } from '@/lib/game/places'
 import { MAP_ZONES, type MapZone } from '@/lib/game/world-layout'
 import { stickerForZone } from '@/lib/game/zone-stickers'
 import { useGame } from '@/hooks/use-game'
+import { applyGlbTextureAnisotropy } from './glb-textures'
 import { Block } from './materials'
 import type { ThreeEvent } from '@react-three/fiber'
 import labelStyles from './zone-label.module.css'
@@ -177,7 +179,11 @@ function labelOnBuilding(mesh: Object3D, scale: number, lift = 0.14) {
 }
 
 function KenneyZone({ zone }: { zone: MapZone }) {
+  const gl = useThree((state) => state.gl)
   const { scene } = useGLTF(kenneyUrl(zone.model))
+  useLayoutEffect(() => {
+    applyGlbTextureAnisotropy(scene, gl)
+  }, [scene, gl])
   // Clone from source each memo pass; drei <Clone> attaches a *second* live instance safely
   const prepared = useMemo(() => tintedClone(scene, zone.tint), [scene, zone.tint])
   const [fw, fd] = zone.footprint
@@ -194,9 +200,15 @@ function KenneyZone({ zone }: { zone: MapZone }) {
 }
 
 function AdminZone({ zone }: { zone: MapZone }) {
+  const gl = useThree((state) => state.gl)
   const gltf = useGLTF(ADMIN_URL, false, true)
   const fallback = useGLTF(kenneyUrl('building-skyscraper-c'))
   const parking = useGLTF(PARKING_URL)
+  useLayoutEffect(() => {
+    applyGlbTextureAnisotropy(gltf.scene, gl)
+    applyGlbTextureAnisotropy(fallback.scene, gl)
+    applyGlbTextureAnisotropy(parking.scene, gl)
+  }, [gltf.scene, fallback.scene, parking.scene, gl])
   const [fw, fd] = zone.footprint
   const [ok, setOk] = useState(false)
 
@@ -258,7 +270,11 @@ function PadZone({ zone }: { zone: MapZone }) {
 }
 
 function ParkingZone({ zone }: { zone: MapZone }) {
+  const gl = useThree((state) => state.gl)
   const { scene } = useGLTF(PARKING_URL)
+  useLayoutEffect(() => {
+    applyGlbTextureAnisotropy(scene, gl)
+  }, [scene, gl])
   const [fw, fd] = zone.footprint
   // Single mesh, no white pad — asphalt is part of the model
   const scale = Math.min(fw / PARKING_SIZE.w, fd / PARKING_SIZE.d)
@@ -272,7 +288,11 @@ function ParkingZone({ zone }: { zone: MapZone }) {
 }
 
 function StadiumZone({ zone }: { zone: MapZone }) {
+  const gl = useThree((state) => state.gl)
   const { scene } = useGLTF(STADIUM_URL)
+  useLayoutEffect(() => {
+    applyGlbTextureAnisotropy(scene, gl)
+  }, [scene, gl])
   const [fw, fd] = zone.footprint
   const scale = Math.min(fw / STADIUM_SIZE.w, fd / STADIUM_SIZE.d)
   const labelH = useMemo(() => labelOnBuilding(scene, scale, 0.06), [scene, scale])
@@ -285,7 +305,11 @@ function StadiumZone({ zone }: { zone: MapZone }) {
 }
 
 function HostelZone({ zone }: { zone: MapZone }) {
+  const gl = useThree((state) => state.gl)
   const { scene } = useGLTF(HOSTEL_URL)
+  useLayoutEffect(() => {
+    applyGlbTextureAnisotropy(scene, gl)
+  }, [scene, gl])
   // Do not tint — keep the zip textures as authored
   const prepared = useMemo(() => scene.clone(true), [scene])
   const [fw, fd] = zone.footprint

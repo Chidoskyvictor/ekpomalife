@@ -35,7 +35,7 @@ export function RoomCanvas({
   return (
     <Canvas
       orthographic
-      dpr={lowPerf ? [1, 1.25] : [1, 1.75]}
+      dpr={lowPerf ? [1, 1.5] : [1, 1.75]}
       frameloop="demand"
       camera={{ position: cam.position, zoom: 48, near: 0.1, far: 80 }}
       gl={{ antialias: !lowPerf, alpha: true }}

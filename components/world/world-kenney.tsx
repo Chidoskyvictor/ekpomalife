@@ -1,13 +1,19 @@
 'use client'
 
 import { Clone, useGLTF } from '@react-three/drei'
-import { Suspense, useEffect, useMemo, useState } from 'react'
+import { useThree } from '@react-three/fiber'
+import { Suspense, useEffect, useLayoutEffect, useMemo, useState } from 'react'
 import { generateKenneyTown, kenneyUrl, type KenneyPlacement } from '@/lib/game/kenney-buildings'
 import { MAP } from '@/lib/game/map-theme'
+import { applyGlbTextureAnisotropy } from './glb-textures'
 import { Block } from './materials'
 
 function KenneyMesh({ placement }: { placement: KenneyPlacement }) {
+  const gl = useThree((state) => state.gl)
   const { scene } = useGLTF(kenneyUrl(placement.model))
+  useLayoutEffect(() => {
+    applyGlbTextureAnisotropy(scene, gl)
+  }, [scene, gl])
   const pad = placement.scale * 1.15
   return (
     <group position={[placement.x, 0, placement.z]} rotation={[0, placement.rot, 0]}>
