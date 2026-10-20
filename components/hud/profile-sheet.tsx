@@ -25,11 +25,13 @@ export function ProfileSheet({
   onOpenChange,
   state,
   onChangeDream,
+  onOpenSettings,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   state: GameState
   onChangeDream: () => void
+  onOpenSettings?: () => void
 }) {
   const dream = getDream(state.dreamId)
   const progress = dream ? dreamProgress(dream, snapshotFromLife(state.cash, state.dream)) : null
@@ -88,6 +90,11 @@ export function ProfileSheet({
         >
           Change dream
         </Button>
+        {onOpenSettings ? (
+          <Button type="button" variant="ghost" onClick={onOpenSettings}>
+            Settings & log out
+          </Button>
+        ) : null}
       </div>
     </HudDrawer>
   )

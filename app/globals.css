@@ -62,6 +62,11 @@
   --gold: oklch(0.85 0.16 90);
   --laterite: oklch(0.62 0.15 45);
   --radius: 0.875rem;
+  --z-hud: 30;
+  --z-drawer: 60;
+  --z-modal: 80;
+  --z-phone: 90;
+  --z-toast: 1000;
   --app-wash: linear-gradient(
     180deg,
     color-mix(in oklab, var(--primary) 16%, white) 0%,

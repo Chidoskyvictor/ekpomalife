@@ -2,9 +2,11 @@
 
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
+import { BodyPortal } from '@/components/ui/body-portal'
 import { useLowPerf } from '@/hooks/use-low-perf'
 import { usePhone } from '@/hooks/use-phone'
 import { useGame } from '@/hooks/use-game'
+import { PHONE_FREE_FOR_ALL, playerHasPhone } from '@/lib/game/phone-config'
 import {
   HOSTEL_PLACE_IDS,
   PHONE_APPS,
@@ -39,7 +41,8 @@ export function PhoneShell({
   const { state, select, notifyToast } = useGame()
   const lowPerf = useLowPerf()
   const reduced = useReducedMotion() ?? false
-  const phoneApi = usePhone(open || !!state?.hasPhone)
+  const canUsePhone = playerHasPhone(state?.hasPhone)
+  const phoneApi = usePhone(open && canUsePhone, { poll: open })
   const [appId, setAppId] = useState<PhoneAppId | null>(null)
   const [offline, setOffline] = useState(false)
   const [ridePreset, setRidePreset] = useState<string | null>(null)
@@ -146,7 +149,8 @@ export function PhoneShell({
     close()
   }
 
-  const noPhone = phoneApi.noPhone || (state && !state.hasPhone)
+  const noPhone =
+    !canUsePhone || (!PHONE_FREE_FOR_ALL && phoneApi.noPhone)
   const phone = phoneApi.phone
   const dead = phone && phone.battery <= 0
   const atHostel =
@@ -156,20 +160,23 @@ export function PhoneShell({
   const cash = phoneApi.cash ?? state?.cash ?? 0
 
   return (
-    <AnimatePresence>
-      {open ? (
-        <motion.div
-          className={`${styles.overlay} ${lowPerf ? styles.overlayLow : ''}`}
-          initial={reduced || lowPerf ? { opacity: 0 } : { opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: reduced || lowPerf ? 0.12 : 0.2 }}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby={titleId}
-        >
+    <BodyPortal>
+      <AnimatePresence>
+        {open ? (
           <motion.div
-            className={`${styles.frame} ${lowPerf ? styles.lowPerf : ''}`}
+            className={`${styles.overlay} ${lowPerf ? styles.overlayLow : ''}`}
+            initial={reduced || lowPerf ? { opacity: 0 } : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: reduced || lowPerf ? 0.12 : 0.2 }}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={titleId}
+            onClick={close}
+          >
+            <motion.div
+              className={`${styles.frame} ${lowPerf ? styles.lowPerf : ''}`}
+              onClick={(event) => event.stopPropagation()}
             initial={
               reduced || lowPerf
                 ? { opacity: 0 }
@@ -302,31 +309,26 @@ export function PhoneShell({
                     )}
                   </div>
                 </>
+              ) : phoneApi.loading ? (
+                <div className={styles.deadScreen} aria-busy="true">
+                  <p className={styles.deadTitle}>Opening phone…</p>
+                </div>
               ) : (
-                <div className={styles.lockEmpty}>
-                  <span style={{ fontSize: 48 }} aria-hidden="true">
-                    🔒
-                  </span>
-                  <p className={styles.deadTitle}>No phone yet</p>
-                  <p className={styles.listMeta} style={{ color: 'rgba(255,255,255,0.75)' }}>
-                    Buy a phone at Campus Shop to unlock messages and town events.
-                  </p>
-                  <button
-                    type="button"
-                    className={styles.primaryPill}
-                    onClick={() => {
-                      select('town-shop-1')
-                      close()
-                    }}
-                  >
-                    Show me Campus Shop
+                <div className={styles.deadScreen}>
+                  <p className={styles.deadTitle}>Could not load phone</p>
+                  <button type="button" className={styles.ghostPill} onClick={() => void phoneApi.refresh()}>
+                    Try again
+                  </button>
+                  <button type="button" className={styles.ghostPill} onClick={close}>
+                    Close
                   </button>
                 </div>
               )}
             </div>
           </motion.div>
         </motion.div>
-      ) : null}
-    </AnimatePresence>
+        ) : null}
+      </AnimatePresence>
+    </BodyPortal>
   )
 }

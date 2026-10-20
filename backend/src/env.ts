@@ -53,6 +53,7 @@ const envSchema = z.object({
     .enum(['true', 'false', '1', '0'])
     .optional()
     .transform((value) => value === 'true' || value === '1'),
+  PHONE_FREE_FOR_ALL: z.preprocess((value) => value !== 'false' && value !== '0', z.boolean()),
 })
 
 export const env = envSchema.parse(process.env)

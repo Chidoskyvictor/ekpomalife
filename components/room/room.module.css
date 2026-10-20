@@ -3,7 +3,9 @@
   display: flex;
   flex-direction: column;
   height: 100dvh;
+  height: 100svh;
   width: 100%;
+  max-width: 100%;
   overflow: hidden;
   background: linear-gradient(180deg, #e8f1f8 0%, #f7f4ee 55%, #efe8dc 100%);
   font-family: var(--font-jakarta), 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
@@ -299,6 +301,27 @@
 
 @media (max-width: 1023px) {
   .sidePanel {
+    display: none;
+  }
+}
+
+.navDock {
+  pointer-events: auto;
+  flex-shrink: 0;
+  padding:
+    0
+    max(12px, env(safe-area-inset-right))
+    max(8px, env(safe-area-inset-bottom))
+    max(12px, env(safe-area-inset-left));
+}
+
+.navDock nav {
+  max-width: 28rem;
+  margin-inline: auto;
+}
+
+@media (min-width: 1024px) {
+  .navDock {
     display: none;
   }
 }

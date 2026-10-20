@@ -13,6 +13,7 @@ import {
   PHONE_ERROR_COPY,
   SAME_PLACE,
 } from './economy-codes.js'
+import { isPhoneFreeForAll } from './phone-free.js'
 import { requireEconomySetup } from './economy.js'
 import {
   applyCash,
@@ -277,6 +278,7 @@ export function rideQuote(
 }
 
 export async function hasPhone(client: PoolClient, characterId: string): Promise<boolean> {
+  if (isPhoneFreeForAll()) return true
   const found = await client.query(
     `SELECT 1 FROM inventory i
      JOIN shop_items s ON s.id = i.item_id

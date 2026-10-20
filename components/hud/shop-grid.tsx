@@ -81,9 +81,6 @@ export function ShopGrid({ items, onBought }: { items: ShopItem[]; onBought?: ()
           onBuy={(qty) => {
             void (async () => {
               const result = await buy(item.id, qty)
-              if (result?.questComplete === 'buy_phone') {
-                notifyToast('Phone unlocked. Check your Phone tab.', true)
-              }
               onBought?.()
             })()
           }}

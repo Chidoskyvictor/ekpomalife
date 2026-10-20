@@ -49,7 +49,13 @@ const EMPTY: PhoneCache = {
   loading: true,
 }
 
-export function usePhone(enabled = true) {
+export type UsePhoneOptions = {
+  /** Background refresh while the phone UI is closed (off avoids NO_PHONE noise). */
+  poll?: boolean
+}
+
+export function usePhone(enabled = true, options?: UsePhoneOptions) {
+  const poll = options?.poll ?? false
   const [cache, setCache] = useState<PhoneCache>(EMPTY)
   const mounted = useRef(true)
   const idemRef = useRef<Map<string, string>>(new Map())
@@ -110,12 +116,17 @@ export function usePhone(enabled = true) {
       return
     }
     void refresh()
+    if (!poll) {
+      return () => {
+        mounted.current = false
+      }
+    }
     const id = window.setInterval(() => void refresh(), POLL_MS)
     return () => {
       mounted.current = false
       window.clearInterval(id)
     }
-  }, [enabled, refresh])
+  }, [enabled, poll, refresh])
 
   const open = useCallback(
     async (appId: PhoneAppId) => {

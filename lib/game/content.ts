@@ -96,8 +96,8 @@ export const LOCATIONS: LocationRecord[] = [
     description: 'Phones, snacks, and the small things students always need.',
     position: [26, -49.14],
     size: [3.6, 2, 3],
-    actions: ['buy_phone', 'buy_snack', 'pos_shift'],
-    npc: { name: 'Mr. Osas', role: 'Shop owner', line: 'Fresh phones just land. No dulling.' },
+    actions: ['buy_snack', 'pos_shift'],
+    npc: { name: 'Mr. Osas', role: 'Shop owner', line: 'Snacks and small things — no dulling.' },
   },
   {
     id: 'keke_park',

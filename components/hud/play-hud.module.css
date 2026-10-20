@@ -91,6 +91,7 @@
 
 .tabTrigger {
   min-width: 4.5rem;
+  min-height: 44px;
 }
 
 .tabItem {

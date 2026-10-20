@@ -147,7 +147,9 @@ describe('rideQuote (pure)', () => {
 })
 
 describe('Phone (DB)', () => {
-  it('NO_PHONE 403 without phone item', async () => {
+  it('NO_PHONE 403 without phone item when phones are paid', async () => {
+    const { isPhoneFreeForAll } = await import('./phone-free.js')
+    if (isPhoneFreeForAll()) return
     const user = await createTestUser({ cash: 5_000 })
     usersToClean.push(user.userId)
     const result = await getPhone(user.userId)

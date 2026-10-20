@@ -63,17 +63,6 @@ export function taskPillsFor(state: GameState): QuestPill[] {
   const pills: QuestPill[] = []
   const objective = currentObjective(state)
 
-  if (state.hunger < 55) {
-    pills.push({
-      id: 'task-eat',
-      kind: 'task',
-      emoji: '/emoji/pot-of-food.png',
-      title: 'Eat something',
-      hint: 'Tap the cooler or stove',
-      locationId: 'bukka',
-    })
-  }
-
   if (state.academic < 70 || state.period === 'morning') {
     pills.push({
       id: 'task-lecture',
@@ -125,7 +114,7 @@ export function dailyOkadaPill(state: GameState): QuestPill {
 /** Prefer the most urgent need from server-synced needs. */
 export function urgentNeedPill(state: GameState): QuestPill {
   const needs: { id: string; value: number; emoji: string; title: string; locationId: string }[] = [
-    { id: 'hunger', value: state.hunger, emoji: '/emoji/pot-of-food.png', title: 'Eat something', locationId: 'bukka' },
+    { id: 'hunger', value: state.hunger, emoji: '/emoji/pot-of-food.png', title: 'Grab a bite', locationId: 'bukka' },
     { id: 'energy', value: state.energy, emoji: '/emoji/fire.png', title: 'Get some sleep', locationId: 'school-hostels-1' },
     { id: 'hygiene', value: state.hygiene, emoji: '/emoji/bed.png', title: 'Take a shower', locationId: 'school-hostels-1' },
     { id: 'fun', value: state.fun, emoji: '/emoji/party-popper.png', title: 'Hang out', locationId: 'relaxation-centre' },

@@ -1,7 +1,7 @@
 .overlay {
   position: fixed;
   inset: 0;
-  z-index: 70;
+  z-index: var(--z-modal);
   background: rgba(0, 0, 0, 0.32);
 }
 
@@ -9,7 +9,7 @@
   position: fixed;
   inset-inline: 0;
   bottom: 0;
-  z-index: 71;
+  z-index: calc(var(--z-modal) + 1);
   display: flex;
   flex-direction: column;
   max-height: 92dvh;
@@ -41,7 +41,7 @@
 .desktopRoot {
   position: fixed;
   inset: 0;
-  z-index: 70;
+  z-index: var(--z-modal);
   display: grid;
   place-items: center;
   padding: 24px;
@@ -266,7 +266,7 @@
 .modal {
   position: fixed;
   inset: 0;
-  z-index: 80;
+  z-index: calc(var(--z-modal) + 1);
   display: grid;
   place-items: center;
   padding: 20px;

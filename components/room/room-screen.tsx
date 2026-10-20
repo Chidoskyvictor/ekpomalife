@@ -5,6 +5,8 @@ import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { HudDrawer } from '@/components/hud/hud-drawer'
+import { PlayNav, type PlayTab } from '@/components/hud/play-nav'
+import { stashNavIntent } from '@/lib/game/nav-intent'
 import { hapticTap } from '@/components/hud/haptic'
 import { useGame } from '@/hooks/use-game'
 import { useLowPerf } from '@/hooks/use-low-perf'
@@ -222,6 +224,16 @@ export function RoomScreen() {
     showToast(result.charged === 0 ? 'Saved. Room\'s looking fresh.' : result.message)
   }
 
+  const onNav = (tab: PlayTab) => {
+    if (tab === 'home') return
+    if (tab === 'map') {
+      router.push('/')
+      return
+    }
+    stashNavIntent(tab)
+    router.push('/')
+  }
+
   const leave = () => {
     if (dirty) {
       setLeaveAsk(true)
@@ -357,6 +369,9 @@ export function RoomScreen() {
             </button>
           </div>
         </footer>
+        <div className={styles.navDock}>
+          <PlayNav value="home" onValueChange={onNav} />
+        </div>
       </div>
       <aside className={styles.sidePanel}>{catalog}</aside>
       <HudDrawer open={catalogOpen} onOpenChange={setCatalogOpen} title="Furnish your room">

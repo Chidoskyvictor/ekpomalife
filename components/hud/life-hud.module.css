@@ -2,7 +2,7 @@
   pointer-events: none;
   position: absolute;
   inset: 0;
-  z-index: 30;
+  z-index: var(--z-hud);
   font-family: var(--font-jakarta), 'Plus Jakarta Sans', var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   letter-spacing: -0.01em;
   color: #111;
@@ -349,7 +349,7 @@
   top: 76px;
   left: max(16px, env(safe-area-inset-left));
   right: auto;
-  z-index: 31;
+  z-index: calc(var(--z-hud) + 1);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -441,7 +441,7 @@
   position: absolute;
   left: max(16px, env(safe-area-inset-left));
   bottom: calc(88px + env(safe-area-inset-bottom));
-  z-index: 32;
+  z-index: calc(var(--z-hud) + 2);
 }
 
 .avatarBtn {
@@ -530,7 +530,7 @@
 .bottomRow {
   pointer-events: none;
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: 1fr;
   align-items: end;
   gap: 8px;
 }
@@ -900,15 +900,7 @@
   }
 
   .mobileCorner {
-    pointer-events: none;
-    position: absolute;
-    right: max(16px, env(safe-area-inset-right));
-    bottom: calc(128px + env(safe-area-inset-bottom));
-    z-index: 32;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 8px;
+    display: none !important;
   }
 }
 

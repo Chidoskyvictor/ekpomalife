@@ -1,6 +1,6 @@
 'use client'
 
-import { Home, House, Map, ShoppingBag, Smartphone } from 'lucide-react'
+import { House, Map, ShoppingBag, Smartphone } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/arc/tabs/tabs'
 import lifeStyles from './life-hud.module.css'
 import styles from './play-hud.module.css'
@@ -12,13 +12,11 @@ export function PlayNav({
   onValueChange,
   badges,
   phoneBatteryLow,
-  onOpenRoom,
 }: {
   value: PlayTab
   onValueChange: (value: PlayTab) => void
   badges?: Partial<Record<PlayTab, number>>
   phoneBatteryLow?: boolean
-  onOpenRoom?: () => void
 }) {
   return (
     <Tabs
@@ -33,7 +31,7 @@ export function PlayNav({
       <TabsList aria-label="Play">
         {(
           [
-            ['home', Home, 'Home'],
+            ['home', House, 'Home'],
             ['buy', ShoppingBag, 'Buy'],
             ['map', Map, 'Map'],
             ['phone', Smartphone, 'Phone'],
@@ -58,12 +56,6 @@ export function PlayNav({
           )
         })}
       </TabsList>
-      <button type="button" className={styles.tabTrigger} aria-label="My room" onClick={onOpenRoom}>
-        <span className={lifeStyles.tabItem}>
-          <House aria-hidden="true" />
-          Room
-        </span>
-      </button>
     </Tabs>
   )
 }

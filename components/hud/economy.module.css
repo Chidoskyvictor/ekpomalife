@@ -240,7 +240,7 @@
   left: 50%;
   top: 28%;
   transform: translateX(-50%);
-  z-index: 80;
+  z-index: var(--z-modal);
   pointer-events: none;
   font-weight: 800;
   font-size: 1.25rem;

@@ -90,14 +90,6 @@ const JOBS: Job[] = [
 const SHOP: Record<string, ShopItem[]> = {
   'town-shop-1': [
     {
-      id: 'phone-basic',
-      name: 'Campus phone',
-      emoji: '📱',
-      price: 2500,
-      category: 'phone',
-      effects: { item: 'phone' },
-    },
-    {
       id: 'gala-fanta',
       name: 'Gala & Fanta',
       emoji: '🌭',

@@ -122,7 +122,7 @@ export function EconomyProvider({ children }: { children: ReactNode }) {
         return
       }
       setNetworkDown(false)
-      setShopItems(result.items)
+      setShopItems(result.items.filter((item) => item.category !== 'phone'))
       setShopPlaceId(result.placeId)
     },
     [onFail],

@@ -1,4 +1,5 @@
 import { getMockCash, setMockCash } from '@/lib/game/economy-mock'
+import { PHONE_FREE_FOR_ALL } from '@/lib/game/phone-config'
 import { PLACES, getPlace } from '@/lib/game/places'
 import {
   BATTERY,
@@ -141,8 +142,9 @@ function hopDistance(from: string, to: string): number | null {
 }
 
 function noPhone() {
+  if (PHONE_FREE_FOR_ALL) return null
   if (typeof localStorage !== 'undefined' && localStorage.getItem('mock-no-phone') === '1') {
-    return { ok: false as const, code: 'NO_PHONE', error: 'Buy a phone at Campus Shop first.', status: 403 }
+    return { ok: false as const, code: 'NO_PHONE', error: 'Get a phone first.', status: 403 }
   }
   return null
 }

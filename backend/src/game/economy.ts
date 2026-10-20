@@ -439,10 +439,11 @@ export async function listShop(userId: string, placeId: string) {
       `SELECT * FROM shop_items WHERE place_id = 'town-shop-1' ORDER BY price ASC`,
     )
   }
+  const visible = items.rows.filter((item) => item.category !== 'phone')
   return {
     ok: true as const,
-    placeId: items.rows[0]?.place_id ?? resolved,
-    items: items.rows.map((item) => ({
+    placeId: visible[0]?.place_id ?? items.rows[0]?.place_id ?? resolved,
+    items: visible.map((item) => ({
       id: item.id,
       name: item.name,
       emoji: item.emoji,
