@@ -1,6 +1,11 @@
 import Link from 'next/link'
+import { pageMetadata } from '@/lib/seo/metadata'
 
-export const metadata = { title: 'Terms — Ekpoma Life' }
+export const metadata = pageMetadata({
+  title: 'Terms — Ekpoma Life',
+  description: 'Terms of use for Ekpoma Life — a browser campus life-simulation game (18+).',
+  path: '/terms',
+})
 
 export default function TermsPage() {
   return (

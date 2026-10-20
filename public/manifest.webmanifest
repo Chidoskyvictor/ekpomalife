@@ -1,0 +1,24 @@
+{
+  "name": "Ekpoma Life",
+  "short_name": "Ekpoma Life",
+  "description": "Browser life-simulation game set in Ekpoma around Ambrose Alli University.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3d9ad6",
+  "lang": "en",
+  "icons": [
+    {
+      "src": "/apple-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "256x256",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

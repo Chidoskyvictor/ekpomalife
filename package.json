@@ -6,7 +6,7 @@
     "node": ">=20"
   },
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --webpack",
     "build": "next build --webpack",
     "start": "next start",
     "pages:build": "opennextjs-cloudflare build && node scripts/strip-cloudflare-assets.mjs",

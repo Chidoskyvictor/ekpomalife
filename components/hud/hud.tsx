@@ -1,8 +1,8 @@
 'use client'
 
-import { MoreHorizontal } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useMemo, useState } from 'react'
+import { BuildingPanel } from '@/components/buildings/building-panel'
 import { BuySheet } from '@/components/hud/buy-sheet'
 import { ChangeDreamDialog } from '@/components/hud/change-dream-dialog'
 import { ContextDock } from '@/components/hud/context-dock'
@@ -10,7 +10,7 @@ import { DreamCelebration } from '@/components/hud/dream-celebration'
 import { EventDialog } from '@/components/hud/event-dialog'
 import { HudToast } from '@/components/hud/hud-toast'
 import { IslandToast } from '@/components/hud/island-toast'
-import { BuildingPanel } from '@/components/buildings/building-panel'
+import { LocationSheet } from '@/components/hud/location-sheet'
 import { MeCard } from '@/components/hud/me-card'
 import { PhoneDialog } from '@/components/hud/phone-dialog'
 import { PlayNav, type PlayTab } from '@/components/hud/play-nav'
@@ -18,7 +18,9 @@ import { ProfileSheet } from '@/components/hud/profile-sheet'
 import { SettingsSheet } from '@/components/hud/settings-sheet'
 import { StatusBar } from '@/components/hud/status-bar'
 import { TodaySheet } from '@/components/hud/today-sheet'
+import { TopBar } from '@/components/hud/top-bar'
 import { UpNext } from '@/components/hud/up-next'
+import { WelcomeCard } from '@/components/hud/welcome-card'
 import { useEconomy } from '@/hooks/use-economy'
 import { useGame } from '@/hooks/use-game'
 import { useLowPerf } from '@/hooks/use-low-perf'
@@ -29,8 +31,11 @@ import { cn } from '@/lib/utils'
 import styles from './life-hud.module.css'
 
 export function Hud() {
-  const { state, booting, bootError, retryBoot, selectedId, select, toast, logOut, act } = useGame()
+  const { isGuest, state, booting, bootError, retryBoot, selectedId, select, toast, logOut, act } =
+    useGame()
+  const guest = isGuest
   const { pay } = useEconomy()
+  const phone = usePhone(!guest && Boolean(state))
   const lowPerf = useLowPerf()
   const [phoneOpen, setPhoneOpen] = useState(false)
   const [buyOpen, setBuyOpen] = useState(false)
@@ -44,6 +49,7 @@ export function Hud() {
     if (!state?.hasPhone) return 0
     return Math.min(9, state.feed.filter((entry) => entry.day === state.day).length)
   }, [state])
+  const batteryLow = Boolean(state?.hasPhone && phone.battery <= BATTERY.low)
 
   const openShop = () => {
     if (!state) return
@@ -93,8 +99,22 @@ export function Hud() {
     if (action.locationId) select(action.locationId)
   }
 
-  // Provisional local shell may paint early; shimmer until server confirms (or error).
   const cashLoading = booting
+
+  if (guest || !state) {
+    return (
+      <div className={cn(styles.root, lowPerf && styles.lowPerf)}>
+        <div className={`${styles.safe} absolute inset-x-0 top-0`}>
+          <TopBar />
+        </div>
+        <div className={styles.bottomDock}>
+          {selectedId ? <LocationSheet /> : <WelcomeCard />}
+        </div>
+        <DreamCelebration />
+        <EventDialog />
+      </div>
+    )
+  }
 
   return (
     <div
@@ -110,60 +130,44 @@ export function Hud() {
             onRetry={bootError ? retryBoot : undefined}
           />
         </div>
-        {state ? <IslandToast state={state} /> : null}
+        <IslandToast state={state} />
         <HudToast toast={toast} />
       </div>
 
-      {state ? (
-        <>
-          <UpNext
-            state={state}
-            onSelect={onQuest}
-            onOpenToday={() => setTodayOpen(true)}
-            onPayRent={() => void pay()}
-          />
-          <MeCard state={state} onOpen={() => setProfileOpen(true)} />
-          <div className={styles.mobileCorner}>
-            <ContextDock
-              state={state}
-              onMore={() => setSettingsOpen(true)}
-              onAction={onContext}
-              onRoom={() => router.push('/room')}
-            />
-          </div>
-        </>
-      ) : null}
+      <UpNext
+        state={state}
+        onSelect={onQuest}
+        onOpenToday={() => setTodayOpen(true)}
+        onPayRent={() => void pay()}
+      />
+      <MeCard state={state} onOpen={() => setProfileOpen(true)} />
+      <div className={styles.mobileCorner}>
+        <ContextDock
+          state={state}
+          onMore={() => setSettingsOpen(true)}
+          onAction={onContext}
+          onRoom={() => router.push('/room')}
+        />
+      </div>
 
       <div className={styles.bottomDock}>
+        {selectedId ? <LocationSheet /> : null}
         <div className={styles.bottomRow}>
           <div className={styles.navSlot}>
             <PlayNav
               value={tab}
               onValueChange={onTab}
               badges={{ phone: unread }}
+              phoneBatteryLow={batteryLow}
               onOpenRoom={() => router.push('/room')}
             />
           </div>
-              phoneBatteryLow={batteryLow}
-          {state ? (
-            <ContextDock
-              state={state}
-              onMore={() => setSettingsOpen(true)}
-              onAction={onContext}
-              onRoom={() => router.push('/room')}
-            />
-          ) : (
-            <div className={styles.cornerActions}>
-              <button
-                type="button"
-                className={styles.moreBtn}
-                aria-label="More"
-                onClick={() => setSettingsOpen(true)}
-              >
-                <MoreHorizontal size={18} aria-hidden="true" />
-              </button>
-            </div>
-          )}
+          <ContextDock
+            state={state}
+            onMore={() => setSettingsOpen(true)}
+            onAction={onContext}
+            onRoom={() => router.push('/room')}
+          />
         </div>
       </div>
 
@@ -181,22 +185,18 @@ export function Hud() {
           if (!open && tab === 'phone') setTab('home')
         }}
       />
-      {state ? (
-        <TodaySheet open={todayOpen} onOpenChange={setTodayOpen} state={state} onSelect={onQuest} />
-      ) : null}
+      <TodaySheet open={todayOpen} onOpenChange={setTodayOpen} state={state} onSelect={onQuest} />
       <SettingsSheet open={settingsOpen} onOpenChange={setSettingsOpen} onLogOut={logOut} />
-      {state ? (
-        <ProfileSheet
-          open={profileOpen}
-          onOpenChange={setProfileOpen}
-          state={state}
-          onChangeDream={() => setDreamOpen(true)}
-        />
-      ) : null}
+      <ProfileSheet
+        open={profileOpen}
+        onOpenChange={setProfileOpen}
+        state={state}
+        onChangeDream={() => setDreamOpen(true)}
+      />
       <ChangeDreamDialog open={dreamOpen} onOpenChange={setDreamOpen} />
       <DreamCelebration />
       <EventDialog />
-      {state && selectedId ? <BuildingPanel /> : null}
+      {selectedId ? <BuildingPanel /> : null}
     </div>
   )
 }

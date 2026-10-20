@@ -43,6 +43,10 @@ describe('AuthGate resolveGate', () => {
     ).toBe('/traits')
   })
 
+  it('logged-out visitor on / stays on home (guest map)', () => {
+    expect(resolveGate('home', '/', null)).toBeNull()
+  })
+
   it('complete user on setup is sent home', () => {
     expect(resolveGate('setup', '/look', { setupComplete: true, setupStep: null })).toBe('/')
   })

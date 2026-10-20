@@ -165,8 +165,20 @@ export function LiveStudio() {
     // while AuthGate re-probes, so the button looks like a no-op.
     void (async () => {
       try {
-        const me = await fetchAuthMe()
-        window.location.assign(getPostAuthRoute(me))
+        // game_state row may lag the spin response — probe /auth/me briefly.
+        for (let attempt = 0; attempt < 4; attempt += 1) {
+          const me = await fetchAuthMe()
+          if (me?.setupComplete) {
+            window.location.assign('/')
+            return
+          }
+          if (me) {
+            window.location.assign(getPostAuthRoute(me))
+            return
+          }
+          if (attempt < 3) await new Promise((resolve) => window.setTimeout(resolve, 350))
+        }
+        window.location.assign('/')
       } catch {
         window.location.assign('/')
       }

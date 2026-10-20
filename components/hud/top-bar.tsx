@@ -9,7 +9,7 @@ export function Logo() {
   return (
     <div className={logoStyles.logo}>
       <span className={logoStyles.badge}>
-        <img src="/logo.png" alt="" width={36} height={36} />
+        <img src="/logo.png" alt="Ekpoma Life" width={36} height={36} />
       </span>
       <span className={logoStyles.name}>Ekpoma Life</span>
     </div>

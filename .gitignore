@@ -33,3 +33,10 @@ blob-report/
 # apartment zip (and any other zips) off git and off the deploy.
 public/models/*.zip
 .neon
+
+# Local agent tooling (keep tracked .cursor/.claude project files)
+*.log
+.agents/
+.cursor/settings.json
+skills-lock.json
+.claude/skills/neon*/

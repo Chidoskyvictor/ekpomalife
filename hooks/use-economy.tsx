@@ -60,7 +60,7 @@ type EconomyContextValue = {
 const EconomyContext = createContext<EconomyContextValue | null>(null)
 
 export function EconomyProvider({ children }: { children: ReactNode }) {
-  const { applyServerState, notifyToast, refreshServer } = useGame()
+  const { applyServerState, notifyToast, refreshServer, isGuest } = useGame()
   const [jobs, setJobs] = useState<Job[]>([])
   const [currentJobId, setCurrentJobId] = useState<string | null>(null)
   const [shopItems, setShopItems] = useState<ShopItem[]>([])
@@ -187,9 +187,10 @@ export function EconomyProvider({ children }: { children: ReactNode }) {
   }, [ledgerNextCursor, loading, onFail])
 
   useEffect(() => {
+    if (isGuest) return
     void loadRent()
     void loadInventory()
-  }, [loadRent, loadInventory])
+  }, [isGuest, loadRent, loadInventory])
 
   const apply = useCallback(
     async (jobId: string) => {

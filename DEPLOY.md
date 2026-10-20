@@ -68,6 +68,7 @@ In Cloudflare dashboard (Workers/Pages project → Settings → Variables) **or*
 |---|---|
 | `NEXT_PUBLIC_API_URL` | `https://api.ekpomalife.app` |
 | `NEXT_PUBLIC_USE_MOCKS` | `false` |
+| `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION` | (optional) Google Search Console HTML-tag value — **set in the Cloudflare build environment**; Next reads it at **build time** for `metadata.verification.google` |
 
 Do **not** set `API_PROXY_TARGET` or `NEXT_PUBLIC_API_DIRECT_URL` in production.
 

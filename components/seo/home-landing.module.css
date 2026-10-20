@@ -1,0 +1,153 @@
+.landing {
+  position: relative;
+  z-index: 0;
+  max-width: 42rem;
+  margin: 0 auto;
+  padding: max(1.5rem, env(safe-area-inset-top)) 1.25rem max(2rem, env(safe-area-inset-bottom));
+  color: #122846;
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, #3d9ad6 14%, white) 0%,
+    color-mix(in oklab, #3d9ad6 6%, white) 40%,
+    white 85%
+  );
+  line-height: 1.55;
+}
+
+.hero {
+  text-align: center;
+  padding-bottom: 1.5rem;
+}
+
+.logo {
+  width: 5.5rem;
+  height: 5.5rem;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #0c1a24;
+}
+
+.title {
+  margin: 0.75rem 0 0;
+  font-family: 'Boogaloo', sans-serif;
+  font-size: clamp(2.25rem, 8vw, 3.25rem);
+  font-weight: 400;
+  line-height: 1.05;
+}
+
+.lead {
+  margin: 0.75rem auto 0;
+  max-width: 36ch;
+  font-size: 1.05rem;
+  color: #2a3f55;
+}
+
+.ctaRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+  margin-top: 1.25rem;
+}
+
+.ctaPrimary,
+.ctaSecondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: 0 1.25rem;
+  border-radius: 999px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.ctaPrimary {
+  color: white;
+  background: #1a6fb0;
+}
+
+.ctaSecondary {
+  color: #1a6fb0;
+  border: 1px solid color-mix(in oklab, #1a6fb0 35%, white);
+  background: white;
+}
+
+.section {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid color-mix(in oklab, #3d9ad6 18%, white);
+}
+
+.section h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.steps {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.steps li {
+  margin-bottom: 0.5rem;
+}
+
+.featureList {
+  margin: 0;
+  padding-left: 1.15rem;
+}
+
+.featureList li {
+  margin-bottom: 0.65rem;
+}
+
+.faq {
+  margin: 0;
+}
+
+.faqItem {
+  margin-bottom: 1rem;
+}
+
+.faqItem dt {
+  font-weight: 600;
+}
+
+.faqItem dd {
+  margin: 0.35rem 0 0;
+  color: #2a3f55;
+}
+
+.footer {
+  margin-top: 2.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid color-mix(in oklab, #3d9ad6 18%, white);
+  font-size: 0.9rem;
+}
+
+.footer nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+}
+
+.footer a {
+  color: #1a6fb0;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.footnote {
+  margin: 1rem 0 0;
+  color: #4a5f73;
+  font-size: 0.85rem;
+}
+
+.landing a:not(.ctaPrimary):not(.ctaSecondary) {
+  color: #1a6fb0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}

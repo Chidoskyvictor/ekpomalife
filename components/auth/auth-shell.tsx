@@ -48,7 +48,7 @@ export function AuthPage({ initial }: { initial: AuthMode }) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={reduceMotion ? { duration: 0 } : { type: 'spring', bounce: 0.55, duration: 0.85 }}
           >
-            <img src="/logo.png" alt="" width={64} height={64} className={styles.heroMark} />
+            <img src="/logo.png" alt="Ekpoma Life logo" width={64} height={64} className={styles.heroMark} />
             <h1 className={styles.heroTitle}>Ekpoma Life</h1>
           </motion.header>
 

@@ -13,9 +13,9 @@ const WorldCanvas = dynamic(
   },
 )
 
-export default function GameShell() {
+export default function GameShell({ guest = false }: { guest?: boolean }) {
   return (
-    <GameProvider>
+    <GameProvider guest={guest}>
       <EconomyProvider>
         <main className="relative h-dvh w-full overflow-hidden">
           <h1 className="sr-only">Ekpoma Life</h1>

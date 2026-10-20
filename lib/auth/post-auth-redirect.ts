@@ -37,13 +37,13 @@ export function isHomePath(pathname: string) {
 
 /**
  * Route-guard destination (or null to stay). Used by AuthGate and tests.
- * - home: incomplete → setup; logged out → login
+ * - home: incomplete → setup; logged out → stay on / (guest map)
  * - setup: complete → home; logged out → login; never skip ahead of server step
  * - public: already logged in → getPostAuthRoute
  */
 export function resolveGate(mode: AuthGateMode, pathname: string, me: AuthUser): string | null {
   if (mode === 'home') {
-    if (!me) return '/login'
+    if (!me) return null
     if (!me.setupComplete) return getPostAuthRoute(me)
     return null
   }

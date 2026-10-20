@@ -3,11 +3,13 @@
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState, type ReactNode } from 'react'
 import { TextShimmer } from '@/components/arc/text-shimmer/text-shimmer'
+import { AuthGateProvider } from '@/lib/auth/auth-gate-context'
 import { fetchAuthMe } from '@/lib/auth/fetch-auth-me'
 import {
   getPostAuthRoute,
   resolveGate,
   type AuthGateMode,
+  type AuthUser,
 } from '@/lib/auth/post-auth-redirect'
 import { rememberProfile, setSession } from '@/lib/game/accounts'
 import styles from '@/components/game-loader.module.css'
@@ -20,32 +22,33 @@ import styles from '@/components/game-loader.module.css'
 export function AuthGate({ mode, children }: { mode: AuthGateMode; children: ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
-  const [allowed, setAllowed] = useState(false)
+  const [ready, setReady] = useState(false)
+  const [me, setMe] = useState<AuthUser | null>(null)
 
   useEffect(() => {
     let cancelled = false
+    setReady(false)
     void (async () => {
-      const me = await fetchAuthMe()
+      const session = await fetchAuthMe()
       if (cancelled) return
 
-      const dest = resolveGate(mode, pathname, me)
+      const dest = resolveGate(mode, pathname, session)
       if (dest && dest !== pathname) {
         router.replace(dest)
         return
       }
-      setAllowed(true)
+      setMe(session)
+      setReady(true)
     })()
     return () => {
       cancelled = true
     }
   }, [mode, pathname, router])
 
-  // Never return null — a blank frame under body overflow:hidden reads as a dark flash
-  // when the landing/auth gate hands off to home.
-  if (!allowed) {
+  if (!ready) {
     return (
       <div className={styles.loading} data-theme="light" aria-busy="true" aria-live="polite">
-        <img src="/logo.png" alt="" className={styles.crest} width={88} height={88} />
+        <img src="/logo.png" alt="Ekpoma Life logo" className={styles.crest} width={88} height={88} />
         <h1 className={styles.mark}>
           <TextShimmer>Ekpoma Life</TextShimmer>
         </h1>
@@ -53,7 +56,7 @@ export function AuthGate({ mode, children }: { mode: AuthGateMode; children: Rea
     )
   }
 
-  return children
+  return <AuthGateProvider me={me}>{children}</AuthGateProvider>
 }
 
 /** After login/signup: persist username then hard-nav via getPostAuthRoute. */

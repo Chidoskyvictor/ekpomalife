@@ -1,5 +1,5 @@
 import { apiUrl } from '@/lib/game/api'
-import { rememberProfile, setSession } from '@/lib/game/accounts'
+import { clearSession, rememberProfile, setSession } from '@/lib/game/accounts'
 import type { AuthUser, SetupStep } from './post-auth-redirect'
 
 export type AuthMeOk = {
@@ -32,7 +32,10 @@ async function fetchMe(): Promise<Response> {
 export async function fetchAuthMe(): Promise<AuthUser> {
   try {
     const response = await fetchMe()
-    if (response.status === 401) return null
+    if (response.status === 401) {
+      clearSession()
+      return null
+    }
     const data = (await response.json()) as AuthMeOk | AuthMeFail
     if (!response.ok || !data.ok) return null
     rememberProfile(data.account)

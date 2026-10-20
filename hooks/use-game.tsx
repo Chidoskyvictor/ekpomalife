@@ -18,6 +18,8 @@ import type { ActionId, EventChoice, GameEvent, GameState, TimePeriod, TravelMod
 export type Toast = { id: number; text: string; ok: boolean }
 
 type GameContextValue = {
+  /** Logged-out visitor on / — map only, no authenticated game API. */
+  isGuest: boolean
   state: GameState | null
   /** True until the first GET /game/state resolves (ok or error). */
   booting: boolean
@@ -177,7 +179,14 @@ function applyServer(shell: GameState | null, server: ServerGameState, username:
 
 const POLL_MS = 30_000
 
-export function GameProvider({ children }: { children: ReactNode }) {
+export function GameProvider({
+  children,
+  guest: guestProp = false,
+}: {
+  children: ReactNode
+  guest?: boolean
+}) {
+  const [isGuest, setIsGuest] = useState(guestProp)
   const [state, setState] = useState<GameState | null>(null)
   const [booting, setBooting] = useState(true)
   const [bootError, setBootError] = useState<string | null>(null)
@@ -221,6 +230,19 @@ export function GameProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
+    setIsGuest(guestProp)
+  }, [guestProp])
+
+  useEffect(() => {
+    if (isGuest) {
+      setState(null)
+      shellRef.current = null
+      setBooting(false)
+      setBootError(null)
+      setSelectedId(null)
+      return
+    }
+
     // Never paint localStorage cash as final truth — merge GET /game/state as soon as it
     // returns. Do not wait on /character (that was blocking the balance for a long beat).
     let cancelled = false
@@ -245,6 +267,16 @@ export function GameProvider({ children }: { children: ReactNode }) {
           return
         }
         if (result.code === 'UNAUTHORIZED' || result.status === 401) {
+          clearSession()
+          const me = await fetchAuthMe()
+          if (!cancelled && !me) {
+            setIsGuest(true)
+            setState(null)
+            shellRef.current = null
+            setBooting(false)
+            setBootError(null)
+            return
+          }
           setBooting(false)
           if (!cancelled) window.location.assign('/login')
           return
@@ -282,24 +314,25 @@ export function GameProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true
     }
-  }, [mergeServer, bootKey])
+  }, [mergeServer, bootKey, isGuest])
 
   // Hard stop — never leave the balance shimmer spinning past 12s.
   useEffect(() => {
-    if (!booting) return
+    if (!booting || isGuest) return
     const timer = window.setTimeout(() => {
       setBooting(false)
       setBootError((prev) => prev ?? 'Balance is taking too long. Tap retry.')
     }, 12_000)
     return () => window.clearTimeout(timer)
-  }, [booting, bootKey])
+  }, [booting, bootKey, isGuest])
 
   useEffect(() => {
+    if (isGuest) return
     const id = window.setInterval(() => {
       void refreshServer()
     }, POLL_MS)
     return () => window.clearInterval(id)
-  }, [refreshServer])
+  }, [refreshServer, isGuest])
 
   useEffect(() => {
     if (!toast) return
@@ -392,6 +425,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<GameContextValue>(
     () => ({
+      isGuest,
       state,
       booting,
       bootError,
@@ -435,6 +469,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       notifyToast: (text: string, ok = true) => notify(text, ok),
     }),
     [
+      isGuest,
       state,
       booting,
       bootError,

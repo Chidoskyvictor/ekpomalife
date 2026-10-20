@@ -1,5 +1,6 @@
 import { fetchAuthMe } from '@/lib/auth/fetch-auth-me'
 import { getPostAuthRoute } from '@/lib/auth/post-auth-redirect'
+import { clearSession } from '@/lib/game/accounts'
 import { asApiErrorCode, friendlyApiMessage, type ApiFail } from './errors'
 
 type Handlers = {
@@ -22,7 +23,19 @@ export async function handleApiFail(fail: ApiFail, handlers: Handlers): Promise<
   }
 
   if (code === 'UNAUTHORIZED' || fail.status === 401) {
-    if (typeof window !== 'undefined') window.location.assign('/login')
+    if (typeof window !== 'undefined') {
+      clearSession()
+      void fetchAuthMe().then((me) => {
+        if (!me) {
+          // No server session — show guest map on home instead of forcing login.
+          if (window.location.pathname === '/' || window.location.pathname === '') {
+            window.location.assign('/')
+            return
+          }
+        }
+        window.location.assign('/login')
+      })
+    }
     return true
   }
 
