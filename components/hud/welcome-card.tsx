@@ -7,7 +7,7 @@ import { usePlayerStats } from '@/hooks/use-player-stats'
 import styles from './welcome-card.module.css'
 
 export function WelcomeCard() {
-  const { online } = usePlayerStats()
+  const { players } = usePlayerStats()
   const reduceMotion = useReducedMotion() ?? false
 
   return (
@@ -19,13 +19,19 @@ export function WelcomeCard() {
       transition={reduceMotion ? { duration: 0 } : motionTokens.spring.smooth}
     >
       <p className={styles.status}>
-        <span className={styles.dot} aria-hidden="true">
-          <span className={styles.pulse} />
-          <span className={styles.live} />
-        </span>
-        <span className={styles.label}>
-          <span className={styles.count}>{online.toLocaleString()}</span> students on campus right now
-        </span>
+        {players != null ? (
+          <>
+            <span className={styles.dot} aria-hidden="true">
+              <span className={styles.pulse} />
+              <span className={styles.live} />
+            </span>
+            <span className={styles.label}>
+              <span className={styles.count}>{players.toLocaleString()}</span> players on campus
+            </span>
+          </>
+        ) : (
+          <span className={styles.label}>Be one of the first on campus</span>
+        )}
       </p>
       <AuthLinks size="lg" signupFirst variant="lobby" />
     </motion.section>

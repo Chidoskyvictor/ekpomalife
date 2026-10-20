@@ -1,6 +1,6 @@
 'use client'
 
-import { LogOut, Plus, Users, Volume2, VolumeX } from 'lucide-react'
+import { LogOut, Plus, Volume2, VolumeX } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/arc/button/button'
 import { useGame } from '@/hooks/use-game'
@@ -47,7 +47,7 @@ function moodFor(state: GameState) {
 
 export function PlayTopBar({ onShop }: { onShop: () => void }) {
   const { state, logOut } = useGame()
-  const { online, visits } = usePlayerStats()
+  const { players } = usePlayerStats()
   const [muted, setMuted] = useState(false)
   if (!state) return null
 
@@ -72,14 +72,11 @@ export function PlayTopBar({ onShop }: { onShop: () => void }) {
           <span aria-hidden="true">{mood.emoji}</span>
           {mood.label}
         </span>
-        <span className={`${styles.chip} ${styles.wide}`} aria-label={`${visits.toLocaleString()} visits`}>
-          <Users size={14} aria-hidden="true" />
-          <strong>{compactCount(visits)}</strong>
-        </span>
-        <span className={styles.chip}>
-          <span className={guestStyles.live} aria-hidden="true" />
-          <strong>{compactCount(online)}</strong> online
-        </span>
+        {players != null ? (
+          <span className={`${styles.chip} ${styles.wide}`} aria-label={`${players.toLocaleString()} players`}>
+            <strong>{compactCount(players)}</strong> players
+          </span>
+        ) : null}
       </div>
       <div className={styles.right}>
         <Button

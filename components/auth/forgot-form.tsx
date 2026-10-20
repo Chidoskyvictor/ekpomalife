@@ -34,6 +34,7 @@ export function ForgotForm({ onShake }: { onShake: () => void }) {
   const [confirm, setConfirm] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [noAccount, setNoAccount] = useState(false)
   const [busy, setBusy] = useState(false)
   const [resendIn, setResendIn] = useState(0)
 
@@ -48,10 +49,12 @@ export function ForgotForm({ onShake }: { onShake: () => void }) {
   const sendCode = async () => {
     setBusy(true)
     setError(null)
+    setNoAccount(false)
     const result = await requestPasswordReset(email)
     setBusy(false)
     if (!result.ok) {
       setError(result.error)
+      setNoAccount(result.code === 'NO_ACCOUNT')
       onShake()
       return false
     }
@@ -227,13 +230,25 @@ export function ForgotForm({ onShake }: { onShake: () => void }) {
         icon="✉️"
         type="email"
         value={email}
-        onChange={(event) => setEmail(event.target.value)}
+        onChange={(event) => {
+          setEmail(event.target.value)
+          setNoAccount(false)
+          setError(null)
+        }}
         autoComplete="email"
         inputMode="email"
         required
         placeholder="you@example.com"
-        error={error}
+        error={noAccount ? undefined : error}
       />
+      {noAccount && error ? (
+        <div className={styles.fieldError} role="alert">
+          <p className={styles.stepCopy}>{error}</p>
+          <Link href="/signup" className={styles.textLink}>
+            Create an account
+          </Link>
+        </div>
+      ) : null}
       <LobbyButton type="submit" loading={busy} disabled={!email.includes('@')}>
         Send code ▶
       </LobbyButton>

@@ -1,3 +1,4 @@
+import { pool } from '../db.js'
 import type { Appearance } from './look.js'
 import { checkAppearance } from './look.js'
 import { checkTraits, type TraitId } from './traits.js'
@@ -49,3 +50,18 @@ export function computeSetupStatus(input: CharacterSetupInput): SetupStatus {
 }
 
 export const SETUP_INCOMPLETE = 'SETUP_INCOMPLETE'
+
+/** Users who finished look, traits, dream, and have a game_state row. */
+export async function countPlayersWithSetupComplete(): Promise<number> {
+  const result = await pool.query<{ count: number }>(
+    `SELECT COUNT(DISTINCT u.id)::int AS count
+     FROM users u
+     INNER JOIN characters c ON c.user_id = u.id
+     INNER JOIN game_state gs ON gs.character_id = c.id
+     WHERE c.appearance IS NOT NULL
+       AND c.dream_id IS NOT NULL
+       AND c.traits IS NOT NULL
+       AND cardinality(c.traits) = 2`,
+  )
+  return result.rows[0]?.count ?? 0
+}

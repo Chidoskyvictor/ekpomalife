@@ -65,7 +65,11 @@ export async function forgotRoutes(app: FastifyInstance) {
       )
       const user = found.rows[0]
       if (!user) {
-        return reply.send(OK)
+        return reply.code(404).send({
+          ok: false,
+          code: 'NO_ACCOUNT',
+          error: "We couldn't find an account with that email.",
+        })
       }
 
       const code = createResetCode()

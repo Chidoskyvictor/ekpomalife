@@ -18,15 +18,11 @@ import styles from './life-hud.module.css'
 
 const spring = { type: 'spring' as const, stiffness: 400, damping: 32 }
 
-function PlayersSummary({ visits, online }: { visits: number; online: number }) {
+function PlayersSummary({ players }: { players: number }) {
   return (
     <>
-      <strong>{compactCount(visits)}</strong>
+      <strong>{compactCount(players)}</strong>
       <span className={styles.statusMuted}>players</span>
-      <span className={styles.statusMuted}>·</span>
-      <span className={styles.liveDot} aria-hidden="true" />
-      <strong>{compactCount(online)}</strong>
-      <span className={styles.statusMuted}>online</span>
     </>
   )
 }
@@ -44,7 +40,7 @@ export function StatusBar({
   onShop: () => void
   onRetry?: () => void
 }) {
-  const { online, visits } = usePlayerStats()
+  const { players } = usePlayerStats()
   const reduced = useReducedMotion() ?? false
   const [muted, setMuted] = useState(false)
   const prev = useRef(state?.cash ?? 0)
@@ -132,14 +128,17 @@ export function StatusBar({
           {mood ? mood.label : '—'}
         </span>
 
-        <span className={`${styles.statusDivider} ${styles.deskOnly}`} aria-hidden="true" />
-
-        <span
-          className={`${styles.statusItem} ${styles.statusPlayers}`}
-          aria-label={`${visits} players, ${online} online`}
-        >
-          <PlayersSummary visits={visits} online={online} />
-        </span>
+        {players != null ? (
+          <>
+            <span className={`${styles.statusDivider} ${styles.deskOnly}`} aria-hidden="true" />
+            <span
+              className={`${styles.statusItem} ${styles.statusPlayers}`}
+              aria-label={`${players} players on campus`}
+            >
+              <PlayersSummary players={players} />
+            </span>
+          </>
+        ) : null}
 
         <div className={styles.statusRight}>
           <button
@@ -198,13 +197,11 @@ export function StatusBar({
         </div>
       </header>
 
-      {/* Mobile: same glass language, outside the main pill so ₦ has room */}
-      <div
-        className={styles.playersDock}
-        aria-label={`${visits} players, ${online} online`}
-      >
-        <PlayersSummary visits={visits} online={online} />
-      </div>
+      {players != null ? (
+        <div className={styles.playersDock} aria-label={`${players} players on campus`}>
+          <PlayersSummary players={players} />
+        </div>
+      ) : null}
     </div>
   )
 }

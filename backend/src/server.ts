@@ -15,6 +15,7 @@ import { gameRoutes } from './routes/game.js'
 import { loginRoutes } from './routes/login.js'
 import { meRoutes } from './routes/me.js'
 import { signupRoutes } from './routes/signup.js'
+import { statsRoutes } from './routes/stats.js'
 
 const app = Fastify({
   logger: true,
@@ -51,6 +52,7 @@ app.get('/', async () => ({
   signup: 'POST /auth/signup',
   login: 'POST /auth/login',
   me: 'GET /auth/me',
+  stats: 'GET /stats',
   forgot: 'POST /auth/forgot',
   reset: 'POST /auth/reset',
   character: 'GET /character',
@@ -100,6 +102,7 @@ app.get('/health', async (request, reply) => {
   }
 })
 
+await app.register(statsRoutes)
 await app.register(signupRoutes)
 await app.register(loginRoutes)
 await app.register(meRoutes)

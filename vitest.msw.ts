@@ -38,6 +38,9 @@ export const server = setupServer(
       setupStep: me.setupStep,
     })
   }),
+  http.get(/\/(?:api\/)?stats$/, () => {
+    return HttpResponse.json({ ok: true, players: 42 })
+  }),
   http.get(/\/(?:api\/)?game\/state$/, () => {
     if (fixtures.gameStateStatus === 401) {
       return HttpResponse.json({ ok: false, error: 'Log in to play.' }, { status: 401 })

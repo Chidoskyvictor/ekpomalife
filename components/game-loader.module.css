@@ -1,11 +1,11 @@
 .loading {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  place-items: center;
   width: 100%;
-  height: 100dvh;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
+  min-height: 100dvh;
+  min-height: 100svh;
+  margin: 0;
+  padding: 0;
   /* Explicit light wash — never inherit a dark Arc/theme flash into home. */
   color-scheme: light;
   color: #122846;
@@ -18,19 +18,11 @@
   );
 }
 
-.crest {
-  width: 5.5rem;
-  height: 5.5rem;
-  border-radius: 50%;
-  object-fit: cover;
-  background: #0c1a24;
-}
-
 .mark {
   margin: 0;
   color: var(--foreground);
   font-family: 'Boogaloo', sans-serif;
-  font-size: clamp(2.5rem, 8vw, 4.5rem);
+  font-size: clamp(1.9rem, 6vw, 3.4rem);
   font-weight: 400;
   letter-spacing: 0.02em;
   line-height: 1;

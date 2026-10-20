@@ -1,3 +1,4 @@
+import { invalidateAuthMeSession } from '@/lib/auth/auth-me-cache'
 import { apiUrl } from './api'
 
 const ACCOUNTS_KEY = 'ekpoma-life-accounts-v1'
@@ -120,7 +121,7 @@ export async function verifyLogin(usernameInput: string, password: string): Prom
   }
 }
 
-type OkOrFail = { ok: true } | { ok: false; error: string }
+type OkOrFail = { ok: true } | { ok: false; error: string; code?: string }
 
 /** Ask the server to email a 6-digit recovery code. */
 export async function requestPasswordReset(emailInput: string): Promise<OkOrFail> {
@@ -137,7 +138,11 @@ export async function requestPasswordReset(emailInput: string): Promise<OkOrFail
     })
     const data = (await response.json()) as OkOrFail
     if (!response.ok || !data.ok) {
-      return { ok: false, error: (data as { error?: string }).error || 'Could not send the code.' }
+      return {
+        ok: false,
+        error: data.error || 'Could not send the code.',
+        code: data.code,
+      }
     }
     return { ok: true }
   } catch {
@@ -213,6 +218,7 @@ export function setSession(username: string) {
 
 export function clearSession() {
   window.localStorage.removeItem(SESSION_KEY)
+  invalidateAuthMeSession()
 }
 
 export type LookDraft = {

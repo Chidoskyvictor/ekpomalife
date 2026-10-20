@@ -4,6 +4,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState, type ReactNode } from 'react'
 import { TextShimmer } from '@/components/arc/text-shimmer/text-shimmer'
 import { AuthGateProvider } from '@/lib/auth/auth-gate-context'
+import { peekAuthMeSession } from '@/lib/auth/auth-me-cache'
 import { fetchAuthMe } from '@/lib/auth/fetch-auth-me'
 import {
   getPostAuthRoute,
@@ -16,20 +17,23 @@ import styles from '@/components/game-loader.module.css'
 
 /**
  * Route guard: never flash home HUD until /auth/me decides the route.
- * Once allowed, keep children visible while re-checking on pathname changes
- * (avoids unmounting the 3D preview mid-setup).
+ * Public auth pages render immediately and probe /auth/me in the background.
  */
 export function AuthGate({ mode, children }: { mode: AuthGateMode; children: ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
-  const [ready, setReady] = useState(false)
-  const [me, setMe] = useState<AuthUser | null>(null)
+  const instantPublic = mode === 'public'
+  const [ready, setReady] = useState(instantPublic)
+  const [me, setMe] = useState<AuthUser | null>(() =>
+    instantPublic ? (peekAuthMeSession() ?? null) : null,
+  )
 
   useEffect(() => {
     let cancelled = false
-    setReady(false)
+    if (!instantPublic) setReady(false)
+
     void (async () => {
-      const session = await fetchAuthMe()
+      const session = await fetchAuthMe({ useSessionCache: instantPublic })
       if (cancelled) return
 
       const dest = resolveGate(mode, pathname, session)
@@ -38,17 +42,17 @@ export function AuthGate({ mode, children }: { mode: AuthGateMode; children: Rea
         return
       }
       setMe(session)
-      setReady(true)
+      if (!instantPublic) setReady(true)
     })()
+
     return () => {
       cancelled = true
     }
-  }, [mode, pathname, router])
+  }, [instantPublic, mode, pathname, router])
 
   if (!ready) {
     return (
       <div className={styles.loading} data-theme="light" aria-busy="true" aria-live="polite">
-        <img src="/logo.png" alt="Ekpoma Life logo" className={styles.crest} width={88} height={88} />
         <h1 className={styles.mark}>
           <TextShimmer>Ekpoma Life</TextShimmer>
         </h1>
@@ -63,6 +67,6 @@ export function AuthGate({ mode, children }: { mode: AuthGateMode; children: Rea
 export async function redirectAfterAuth(account: { name: string; username: string }) {
   rememberProfile(account)
   setSession(account.username)
-  const me = await fetchAuthMe()
+  const me = await fetchAuthMe({ force: true })
   window.location.assign(getPostAuthRoute(me))
 }

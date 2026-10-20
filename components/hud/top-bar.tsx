@@ -17,18 +17,18 @@ export function Logo() {
 }
 
 export function TopBar() {
-  const { online, visits } = usePlayerStats()
+  const { players } = usePlayerStats()
 
   return (
     <header className={guestStyles.bar}>
       <div className={guestStyles.meta}>
         <Logo />
-        <span className={guestStyles.stats}>
-          <span className={guestStyles.live} aria-hidden="true" />
-          {online.toLocaleString()} online
-          <span aria-hidden="true">·</span>
-          {visits.toLocaleString()} visits
-        </span>
+        {players != null ? (
+          <span className={guestStyles.stats}>
+            <span className={guestStyles.live} aria-hidden="true" />
+            {players.toLocaleString()} players on campus
+          </span>
+        ) : null}
       </div>
       <div className={guestStyles.actions}>
         <AuthLinks signupFirst variant="lobby" />
