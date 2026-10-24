@@ -30,6 +30,8 @@ import { MarketApp } from './apps/market-app'
 import { RideApp } from './apps/ride-app'
 import { SettingsApp } from './apps/settings-app'
 import { ProfileApp } from './apps/profile-app'
+import { InvestApp } from './apps/invest-app'
+import { EtaApp } from './apps/eta-app'
 import { PhoneHome, phoneModeFromStorage } from './phone-home'
 import { PhoneStatusBar } from './phone-status-bar'
 import { WallpaperSkyline } from './wallpaper-skyline'
@@ -279,6 +281,8 @@ export function PhoneShell({
                           <CalendarApp items={mobileApi.notifications} />
                         ) : null}
                         {appId === 'profile' ? <ProfileApp /> : null}
+                        {appId === 'invest' ? <InvestApp /> : null}
+                        {appId === 'eta' ? <EtaApp /> : null}
                         {appId === 'settings' ? (
                           <SettingsApp
                             phone={deviceState}

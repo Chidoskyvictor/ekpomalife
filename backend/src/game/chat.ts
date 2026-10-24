@@ -1,6 +1,8 @@
 import type { PoolClient } from 'pg'
 import { pool } from '../db.js'
 import { createId } from '../ids.js'
+import { applyCash } from './game-state.js'
+import { isStickerId } from './stickers.js'
 
 /** Group chat (hostel chats today). Message ids are the `seq` column, sent as strings. */
 
@@ -11,14 +13,25 @@ export const CHAT_RATE_PER_MIN = 10
 
 export type ChatSender = {
   userId: string
+  /** Set on chat messages (invites link to this player's place). */
+  username?: string
   displayName: string
   avatar: { color: string; emoji: string | null }
 }
 
+/** text · system ("X joined") · sticker (body = sticker id) · invite (body = host username) · visit (body = visited username) · money (body = naira amount) */
+export type MessageKind = 'text' | 'system' | 'sticker' | 'invite' | 'visit' | 'money'
+
+/** Naira you can send in one go from a direct chat. */
+export const TRANSFER_MIN = 100
+export const TRANSFER_MAX = 500_000
+/** Money sends per user per minute (on top of the general chat rate). */
+export const TRANSFER_RATE_PER_MIN = 5
+
 export type ChatMessage = {
   id: string
   chatId: string
-  kind: 'text' | 'system'
+  kind: MessageKind
   body: string
   createdAt: string
   /** Null for system messages. */
@@ -48,17 +61,18 @@ const fail = (status: number, code: string, error: string): Fail => ({ ok: false
 type MessageRow = {
   seq: string
   chat_id: string
-  kind: 'text' | 'system'
+  kind: MessageKind
   body: string
   created_at: Date
   sender_id: string | null
+  username: string | null
   display_name: string | null
   avatar_color: string | null
   avatar_emoji: string | null
 }
 
 const MESSAGE_SELECT = `
-  SELECT m.seq::text AS seq, m.chat_id, m.kind, m.body, m.created_at, m.sender_id,
+  SELECT m.seq::text AS seq, m.chat_id, m.kind, m.body, m.created_at, m.sender_id, u.username,
          COALESCE(pp.display_name, u.name) AS display_name,
          pp.avatar_color, pp.avatar_emoji
   FROM chat_messages m
@@ -81,6 +95,7 @@ function toMessage(row: MessageRow, viewerId: string): ChatMessage {
         ? null
         : {
             userId: row.sender_id,
+            username: row.username ?? undefined,
             displayName: row.display_name ?? 'Player',
             avatar: { color: row.avatar_color ?? '#3d9ad6', emoji: row.avatar_emoji },
           },
@@ -324,17 +339,63 @@ export async function getMessages(
   return { ok: true, messages: page.map((row) => toMessage(row, userId)), hasMore }
 }
 
+async function chatKindOf(chatId: string) {
+  const found = await pool.query<{ kind: 'hostel' | 'direct' }>(`SELECT kind FROM chats WHERE id = $1`, [chatId])
+  return found.rows[0]?.kind ?? null
+}
+
+async function insertMessage(
+  client: PoolClient | typeof pool,
+  userId: string,
+  chatId: string,
+  kind: MessageKind,
+  body: string,
+) {
+  const inserted = await client.query<{ seq: string }>(
+    `INSERT INTO chat_messages (chat_id, sender_id, kind, body) VALUES ($1, $2, $3, $4) RETURNING seq::text AS seq`,
+    [chatId, userId, kind, body],
+  )
+  const seq = inserted.rows[0]!.seq
+  await client.query(
+    `UPDATE chat_members SET last_read_seq = GREATEST(last_read_seq, $3) WHERE chat_id = $1 AND user_id = $2`,
+    [chatId, userId, seq],
+  )
+  return seq
+}
+
+/**
+ * Send a text, a sticker (`rawBody` = sticker id) or a "come over" invite (direct chats only;
+ * the body is filled with the sender's username so the other player can visit).
+ */
 export async function sendMessage(
   userId: string,
   chatId: string,
   rawBody: string,
+  kind: 'text' | 'sticker' | 'invite' | 'visit' = 'text',
 ): Promise<{ ok: true; message: ChatMessage } | Fail> {
-  const body = rawBody.replace(/\r\n/g, '\n').trim()
-  if (!body) return fail(400, 'EMPTY', 'Type a message first.')
-  if (body.length > CHAT_MESSAGE_MAX) {
-    return fail(400, 'TOO_LONG', `Keep it under ${CHAT_MESSAGE_MAX} characters.`)
+  let body = rawBody.replace(/\r\n/g, '\n').trim()
+  if (kind === 'sticker' && !isStickerId(body)) return fail(400, 'BAD_STICKER', 'Pick a sticker from the list.')
+  if (kind === 'text') {
+    if (!body) return fail(400, 'EMPTY', 'Type a message first.')
+    if (body.length > CHAT_MESSAGE_MAX) {
+      return fail(400, 'TOO_LONG', `Keep it under ${CHAT_MESSAGE_MAX} characters.`)
+    }
   }
   if (!(await isMember(chatId, userId))) return fail(403, 'NOT_MEMBER', 'Join this hostel to chat.')
+  if (kind === 'invite') {
+    if ((await chatKindOf(chatId)) !== 'direct') return fail(400, 'DIRECT_ONLY', 'Invites work in one-to-one chats.')
+    const me = await pool.query<{ username: string }>(`SELECT username FROM users WHERE id = $1`, [userId])
+    body = me.rows[0]?.username ?? ''
+  }
+  if (kind === 'visit') {
+    // "You visited @x" / "@you visited your place" — the body is the visited player's username
+    if ((await chatKindOf(chatId)) !== 'direct') return fail(400, 'DIRECT_ONLY', 'Visits work in one-to-one chats.')
+    const peer = await pool.query<{ username: string }>(
+      `SELECT u.username FROM chat_members cm JOIN users u ON u.id = cm.user_id WHERE cm.chat_id = $1 AND cm.user_id <> $2`,
+      [chatId, userId],
+    )
+    body = peer.rows[0]?.username ?? ''
+  }
 
   const recent = await pool.query<{ n: number }>(
     `SELECT COUNT(*)::int AS n FROM chat_messages
@@ -345,17 +406,94 @@ export async function sendMessage(
     return fail(429, 'SLOW_DOWN', 'You’re sending messages quickly — wait a moment and try again.')
   }
 
-  const inserted = await pool.query<{ seq: string }>(
-    `INSERT INTO chat_messages (chat_id, sender_id, kind, body) VALUES ($1, $2, 'text', $3) RETURNING seq::text AS seq`,
-    [chatId, userId, body],
-  )
-  const seq = inserted.rows[0]!.seq
-  await pool.query(
-    `UPDATE chat_members SET last_read_seq = GREATEST(last_read_seq, $3) WHERE chat_id = $1 AND user_id = $2`,
-    [chatId, userId, seq],
-  )
+  const seq = await insertMessage(pool, userId, chatId, kind, body)
   const row = await pool.query<MessageRow>(`${MESSAGE_SELECT} WHERE m.seq = $1`, [seq])
   return { ok: true, message: toMessage(row.rows[0]!, userId) }
+}
+
+/**
+ * Send naira to the other player in a direct chat. Both wallets move in one transaction
+ * (rows locked in a fixed order), each gets a ledger line, and a "money" message lands in the chat.
+ */
+export async function sendMoney(
+  userId: string,
+  chatId: string,
+  amount: number,
+): Promise<{ ok: true; message: ChatMessage; cash: number; version: number } | Fail> {
+  if (!Number.isInteger(amount) || amount < TRANSFER_MIN || amount > TRANSFER_MAX) {
+    return fail(400, 'BAD_AMOUNT', `Send between ₦${TRANSFER_MIN.toLocaleString()} and ₦${TRANSFER_MAX.toLocaleString()}.`)
+  }
+  if ((await chatKindOf(chatId)) !== 'direct') return fail(400, 'DIRECT_ONLY', 'You can only send money in a one-to-one chat.')
+  if (!(await isMember(chatId, userId))) return fail(403, 'NOT_MEMBER', 'You are not in this chat.')
+
+  const recent = await pool.query<{ n: number }>(
+    `SELECT COUNT(*)::int AS n FROM chat_messages
+     WHERE sender_id = $1 AND kind = 'money' AND created_at > NOW() - INTERVAL '1 minute'`,
+    [userId],
+  )
+  if ((recent.rows[0]?.n ?? 0) >= TRANSFER_RATE_PER_MIN) {
+    return fail(429, 'SLOW_DOWN', 'Easy — wait a minute before sending more money.')
+  }
+
+  const people = await pool.query<{ user_id: string; character_id: string; username: string }>(
+    `SELECT cm.user_id, c.id AS character_id, u.username
+     FROM chat_members cm
+     JOIN users u ON u.id = cm.user_id
+     JOIN characters c ON c.user_id = cm.user_id
+     JOIN game_state g ON g.character_id = c.id
+     WHERE cm.chat_id = $1`,
+    [chatId],
+  )
+  const me = people.rows.find((row) => row.user_id === userId)
+  const peer = people.rows.find((row) => row.user_id !== userId)
+  if (!me) return fail(409, 'NO_WALLET', 'Finish setting up your character first.')
+  if (!peer) return fail(409, 'PEER_NO_WALLET', 'They can’t receive money yet.')
+
+  const client = await pool.connect()
+  try {
+    await client.query('BEGIN')
+    // Lock both wallets in id order so two people paying each other at once can't deadlock
+    await client.query(
+      `SELECT character_id FROM game_state WHERE character_id = ANY($1::text[]) ORDER BY character_id FOR UPDATE`,
+      [[me.character_id, peer.character_id]],
+    )
+    const out = await applyCash(client, me.character_id, -amount, `Sent to @${peer.username}`, 'transfer_out')
+    if (!out.ok) {
+      await client.query('ROLLBACK')
+      return out.error === 'INSUFFICIENT_FUNDS'
+        ? fail(400, 'INSUFFICIENT_FUNDS', 'You don’t have that much cash.')
+        : fail(409, 'NO_WALLET', 'Finish setting up your character first.')
+    }
+    const received = await applyCash(client, peer.character_id, amount, `From @${me.username}`, 'transfer_in')
+    if (!received.ok) {
+      await client.query('ROLLBACK')
+      return fail(409, 'PEER_NO_WALLET', 'They can’t receive money yet.')
+    }
+    const seq = await insertMessage(client, userId, chatId, 'money', String(amount))
+    await client.query('COMMIT')
+    const row = await pool.query<MessageRow>(`${MESSAGE_SELECT} WHERE m.seq = $1`, [seq])
+    return { ok: true, message: toMessage(row.rows[0]!, userId), cash: out.cash, version: out.version }
+  } catch (error) {
+    await client.query('ROLLBACK')
+    throw error
+  } finally {
+    client.release()
+  }
+}
+
+/** Who you'd be visiting: name and look for the room screen. */
+export async function getHostCard(username: string) {
+  const found = await pool.query<{ user_id: string; username: string; display_name: string; appearance: unknown }>(
+    `SELECT u.id AS user_id, u.username, COALESCE(pp.display_name, u.name) AS display_name, c.appearance
+     FROM users u
+     JOIN characters c ON c.user_id = u.id
+     LEFT JOIN player_profiles pp ON pp.user_id = u.id
+     WHERE LOWER(u.username) = LOWER($1)`,
+    [username],
+  )
+  const row = found.rows[0]
+  if (!row) return null
+  return { userId: row.user_id, username: row.username, displayName: row.display_name, appearance: row.appearance }
 }
 
 export async function markRead(userId: string, chatId: string, seq: number) {

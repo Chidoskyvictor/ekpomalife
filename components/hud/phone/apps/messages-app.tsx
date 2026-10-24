@@ -1,13 +1,17 @@
 'use client'
 
-import { Bell, ChevronLeft, Pin, Search, Send, SquarePen, Users } from 'lucide-react'
+import { Bell, ChevronLeft, Pin, Search, Send, Smile, SquarePen, Users, X } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { PlayerProfilePanel } from '@/components/profile/player-profile-panel'
 import { useChat } from '@/hooks/use-chat'
+import { useGame } from '@/hooks/use-game'
 import { useChatUnread } from '@/hooks/use-chat-unread'
 import { useMyHostel } from '@/hooks/use-hostel'
 import {
   CHAT_MESSAGE_MAX,
+  TRANSFER_MAX,
+  TRANSFER_MIN,
   fetchChats,
   fetchNeighbours,
   openDirectChat,
@@ -19,6 +23,7 @@ import {
   type PlayerCard,
 } from '@/lib/game/hostels-api'
 import { PHONE_APPS, type PhoneAppId } from '@/lib/game/phone'
+import { STICKERS, stickerById } from '@/lib/game/stickers'
 import type { PhoneNotificationsResponse } from '@/lib/game/phone-api'
 import styles from './messages.module.css'
 
@@ -250,14 +255,26 @@ export function MessagesApp({
   )
 }
 
+const naira = (amount: number) => `₦${amount.toLocaleString('en-NG')}`
+
+/** One-line summary of a message for the chat list. */
+function previewText(message: ChatMessage) {
+  if (message.kind === 'sticker') return `${stickerById(message.body)?.emoji ?? '✨'} Sticker`
+  if (message.kind === 'invite') return message.mine ? 'You invited them over 🏠' : 'Invited you over 🏠'
+  if (message.kind === 'visit') return message.mine ? 'You visited them 🚪' : 'Visited your place 🚪'
+  if (message.kind === 'money') return `💸 ${message.mine ? 'Sent' : 'Received'} ${naira(Number(message.body))}`
+  return message.body
+}
+
 function ChatRow({ chat, onOpen }: { chat: ChatSummary; onOpen: () => void }) {
   const last = chat.lastMessage
+  const text = last ? previewText(last) : ''
   const preview = last
     ? last.kind === 'system'
       ? last.body
       : chat.kind === 'hostel' && !last.mine && last.sender
-        ? `${last.sender.displayName}: ${last.body}`
-        : `${last.mine ? 'You: ' : ''}${last.body}`
+        ? `${last.sender.displayName}: ${text}`
+        : `${last.mine ? 'You: ' : ''}${text}`
     : 'Say hi to your neighbours 👋'
   return (
     <button type="button" className={styles.chatRow} onClick={onOpen}>
@@ -433,8 +450,17 @@ function ChatView({
   onNeighbours: () => void
   onProfile: (userId: string) => void
 }) {
-  const { messages, hasMore, loading, loadingOlder, error, loadOlder, send, report } = useChat(chat.id, true)
+  const router = useRouter()
+  const { state, refreshServer } = useGame()
+  const { messages, hasMore, loading, loadingOlder, error, loadOlder, send, sendMoney, report } = useChat(
+    chat.id,
+    true,
+    () => void refreshServer(),
+  )
   const [draft, setDraft] = useState('')
+  const [stickersOpen, setStickersOpen] = useState(false)
+  const [moneyOpen, setMoneyOpen] = useState(false)
+  const [notice, setNotice] = useState<string | null>(null)
   const [sending, setSending] = useState(false)
   const [sendError, setSendError] = useState<string | null>(null)
   const [menuFor, setMenuFor] = useState<string | null>(null)
@@ -481,6 +507,21 @@ function ChatView({
     }
   }
 
+  const sendExtra = async (body: string, kind: 'sticker' | 'invite' | 'visit') => {
+    setSendError(null)
+    stickToBottom.current = true
+    const res = await send(body, kind)
+    if (!res.ok) setSendError(res.error)
+    return res.ok
+  }
+
+  // Leaves a "You visited @x" pill in the chat, then goes over
+  const visit = (username: string | undefined) => {
+    if (!username) return
+    void sendExtra('', 'visit')
+    router.push(`/room/${encodeURIComponent(username)}`)
+  }
+
   const remaining = CHAT_MESSAGE_MAX - draft.length
   const title = direct && chat.peer ? (
     <button type="button" className={styles.peerTitle} onClick={() => onProfile(chat.peer!.userId)}>
@@ -504,6 +545,31 @@ function ChatView({
           )
         }
       />
+
+      {direct && chat.peer ? (
+        <div className={styles.actions} role="group" aria-label={`Things to do with ${chat.peer.displayName}`}>
+          <button
+            type="button"
+            className={`${styles.pill} ${styles.pillInvite}`}
+            onClick={async () => {
+              if (await sendExtra('', 'invite')) setNotice(`Invite sent to ${chat.peer!.displayName}`)
+            }}
+          >
+            <span aria-hidden="true">🏠</span> Invite
+          </button>
+          <button type="button" className={`${styles.pill} ${styles.pillVisit}`} onClick={() => visit(chat.peer!.username)}>
+            <span aria-hidden="true">🚪</span> Visit
+          </button>
+          <button type="button" className={`${styles.pill} ${styles.pillMoney}`} onClick={() => setMoneyOpen(true)}>
+            <span aria-hidden="true">💸</span> Send money
+          </button>
+        </div>
+      ) : null}
+      {notice ? (
+        <p className={styles.notice} role="status" onAnimationEnd={() => setNotice(null)}>
+          {notice}
+        </p>
+      ) : null}
 
       <div className={styles.messages} ref={scroller} onScroll={onScroll} aria-live="polite">
         {hasMore ? (
@@ -532,10 +598,47 @@ function ChatView({
                 await report(message.id)
               }}
               onProfile={onProfile}
+              onVisit={visit}
             />
           )
         })}
       </div>
+
+      {stickersOpen ? (
+        <div className={styles.stickerTray} role="group" aria-label="Stickers">
+          {STICKERS.map((sticker) => (
+            <button
+              key={sticker.id}
+              type="button"
+              className={styles.stickerPick}
+              aria-label={sticker.label}
+              onClick={() => {
+                setStickersOpen(false)
+                void sendExtra(sticker.id, 'sticker')
+              }}
+            >
+              <StickerArt id={sticker.id} size={34} />
+            </button>
+          ))}
+        </div>
+      ) : null}
+
+      {moneyOpen && chat.peer ? (
+        <MoneySheet
+          peerName={chat.peer.displayName}
+          balance={state?.cash ?? null}
+          onClose={() => setMoneyOpen(false)}
+          onSend={async (amount) => {
+            stickToBottom.current = true
+            const res = await sendMoney(amount)
+            if (res.ok) {
+              setMoneyOpen(false)
+              void refreshServer()
+            }
+            return res
+          }}
+        />
+      ) : null}
 
       <form
         className={styles.composer}
@@ -550,6 +653,15 @@ function ChatView({
           </p>
         ) : null}
         <div className={styles.composerRow}>
+          <button
+            type="button"
+            className={`${styles.stickerBtn} ${stickersOpen ? styles.stickerBtnOn : ''}`}
+            aria-label="Stickers"
+            aria-expanded={stickersOpen}
+            onClick={() => setStickersOpen((open) => !open)}
+          >
+            <Smile size={20} aria-hidden="true" />
+          </button>
           <textarea
             className={styles.input}
             value={draft}
@@ -558,6 +670,7 @@ function ChatView({
             placeholder={direct ? 'Message' : 'Message your neighbours'}
             aria-label="Message"
             onChange={(e) => setDraft(e.target.value)}
+            onFocus={() => setStickersOpen(false)}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault()
@@ -583,6 +696,7 @@ function MessageRow({
   onToggleMenu,
   onReport,
   onProfile,
+  onVisit,
 }: {
   message: ChatMessage
   grouped: boolean
@@ -592,17 +706,27 @@ function MessageRow({
   onToggleMenu: () => void
   onReport: () => void
   onProfile: (userId: string) => void
+  onVisit: (username: string | undefined) => void
 }) {
   if (message.kind === 'system' || !message.sender) {
     return <p className={styles.system}>{message.body}</p>
   }
+  if (message.kind === 'invite' || message.kind === 'visit') {
+    return <NoticePill message={message} onVisit={onVisit} />
+  }
   const sender = message.sender
+  const content = <MessageContent message={message} onVisit={onVisit} />
+  const special = message.kind !== 'text'
   if (message.mine) {
     return (
       <div className={`${styles.row} ${styles.rowMine} ${grouped ? styles.rowGrouped : ''}`}>
-        <div className={`${styles.bubble} ${styles.bubbleMine}`} title={clockTime(message.createdAt)}>
-          <p className={styles.body}>{message.body}</p>
-        </div>
+        {special ? (
+          <div title={clockTime(message.createdAt)}>{content}</div>
+        ) : (
+          <div className={`${styles.bubble} ${styles.bubbleMine}`} title={clockTime(message.createdAt)}>
+            {content}
+          </div>
+        )}
       </div>
     )
   }
@@ -624,7 +748,7 @@ function MessageRow({
           </button>
         ) : null}
         <div
-          className={styles.bubble}
+          className={special ? undefined : styles.bubble}
           title={clockTime(message.createdAt)}
           onClick={onToggleMenu}
           onContextMenu={(e) => {
@@ -632,7 +756,7 @@ function MessageRow({
             onToggleMenu()
           }}
         >
-          <p className={styles.body}>{message.body}</p>
+          {content}
         </div>
         {menuOpen ? (
           <div className={styles.menu}>
@@ -642,6 +766,142 @@ function MessageRow({
             </button>
           </div>
         ) : null}
+      </div>
+    </div>
+  )
+}
+
+/** Invite / visit notices: a small centred pill with the time, like a system line. */
+function NoticePill({ message, onVisit }: { message: ChatMessage; onVisit: (username: string | undefined) => void }) {
+  const name = message.sender?.username ? `@${message.sender.username}` : (message.sender?.displayName ?? 'They')
+  const invite = message.kind === 'invite'
+  const text = invite
+    ? message.mine
+      ? 'You invited them over 🏠'
+      : `${name} invited you over 🏠`
+    : message.mine
+      ? `You visited @${message.body} 🚪`
+      : `${name} visited your place 🚪`
+  return (
+    <div className={styles.noticeRow}>
+      <span className={`${styles.noticePill} ${invite ? styles.noticeInvite : styles.noticeVisit}`}>
+        {text} · {clockTime(message.createdAt)}
+        {invite && !message.mine ? (
+          <button type="button" className={styles.noticeLink} onClick={() => onVisit(message.body || message.sender?.username)}>
+            Visit
+          </button>
+        ) : null}
+      </span>
+    </div>
+  )
+}
+
+function StickerArt({ id, size }: { id: string; size: number }) {
+  const sticker = stickerById(id)
+  if (!sticker) return <span style={{ fontSize: size * 0.8 }}>✨</span>
+  if (sticker.src) return <img src={sticker.src} alt={sticker.label} width={size} height={size} draggable={false} />
+  return (
+    <span className={styles.stickerEmoji} style={{ fontSize: size * 0.86 }} role="img" aria-label={sticker.label}>
+      {sticker.emoji}
+    </span>
+  )
+}
+
+/** What goes inside a message: text, a big sticker, a come-over card or a money card. */
+function MessageContent({ message, onVisit }: { message: ChatMessage; onVisit: (username: string | undefined) => void }) {
+  if (message.kind === 'sticker') {
+    return (
+      <span className={styles.sticker}>
+        <StickerArt id={message.body} size={96} />
+      </span>
+    )
+  }
+  if (message.kind === 'money') {
+    const amount = Number(message.body)
+    return (
+      <div className={`${styles.card} ${styles.cardMoney}`}>
+        <span className={styles.cardIcon} aria-hidden="true">
+          💸
+        </span>
+        <span className={styles.cardText}>
+          <strong>{naira(amount)}</strong>
+          <span>{message.mine ? 'Sent' : `From ${message.sender?.displayName ?? 'a friend'}`}</span>
+        </span>
+      </div>
+    )
+  }
+  return <p className={styles.body}>{message.body}</p>
+}
+
+const QUICK_AMOUNTS = [500, 1000, 2000, 5000]
+
+/** Bottom sheet inside the phone: pick an amount and send it. */
+function MoneySheet({
+  peerName,
+  balance,
+  onClose,
+  onSend,
+}: {
+  peerName: string
+  balance: number | null
+  onClose: () => void
+  onSend: (amount: number) => Promise<{ ok: true } | { ok: false; error: string }>
+}) {
+  const [value, setValue] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const amount = Number(value.replace(/[^0-9]/g, '')) || 0
+  const tooMuch = balance != null && amount > balance
+  const valid = amount >= TRANSFER_MIN && amount <= TRANSFER_MAX && !tooMuch
+
+  const submit = async () => {
+    if (!valid || busy) return
+    setBusy(true)
+    setError(null)
+    const res = await onSend(amount)
+    setBusy(false)
+    if (!res.ok) setError(res.error)
+  }
+
+  return (
+    <div className={styles.sheetBackdrop} onClick={onClose}>
+      <div className={styles.sheet} role="dialog" aria-label={`Send money to ${peerName}`} onClick={(e) => e.stopPropagation()}>
+        <div className={styles.sheetHead}>
+          <strong>Send money to {peerName}</strong>
+          <button type="button" className={styles.iconBtn} onClick={onClose} aria-label="Close">
+            <X size={16} aria-hidden="true" />
+          </button>
+        </div>
+        {balance != null ? <p className={styles.sheetHint}>You have {naira(balance)}</p> : null}
+        <label className={styles.amountField}>
+          <span aria-hidden="true">₦</span>
+          <input
+            inputMode="numeric"
+            autoFocus
+            placeholder="0"
+            aria-label="Amount in naira"
+            value={amount ? amount.toLocaleString('en-NG') : ''}
+            onChange={(e) => setValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') void submit()
+            }}
+          />
+        </label>
+        <div className={styles.quickAmounts}>
+          {QUICK_AMOUNTS.map((quick) => (
+            <button key={quick} type="button" className={styles.quickAmount} onClick={() => setValue(String(quick))}>
+              {naira(quick)}
+            </button>
+          ))}
+        </div>
+        {tooMuch ? <p className={styles.sendError}>That’s more than you have.</p> : null}
+        {error ? <p className={styles.sendError}>{error}</p> : null}
+        <button type="button" className={styles.sendMoney} disabled={!valid || busy} onClick={() => void submit()}>
+          {busy ? 'Sending…' : amount ? `Send ${naira(amount)}` : 'Enter an amount'}
+        </button>
+        <p className={styles.sheetHint}>
+          {naira(TRANSFER_MIN)} – {naira(TRANSFER_MAX)} per send. Money can’t be taken back.
+        </p>
       </div>
     </div>
   )

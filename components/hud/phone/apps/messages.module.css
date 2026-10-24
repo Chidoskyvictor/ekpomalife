@@ -679,3 +679,316 @@
   color: #b42318;
   font-size: 12px;
 }
+
+/* —— Direct-chat actions: Invite · Visit · Send money (slim pills, our own colours) —— */
+.actions {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: 2px 10px 8px;
+  border-bottom: 1px solid #ececf0;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform 0.12s ease, filter 0.12s ease;
+}
+
+.pill:hover {
+  filter: brightness(0.97);
+}
+
+.pill:active {
+  transform: scale(0.96);
+}
+
+.pill:focus-visible {
+  outline: 2px solid #111827;
+  outline-offset: 2px;
+}
+
+.pillInvite {
+  background: #efe9ff;
+  color: #5b3fd1;
+}
+
+.pillVisit {
+  background: #dff5f2;
+  color: #0f766e;
+}
+
+.pillMoney {
+  background: #ffe9dc;
+  color: #b4410f;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pill {
+    transition: none;
+  }
+}
+
+.notice {
+  margin: 6px auto 0;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: #111827;
+  color: #fff;
+  font-size: 12px;
+  animation: noticeFade 2.4s ease forwards;
+}
+
+@keyframes noticeFade {
+  0%,
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* —— Stickers —— */
+.stickerBtn {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #8e8e93;
+  cursor: pointer;
+}
+
+.stickerBtnOn {
+  background: #e6f0ff;
+  color: #007aff;
+}
+
+.stickerTray {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 4px;
+  max-height: 168px;
+  padding: 8px;
+  overflow-y: auto;
+  border-top: 1px solid #ececf0;
+  background: #f9f9fb;
+}
+
+.stickerPick {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.stickerPick:hover,
+.stickerPick:focus-visible {
+  background: #ececf0;
+}
+
+.sticker {
+  display: inline-grid;
+  place-items: center;
+  padding: 2px;
+}
+
+.stickerEmoji {
+  line-height: 1;
+}
+
+/* —— Invite / money cards —— */
+.card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 250px;
+  padding: 10px 12px;
+  border-radius: 18px;
+}
+
+.cardMoney {
+  background: #ffe9dc;
+}
+
+.cardIcon {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.cardText {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 1px;
+  color: #3c3c43;
+  font-size: 12px;
+}
+
+.cardText strong {
+  color: #111;
+  font-size: 14px;
+}
+
+
+/* —— Send money sheet —— */
+.screen {
+  position: relative;
+}
+
+.sheetBackdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: flex-end;
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.sheet {
+  display: flex;
+  width: 100%;
+  max-height: 100%;
+  overflow-y: auto;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 14px 16px;
+  border-radius: 20px 20px 0 0;
+  background: #fff;
+  animation: sheetUp 0.22s ease-out;
+}
+
+@keyframes sheetUp {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+}
+
+.sheetHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 15px;
+}
+
+.sheetHint {
+  margin: 0;
+  color: #8e8e93;
+  font-size: 12px;
+}
+
+.amountField {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: #f2f2f7;
+  font-size: 26px;
+  font-weight: 700;
+}
+
+.amountField input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  background: transparent;
+  color: #111;
+  font: inherit;
+  outline: none;
+}
+
+.quickAmounts {
+  display: flex;
+  gap: 6px;
+}
+
+.quickAmount {
+  flex: 1;
+  min-height: 32px;
+  border: 0;
+  border-radius: 999px;
+  background: #f2f2f7;
+  color: #111;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.sendMoney {
+  min-height: 44px;
+  border: 0;
+  border-radius: 999px;
+  background: #15803d;
+  color: #fff;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sendMoney:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* —— Invite / visit notices: small centred pills —— */
+.noticeRow {
+  display: flex;
+  justify-content: center;
+  margin: 6px 0;
+}
+
+.noticePill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 92%;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+  text-align: center;
+}
+
+.noticeInvite {
+  background: #efe9ff;
+  color: #5b3fd1;
+}
+
+.noticeVisit {
+  background: #dff5f2;
+  color: #0f766e;
+}
+
+.noticeLink {
+  padding: 2px 8px;
+  border: 0;
+  border-radius: 999px;
+  background: #0f766e;
+  color: #fff;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}

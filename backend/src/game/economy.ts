@@ -65,7 +65,7 @@ type ShopEffects = {
   item?: string
 }
 
-type CharacterCtx = {
+export type CharacterCtx = {
   id: string
   appearance: unknown
   traits: string[]
@@ -94,7 +94,7 @@ async function loadCharacter(userId: string) {
   return found.rows[0] ?? null
 }
 
-async function tickAndWeekly(
+export async function tickAndWeekly(
   client: import('pg').PoolClient,
   character: CharacterCtx,
   traits: TraitId[],

@@ -12,6 +12,7 @@ function AppIcon({
   unread,
   isNew,
   soon,
+  inDock,
   onOpen,
 }: {
   id: PhoneAppId
@@ -21,6 +22,8 @@ function AppIcon({
   unread: number
   isNew: boolean
   soon: boolean
+  /** Dock copies skip the open/close morph — a shared layoutId on two icons hides one of them. */
+  inDock: boolean
   onOpen: (id: PhoneAppId) => void
 }) {
   const aria =
@@ -35,7 +38,7 @@ function AppIcon({
   return (
     <button type="button" className={styles.appBtn} aria-label={aria} onClick={() => onOpen(id)}>
       <motion.span
-        layoutId={`app-${id}`}
+        layoutId={inDock ? undefined : `app-${id}`}
         className={styles.appIcon}
         style={{ background: `linear-gradient(145deg, ${tint}, color-mix(in srgb, ${tint} 70%, #000))` }}
       >
@@ -81,6 +84,7 @@ export function AppGrid({
             unread={phone.unread[app.id] ?? 0}
             isNew={phone.newApps.includes(app.id)}
             soon={app.status === 'soon'}
+            inDock={dock}
             onOpen={onOpen}
           />
         </div>

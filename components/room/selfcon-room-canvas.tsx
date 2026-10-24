@@ -11,10 +11,13 @@ import type { FurnitureId } from '@/lib/game/room-furniture'
 import { ROOM_CAMERA } from '@/lib/game/room-camera'
 import { SELFCON_GLB_URL, SELFCON_SLAB_PAD_SCALE_XZ } from '@/lib/game/selfcon-model'
 import { RoomCameraSync } from './room-camera-sync'
+import { CharacterFigure } from '@/components/look/character-figure'
 import { RoomPlayer, type RoomPlayerControl } from './room-player'
 
 type PlayerProps = {
   appearance?: Appearance
+  /** Visiting: the owner's look, standing in their room. */
+  host?: Appearance
   onFurniture?: (id: FurnitureId) => void
   control?: RoomPlayerControl
 }
@@ -51,7 +54,7 @@ function shrinkRoundSlabPads(root: Object3D) {
   })
 }
 
-function SelfconModel({ appearance, onFurniture, control }: PlayerProps) {
+function SelfconModel({ appearance, host, onFurniture, control }: PlayerProps) {
   const gl = useThree((state) => state.gl)
   const { scene } = useGLTF(SELFCON_GLB_URL)
   useLayoutEffect(() => {
@@ -72,6 +75,12 @@ function SelfconModel({ appearance, onFurniture, control }: PlayerProps) {
       {/* Same offset as the model, so the player walks in the GLB's own floor coordinates */}
       <group position={[prepared.position.x, prepared.position.y, prepared.position.z]}>
         <RoomPlayer appearance={appearance} onFurniture={onFurniture} control={control} />
+        {host ? (
+          // The host waits by the table, facing the door side of the room
+          <group position={[-0.6, 0, -1.4]} rotation={[0, Math.PI / 5, 0]}>
+            <CharacterFigure appearance={host} />
+          </group>
+        ) : null}
       </group>
     </>
   )

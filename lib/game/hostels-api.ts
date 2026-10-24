@@ -10,6 +10,8 @@ export type HostelSearchHit = HostelSummary & { exact: boolean }
 
 export type ChatSender = {
   userId: string
+  /** Present on chat messages. */
+  username?: string
   displayName: string
   avatar: { color: string; emoji: string | null }
 }
@@ -17,7 +19,8 @@ export type ChatSender = {
 export type ChatMessage = {
   id: string
   chatId: string
-  kind: 'text' | 'system'
+  /** sticker: body = sticker id · invite: body = host username · visit: body = visited username · money: body = naira amount */
+  kind: 'text' | 'system' | 'sticker' | 'invite' | 'visit' | 'money'
   body: string
   createdAt: string
   sender: ChatSender | null
@@ -102,8 +105,26 @@ export function fetchMessages(chatId: string, cursor: { before?: string; after?:
   )
 }
 
-export function sendChatMessage(chatId: string, body: string) {
-  return apiPost<{ ok: true; message: ChatMessage }>(`/chats/${encodeURIComponent(chatId)}/messages`, { body })
+export function sendChatMessage(chatId: string, body: string, kind: 'text' | 'sticker' | 'invite' | 'visit' = 'text') {
+  return apiPost<{ ok: true; message: ChatMessage }>(`/chats/${encodeURIComponent(chatId)}/messages`, { body, kind })
+}
+
+/** Send naira to the other player in a direct chat (₦100 – ₦500,000). */
+export const TRANSFER_MIN = 100
+export const TRANSFER_MAX = 500_000
+
+export function sendChatMoney(chatId: string, amount: number) {
+  return apiPost<{ ok: true; message: ChatMessage; cash: number; version: number }>(
+    `/chats/${encodeURIComponent(chatId)}/money`,
+    { amount },
+  )
+}
+
+export type HostCard = { userId: string; username: string; displayName: string; appearance: unknown }
+
+/** Name + look of the player whose place you are visiting. */
+export function fetchHostCard(username: string) {
+  return apiGet<{ ok: true; host: HostCard }>(`/players/by-username/${encodeURIComponent(username)}/home`)
 }
 
 export function markChatRead(chatId: string, seq: string) {

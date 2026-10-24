@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { getSessionUser } from '../auth/current-user.js'
 import {
   CHAT_MESSAGE_MAX,
+  getHostCard,
   getMessages,
   listChats,
   markRead,
@@ -10,6 +11,7 @@ import {
   reportMessage,
   searchPlayers,
   sendMessage,
+  sendMoney,
   unreadTotal,
 } from '../game/chat.js'
 import { HOSTEL_NAME_MAX } from '../game/hostel-names.js'
@@ -28,7 +30,11 @@ const pageSchema = z.object({
   after: z.coerce.number().int().min(0).optional(),
   limit: z.coerce.number().int().min(1).max(50).optional(),
 })
-const sendSchema = z.object({ body: z.string().min(1).max(CHAT_MESSAGE_MAX * 2) })
+const sendSchema = z.object({
+  body: z.string().max(CHAT_MESSAGE_MAX * 2).default(''),
+  kind: z.enum(['text', 'sticker', 'invite', 'visit']).default('text'),
+})
+const moneySchema = z.object({ amount: z.coerce.number().int() })
 const readSchema = z.object({ seq: z.coerce.number().int().min(0) })
 const reportSchema = z.object({ reason: z.string().max(200).optional() })
 const playerSearchSchema = z.object({ q: z.string().max(40).default('') })
@@ -144,9 +150,31 @@ export async function hostelRoutes(app: FastifyInstance) {
     if (!parsed.success) {
       return reply.code(400).send({ ok: false, code: 'TOO_LONG', error: `Keep it under ${CHAT_MESSAGE_MAX} characters.` })
     }
-    const result = await sendMessage(user.id, id, parsed.data.body)
+    const result = await sendMessage(user.id, id, parsed.data.body, parsed.data.kind)
     if (!result.ok) return fail(reply, result)
     return reply.code(201).send({ ok: true, message: result.message })
+  })
+
+  // Send naira to the other player in a direct chat
+  app.post('/chats/:id/money', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (request, reply) => {
+    const user = await getSessionUser(request)
+    if (!user) return notLoggedIn(reply)
+    const { id } = request.params as { id: string }
+    const parsed = moneySchema.safeParse(request.body)
+    if (!parsed.success) return reply.code(400).send({ ok: false, code: 'BAD_AMOUNT', error: 'Enter an amount.' })
+    const result = await sendMoney(user.id, id, parsed.data.amount)
+    if (!result.ok) return fail(reply, result)
+    return reply.code(201).send({ ok: true, message: result.message, cash: result.cash, version: result.version })
+  })
+
+  // Name + look of a player whose place you're visiting
+  app.get('/players/by-username/:username/home', async (request, reply) => {
+    const user = await getSessionUser(request)
+    if (!user) return notLoggedIn(reply)
+    const { username } = request.params as { username: string }
+    const host = await getHostCard(username.slice(0, 40))
+    if (!host) return reply.code(404).send({ ok: false, code: 'NOT_FOUND', error: 'Player not found.' })
+    return reply.send({ ok: true, host })
   })
 
   app.post('/chats/:id/read', async (request, reply) => {

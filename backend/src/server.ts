@@ -17,6 +17,9 @@ import { meRoutes } from './routes/me.js'
 import { signupRoutes } from './routes/signup.js'
 import { statsRoutes } from './routes/stats.js'
 import { hostelRoutes } from './routes/hostels.js'
+import { investRoutes } from './routes/invest.js'
+import { etaRoutes } from './routes/eta.js'
+import { cryptoRoutes } from './routes/crypto.js'
 import { playersRoutes } from './routes/players.js'
 
 const app = Fastify({
@@ -130,6 +133,9 @@ await app.register(roomRoutes)
 await app.register(phoneRoutes)
 await app.register(playersRoutes)
 await app.register(hostelRoutes)
+await app.register(investRoutes)
+await app.register(etaRoutes)
+await app.register(cryptoRoutes)
 
 const shutdown = async () => {
   await app.close()

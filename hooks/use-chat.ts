@@ -6,6 +6,7 @@ import {
   markChatRead,
   reportChatMessage,
   sendChatMessage,
+  sendChatMoney,
   type ChatMessage,
 } from '@/lib/game/hostels-api'
 import { refreshChatUnread } from './use-chat-unread'
@@ -19,7 +20,8 @@ function mergeById(current: ChatMessage[], incoming: ChatMessage[]) {
   return fresh.length ? [...current, ...fresh].sort((a, b) => Number(a.id) - Number(b.id)) : current
 }
 
-export function useChat(chatId: string | null, open: boolean) {
+/** `onMoneyIn` runs when someone sends you money while the chat is open (refresh your wallet). */
+export function useChat(chatId: string | null, open: boolean, onMoneyIn?: () => void) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [hasMore, setHasMore] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -27,6 +29,8 @@ export function useChat(chatId: string | null, open: boolean) {
   const [error, setError] = useState<string | null>(null)
   const newest = useRef<string | null>(null)
   const lastRead = useRef<string | null>(null)
+  const moneyIn = useRef(onMoneyIn)
+  moneyIn.current = onMoneyIn
 
   const markRead = useCallback(
     (id: string | null) => {
@@ -68,6 +72,7 @@ export function useChat(chatId: string | null, open: boolean) {
       const res = await fetchMessages(chatId, newest.current ? { after: newest.current } : {})
       if (!res.ok || res.messages.length === 0) return
       setMessages((current) => mergeById(current, res.messages))
+      if (res.messages.some((m) => m.kind === 'money' && !m.mine)) moneyIn.current?.()
       newest.current = res.messages.at(-1)!.id
       markRead(newest.current)
     }, POLL_MS)
@@ -87,9 +92,25 @@ export function useChat(chatId: string | null, open: boolean) {
   }, [chatId, hasMore, loadingOlder, messages])
 
   const send = useCallback(
-    async (body: string): Promise<{ ok: true } | { ok: false; error: string }> => {
+    async (
+      body: string,
+      kind: 'text' | 'sticker' | 'invite' | 'visit' = 'text',
+    ): Promise<{ ok: true } | { ok: false; error: string }> => {
       if (!chatId) return { ok: false, error: 'Join a hostel to chat.' }
-      const res = await sendChatMessage(chatId, body)
+      const res = await sendChatMessage(chatId, body, kind)
+      if (!res.ok) return { ok: false, error: res.error }
+      setMessages((current) => mergeById(current, [res.message]))
+      newest.current = res.message.id
+      lastRead.current = res.message.id
+      return { ok: true }
+    },
+    [chatId],
+  )
+
+  const sendMoney = useCallback(
+    async (amount: number): Promise<{ ok: true } | { ok: false; error: string }> => {
+      if (!chatId) return { ok: false, error: 'Open a chat first.' }
+      const res = await sendChatMoney(chatId, amount)
       if (!res.ok) return { ok: false, error: res.error }
       setMessages((current) => mergeById(current, [res.message]))
       newest.current = res.message.id
@@ -106,5 +127,5 @@ export function useChat(chatId: string | null, open: boolean) {
     return res.ok
   }, [])
 
-  return { messages, hasMore, loading, loadingOlder, error, loadOlder, send, report }
+  return { messages, hasMore, loading, loadingOlder, error, loadOlder, send, sendMoney, report }
 }

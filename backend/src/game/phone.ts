@@ -41,6 +41,8 @@ export type PhoneAppId =
   | 'map'
   | 'calendar'
   | 'profile'
+  | 'invest'
+  | 'eta'
   | 'portal'
   | 'music'
   | 'games'
@@ -102,6 +104,8 @@ export const PHONE_APP_IDS = [
   'map',
   'calendar',
   'profile',
+  'invest',
+  'eta',
   'portal',
   'music',
   'games',

@@ -10,6 +10,8 @@ export type PhoneAppId =
   | 'map'
   | 'calendar'
   | 'profile'
+  | 'invest'
+  | 'eta'
   | 'portal'
   | 'music'
   | 'games'
@@ -90,7 +92,9 @@ export type PhoneAppMeta = {
 export const PHONE_APPS: PhoneAppMeta[] = [
   { id: 'jobs', label: 'Jobs', emoji: '💼', status: 'live', tint: '#3d9ad6' },
   { id: 'bank', label: 'Bank', emoji: '🏦', status: 'live', tint: '#16a34a' },
+  { id: 'invest', label: 'Invest', emoji: '📈', status: 'live', tint: '#0f766e' },
   { id: 'messages', label: 'Messages', emoji: '💬', status: 'live', tint: '#6366f1' },
+  { id: 'eta', label: 'ẹta', emoji: '🗣️', status: 'live', tint: '#5b3fd1' },
   { id: 'gist', label: 'Campus News', emoji: '📰', status: 'live', tint: '#ea580c' },
   { id: 'market', label: 'Market', emoji: '🛍️', status: 'live', tint: '#db2777' },
   { id: 'ride', label: 'Ride', emoji: '🛺', status: 'live', tint: '#ca8a04' },
@@ -134,6 +138,8 @@ export const COMING_SOON_COPY: Record<PhoneAppId, string> = {
   map: '',
   calendar: '',
   profile: '',
+  invest: '',
+  eta: '',
   portal: 'Portal go open after exams. Check Result at Student Affairs for now.',
   music: 'DJ Ojemu still mastering the mix. Hold your neck.',
   games: 'Campus games loading. Go touch grass at Sports Complex meantime.',

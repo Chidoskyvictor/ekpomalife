@@ -1,0 +1,448 @@
+/* ẹta — Ekpoma's own feed. Soft cards, violet accent, slim controls (not a Twitter clone). */
+
+.screen {
+  position: relative;
+  display: flex;
+  min-height: 100%;
+  flex-direction: column;
+  gap: 10px;
+  padding: 2px 2px 64px;
+  color: #111;
+}
+
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 2px 4px;
+}
+
+.wordmark {
+  background: linear-gradient(120deg, #5b3fd1, #db2777);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.tagline {
+  color: #8e8e93;
+  font-size: 12px;
+}
+
+.tabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.tab {
+  flex: none;
+  min-height: 30px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: #f2f2f7;
+  color: #3c3c43;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.tabOn {
+  background: #5b3fd1;
+  color: #fff;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hint,
+.error,
+.fine {
+  margin: 10px 4px;
+  color: #8e8e93;
+  font-size: 13px;
+  text-align: center;
+}
+
+.fine {
+  margin: 0 4px;
+  font-size: 11px;
+  text-align: left;
+}
+
+.error {
+  color: #b42318;
+}
+
+/* —— Gist card —— */
+.gist {
+  display: flex;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 18px;
+  background: #f7f6fb;
+}
+
+.gistGiveaway {
+  background: linear-gradient(140deg, #fff7db, #ffe9dc);
+  box-shadow: inset 0 0 0 1px #f5c56a;
+}
+
+.avatarBtn {
+  align-self: flex-start;
+}
+
+.avatarBtn,
+.metaBtn {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.avatar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  border-radius: 999px;
+  color: #fff;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.gistMain {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.meta {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 6px;
+}
+
+.nameRow {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 3px;
+}
+
+.name {
+  overflow: hidden;
+  color: #111;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Gold verified check */
+.gold {
+  flex: none;
+  color: #fff;
+  fill: #e0a400;
+}
+
+.npcTag {
+  padding: 0 5px;
+  border-radius: 6px;
+  background: #ececf0;
+  color: #6e6e73;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.handle {
+  color: #8e8e93;
+  font-size: 12px;
+}
+
+.clickable {
+  cursor: pointer;
+}
+
+.body {
+  margin: 0;
+  color: #1c1c1e;
+  font-size: 14px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.ticker {
+  color: #5b3fd1;
+  font-weight: 700;
+}
+
+.giveaway {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #fff;
+  color: #8a5a00;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.actions {
+  display: flex;
+  gap: 18px;
+  margin-top: 4px;
+}
+
+.action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 26px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #8e8e93;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.action:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.fired {
+  color: #ea580c;
+}
+
+.fired svg {
+  fill: #f97316;
+}
+
+/* —— Compose —— */
+.composer {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border-radius: 18px;
+  background: #f2f0fb;
+}
+
+.input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #ddd8f5;
+  border-radius: 12px;
+  background: #fff;
+  color: #111;
+  font: inherit;
+  font-size: 14px;
+  resize: none;
+  outline: none;
+}
+
+.input:focus {
+  border-color: #5b3fd1;
+}
+
+.composerBar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.count,
+.countLow {
+  margin-right: auto;
+  color: #8e8e93;
+  font-size: 11px;
+}
+
+.countLow {
+  color: #c2410c;
+}
+
+.primary,
+.ghost,
+.more,
+.report {
+  min-height: 30px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.primary {
+  background: #5b3fd1;
+  color: #fff;
+}
+
+.ghost,
+.more {
+  background: #ececf0;
+  color: #111;
+}
+
+.primary:disabled,
+.ghost:disabled,
+.more:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.more {
+  align-self: center;
+}
+
+.report {
+  align-self: flex-end;
+  min-height: 24px;
+  padding: 0 10px;
+  background: none;
+  color: #b42318;
+  font-weight: 600;
+}
+
+.fab {
+  position: sticky;
+  bottom: 8px;
+  display: inline-flex;
+  align-self: flex-end;
+  align-items: center;
+  gap: 4px;
+  min-height: 36px;
+  margin-top: auto;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(120deg, #5b3fd1, #db2777);
+  box-shadow: 0 6px 16px rgba(91, 63, 209, 0.3);
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.section {
+  margin: 6px 4px 0;
+  color: #8e8e93;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* —— Back bar, profile, voices —— */
+.backBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 15px;
+}
+
+.back {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: #f2f2f7;
+  color: #111;
+  cursor: pointer;
+}
+
+.backSpacer {
+  width: 32px;
+}
+
+.profileHead {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 14px;
+  border-radius: 20px;
+  background: linear-gradient(160deg, #f2f0fb, #fdeef6);
+  text-align: center;
+}
+
+.bio {
+  margin: 4px 0 0;
+  color: #3c3c43;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.counts,
+.npcNote {
+  margin: 2px 0 6px;
+  color: #6e6e73;
+  font-size: 12px;
+}
+
+.counts strong {
+  color: #111;
+}
+
+.voice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 16px;
+  background: #f7f6fb;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.rank {
+  width: 18px;
+  color: #5b3fd1;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.voiceText {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.voiceStats {
+  color: #6e6e73;
+  font-size: 11px;
+  white-space: nowrap;
+}

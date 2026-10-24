@@ -86,6 +86,9 @@ export function Hud() {
   }
 
   const onTab = (next: PlayTab) => {
+    // Buy / Phone need the game loaded. Don't select them early — re-tapping a selected
+    // tab doesn't fire again, so the phone would never open.
+    if (!state && (next === 'buy' || next === 'phone')) return
     setTab(next)
     if (next === 'home') {
       setBuyOpen(false)
@@ -147,8 +150,8 @@ export function Hud() {
             onRetry={bootError ? retryBoot : undefined}
           />
         </div>
-        {/* Home (My Room): find / join your real hostel */}
-        {state && pathname?.startsWith('/room') ? (
+        {/* Home (My Room): find / join your real hostel — not while visiting someone (/room/[username]) */}
+        {state && pathname === '/room' ? (
           <div className={styles.topWrap}>
             <HostelFinder />
           </div>
