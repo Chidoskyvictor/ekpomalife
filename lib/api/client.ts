@@ -1,5 +1,6 @@
 import { apiUrl } from '@/lib/game/api'
 import { asApiErrorCode, type ApiFail } from './errors'
+import { RATE_LIMIT_MESSAGE, withRateLimitRetry } from './rate-limit'
 
 const FETCH_MS = 8000
 
@@ -68,7 +69,10 @@ export async function apiRequest<T extends { ok: true }>(
   init?: RequestInit,
 ): Promise<T | ApiFail> {
   try {
-    const response = await raceFetch(path, init)
+    const response = await withRateLimitRetry(() => raceFetch(path, init))
+    if (response.status === 429) {
+      return { ok: false, error: RATE_LIMIT_MESSAGE, code: 'RATE_LIMITED', status: 429 }
+    }
     let raw: unknown = null
     try {
       raw = await response.json()

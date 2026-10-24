@@ -148,7 +148,7 @@ npm run build
 | Cookies | `Secure; HttpOnly; SameSite=Lax; Domain=.ekpomalife.app; Path=/` |
 | CORS | only `FRONTEND_ORIGIN` list, `credentials: true` |
 | Proxy | `trustProxy: true` |
-| Auth rate limits | signup 5/15m, login 10/15m, forgot/reset limited |
+| Rate limits | logged-in 300/min per user, anonymous 120/min per IP; signup/login/forgot/reset 10/min per IP + per email/username; `GET /health` exempt; `RATE_LIMIT_ALLOWLIST` (comma-separated IPs) skips limits for load tests — keep empty |
 
 ### 3.3 Create the Render service (free)
 

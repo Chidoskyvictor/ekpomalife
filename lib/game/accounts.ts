@@ -1,4 +1,5 @@
 import { invalidateAuthMeSession } from '@/lib/auth/auth-me-cache'
+import { RATE_LIMIT_MESSAGE, withRateLimitRetry } from '@/lib/api/rate-limit'
 import { apiUrl } from './api'
 
 const ACCOUNTS_KEY = 'ekpoma-life-accounts-v1'
@@ -79,19 +80,22 @@ export async function createAccount(input: SignupInput): Promise<Result> {
   if (!input.isAdult) return { ok: false, error: 'Confirm you are 18 or older and accept the Terms and Conditions.' }
 
   try {
-    const response = await fetch(`${apiUrl()}/auth/signup`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({
-        name,
-        username,
-        password: input.password,
-        email,
-        dateOfBirth: input.dateOfBirth || undefined,
-        isAdult: input.isAdult,
+    const response = await withRateLimitRetry(() =>
+      fetch(`${apiUrl()}/auth/signup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          name,
+          username,
+          password: input.password,
+          email,
+          dateOfBirth: input.dateOfBirth || undefined,
+          isAdult: input.isAdult,
+        }),
       }),
-    })
+    )
+    if (response.status === 429) return { ok: false, error: RATE_LIMIT_MESSAGE }
     const data = (await response.json()) as Result
     if (!data.ok) return { ok: false, error: data.error || 'Could not create the account.' }
     rememberProfile(data.account)
@@ -106,12 +110,15 @@ export async function verifyLogin(usernameInput: string, password: string): Prom
   if (!username || !password) return { ok: false, error: 'Wrong username or password.' }
 
   try {
-    const response = await fetch(`${apiUrl()}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ username, password }),
-    })
+    const response = await withRateLimitRetry(() =>
+      fetch(`${apiUrl()}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ username, password }),
+      }),
+    )
+    if (response.status === 429) return { ok: false, error: RATE_LIMIT_MESSAGE }
     const data = (await response.json()) as Result
     if (!data.ok) return { ok: false, error: data.error || 'Wrong username or password.' }
     rememberProfile(data.account)
@@ -130,12 +137,15 @@ export async function requestPasswordReset(emailInput: string): Promise<OkOrFail
     return { ok: false, error: 'Enter the email on your account.' }
   }
   try {
-    const response = await fetch(`${apiUrl()}/auth/forgot`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ email }),
-    })
+    const response = await withRateLimitRetry(() =>
+      fetch(`${apiUrl()}/auth/forgot`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ email }),
+      }),
+    )
+    if (response.status === 429) return { ok: false, error: RATE_LIMIT_MESSAGE }
     const data = (await response.json()) as OkOrFail
     if (!response.ok || !data.ok) {
       return {
@@ -165,12 +175,15 @@ export async function resetPasswordWithCode(input: {
     return { ok: false, error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters.` }
   }
   try {
-    const response = await fetch(`${apiUrl()}/auth/reset`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ email, code, password }),
-    })
+    const response = await withRateLimitRetry(() =>
+      fetch(`${apiUrl()}/auth/reset`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ email, code, password }),
+      }),
+    )
+    if (response.status === 429) return { ok: false, error: RATE_LIMIT_MESSAGE }
     const data = (await response.json()) as OkOrFail
     if (!response.ok || !data.ok) {
       return { ok: false, error: (data as { error?: string }).error || 'Could not reset the password.' }

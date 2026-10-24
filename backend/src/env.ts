@@ -53,6 +53,8 @@ const envSchema = z.object({
     .enum(['true', 'false', '1', '0'])
     .optional()
     .transform((value) => value === 'true' || value === '1'),
+  /** Comma-separated IPs that skip rate limits (load testing). Empty by default. */
+  RATE_LIMIT_ALLOWLIST: z.preprocess(emptyToUndefined, z.string().optional()),
   PHONE_FREE_FOR_ALL: z.preprocess((value) => value !== 'false' && value !== '0', z.boolean()),
 })
 

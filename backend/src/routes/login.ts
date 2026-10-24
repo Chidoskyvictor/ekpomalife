@@ -3,6 +3,7 @@ import { hashPassword, verifyPassword } from '../auth/password.js'
 import { loginSchema } from '../auth/schema.js'
 import { createSession, setSessionCookie } from '../auth/session.js'
 import { pool } from '../db.js'
+import { authIdentityRateLimit, authIpRateLimit } from '../rate-limit.js'
 
 const INVALID = 'Wrong username or password.'
 
@@ -17,12 +18,8 @@ export async function loginRoutes(app: FastifyInstance) {
   app.post(
     '/auth/login',
     {
-      config: {
-        rateLimit: {
-          max: 10,
-          timeWindow: '15 minutes',
-        },
-      },
+      config: { rateLimit: authIpRateLimit },
+      preHandler: authIdentityRateLimit(app, 'username'),
     },
     async (request, reply) => {
       const parsed = loginSchema.safeParse(request.body)

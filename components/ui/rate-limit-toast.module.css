@@ -1,0 +1,38 @@
+.root {
+  pointer-events: none;
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 12px);
+  left: 16px;
+  right: 16px;
+  z-index: var(--z-toast);
+  display: flex;
+  justify-content: center;
+}
+
+.toast {
+  max-width: min(22rem, 100%);
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 14px;
+  border-left: 3px solid #f59e0b;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 6px 24px rgba(15, 23, 42, 0.14);
+  color: #1d1d1f;
+  font-size: 13px;
+  line-height: 1.4;
+  font-weight: 600;
+  animation: rate-limit-in 180ms ease-out;
+}
+
+@keyframes rate-limit-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    animation: none;
+  }
+}

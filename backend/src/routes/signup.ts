@@ -4,6 +4,7 @@ import { signupSchema } from '../auth/schema.js'
 import { createSession, setSessionCookie } from '../auth/session.js'
 import { pool } from '../db.js'
 import { createId } from '../ids.js'
+import { authIdentityRateLimit, authIpRateLimit } from '../rate-limit.js'
 
 function firstZodError(error: { issues: { message: string }[] }) {
   return error.issues[0]?.message ?? 'Check the form and try again.'
@@ -13,12 +14,8 @@ export async function signupRoutes(app: FastifyInstance) {
   app.post(
     '/auth/signup',
     {
-      config: {
-        rateLimit: {
-          max: 5,
-          timeWindow: '15 minutes',
-        },
-      },
+      config: { rateLimit: authIpRateLimit },
+      preHandler: authIdentityRateLimit(app, 'email'),
     },
     async (request, reply) => {
       const parsed = signupSchema.safeParse(request.body)

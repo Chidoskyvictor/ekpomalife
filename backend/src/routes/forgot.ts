@@ -7,6 +7,7 @@ import { createId } from '../ids.js'
 import { env } from '../env.js'
 import { buildResetEmail } from '../mail/reset-email.js'
 import { sendMail } from '../mail/send.js'
+import { authIdentityRateLimit, authIpRateLimit } from '../rate-limit.js'
 
 const forgotSchema = z.object({
   email: z.string().trim().email().max(120),
@@ -31,12 +32,8 @@ export async function forgotRoutes(app: FastifyInstance) {
   app.post(
     '/auth/forgot',
     {
-      config: {
-        rateLimit: {
-          max: 5,
-          timeWindow: '15 minutes',
-        },
-      },
+      config: { rateLimit: authIpRateLimit },
+      preHandler: authIdentityRateLimit(app, 'email'),
     },
     async (request, reply) => {
       const parsed = forgotSchema.safeParse(request.body)
@@ -108,12 +105,8 @@ export async function forgotRoutes(app: FastifyInstance) {
   app.post(
     '/auth/reset',
     {
-      config: {
-        rateLimit: {
-          max: 10,
-          timeWindow: '15 minutes',
-        },
-      },
+      config: { rateLimit: authIpRateLimit },
+      preHandler: authIdentityRateLimit(app, 'email'),
     },
     async (request, reply) => {
       const parsed = resetSchema.safeParse(request.body)

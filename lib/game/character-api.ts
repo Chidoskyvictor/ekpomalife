@@ -1,3 +1,4 @@
+import { RATE_LIMIT_MESSAGE, withRateLimitRetry } from '@/lib/api/rate-limit'
 import { apiUrl } from './api'
 import type { DreamId, DreamSnapshot } from './dreams'
 import type { Appearance } from './look'
@@ -20,6 +21,7 @@ export type CharacterOk = { ok: true } & CharacterRecord
 const FETCH_MS = 10000
 
 function failMessage(step: string, status: number, body: string) {
+  if (status === 429) return RATE_LIMIT_MESSAGE
   if (status === 401) {
     return `${step}: not logged in (401). Your session cookie is missing — open /login on this same phone/browser, then come back.`
   }
@@ -36,19 +38,22 @@ function failMessage(step: string, status: number, body: string) {
 async function apiFetch(path: string, init?: RequestInit) {
   // Promise.race timeout — avoid AbortSignal class mismatches on some mobile WebViews.
   let timer: ReturnType<typeof setTimeout> | undefined
-  try {
-    return await Promise.race([
-      fetch(`${apiUrl()}${path}`, {
-        ...init,
-        credentials: 'include',
-      }),
-      new Promise<never>((_, reject) => {
-        timer = setTimeout(() => reject(Object.assign(new Error('timeout'), { name: 'AbortError' })), FETCH_MS)
-      }),
-    ])
-  } finally {
-    if (timer) clearTimeout(timer)
+  const attempt = async () => {
+    try {
+      return await Promise.race([
+        fetch(`${apiUrl()}${path}`, {
+          ...init,
+          credentials: 'include',
+        }),
+        new Promise<never>((_, reject) => {
+          timer = setTimeout(() => reject(Object.assign(new Error('timeout'), { name: 'AbortError' })), FETCH_MS)
+        }),
+      ])
+    } finally {
+      if (timer) clearTimeout(timer)
+    }
   }
+  return withRateLimitRetry(attempt)
 }
 
 async function readJson<T>(response: Response, step: string): Promise<T | Fail> {

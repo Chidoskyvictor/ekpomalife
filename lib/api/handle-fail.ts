@@ -23,6 +23,9 @@ export async function handleApiFail(fail: ApiFail, handlers: Handlers): Promise<
     return true
   }
 
+  // 429: RateLimitToast already showed "Slow down a bit…" — no second toast, never reload or redirect.
+  if (fail.status === 429) return true
+
   if (code === 'UNAUTHORIZED' || fail.status === 401) {
     if (typeof window !== 'undefined') {
       void fetchAuthMe({ force: true }).then((me) => {

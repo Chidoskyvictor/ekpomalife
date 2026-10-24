@@ -2,10 +2,10 @@ import Fastify from 'fastify'
 import cookie from '@fastify/cookie'
 import cors from '@fastify/cors'
 import helmet from '@fastify/helmet'
-import rateLimit from '@fastify/rate-limit'
 import { env } from './env.js'
 import { pool } from './db.js'
 import { runMigrations } from './migrations.js'
+import { registerRateLimit } from './rate-limit.js'
 import { characterRoutes } from './routes/character.js'
 import { economyRoutes } from './routes/economy.js'
 import { roomRoutes } from './routes/room.js'
@@ -42,11 +42,7 @@ await app.register(cors, {
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'OPTIONS'],
 })
 await app.register(cookie)
-await app.register(rateLimit, {
-  max: env.NODE_ENV === 'production' ? 100 : 2000,
-  timeWindow: '1 minute',
-  allowList: env.NODE_ENV === 'production' ? undefined : ['127.0.0.1', '::1', '::ffff:127.0.0.1'],
-})
+await registerRateLimit(app)
 
 app.get('/', async () => ({
   ok: true,
@@ -111,7 +107,8 @@ app.get('/', async () => ({
   chatDirect: 'POST /chats/direct',
 }))
 
-app.get('/health', async (request, reply) => {
+// Never rate limited — uptime monitors must not see 429s.
+app.get('/health', { config: { rateLimit: false } }, async (request, reply) => {
   try {
     await pool.query('SELECT 1')
     return { ok: true, db: true }
