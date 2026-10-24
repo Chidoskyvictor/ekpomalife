@@ -670,8 +670,9 @@ function LabelZone({ zone }: { zone: MapZone }) {
       <planeGeometry args={[h * aspect, h]} />
       <meshBasicMaterial
         map={texture}
+        color={zone.labelColor ?? '#ffffff'}
         transparent
-        opacity={0.55}
+        opacity={zone.labelColor ? 0.9 : 0.55}
         depthWrite={false}
         toneMapped={false}
         polygonOffset
@@ -687,13 +688,16 @@ type AdFace = { center: [number, number, number]; width: number; height: number;
 
 /** Per model: native height, the yaw that turns the ad face to the default camera, and its ad faces. */
 const BILLBOARDS: Record<string, { url: string; nativeHeight: number; groundY: number; turn: number; faces: AdFace[] }> = {
-  // Pole at the origin, board faces −X
+  // Pole at the origin, board faces −X; its back (x ≈ 5.9) gets the ad too so it reads from any angle
   billboard1: {
     url: '/models/billboard1.glb',
     nativeHeight: 39,
     groundY: 1,
     turn: Math.PI / 2,
-    faces: [{ center: [1.15, 30.25, 0], width: 32.2, height: 13.5, yaw: -Math.PI / 2 }],
+    faces: [
+      { center: [1.15, 30.25, 0], width: 32.2, height: 13.5, yaw: -Math.PI / 2 },
+      { center: [6.0, 30.25, 0], width: 32.2, height: 13.5, yaw: Math.PI / 2 },
+    ],
   },
   // One billboard split out of low-poly_billboard_pack.glb; double-faced board angled ~57°
   'billboard-pack': {
@@ -836,7 +840,9 @@ function ZoneRoot({ zone }: { zone: MapZone }) {
       <Suspense fallback={<ZoneFallback zone={effective} />}>
         <ZoneMesh zone={effective} />
       </Suspense>
-      {effective.slab === 'south' && effective.model !== 'label' ? <ZoneTapTarget zone={effective} /> : null}
+      {effective.slab === 'south' && effective.model !== 'label' && !effective.model.startsWith('billboard') ? (
+        <ZoneTapTarget zone={effective} />
+      ) : null}
     </ZoneExtrasProvider>
   )
 }

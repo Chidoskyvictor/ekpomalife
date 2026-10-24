@@ -38,6 +38,8 @@ export type MapZone = {
   parts?: ZonePart[]
   /** No building: a ground plot with props (still tappable). */
   open?: OpenZoneKind
+  /** Ground-text colour for `label` zones (default: soft white). */
+  labelColor?: string
 }
 
 export type OpenZoneKind = 'park' | 'plot' | 'plaza'
@@ -255,8 +257,9 @@ export const AAU_GATE_U = 0.5803
 export const AAU_GATE_V = 0.8821
 
 export const ROAD_GAPS: RoadGap[] = [
-  // Bottom main road
-  roadH('bottom-main', 0.04, 0.96, 0.93),
+  // Bottom main road — gap in front of the gate for the "AMBROSE ALI UNIVERSITY" ground text
+  roadH('bottom-main-west', 0.04, 0.36, 0.93),
+  roadH('bottom-main-east', 0.8, 0.96, 0.93),
   // Town verticals (left of fence)
   roadV('town-halls', 0.18, 0.12, 0.9),
   roadV('amos-jack', 0.28, 0.12, 0.9),
@@ -416,6 +419,14 @@ const FIRST_ZONES: MapZone[] = [
   zone('billboard-3', 'Billboard 3', 0.605, 0.6468, 'billboard-pack', [7, 3], -3.1416, undefined, undefined, { modelY: 0, scaleMul: 1.9 }),
   zone('billboard-4', 'Billboard 4', 0.145, 0.83, 'billboard1', [7, 3], -3.1416, undefined, undefined, { modelY: 0, scaleMul: 1.9 }),
   zone('billboard-5', 'Billboard 5', 0.8768, 0.875, 'billboard-pack', [7, 3], 0, undefined, undefined, { modelY: 0, scaleMul: 2.3 }),
+  zone('billboard-6', 'Billboard 6', 0.2016, 0.8111, 'billboard-pack', [7, 3], 0, undefined, undefined, { modelY: 0, scaleMul: 1.9 }),
+  zone('billboard-7', 'Billboard 7', 0.3361, 0.8198, 'billboard1', [7, 3], -3.1416, undefined, undefined, { modelY: 0, scaleMul: 1.9 }),
+  zone('billboard-8', 'Billboard 8', 0.9444, 0.4103, 'billboard-pack', [7, 3], 0, undefined, undefined, { modelY: 0, scaleMul: 1.9 }),
+  // Campus name cut into the grass where the bottom road used to pass the gate
+  {
+    ...zone('aau-name', 'Ambrose Ali University', AAU_GATE_U, 0.95, 'label', [118, 7]),
+    labelColor: '#5e8a45',
+  },
 ]
 
 /** Second-slab zone. `model` is the main Kenney key (or 'cluster' / 'open' / 'label'). */
@@ -426,7 +437,7 @@ function southZone(
   v: number,
   model: string,
   footprint: [number, number],
-  opts: Pick<MapZone, 'rotation' | 'scale' | 'tint' | 'parts' | 'open'> = {},
+  opts: Pick<MapZone, 'rotation' | 'scale' | 'tint' | 'parts' | 'open' | 'modelY' | 'scaleMul'> = {},
 ): MapZone {
   const [x, z] = frontSlabXZ(u, v)
   const { rotation = 0, ...rest } = opts
@@ -463,6 +474,11 @@ const SOUTH_ZONES: MapZone[] = [
   }),
   // Landmark name on the slab (no road drawn)
   southZone('poultry-road', 'Poultry Road', 0.73, 0.27, 'label', [1, 1]),
+  // Billboards (same size band as the first slab's)
+  southZone('billboard-9', 'Billboard 9', 0.5236, 0.1633, 'billboard1', [7, 3], { rotation: -3.1416, scaleMul: 1.9 }),
+  southZone('billboard-10', 'Billboard 10', 0.3031, 0.3532, 'billboard-pack', [7, 3], { scaleMul: 1.9 }),
+  southZone('billboard-11', 'Billboard 11', 0.7943, 0.1101, 'billboard-pack', [7, 3], { scaleMul: 1.9 }),
+  southZone('billboard-12', 'Billboard 12', 0.8904, 0.7225, 'billboard1', [7, 3], { rotation: -3.1416, scaleMul: 1.9 }),
   // Restaurant with parasols out front
   southZone('wise-gourmet', 'Wise Gourmet', 0.9, 0.14, 'cluster', [12, 9], {
     parts: [

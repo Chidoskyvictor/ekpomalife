@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { OPEN_AD_EVENT } from '@/lib/game/billboard-ad'
-import { MAP_ZONES, firstSlabUV } from '@/lib/game/world-layout'
+import { MAP_ZONES, firstSlabUV, frontSlabUV } from '@/lib/game/world-layout'
 import { useZoneDebug } from './zone-debug-context'
 
 const BILLBOARDS = MAP_ZONES.filter((zone) => zone.model.startsWith('billboard'))
@@ -44,9 +44,13 @@ export function BillboardDebugPanel() {
   const rotation = o.rotation ?? base.rotation
   const modelY = o.modelY ?? base.modelY ?? 0
   const scaleMul = o.scaleMul ?? base.scaleMul ?? 1
-  const [u, v] = firstSlabUV(x, z)
+  const south = base.slab === 'south'
+  const [u, v] = south ? frontSlabUV(x, z) : firstSlabUV(x, z)
   const extras = modelY !== 0 || scaleMul !== 1 ? `, undefined, undefined, { modelY: ${round(modelY, 3)}, scaleMul: ${round(scaleMul, 3)} }` : ''
-  const snippet = `zone('${base.id}', '${base.label}', ${round(u)}, ${round(v)}, '${base.model}', [${base.footprint.join(', ')}], ${round(rotation)}${extras}),`
+  // Second-slab billboards use southZone(...) with an options object
+  const snippet = south
+    ? `southZone('${base.id}', '${base.label}', ${round(u)}, ${round(v)}, '${base.model}', [${base.footprint.join(', ')}], { rotation: ${round(rotation)}, modelY: ${round(modelY, 3)}, scaleMul: ${round(scaleMul, 3)} }),`
+    : `zone('${base.id}', '${base.label}', ${round(u)}, ${round(v)}, '${base.model}', [${base.footprint.join(', ')}], ${round(rotation)}${extras}),`
 
   const sliders = [
     ['Left / right', 'x', x, base.position[0] - 40, base.position[0] + 40, 0.25],
@@ -77,13 +81,13 @@ export function BillboardDebugPanel() {
       </div>
       {open ? (
         <div className="space-y-2">
-          <div className="flex gap-1" role="group" aria-label="Billboard">
+          <div className="grid grid-cols-6 gap-1" role="group" aria-label="Billboard">
             {BILLBOARDS.map((b, i) => (
               <button
                 key={b.id}
                 type="button"
                 aria-pressed={b.id === id}
-                className={`flex-1 rounded-md border py-1 font-semibold ${
+                className={`rounded-md border py-1 font-semibold ${
                   b.id === id ? 'border-[#2f7cf6] bg-[#2f7cf6] text-white' : 'border-black/15 bg-white'
                 }`}
                 onClick={() => setId(b.id)}
@@ -142,7 +146,7 @@ export function BillboardDebugPanel() {
             </label>
           ))}
           <label className="flex flex-col gap-1">
-            <span className="text-[#5c6b7a]">Paste into MAP_ZONES (world-layout.ts)</span>
+            <span className="text-[#5c6b7a]">Paste into {south ? 'SOUTH_ZONES' : 'FIRST_ZONES'} (world-layout.ts)</span>
             <textarea
               readOnly
               className="h-20 w-full resize-y rounded border border-black/15 bg-[#f6f8fa] p-2 font-mono text-[10px] leading-snug"
