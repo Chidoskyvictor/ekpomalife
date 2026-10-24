@@ -22,7 +22,7 @@ export function IslandToast({ state }: { state: GameState }) {
       rentSeen.current = state.day
       setVisible({
         id: `rent-day-${state.day}`,
-        title: 'Rent day · Baba Landlord dey come',
+        title: 'Rent day · Baba Landlord is coming',
         emoji: '/emoji/house.png',
       })
       const timer = window.setTimeout(() => setVisible(null), 3200)

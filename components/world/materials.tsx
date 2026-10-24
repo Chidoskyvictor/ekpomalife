@@ -1,29 +1,38 @@
 'use client'
 
 import { BoxGeometry, MeshStandardMaterial } from 'three'
-import { MAP } from '@/lib/game/map-theme'
 
 export const unitBox = new BoxGeometry(1, 1, 1)
 
-const cache = new Map<string, MeshStandardMaterial>()
+const materialCache = new globalThis.Map<string, MeshStandardMaterial>()
+
+const GLASS = '#A6D7E6'
+const BUILDING = '#F7F5EE'
 
 export function paint(color: string, roughness = 0.82) {
   const key = `${color}:${roughness}`
-  let material = cache.get(key)
+  let material = materialCache.get(key)
   if (!material) {
     material = new MeshStandardMaterial({ color, roughness, metalness: 0.02 })
-    cache.set(key, material)
+    materialCache.set(key, material)
   }
   return material
 }
 
-export const glass = new MeshStandardMaterial({
-  color: MAP.window,
-  roughness: 0.28,
-  metalness: 0.12,
-  emissive: MAP.window,
-  emissiveIntensity: 0.04,
-})
+let glassMaterial: MeshStandardMaterial | undefined
+
+export function glass(): MeshStandardMaterial {
+  if (!glassMaterial) {
+    glassMaterial = new MeshStandardMaterial({
+      color: GLASS,
+      roughness: 0.28,
+      metalness: 0.12,
+      emissive: GLASS,
+      emissiveIntensity: 0.04,
+    })
+  }
+  return glassMaterial
+}
 
 export function Block({
   position,
@@ -41,7 +50,7 @@ export function Block({
   return (
     <mesh
       geometry={unitBox}
-      material={material ?? paint(color ?? MAP.building)}
+      material={material ?? paint(color ?? BUILDING)}
       position={position}
       scale={size}
       castShadow={shadow}

@@ -29,9 +29,10 @@ export function PlayerAvatar({
 }) {
   const ref = useRef<Group>(null)
   const target = useRef(new Vector3())
+  const moving = useRef(false)
   const look = normalizeAppearance(appearance ?? DEFAULT_APPEARANCE)
 
-  useFrame((state, delta) => {
+  useFrame((_, delta) => {
     const group = ref.current
     if (!group) return
     target.current.set(...avatarSpot(locationId))
@@ -41,8 +42,8 @@ export function PlayerAvatar({
       group.position.lerp(target.current, step)
       group.lookAt(target.current.x, group.position.y, target.current.z)
     }
-    const moving = distance > 0.3
-    group.position.y = Math.abs(Math.sin(state.clock.elapsedTime * (moving ? 12 : 3))) * (moving ? 0.25 : 0.08)
+    // The figure plays its walk cycle while travelling, idles otherwise
+    moving.current = distance > 0.3
   })
 
   return (
@@ -51,7 +52,7 @@ export function PlayerAvatar({
         <circleGeometry args={[0.7, 24]} />
         <meshBasicMaterial color={color} transparent opacity={0.35} />
       </mesh>
-      <CharacterFigure appearance={look} />
+      <CharacterFigure appearance={look} moving={moving} />
     </group>
   )
 }

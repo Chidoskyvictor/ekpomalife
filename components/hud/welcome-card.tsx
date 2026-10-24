@@ -19,7 +19,7 @@ export function WelcomeCard() {
       transition={reduceMotion ? { duration: 0 } : motionTokens.spring.smooth}
     >
       <p className={styles.status}>
-        {players != null ? (
+        {players != null && players > 0 ? (
           <>
             <span className={styles.dot} aria-hidden="true">
               <span className={styles.pulse} />

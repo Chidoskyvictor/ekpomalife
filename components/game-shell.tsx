@@ -2,6 +2,7 @@
 
 import dynamic from 'next/dynamic'
 import { Hud } from '@/components/hud/hud'
+import { WorldCanvasBoundary } from '@/components/world/world-canvas-boundary'
 import { EconomyProvider } from '@/hooks/use-economy'
 import { GameProvider } from '@/hooks/use-game'
 
@@ -19,7 +20,9 @@ export default function GameShell({ guest = false }: { guest?: boolean }) {
       <EconomyProvider>
         <main className="relative h-dvh w-full overflow-hidden">
           <h1 className="sr-only">Ekpoma Life</h1>
-          <WorldCanvas />
+          <WorldCanvasBoundary>
+            <WorldCanvas />
+          </WorldCanvasBoundary>
           <Hud />
         </main>
       </EconomyProvider>

@@ -18,7 +18,7 @@ export const QUIZ_BANKS: Record<string, QuizQuestion[]> = {
     {
       id: 'g2',
       prompt: 'What do students call the early morning lecture?',
-      choices: ['Night class', 'Morning devotion', 'First period', 'Gist hour'],
+      choices: ['Night class', 'Morning devotion', 'First period', 'Chat hour'],
       answerIndex: 2,
     },
     {
@@ -29,7 +29,7 @@ export const QUIZ_BANKS: Record<string, QuizQuestion[]> = {
     },
     {
       id: 'g4',
-      prompt: 'Which need drops when you skip sleep for gist?',
+      prompt: 'Which need drops when you skip sleep to chat?',
       choices: ['Reputation', 'Energy', 'Cash', 'GPA title'],
       answerIndex: 1,
     },
@@ -78,7 +78,7 @@ export const QUIZ_BANKS: Record<string, QuizQuestion[]> = {
     {
       id: 'a1',
       prompt: 'Mass Comm students live for…',
-      choices: ['Silent libraries only', 'Stories, mics, and gist', 'Only coding', 'Cattle market'],
+      choices: ['Silent libraries only', 'Stories, mics, and news', 'Only coding', 'Cattle market'],
       answerIndex: 1,
     },
     {

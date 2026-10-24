@@ -20,7 +20,7 @@ export type MapZone = {
   position: [number, number]
   /** Yaw radians */
   rotation: number
-  /** Kenney model key, `admin-block`, `hostel-block`, `parking-lot`, `football-stadium`, or `pad` */
+  /** Kenney model key, `admin-block`, `hostel-block`, `aau-gate`, `parking-lot`, `football-stadium`, or `pad` */
   model: string
   /** Ground footprint w × d */
   footprint: [number, number]
@@ -28,6 +28,34 @@ export type MapZone = {
   scale?: number
   /** Multiplies Kenney colormap toward an earth tone */
   tint?: string
+  /** Extra Y on the model root (baked from zone debug). */
+  modelY?: number
+  /** Multiplies fit scale after layout `scale` (baked from zone debug). */
+  scaleMul?: number
+  /** Which slab the zone sits on (default: first). Second-slab zones are tappable. */
+  slab?: 'south'
+  /** Several models in one zone (offsets in zone-local units, before zone rotation). */
+  parts?: ZonePart[]
+  /** No building: a ground plot with props (still tappable). */
+  open?: OpenZoneKind
+}
+
+export type OpenZoneKind = 'park' | 'plot' | 'plaza'
+
+/** One model inside a multi-building zone. `model` is a Kenney key or `parking-lot`. */
+export type ZonePart = {
+  model: string
+  dx: number
+  dz: number
+  rotation?: number
+  /** Kenney scale (default 4.9); for `parking-lot`, the [w, d] it is stretched to via `size`. */
+  scale?: number
+  size?: [number, number]
+  tint?: string
+  /** Skip the cement pad (props like parasols). */
+  noPad?: boolean
+  /** Put a cross sign on this part's roof. */
+  cross?: boolean
 }
 
 export type TreeSpot = {
@@ -113,6 +141,50 @@ export const LEFT_SLAB: Slab = FIRST_SLAB
 export const CAMPUS_SLAB: Slab = FIRST_SLAB
 
 export const FRONT_SLAB: Slab = slabFromPct('south', 1, 99, 54, 97)
+
+/** Narrow gap between the main south slab and its east extension (visible demarcation). */
+export const FRONT_SLAB_GAP = 2.4
+
+const FRONT_SLAB_EXT_W = Math.max(0, FIRST_W - FRONT_SLAB.w - FRONT_SLAB_GAP)
+
+/** East extension so the south island matches the first slab width (two green pieces + gap). */
+export const FRONT_SLAB_EXT: Slab = {
+  name: 'south-ext',
+  x: FRONT_SLAB.x + FRONT_SLAB.w / 2 + FRONT_SLAB_GAP + FRONT_SLAB_EXT_W / 2,
+  z: FRONT_SLAB.z,
+  w: FRONT_SLAB_EXT_W,
+  d: FRONT_SLAB.d,
+  h: SLAB_H,
+  radius: SLAB_R,
+  tone: 'land',
+}
+
+/** East-extension hostel grid (8×5 with 4.5% / 5% margins) — the spacing every hostel slab copies. */
+export const HOSTEL_GRID = {
+  marginX: FRONT_SLAB_EXT.w * 0.045,
+  marginZ: FRONT_SLAB_EXT.d * 0.05,
+  pitchX: (FRONT_SLAB_EXT.w * (1 - 2 * 0.045)) / 8,
+  pitchZ: (FRONT_SLAB_EXT.d * (1 - 2 * 0.05)) / 5,
+}
+export const REAR_HOSTEL_COLS = 16
+export const REAR_HOSTEL_ROWS = 7
+
+const REAR_SLAB_GAP = 3.2
+const REAR_SLAB_W = REAR_HOSTEL_COLS * HOSTEL_GRID.pitchX + 2 * HOSTEL_GRID.marginX
+const REAR_SLAB_D = REAR_HOSTEL_ROWS * HOSTEL_GRID.pitchZ + 2 * HOSTEL_GRID.marginZ
+
+/** Hostel district north of the campus slab, sized to fit its grid at east-extension spacing. */
+export const REAR_HOSTEL_SLAB: Slab = {
+  name: 'north-hostels',
+  x: FIRST_SLAB.x,
+  z: FIRST_NORTH - REAR_SLAB_GAP - REAR_SLAB_D / 2,
+  w: REAR_SLAB_W,
+  d: REAR_SLAB_D,
+  h: SLAB_H,
+  radius: SLAB_R,
+  tone: 'residential',
+}
+
 export const IHUMUDUMU_SLAB: Slab = FRONT_SLAB
 export const EMAUDO_SLAB: Slab = FRONT_SLAB
 export const SCHOOL_SLAB: Slab = FRONT_SLAB
@@ -120,7 +192,7 @@ export const UKE_SLAB = FRONT_SLAB
 export const OUTSKIRTS_SLAB = FRONT_SLAB
 export const RESIDENTIAL_SLAB = FIRST_SLAB
 
-export const SLABS: Slab[] = [FIRST_SLAB, FRONT_SLAB]
+export const SLABS: Slab[] = [REAR_HOSTEL_SLAB, FIRST_SLAB, FRONT_SLAB, FRONT_SLAB_EXT]
 
 export const UKE_LATERITE: Rect = {
   x: xFromWest(18),
@@ -132,6 +204,24 @@ export const UKE_LATERITE: Rect = {
 /** Local 0–1 on the first slab → world XZ */
 export function firstSlabXZ(u: number, v: number): [number, number] {
   return [FIRST_WEST + u * FIRST_W, FIRST_NORTH + v * FIRST_D]
+}
+
+/** Inverse of {@link firstSlabXZ} for debug export (u, v in 0–1). */
+export function firstSlabUV(x: number, z: number): [number, number] {
+  return [(x - FIRST_WEST) / FIRST_W, (z - FIRST_NORTH) / FIRST_D]
+}
+
+const FRONT_WEST = FRONT_SLAB.x - FRONT_SLAB.w / 2
+const FRONT_NORTH = FRONT_SLAB.z - FRONT_SLAB.d / 2
+
+/** Local 0–1 on the second (south) slab → world XZ */
+export function frontSlabXZ(u: number, v: number): [number, number] {
+  return [FRONT_WEST + u * FRONT_SLAB.w, FRONT_NORTH + v * FRONT_SLAB.d]
+}
+
+/** Inverse of {@link frontSlabXZ} for debug export (u, v in 0–1). */
+export function frontSlabUV(x: number, z: number): [number, number] {
+  return [(x - FRONT_WEST) / FRONT_SLAB.w, (z - FRONT_NORTH) / FRONT_SLAB.d]
 }
 
 /** Lane width in world units — City Bits tiles are scaled to this. */
@@ -153,11 +243,16 @@ function roadV(name: string, u: number, v0: number, v1: number, dashed = true): 
 
 export type RoadGap = Rect & { name: string; dashed?: boolean }
 
+
 /**
  * Roads on the first slab (u = west→east, v = north→south).
  * Fence ≈ u = ORIG_W/FIRST_W * 0.55 ≈ 0.39
  */
 const FENCE_U = (FENCE_X - FIRST_WEST) / FIRST_W
+
+/** School gate UV on the first slab (sync with zone debug export). */
+export const AAU_GATE_U = 0.5803
+export const AAU_GATE_V = 0.8821
 
 export const ROAD_GAPS: RoadGap[] = [
   // Bottom main road
@@ -175,11 +270,16 @@ export const ROAD_GAPS: RoadGap[] = [
 
 export const ROAD_FRAME: Rect[] = []
 
+const FRONT_TOTAL_W = FRONT_SLAB.w + FRONT_SLAB_GAP + FRONT_SLAB_EXT_W
+
+const WORLD_NORTH_Z = REAR_HOSTEL_SLAB.z - REAR_HOSTEL_SLAB.d / 2
+const WORLD_SOUTH_Z = FRONT_SLAB.z + FRONT_SLAB.d / 2
+
 export const WORLD: Rect = {
   x: FIRST_SLAB.x,
-  z: (FIRST_SLAB.z + FRONT_SLAB.z) / 2,
-  w: Math.max(FIRST_W, FRONT_SLAB.w) + 24,
-  d: FIRST_D + FRONT_SLAB.d + 40,
+  z: (WORLD_NORTH_Z + WORLD_SOUTH_Z) / 2,
+  w: Math.max(FIRST_W, FRONT_TOTAL_W) + 24,
+  d: WORLD_SOUTH_Z - WORLD_NORTH_Z + 48,
 }
 
 export const LANDS: Land[] = SLABS.map(({ name, x, z, w, d, tone }) => ({
@@ -213,9 +313,10 @@ function zone(
   rotation = 0,
   scale?: number,
   tint?: string,
+  extras?: Pick<MapZone, 'modelY' | 'scaleMul'>,
 ): MapZone {
   const [x, z] = firstSlabXZ(u, v)
-  return { id, label, position: [x, z], rotation, model, footprint, scale, tint }
+  return { id, label, position: [x, z], rotation, model, footprint, scale, tint, ...extras }
 }
 
 const { original, earth, sand, clay, purple, plum, lilac } = BUILDING_TINT
@@ -234,7 +335,7 @@ const { original, earth, sand, clay, purple, plum, lilac } = BUILDING_TINT
  * (~4.9–5.1, ~10×8) so heights match. Layout = two sides + open walk lane,
  * not a single straight column and not random scatter.
  */
-export const MAP_ZONES: MapZone[] = [
+const FIRST_ZONES: MapZone[] = [
   // —— COLLEGE OF MEDICINE plot (west of town-halls u=0.18) ——
   // Walk lane down the middle (u≈0.085). West row + east row face the yard.
   // West row (slab edge)
@@ -263,16 +364,19 @@ export const MAP_ZONES: MapZone[] = [
   zone('off-campus-hostels', 'Off-campus Hostels', 0.32, 0.12, 'hostel-block', [11.5, 9], 0, 5.1),
   zone('animal-house-2', 'Animal House', 0.355, 0.26, 'building-b', [10, 8], Math.PI, 4.9, clay),
   zone('cattle-market', 'Cattle Market', 0.32, 0.42, 'building-j', [11, 8.5], 0, 5, original),
-  zone('sazza', 'Sazza', 0.355, 0.56, 'building-c', [10, 8], Math.PI, 4.9, plum),
-  zone('market', 'Ekpoma Market', 0.335, 0.72, 'building-m', [11.5, 9], 0, 5.1, clay),
+  // Hand-made GLB (public/models/sazza.glb) on a cement pad. Placed in the debug panel at
+  // x 0.25, z -67.5, scaleMul 2.75 with the old dirt-lot model; converted for the building-only model.
+  zone('sazza', 'Sazza', 0.3596, 0.6467, 'sazza', [10, 8], 0, undefined, undefined, { modelY: 0.12, scaleMul: 2.007 }),
 
-  // —— GATE —— clear of bottom road (v=0.93)
-  zone('aau-gate', 'AAU School Gate', FENCE_U + 0.05, 0.82, 'building-a', [10, 8], Math.PI, 4.9, earth),
+  // —— GATE —— main entrance (bottom-main road approaches from v≈0.93)
+  zone('aau-gate', 'AAU School Gate', AAU_GATE_U, AAU_GATE_V, 'aau-gate', [22, 6], 0, 4.65, undefined, {
+    scaleMul: 1,
+  }),
 
   // —— CAMPUS —— west lawn: clinic + pitch fully east of fence (inside campus)
   zone('clinic', 'Clinic', FENCE_U + 0.06, 0.2, 'building-d', [8, 6.5], 0, 4.3, original),
   // Inside campus, ≥2 tiles clear of the fence; clear of Admin / Mass Comm / Education
-  zone('sports-complex', 'Sports Complex', FENCE_U + 0.08, 0.56, 'football-stadium', [15, 12], 0),
+  zone('sports-complex', 'Sports Complex', FENCE_U + 0.08, 0.4584, 'football-stadium', [15, 12], 0),
 
   // Main column (north→south): ICT → Education → Mass Comm → Admin
   zone('ict-exams', 'ICT', FENCE_U + 0.14, 0.26, 'building-skyscraper-d', [11, 10], 0, 5, lilac),
@@ -287,9 +391,9 @@ export const MAP_ZONES: MapZone[] = [
   zone('social-science', 'Social Science', 0.76, 0.21, 'building-g', [10, 8], 0, 4.9, sand),
   zone('life-science', 'Life Science', 0.835, 0.21, 'building-f', [10, 8], 0, 4.9, original),
   zone('law-campus', 'Law', FENCE_U + 0.3, 0.38, 'building-l', [10, 8], 0, 5, original),
-  zone('students-centre', "Students' Centre", FENCE_U + 0.3, 0.54, 'building-k', [10.5, 8.5], 0, 5, lilac),
-  zone('cordelia-hall', 'Cordelia Agbebaku Hall', FENCE_U + 0.3, 0.7, 'building-m', [11.5, 8.5], Math.PI / 2, 5.1, clay),
-  zone('twin-hall', 'Twin Hall', FENCE_U + 0.38, 0.54, 'building-n', [11.5, 8.5], Math.PI / 2, 5.1, purple),
+  zone('students-centre', "Students' Centre", 0.7289, 0.4859, 'building-k', [10.5, 8.5], -1.5816, 5.75, lilac),
+  zone('cordelia-hall', 'Cordelia Agbebaku Hall', 0.6929, 0.743, 'building-m', [11.5, 8.5], -0.0016, 5.1, clay),
+  zone('twin-hall', 'Twin Hall', 0.8056, 0.7623, 'building-n', [11.5, 8.5], -0.0092, 5.355, purple),
 
   // School hostels removed from the map (gameplay places kept in places.ts for lodging).
   zone('law-ext', 'Law', 0.6, 0.28, 'building-l', [10.5, 8.5], 0, 5.1, sand),
@@ -304,7 +408,105 @@ export const MAP_ZONES: MapZone[] = [
 
   // Near gate / campus edge — same height band as faculty blocks
   zone('keke-park', 'Keke Park', FENCE_U + 0.07, 0.74, 'building-g', [10, 8], 0, 4.9, sand),
+
+  // —— Billboards (the five marked spots). Ad face turns toward the default camera at rotation 0;
+  // tapping one opens the ad viewer. Fine-tune in the zone debug panel.
+  zone('billboard-1', 'Billboard 1', 0.155, 0.4985, 'billboard-pack', [7, 3], 0, undefined, undefined, { modelY: 0.5, scaleMul: 1.8 }),
+  zone('billboard-2', 'Billboard 2', 0.3983, 0.4139, 'billboard1', [7, 3], -3.1416, undefined, undefined, { modelY: 0.5, scaleMul: 1.8 }),
+  zone('billboard-3', 'Billboard 3', 0.605, 0.6468, 'billboard-pack', [7, 3], -3.1416, undefined, undefined, { modelY: 0, scaleMul: 1.9 }),
+  zone('billboard-4', 'Billboard 4', 0.145, 0.83, 'billboard1', [7, 3], -3.1416, undefined, undefined, { modelY: 0, scaleMul: 1.9 }),
+  zone('billboard-5', 'Billboard 5', 0.8768, 0.875, 'billboard-pack', [7, 3], 0, undefined, undefined, { modelY: 0, scaleMul: 2.3 }),
 ]
+
+/** Second-slab zone. `model` is the main Kenney key (or 'cluster' / 'open' / 'label'). */
+function southZone(
+  id: string,
+  label: string,
+  u: number,
+  v: number,
+  model: string,
+  footprint: [number, number],
+  opts: Pick<MapZone, 'rotation' | 'scale' | 'tint' | 'parts' | 'open'> = {},
+): MapZone {
+  const [x, z] = frontSlabXZ(u, v)
+  const { rotation = 0, ...rest } = opts
+  return { id, label, position: [x, z], rotation, model, footprint, slab: 'south', ...rest }
+}
+
+/**
+ * Second slab (south of the AAU slab), from the annotated sketch — left→right, top→bottom.
+ * Same Kenney models / scale band / tints as the first slab. Open zones have no building.
+ */
+const SOUTH_ZONES: MapZone[] = [
+  // —— TOP ROW ——
+  southZone('market-square', 'Market Square', 0.06, 0.25, 'cluster', [10, 18], {
+    parts: [
+      { model: 'building-b', dx: 0, dz: -4.6, tint: clay },
+      { model: 'building-e', dx: 0, dz: 4.6, tint: sand, rotation: Math.PI },
+    ],
+  }),
+  southZone('dubious', 'Dubious', 0.17, 0.2, 'open', [14, 10], { open: 'plot' }),
+  southZone('innovation-hub', 'Innovation Hub', 0.29, 0.2, 'building-l', [10, 8], { scale: 4.9, tint: lilac }),
+  // Mechanic: small workshop + a stretch of the parking-lot model (it has cars) as the yard
+  southZone('magmus-autos', 'Magmus Autos', 0.41, 0.14, 'cluster', [14, 8], {
+    parts: [
+      { model: 'building-a', dx: -3.2, dz: 0, scale: 4.3, tint: earth },
+      { model: 'parking-lot', dx: 4, dz: 0, size: [6, 6.5], noPad: true },
+    ],
+  }),
+  // No Kenney church exists — two plain buildings, the taller one wears a cross
+  southZone('above-the-hills-church', 'Above the Hills Church', 0.41, 0.33, 'cluster', [16, 9], {
+    parts: [
+      { model: 'building-c', dx: -3.6, dz: 0, tint: original, cross: true },
+      { model: 'building-d', dx: 3.8, dz: 0, scale: 4.3, tint: sand },
+    ],
+  }),
+  // Landmark name on the slab (no road drawn)
+  southZone('poultry-road', 'Poultry Road', 0.73, 0.27, 'label', [1, 1]),
+  // Restaurant with parasols out front
+  southZone('wise-gourmet', 'Wise Gourmet', 0.9, 0.14, 'cluster', [12, 9], {
+    parts: [
+      { model: 'building-f', dx: 0, dz: -1.2, tint: sand },
+      { model: 'detail-parasol-a', dx: -3, dz: 4, scale: 2.6, noPad: true },
+      { model: 'detail-parasol-b', dx: 2.6, dz: 4, scale: 2.6, noPad: true },
+    ],
+  }),
+
+  // —— MIDDLE ROW ——
+  southZone('park', 'Park', 0.06, 0.58, 'open', [12, 14], { open: 'park' }),
+  southZone('shop-mid-1', 'Shop', 0.16, 0.5, 'building-b', [9, 7], { scale: 4.3, tint: purple }),
+  southZone('shop-mid-2', 'Shop', 0.24, 0.5, 'building-e', [9, 7], { scale: 4.3, tint: earth }),
+  southZone('forbes', 'Forbes', 0.45, 0.55, 'open', [30, 16], { open: 'plaza' }),
+  // Tall blue glass towers (Kenney skyscrapers, untinted)
+  southZone('spot-rite', 'Spot Rite', 0.9, 0.52, 'cluster', [22, 10], {
+    parts: [
+      { model: 'building-skyscraper-c', dx: -6.5, dz: 0, scale: 4.8 },
+      { model: 'building-skyscraper-a', dx: 0, dz: 0, scale: 5.6 },
+      { model: 'building-skyscraper-e', dx: 6.5, dz: 0, scale: 4.8 },
+    ],
+  }),
+
+  // —— BOTTOM ROW ——
+  southZone('shop-low-1', 'Shop', 0.06, 0.82, 'building-c', [9, 7], { scale: 4.3, tint: sand }),
+  southZone('shop-low-2', 'Shop', 0.13, 0.82, 'building-d', [9, 7], { scale: 4.3, tint: clay }),
+  southZone('shop-low-3', 'Shop', 0.2, 0.82, 'building-h', [9, 7], { scale: 4.3, tint: original }),
+  southZone('anonymous-zone', 'Anonymous Zone', 0.42, 0.8, 'open', [16, 10], { open: 'plot' }),
+  southZone('denco', 'Denco', 0.56, 0.8, 'cluster', [20, 9], {
+    parts: [
+      { model: 'building-g', dx: -5, dz: 0, tint: plum },
+      { model: 'building-i', dx: 5, dz: 0, tint: original },
+    ],
+  }),
+  southZone('playchill-climax', 'Playchill Climax', 0.72, 0.66, 'cluster', [26, 9], {
+    parts: [
+      { model: 'building-j', dx: -8.5, dz: 0, tint: purple },
+      { model: 'building-k', dx: 0, dz: 0, tint: lilac },
+      { model: 'building-n', dx: 8.5, dz: 0, tint: original },
+    ],
+  }),
+]
+
+export const MAP_ZONES: MapZone[] = [...FIRST_ZONES, ...SOUTH_ZONES]
 
 export const MAP_LOCATION_IDS = [
   'aau_campus',
@@ -316,7 +518,6 @@ export const MAP_LOCATION_IDS = [
   'keke_park',
   'roadside_bukka',
   'viewing_centre',
-  'ekpoma_market',
   'innovation_hub',
   'church',
   'mosque',
@@ -366,9 +567,6 @@ export const TREE_SPOTS: TreeSpot[] = (() => {
     }
   }
 
-  // a. Either side of AAU School Gate
-  pair(FENCE_U - 0.01, 0.84)
-  pair(FENCE_U + 0.1, 0.84)
   // b. Beside the Clinic
   pair(FENCE_U + 0.12, 0.2)
   // c. Between Sports Complex and the fence
@@ -379,6 +577,27 @@ export const TREE_SPOTS: TreeSpot[] = (() => {
   pair(0.94, 0.36)
   // f. Beside Shuttle Park, between lot and slab edge
   pair(0.995, 0.86)
+
+  // Second-slab parks: a loose ring of shade trees inside the plot (benches sit in the middle)
+  for (const zone of SOUTH_ZONES) {
+    if (zone.open !== 'park') continue
+    const [w, d] = zone.footprint
+    for (const [fx, fz] of [
+      [-0.32, -0.36],
+      [0.3, -0.3],
+      [-0.3, 0.34],
+      [0.34, 0.3],
+      [0, -0.42],
+    ] as const) {
+      spots.push({
+        x: zone.position[0] + fx * w,
+        z: zone.position[1] + fz * d,
+        s: 0.85 + rand() * 0.3,
+        kind: 'tree',
+        rot: rand() * Math.PI * 2,
+      })
+    }
+  }
 
   return spots
 })()

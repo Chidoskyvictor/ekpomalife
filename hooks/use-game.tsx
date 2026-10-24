@@ -1,8 +1,10 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { fetchAuthMe } from '@/lib/auth/fetch-auth-me'
 import { getPostAuthRoute } from '@/lib/auth/post-auth-redirect'
+import { pathsEqual, replaceNavigation } from '@/lib/navigation/safe-nav'
 import { clearSession, getSession, saveKey } from '@/lib/game/accounts'
 import { checkDreamProgress, loadCharacter } from '@/lib/game/character-api'
 import { AVATAR_COLORS } from '@/lib/game/content'
@@ -31,12 +33,14 @@ type GameContextValue = {
   select: (id: string | null) => void
   act: (
     actionId: ActionId | GameActionId | string,
-    opts?: { payload?: { amount?: number; answers?: number[]; questionIds?: string[] } },
+    opts?: { payload?: { amount?: number; answers?: number[]; questionIds?: string[] }; atHome?: boolean },
   ) => Promise<ServerGameState | null>
   travelTo: (locationId: string, mode: TravelMode) => void
   chooseEvent: (choice: EventChoice) => void
   resetGame: () => void
   changeDream: (dreamId: DreamId) => void
+  /** Show a newly saved look straight away (the server already has it). */
+  changeLook: (appearance: Appearance) => void
   dismissDreamCelebration: () => void
   logOut: () => void
   refreshServer: () => Promise<void>
@@ -76,6 +80,10 @@ const SERVER_ACTIONS = new Set<string>([
   'hangout',
   'travel',
   'work-placeholder',
+  'nap',
+  'rest',
+  'toilet',
+  'bucket-bath',
   'pay-school-fees',
   'course-registration',
   'collect-matric-gown',
@@ -186,6 +194,7 @@ export function GameProvider({
   children: ReactNode
   guest?: boolean
 }) {
+  const router = useRouter()
   const [isGuest, setIsGuest] = useState(guestProp)
   const [state, setState] = useState<GameState | null>(null)
   const [booting, setBooting] = useState(true)
@@ -263,13 +272,18 @@ export function GameProvider({
           shellRef.current = null
           setBooting(false)
           const me = await fetchAuthMe()
-          if (!cancelled) window.location.assign(getPostAuthRoute(me))
+          if (!cancelled) {
+            const dest = getPostAuthRoute(me)
+            if (!pathsEqual(dest, window.location.pathname)) {
+              replaceNavigation(router, dest, window.location.pathname)
+            }
+          }
           return
         }
         if (result.code === 'UNAUTHORIZED' || result.status === 401) {
-          clearSession()
-          const me = await fetchAuthMe()
+          const me = await fetchAuthMe({ force: true })
           if (!cancelled && !me) {
+            clearSession()
             setIsGuest(true)
             setState(null)
             shellRef.current = null
@@ -278,7 +292,9 @@ export function GameProvider({
             return
           }
           setBooting(false)
-          if (!cancelled) window.location.assign('/login')
+          if (!cancelled) {
+            setBootError('Session hiccup. Tap retry.')
+          }
           return
         }
         setBooting(false)
@@ -314,7 +330,7 @@ export function GameProvider({
     return () => {
       cancelled = true
     }
-  }, [mergeServer, bootKey, isGuest])
+  }, [mergeServer, bootKey, isGuest, router])
 
   // Hard stop — never leave the balance shimmer spinning past 12s.
   useEffect(() => {
@@ -349,7 +365,7 @@ export function GameProvider({
   const act = useCallback(
     async (
       actionId: ActionId | GameActionId | string,
-      opts?: { payload?: { amount?: number; answers?: number[]; questionIds?: string[] } },
+      opts?: { payload?: { amount?: number; answers?: number[]; questionIds?: string[] }; atHome?: boolean },
     ) => {
       const serverId = isServerAction(actionId) ? actionId : LEGACY_TO_SERVER[actionId as ActionId]
       if (!serverId || !state) {
@@ -362,6 +378,7 @@ export function GameProvider({
         version: versionRef.current,
         payload: opts?.payload,
         traits: state.traits,
+        atHome: opts?.atHome,
       })
       if (!result.ok) {
         const { handleApiFail } = await import('@/lib/api/handle-fail')
@@ -453,6 +470,11 @@ export function GameProvider({
       changeDream: (dreamId: DreamId) => {
         if (!state) return
         setState(resetDreamProgress(state, dreamId))
+      },
+      changeLook: (appearance: Appearance) => {
+        // Server refreshes rebuild state from shellRef, so the new look must land there too
+        if (shellRef.current) shellRef.current = { ...shellRef.current, appearance }
+        setState((current) => (current ? { ...current, appearance } : current))
       },
       dismissDreamCelebration: () => {
         setState((current) => (current ? { ...current, dreamCelebrated: true } : current))

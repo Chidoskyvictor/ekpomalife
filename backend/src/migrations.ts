@@ -8,7 +8,11 @@ import { env } from './env.js'
  * Tracks applied files in schema_migrations so re-runs are safe.
  */
 export async function runMigrations(): Promise<void> {
-  const migrationUrl = env.DATABASE_URL_UNPOOLED ?? env.DATABASE_URL
+  // Local dev: unpooled Neon host often ETIMEDOUT on some networks; pooler is fine for our SQL.
+  const migrationUrl =
+    env.NODE_ENV === 'production'
+      ? (env.DATABASE_URL_UNPOOLED ?? env.DATABASE_URL)
+      : env.DATABASE_URL
   const pool = createPool(migrationUrl, 1)
 
   try {

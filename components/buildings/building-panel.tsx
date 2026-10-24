@@ -463,7 +463,7 @@ export function BuildingPanel() {
               </div>
               <p className={styles.modalTitle}>You walked the stage</p>
               <p className={styles.modalMeta}>
-                Caps in the air. Family dey scream your name. Ekpoma will remember.
+                Caps in the air. Your family is cheering your name. Ekpoma will remember.
               </p>
             </div>
             <button type="button" className={styles.btn} onClick={() => setCeremonyOpen(false)}>

@@ -1,6 +1,6 @@
 'use client'
 
-import { MAP } from '@/lib/game/map-theme'
+import { mapPalette as MAP } from '@/lib/game/map-theme'
 import { FENCE_X, FIRST_SLAB } from '@/lib/game/world-layout'
 import { Block } from './materials'
 

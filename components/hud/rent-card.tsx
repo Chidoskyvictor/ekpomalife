@@ -19,7 +19,7 @@ export function RentCard({ compact = false }: { compact?: boolean }) {
     (rent.status === 'evicted'
       ? `Evicted · settle ${dueLabel}`
       : late
-        ? `Rent is a bit late · due ${dueLabel}. No wahala, pay when you can.`
+        ? `Rent is a bit late · due ${dueLabel}. No stress, pay when you can.`
         : `Rent due ${dueLabel}`)
 
   return (

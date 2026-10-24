@@ -1,18 +1,21 @@
 'use client'
 
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import { useCallback, useEffect, useId, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { BodyPortal } from '@/components/ui/body-portal'
 import { useLowPerf } from '@/hooks/use-low-perf'
 import { usePhone } from '@/hooks/use-phone'
 import { useGame } from '@/hooks/use-game'
-import { PHONE_FREE_FOR_ALL, playerHasPhone } from '@/lib/game/phone-config'
+import { PHONE_FREE_FOR_ALL } from '@/lib/flags'
+import { playerHasPhone } from '@/lib/game/phone-config'
+import { calendarForDay } from '@/lib/game/needs'
 import {
-  HOSTEL_PLACE_IDS,
   PHONE_APPS,
   PHONE_MODE_KEY,
   type PhoneAppId,
+  type PhoneClock,
   type PhonePromo,
+  type PhoneState,
 } from '@/lib/game/phone'
 import { AppFrame } from './app-frame'
 import { BankApp } from './apps/bank-app'
@@ -20,16 +23,43 @@ import { CalendarApp } from './apps/calendar-app'
 import { ComingSoonApp } from './apps/coming-soon'
 import { GistApp } from './apps/gist-app'
 import { JobsApp } from './apps/jobs-app'
+import { MessagesApp } from './apps/messages-app'
+import { useChatUnread } from '@/hooks/use-chat-unread'
 import { MapApp } from './apps/map-app'
 import { MarketApp } from './apps/market-app'
 import { RideApp } from './apps/ride-app'
 import { SettingsApp } from './apps/settings-app'
+import { ProfileApp } from './apps/profile-app'
 import { PhoneHome, phoneModeFromStorage } from './phone-home'
 import { PhoneStatusBar } from './phone-status-bar'
 import { WallpaperSkyline } from './wallpaper-skyline'
 import styles from './phone.module.css'
 
-const REAL_TO_GAME_MINUTES = 10
+const FULL_WEEKDAY: Record<string, string> = {
+  Mon: 'Monday',
+  Tue: 'Tuesday',
+  Wed: 'Wednesday',
+  Thu: 'Thursday',
+  Fri: 'Friday',
+  Sat: 'Saturday',
+  Sun: 'Sunday',
+}
+
+/** Same calendar as the HUD ("Thu 15" → "Thursday 15"). */
+function phoneDateLabel(day: number) {
+  const cal = calendarForDay(day)
+  return `${FULL_WEEKDAY[cal.weekday] ?? cal.weekday} ${cal.date}`
+}
+
+/** Shown the instant the phone opens, until GET /phone answers (full battery, default wallpaper). */
+const PLACEHOLDER_PHONE: PhoneState = {
+  battery: 100,
+  charging: false,
+  dataMb: 1,
+  wallpaper: 'aau-dusk',
+  unread: {},
+  newApps: [],
+}
 
 export function PhoneShell({
   open,
@@ -42,12 +72,43 @@ export function PhoneShell({
   const lowPerf = useLowPerf()
   const reduced = useReducedMotion() ?? false
   const canUsePhone = playerHasPhone(state?.hasPhone)
-  const phoneApi = usePhone(open && canUsePhone, { poll: open })
+  const mobileApi = usePhone(open && canUsePhone, { poll: open })
+  // Never a loading/error screen: render the home screen right away, live data fills in
+  const deviceState = mobileApi.device ?? (canUsePhone ? PLACEHOLDER_PHONE : null)
+  // Until the phone answers, read the time from the game state the HUD already has
+  const fallbackClock = useMemo<PhoneClock | null>(() => {
+    const label = state?.timeLabel
+    const match = label?.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i)
+    if (!state || !label || !match) return null
+    const hour = (Number(match[1]) % 12) + (match[3]!.toUpperCase() === 'PM' ? 12 : 0)
+    return {
+      gameTime: state.gameTime ?? 0,
+      day: state.day,
+      hour,
+      minute: Number(match[2]),
+      period: state.period,
+      label,
+    }
+  }, [state])
+  // Same time as the HUD status bar (game state); the phone's own clock is only a fallback
+  const phoneClock = fallbackClock ?? mobileApi.clock
+  const lacksPhone =
+    !canUsePhone || (!PHONE_FREE_FOR_ALL && mobileApi.missingDevice)
+  const cash = mobileApi.cash ?? state?.cash ?? 0
+  // Hostel chat unread shows on the Messages icon
+  const chatUnread = useChatUnread(open && canUsePhone)
+  const homePhone = useMemo(
+    () =>
+      deviceState && chatUnread > 0
+        ? { ...deviceState, unread: { ...deviceState.unread, messages: chatUnread } }
+        : null,
+    [deviceState, chatUnread],
+  )
+
   const [appId, setAppId] = useState<PhoneAppId | null>(null)
   const [offline, setOffline] = useState(false)
   const [ridePreset, setRidePreset] = useState<string | null>(null)
   const [night, setNight] = useState(false)
-  const [tickLabel, setTickLabel] = useState<string | undefined>()
   const closeRef = useRef<HTMLButtonElement>(null)
   const titleId = useId()
 
@@ -60,7 +121,7 @@ export function PhoneShell({
     }
     setNight(phoneModeFromStorage() === 'night')
     closeRef.current?.focus()
-    void phoneApi.refresh()
+    void mobileApi.refresh()
   }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -79,28 +140,6 @@ export function PhoneShell({
       window.clearInterval(id)
     }
   }, [open])
-
-  // Local clock tick between polls
-  useEffect(() => {
-    if (!open || !phoneApi.clock) {
-      setTickLabel(undefined)
-      return
-    }
-    const base = phoneApi.clock
-    const started = Date.now()
-    const id = window.setInterval(() => {
-      const elapsedRealMin = (Date.now() - started) / 60_000
-      const gameMin = Math.floor(elapsedRealMin * REAL_TO_GAME_MINUTES)
-      const t = base.gameTime + gameMin
-      const minsInDay = t % (24 * 60)
-      const hour = Math.floor(minsInDay / 60)
-      const minute = minsInDay % 60
-      const ampm = hour >= 12 ? 'PM' : 'AM'
-      const h12 = hour % 12 || 12
-      setTickLabel(`${h12}:${String(minute).padStart(2, '0')} ${ampm}`)
-    }, 1000)
-    return () => window.clearInterval(id)
-  }, [open, phoneApi.clock])
 
   const close = useCallback(() => onOpenChange(false), [onOpenChange])
 
@@ -129,7 +168,7 @@ export function PhoneShell({
     const meta = PHONE_APPS.find((a) => a.id === id)
     setAppId(id)
     if (meta?.status === 'soon') return
-    const res = await phoneApi.open(id)
+    const res = await mobileApi.open(id)
     if (!res.ok) {
       if (res.code === 'BATTERY_DEAD') {
         setAppId(null)
@@ -149,16 +188,6 @@ export function PhoneShell({
     close()
   }
 
-  const noPhone =
-    !canUsePhone || (!PHONE_FREE_FOR_ALL && phoneApi.noPhone)
-  const phone = phoneApi.phone
-  const dead = phone && phone.battery <= 0
-  const atHostel =
-    !!phoneApi.location?.placeId &&
-    (HOSTEL_PLACE_IDS as readonly string[]).includes(phoneApi.location.placeId)
-
-  const cash = phoneApi.cash ?? state?.cash ?? 0
-
   return (
     <BodyPortal>
       <AnimatePresence>
@@ -175,7 +204,7 @@ export function PhoneShell({
             onClick={close}
           >
             <motion.div
-              className={`${styles.frame} ${lowPerf ? styles.lowPerf : ''}`}
+              className={styles.device}
               onClick={(event) => event.stopPropagation()}
             initial={
               reduced || lowPerf
@@ -193,51 +222,34 @@ export function PhoneShell({
             <button
               ref={closeRef}
               type="button"
-              className={styles.closePill}
+              className={`${styles.closePill} ${lowPerf ? styles.closePillLow : ''}`}
               onClick={close}
             >
-              Close
+              <span aria-hidden="true">✕</span> Close
             </button>
-            <div className={styles.notch} aria-hidden="true" />
+            <div className={`${styles.frame} ${lowPerf ? styles.lowPerf : ''}`}>
             <div className={styles.screen}>
+              <div className={styles.island} aria-hidden="true" />
               <h2 id={titleId} className="sr-only">
                 Phone
               </h2>
-              {phone && !noPhone ? (
+              {deviceState && !lacksPhone ? (
                 <>
                   <div className={styles.wallpaper}>
-                    <WallpaperSkyline wallpaper={phone.wallpaper} night={night} />
+                    <WallpaperSkyline wallpaper={deviceState.wallpaper} night={night} />
                     <div className={styles.scrim} />
                   </div>
                   <div className={styles.content}>
-                    {dead ? (
-                      <div className={styles.deadScreen}>
-                        <p className={styles.deadTitle}>Phone don die 🪫</p>
-                        <p className={styles.listMeta} style={{ color: 'rgba(255,255,255,0.7)' }}>
-                          Charge am for hostel
-                        </p>
-                        {atHostel ? (
-                          <button
-                            type="button"
-                            className={styles.primaryPill}
-                            onClick={() => void phoneApi.setCharge('start')}
-                          >
-                            Charge
-                          </button>
-                        ) : null}
-                        <button type="button" className={styles.ghostPill} onClick={close}>
-                          Close
-                        </button>
-                      </div>
-                    ) : appId ? (
-                      <AppFrame appId={appId} offline={offline} onHome={goHome}>
+                    <PhoneStatusBar clock={phoneClock} phone={deviceState} onApp={Boolean(appId)} />
+                    {appId ? (
+                      <AppFrame appId={appId} offline={offline} onHome={goHome} bare={appId === 'messages'}>
                         {appId === 'jobs' ? <JobsApp /> : null}
                         {appId === 'bank' ? <BankApp /> : null}
                         {appId === 'gist' ? <GistApp /> : null}
                         {appId === 'market' ? <MarketApp /> : null}
                         {appId === 'map' ? (
                           <MapApp
-                            currentPlaceId={phoneApi.location?.placeId ?? state?.locationId ?? null}
+                            currentPlaceId={mobileApi.location?.placeId ?? state?.locationId ?? null}
                             onGo={(id) => {
                               select(id)
                               close()
@@ -252,78 +264,72 @@ export function PhoneShell({
                           <RideApp
                             cash={cash}
                             presetTo={ridePreset}
-                            idemKeyFor={phoneApi.idemKeyFor}
-                            clearIdem={phoneApi.clearIdem}
+                            idemKeyFor={mobileApi.idemKeyFor}
+                            clearIdem={mobileApi.clearIdem}
                             onFindShift={() => void openApp('jobs')}
                             onSuccess={(message, nextCash) => {
                               notifyToast?.(message, true)
-                              phoneApi.patchLocal({ cash: nextCash })
-                              void phoneApi.refresh()
+                              mobileApi.patchLocal({ cash: nextCash })
+                              void mobileApi.refresh()
                               close()
                             }}
                           />
                         ) : null}
                         {appId === 'calendar' ? (
-                          <CalendarApp items={phoneApi.notifications} />
+                          <CalendarApp items={mobileApi.notifications} />
                         ) : null}
+                        {appId === 'profile' ? <ProfileApp /> : null}
                         {appId === 'settings' ? (
                           <SettingsApp
-                            phone={phone}
+                            phone={deviceState}
                             cash={cash}
-                            placeId={phoneApi.location?.placeId ?? null}
+                            placeId={mobileApi.location?.placeId ?? null}
                             onWallpaper={async (id) => {
-                              await phoneApi.setWall(id)
+                              await mobileApi.setWall(id)
                             }}
                             onBuyData={async (id) => {
-                              const res = await phoneApi.purchaseData(id)
+                              const res = await mobileApi.purchaseData(id)
                               if (!res.ok) return { ok: false, error: res.error }
                               return { ok: true, message: res.message }
                             }}
                             onCharge={async (action) => {
-                              await phoneApi.setCharge(action)
+                              await mobileApi.setCharge(action)
                             }}
                           />
                         ) : null}
-                        {['messages', 'portal', 'music', 'games'].includes(appId) ? (
+                        {appId === 'messages' ? (
+                          <MessagesApp
+                            onHome={goHome}
+                            notifications={mobileApi.notifications}
+                            onOpenApp={(id) => void openApp(id)}
+                          />
+                        ) : null}
+                        {['portal', 'music', 'games'].includes(appId) ? (
                           <ComingSoonApp appId={appId} onHome={goHome} />
                         ) : null}
                       </AppFrame>
                     ) : (
-                      <>
-                        <PhoneStatusBar
-                          clock={phoneApi.clock}
-                          phone={phone}
-                          localLabel={tickLabel}
-                        />
-                        <PhoneHome
-                          phone={phone}
-                          clock={phoneApi.clock}
-                          location={phoneApi.location}
-                          promos={phoneApi.promos}
-                          cash={cash}
-                          lowPerf={lowPerf}
-                          onOpenApp={(id) => void openApp(id)}
-                          onPromo={onPromo}
-                        />
-                      </>
+                      <PhoneHome
+                        phone={homePhone ?? deviceState}
+                        clock={phoneClock}
+                        dateLabel={state ? phoneDateLabel(state.day) : null}
+                        promos={mobileApi.promos}
+                        lowPerf={lowPerf}
+                        onOpenApp={(id) => void openApp(id)}
+                        onPromo={onPromo}
+                      />
                     )}
                   </div>
                 </>
-              ) : phoneApi.loading ? (
-                <div className={styles.deadScreen} aria-busy="true">
-                  <p className={styles.deadTitle}>Opening phone…</p>
-                </div>
               ) : (
                 <div className={styles.deadScreen}>
-                  <p className={styles.deadTitle}>Could not load phone</p>
-                  <button type="button" className={styles.ghostPill} onClick={() => void phoneApi.refresh()}>
-                    Try again
-                  </button>
+                  <p className={styles.deadTitle}>You don&apos;t have a phone yet</p>
                   <button type="button" className={styles.ghostPill} onClick={close}>
                     Close
                   </button>
                 </div>
               )}
+            </div>
             </div>
           </motion.div>
         </motion.div>

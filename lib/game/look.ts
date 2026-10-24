@@ -154,8 +154,8 @@ export function normalizeAppearance(input?: Partial<Appearance> & { fabric?: str
  * stays Ekpoma, not a copy of another game.
  */
 export const CHARACTER_GLB: Record<BodyId, string> = {
-  man: '/models/male.glb',
-  woman: '/models/female.glb',
+  man: '/models/male-rigged.glb',
+  woman: '/models/female-rigged.glb',
 }
 
 export { HAIR_CONFIG, hairFitFor } from '@/lib/game/hair-config'

@@ -63,7 +63,7 @@ export function messageForTier(id: StartingTierId, body: 'man' | 'woman'): strin
   if (id === 'hustle') {
     return pick([
       'Small money, big hustle. Every Ekpoma legend started here.',
-      'Na from small we dey start. Your grind story go sweet pass.',
+      'Everyone starts small. Your success story will be sweeter for it.',
       "Real G's move in silence. Time to build from scratch.",
     ])
   }
@@ -71,7 +71,7 @@ export function messageForTier(id: StartingTierId, body: 'man' | 'woman'): strin
     return pick([
       "Correct start! Enough to settle in and plan your moves.",
       "Balanced life loading. You've got room to grow.",
-      'Steady pikin. Make am count.',
+      'Steady start. Make it count.',
     ])
   }
   if (id === 'big') {
@@ -82,9 +82,9 @@ export function messageForTier(id: StartingTierId, body: 'man' | 'woman'): strin
     ])
   }
   return pick([
-    'Nepo baby unlocked! Papa don sponsor this life.',
+    'Rich kid unlocked! Your family is sponsoring this life.',
     "LAPO? Never heard. You're starting on top.",
-    'Money no be your problem. Now go build your name.',
+    'Money is not your problem. Now go build your name.',
   ])
 }
 

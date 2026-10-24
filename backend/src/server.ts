@@ -16,6 +16,8 @@ import { loginRoutes } from './routes/login.js'
 import { meRoutes } from './routes/me.js'
 import { signupRoutes } from './routes/signup.js'
 import { statsRoutes } from './routes/stats.js'
+import { hostelRoutes } from './routes/hostels.js'
+import { playersRoutes } from './routes/players.js'
 
 const app = Fastify({
   logger: true,
@@ -41,8 +43,9 @@ await app.register(cors, {
 })
 await app.register(cookie)
 await app.register(rateLimit, {
-  max: 100,
+  max: env.NODE_ENV === 'production' ? 100 : 2000,
   timeWindow: '1 minute',
+  allowList: env.NODE_ENV === 'production' ? undefined : ['127.0.0.1', '::1', '::ffff:127.0.0.1'],
 })
 
 app.get('/', async () => ({
@@ -90,6 +93,22 @@ app.get('/', async () => ({
   phoneNotifications: 'GET /phone/notifications',
   rideQuote: 'GET /ride/quote',
   ride: 'POST /ride',
+  playerProfileMe: 'GET /players/me/profile',
+  playerProfilePatch: 'PATCH /players/me/profile',
+  playerProfile: 'GET /players/:id/profile',
+  hostelSearch: 'GET /hostels/search?q=',
+  hostelMe: 'GET /hostels/me',
+  hostelCreate: 'POST /hostels',
+  hostelJoin: 'POST /hostels/:id/join',
+  hostelLeave: 'POST /hostels/leave',
+  hostelMembers: 'GET /hostels/:id/members',
+  chats: 'GET /chats',
+  chatUnread: 'GET /chats/unread',
+  chatMessages: 'GET|POST /chats/:id/messages',
+  chatRead: 'POST /chats/:id/read',
+  chatReport: 'POST /chats/messages/:seq/report',
+  playerSearch: 'GET /players/search?q=',
+  chatDirect: 'POST /chats/direct',
 }))
 
 app.get('/health', async (request, reply) => {
@@ -112,6 +131,8 @@ await app.register(gameRoutes)
 await app.register(economyRoutes)
 await app.register(roomRoutes)
 await app.register(phoneRoutes)
+await app.register(playersRoutes)
+await app.register(hostelRoutes)
 
 const shutdown = async () => {
   await app.close()

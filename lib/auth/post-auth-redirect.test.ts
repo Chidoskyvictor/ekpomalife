@@ -1,7 +1,8 @@
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
+import { invalidateAuthMeSession } from '@/lib/auth/auth-me-cache'
 import { fetchGameState } from '@/lib/game/game-api'
 import { setAuthMe, setGameStateStatus } from '../../vitest.msw'
-import { fetchAuthMe } from './fetch-auth-me'
+import { fetchAuthMe, resetAuthMeFetchStateForTests } from './fetch-auth-me'
 import { getPostAuthRoute, resolveGate } from './post-auth-redirect'
 
 describe('getPostAuthRoute', () => {
@@ -71,6 +72,11 @@ describe('AuthGate resolveGate', () => {
 })
 
 describe('MSW auth + game gate', () => {
+  beforeEach(() => {
+    resetAuthMeFetchStateForTests()
+    invalidateAuthMeSession()
+  })
+
   it('login after reset with unfinished Look lands on Look via /auth/me', async () => {
     setAuthMe({ setupComplete: false, setupStep: 'look' })
     const me = await fetchAuthMe()

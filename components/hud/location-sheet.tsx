@@ -113,7 +113,7 @@ function TravelPicker({ state, place }: { state: GameState; place: Place }) {
   )
 }
 
-const SHOP_PLACES = new Set(['town-shop-1', 'bukka', 'market'])
+const SHOP_PLACES = new Set(['town-shop-1', 'bukka'])
 
 export function LocationSheet() {
   const { state, selectedId, select, act } = useGame()

@@ -1,3 +1,5 @@
+'use client'
+
 import type { Mesh, Object3D, Texture, WebGLRenderer } from 'three'
 
 function tuneTexture(texture: Texture, anisotropy: number) {

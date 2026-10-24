@@ -66,7 +66,7 @@ export function RideApp({
   return (
     <div>
       <label className={styles.sectionTitle} htmlFor="ride-to">
-        Where you dey go?
+        Where are you going?
       </label>
       <select
         id="ride-to"

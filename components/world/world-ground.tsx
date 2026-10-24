@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react'
 import { ExtrudeGeometry, Shape } from 'three'
-import { MAP } from '@/lib/game/map-theme'
+import { mapPalette as MAP } from '@/lib/game/map-theme'
 import { SLABS, type Slab } from '@/lib/game/world-layout'
 
 function roundedRect(w: number, d: number, radius: number) {

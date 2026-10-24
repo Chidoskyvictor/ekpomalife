@@ -8,11 +8,14 @@ import styles from './phone.module.css'
 export function AppFrame({
   appId,
   offline,
+  bare = false,
   onHome,
   children,
 }: {
   appId: PhoneAppId
   offline?: boolean
+  /** The app draws its own header (e.g. Messages) — no title bar, no body padding. */
+  bare?: boolean
   onHome: () => void
   children: ReactNode
 }) {
@@ -27,19 +30,21 @@ export function AppFrame({
       role="region"
       aria-label={meta?.label ?? 'App'}
     >
-      <header className={styles.appHeader}>
-        <button type="button" className={styles.backBtn} aria-label="Back home" onClick={onHome}>
-          ‹
-        </button>
-        <h2 className={styles.appTitle}>
-          <span aria-hidden="true">{meta?.emoji} </span>
-          {meta?.label}
-        </h2>
-      </header>
-      <div className={styles.appBody}>
+      {bare ? null : (
+        <header className={styles.appHeader}>
+          <button type="button" className={styles.backBtn} aria-label="Back home" onClick={onHome}>
+            ‹
+          </button>
+          <h2 className={styles.appTitle}>
+            <span aria-hidden="true">{meta?.emoji} </span>
+            {meta?.label}
+          </h2>
+        </header>
+      )}
+      <div className={`${styles.appBody} ${bare ? styles.appBodyBare : ''}`}>
         {offline ? (
           <p className={styles.offlineBanner} role="status">
-            You&apos;re offline — buy small data in Settings
+            You&apos;re offline — buy a data bundle in Settings
           </p>
         ) : null}
         {children}

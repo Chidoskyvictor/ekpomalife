@@ -7,6 +7,7 @@ import { sumLedgerEqualsCash } from './payouts.js'
 import { DAY_MINUTES } from './time.js'
 import {
   BATTERY,
+  BATTERY_ENABLED,
   CHARGE_BOOST_ITEM_IDS,
   HOSTEL_PLACE_IDS,
   PHONE_CONTRACT_KEYS,
@@ -125,7 +126,7 @@ describe('recomputeBattery (pure)', () => {
     const next = recomputeBattery(
       { battery: 100, charging: false, battery_game_time: DAY_MINUTES - 30 },
       DAY_MINUTES + 30,
-      'market',
+      'bukka',
       new Set(),
     )
     expect(next.battery).toBe(100 - BATTERY.drainPerGameHour)
@@ -134,7 +135,7 @@ describe('recomputeBattery (pure)', () => {
 
 describe('rideQuote (pure)', () => {
   it('keke cheaper than okada; same/unknown rejected', () => {
-    const q = rideQuote('admin-block', 'market')
+    const q = rideQuote('admin-block', 'bukka')
     expect(q.ok).toBe(true)
     if (!q.ok) return
     const keke = q.quotes.find((x) => x.mode === 'keke')!
@@ -234,11 +235,11 @@ describe('Phone (DB)', () => {
     // 11:00 AM day 1
     await setLocation(user.characterId, 'admin-block', 11 * 60)
 
-    const ride = await takeRide(user.userId, 'market', 'keke', key())
+    const ride = await takeRide(user.userId, 'bukka', 'keke', key())
     expect(ride.ok).toBe(true)
     if (!ride.ok) return
     expect(ride.replayed).toBe(false)
-    expect(ride.state.locationId).toBe('market')
+    expect(ride.state.locationId).toBe('bukka')
     expect(ride.state.gameTime).toBe(11 * 60 + RIDE_MINUTES.keke)
 
     const ledger = await pool.query(
@@ -248,7 +249,7 @@ describe('Phone (DB)', () => {
     expect(ledger.rowCount).toBe(1)
 
     // 23:00 — keke closed
-    await setLocation(user.characterId, 'market', 23 * 60)
+    await setLocation(user.characterId, 'bukka', 23 * 60)
     await setCash(user.characterId, 10_000)
     const closed = await takeRide(user.userId, 'admin-block', 'keke', key())
     expect(closed.ok).toBe(false)
@@ -271,7 +272,7 @@ describe('Phone (DB)', () => {
     const ok = await charge(user.userId, 'start')
     expect(ok.ok).toBe(true)
     if (!ok.ok) return
-    expect(ok.phone.charging).toBe(true)
+    expect(ok.phone.charging).toBe(BATTERY_ENABLED)
 
     await pool.query(
       `UPDATE phone_state SET unread = '{"gist":2}'::jsonb, new_apps = ARRAY['ride','gist'],
@@ -286,7 +287,7 @@ describe('Phone (DB)', () => {
     expect(opened.offline).toBe(true) // cost 2, only 1 MB
     expect(opened.phone.unread.gist).toBeUndefined()
     expect(opened.phone.newApps).not.toContain('gist')
-    expect(opened.phone.battery).toBe(50 - BATTERY.drainPerAppOpen)
+    expect(opened.phone.battery).toBe(BATTERY_ENABLED ? 50 - BATTERY.drainPerAppOpen : 100)
     expect(opened.phone.dataMb).toBe(1)
 
     await pool.query(
@@ -294,6 +295,11 @@ describe('Phone (DB)', () => {
       [user.characterId, 8 * 60],
     )
     const dead = await openApp(user.userId, 'bank')
+    if (!BATTERY_ENABLED) {
+      // Battery off: an empty stored battery never blocks apps
+      expect(dead.ok).toBe(true)
+      return
+    }
     expect(dead.ok).toBe(false)
     if (dead.ok) return
     expect(dead.code).toBe('BATTERY_DEAD')
@@ -320,7 +326,7 @@ describe('Phone (DB)', () => {
     if (!notes.ok) return
     expect(Object.keys(notes).sort()).toEqual([...PHONE_CONTRACT_KEYS.notifications].sort())
 
-    const quote = await getRideQuote(user.userId, 'market')
+    const quote = await getRideQuote(user.userId, 'bukka')
     expect(quote.ok).toBe(true)
     if (!quote.ok) return
     expect(Object.keys(quote).sort()).toEqual([...PHONE_CONTRACT_KEYS.rideQuote].sort())

@@ -5,7 +5,7 @@ import { Suspense, useMemo } from 'react'
 import { Group, type Object3D } from 'three'
 import { planRoadBits, type RoadBitName } from '@/lib/game/road-bits'
 import { ROAD_FRAME, ROAD_GAPS, ROAD_W } from '@/lib/game/world-layout'
-import { MAP } from '@/lib/game/map-theme'
+import { mapPalette as MAP } from '@/lib/game/map-theme'
 
 /**
  * City Bits road kit (`campusroad.glb`): straight / junction / corner / t-split / crossing.

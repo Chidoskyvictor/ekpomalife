@@ -154,7 +154,7 @@ export const FURNITURE_CATALOG: FurnitureItem[] = [
   },
   {
     id: 'small-gen',
-    name: 'I better pass my neighbour gen',
+    name: 'Better than my neighbour\'s generator',
     emoji: '⚡',
     category: 'power',
     price: 55000,

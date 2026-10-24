@@ -26,6 +26,7 @@ import { Coins } from 'lucide-react'
 import { startNewLife } from '@/hooks/use-game'
 import { fetchAuthMe } from '@/lib/auth/fetch-auth-me'
 import { getPostAuthRoute } from '@/lib/auth/post-auth-redirect'
+import { assignNavigation, replaceNavigation } from '@/lib/navigation/safe-nav'
 import { ensureLocalPlayer, getAccount, getProfile } from '@/lib/game/accounts'
 import { commitCharacter, loadCharacter, saveCharacterSetup } from '@/lib/game/character-api'
 import { firstNameFor, loadCreation, rememberLive, rememberStartingMoney } from '@/lib/game/creation'
@@ -62,15 +63,15 @@ export function LiveStudio() {
     const session = ensureLocalPlayer()
     const draft = loadCreation(session)
     if (!draft.appearance) {
-      router.replace('/look')
+      replaceNavigation(router, '/look')
       return
     }
     if (draft.traits.length < 2) {
-      router.replace('/traits')
+      replaceNavigation(router, '/traits')
       return
     }
     if (!draft.dreamId) {
-      router.replace('/dream')
+      replaceNavigation(router, '/dream')
       return
     }
     setAppearance(draft.appearance)
@@ -90,7 +91,8 @@ export function LiveStudio() {
         if (character.startingTier) rememberStartingMoney(session, cash, character.startingTier)
       }
     })
-  }, [router])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount; router is unstable in dev
+  }, [])
 
   const preview = useMemo(() => appearance, [appearance])
 
@@ -169,18 +171,18 @@ export function LiveStudio() {
         for (let attempt = 0; attempt < 4; attempt += 1) {
           const me = await fetchAuthMe()
           if (me?.setupComplete) {
-            window.location.assign('/')
+            assignNavigation('/')
             return
           }
           if (me) {
-            window.location.assign(getPostAuthRoute(me))
+            assignNavigation(getPostAuthRoute(me))
             return
           }
           if (attempt < 3) await new Promise((resolve) => window.setTimeout(resolve, 350))
         }
-        window.location.assign('/')
+        assignNavigation('/')
       } catch {
-        window.location.assign('/')
+        assignNavigation('/')
       }
     })()
   }

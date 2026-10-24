@@ -7,18 +7,18 @@
   align-items: flex-end;
   justify-content: center;
   padding:
-    max(12px, env(safe-area-inset-top))
-    max(12px, env(safe-area-inset-right))
-    max(12px, env(safe-area-inset-bottom))
-    max(12px, env(safe-area-inset-left));
+    0
+    max(10px, env(safe-area-inset-right))
+    max(6px, env(safe-area-inset-bottom))
+    max(10px, env(safe-area-inset-left));
   overflow: hidden;
-  background: rgba(0, 0, 0, 0.38);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .overlayLow {
-  background: rgba(0, 0, 0, 0.48);
+  background: transparent;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }
@@ -26,55 +26,89 @@
 @media (min-width: 640px) {
   .overlay {
     align-items: center;
+    padding:
+      max(12px, env(safe-area-inset-top))
+      max(12px, env(safe-area-inset-right))
+      max(12px, env(safe-area-inset-bottom))
+      max(12px, env(safe-area-inset-left));
   }
 }
 
+/* Phone + the Close pill that floats above it (outside the frame). */
+.device {
+  --close-h: 40px;
+  --close-gap: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--close-gap);
+  flex-shrink: 0;
+}
+
+/* Thin, even iPhone-style bezel; the screen runs to the top edge. */
 .frame {
   position: relative;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
-  width: min(390px, calc(100vw - 24px));
-  height: min(86dvh, 820px);
-  max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 16px);
+  width: min(380px, calc(100vw - 20px));
+  height: min(72dvh, 700px);
+  max-height: calc(
+    100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - var(--close-h) - var(--close-gap) - 24px
+  );
   overflow: hidden;
-  border-radius: 2.75rem;
-  border: 10px solid #1a1a1e;
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+  border-radius: 3rem;
+  border: 5px solid #16161a;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 24px 80px rgba(0, 0, 0, 0.45);
   background: #0b0b0f;
   color: #fff;
 }
 
+@media (min-width: 640px) {
+  .frame {
+    width: min(380px, calc(100vw - 24px));
+    height: min(84dvh, 800px);
+  }
+}
+
 .closePill {
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  z-index: 5;
-  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--close-h);
   padding: 0 16px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(22, 22, 26, 0.88);
   color: #fff;
   font-size: 14px;
   font-weight: 600;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
 }
 
-.lowPerf .closePill {
-  background: rgba(40, 40, 48, 0.92);
+.closePillLow {
+  background: #16161a;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }
 
-.notch {
+/* Dynamic Island — sits on the screen, between the time and the battery. */
+.island {
+  position: absolute;
+  top: 9px;
+  left: 50%;
+  z-index: 6;
+  width: 30%;
+  max-width: 112px;
   height: 28px;
-  margin: 10px auto 0;
-  width: 120px;
+  transform: translateX(-50%);
   border-radius: 999px;
-  background: #050508;
-  flex-shrink: 0;
+  background: #000;
+  pointer-events: none;
 }
 
 .screen {
@@ -84,8 +118,16 @@
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
-  border-radius: 2rem;
-  margin: 0 6px 6px;
+  border-radius: calc(3rem - 5px);
+}
+
+/* No visible scrollbars anywhere inside the phone (still scrolls by touch / wheel). */
+.screen * {
+  scrollbar-width: none;
+}
+
+.screen *::-webkit-scrollbar {
+  display: none;
 }
 
 .wallpaper {
@@ -111,29 +153,112 @@
   min-height: 0;
 }
 
+/* Time left, signal + battery right — level with the Dynamic Island. */
 .statusBar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 10px 16px 4px;
-  font-size: 12px;
-  font-weight: 600;
+  min-height: 46px;
+  padding: 4px 26px 0 30px;
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
   font-variant-numeric: tabular-nums;
+}
+
+.statusTime {
+  min-width: 0;
+}
+
+/* App open: the status bar is part of the app — same plain white, no seam under the island */
+.statusBarOnApp {
+  background: #fff;
+  color: #111;
+}
+
+.statusBarOnApp .batteryBody {
+  border-color: rgba(0, 0, 0, 0.4);
+}
+
+.statusBarOnApp .batteryCap {
+  background: rgba(0, 0, 0, 0.4);
 }
 
 .statusRight {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .signalMuted {
   opacity: 0.55;
 }
 
-.batteryLow {
-  color: #f87171;
+.signalBars {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 1.5px;
+  height: 11px;
+}
+
+.signalBars i {
+  display: block;
+  width: 3px;
+  border-radius: 1px;
+  background: currentColor;
+}
+
+.signalBars i:nth-child(1) { height: 4px; }
+.signalBars i:nth-child(2) { height: 6px; }
+.signalBars i:nth-child(3) { height: 8.5px; }
+.signalBars i:nth-child(4) { height: 11px; }
+
+.signalOff i:nth-child(n + 2) {
+  opacity: 0.35;
+}
+
+.battery {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+}
+
+.batteryBody {
+  position: relative;
+  display: block;
+  width: 24px;
+  height: 12px;
+  padding: 1.5px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 4px;
+}
+
+.batteryFill {
+  display: block;
+  width: var(--level, 100%);
+  height: 100%;
+  border-radius: 2px;
+  background: currentColor;
+}
+
+.batteryBolt {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 8px;
+  line-height: 1;
+}
+
+.batteryCap {
+  display: block;
+  width: 1.5px;
+  height: 4px;
+  border-radius: 0 1px 1px 0;
+  background: rgba(255, 255, 255, 0.5);
 }
 
 .home {
@@ -383,23 +508,24 @@
   flex: 1;
   flex-direction: column;
   min-height: 0;
-  background: #f5f5f7;
+  background: #fff;
   color: #111;
-  border-radius: inherit;
+  /* Sits under the status bar now — square top so it meets it cleanly */
+  border-radius: 0;
 }
 
 .appHeader {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 12px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-  background: rgba(255, 255, 255, 0.92);
+  /* Slim header — the status bar above already clears the Dynamic Island; no divider so it reads as one surface */
+  padding: 2px 10px 8px;
+  background: #fff;
 }
 
 .backBtn {
-  min-height: 44px;
-  min-width: 44px;
+  min-height: 34px;
+  min-width: 34px;
   border: none;
   border-radius: 999px;
   background: #eee;
@@ -409,7 +535,7 @@
 
 .appTitle {
   margin: 0;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
 }
 
@@ -420,6 +546,11 @@
   overscroll-behavior: contain;
   padding: 12px;
   font-size: 14px;
+}
+
+.appBodyBare {
+  padding: 0;
+  overflow: hidden;
 }
 
 .homeIndicator {
@@ -536,8 +667,8 @@
   gap: 10px;
   padding: 12px;
   border-radius: 16px;
-  background: #fff;
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  /* Grey card on the white app surface (iOS grouped style) */
+  background: #f2f2f7;
 }
 
 .listMeta {
@@ -575,6 +706,7 @@
 }
 
 .rideCard {
+  /* Grey card on the white app surface */
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -582,7 +714,7 @@
   padding: 14px;
   border-radius: 16px;
   border: 2px solid transparent;
-  background: #fff;
+  background: #f2f2f7;
   text-align: left;
   cursor: pointer;
 }
@@ -618,12 +750,12 @@
 }
 
 .feedItem {
+  /* Grey card on the white app surface */
   display: flex;
   gap: 10px;
   padding: 12px;
   border-radius: 16px;
-  background: #fff;
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  background: #f2f2f7;
 }
 
 .toneDot {

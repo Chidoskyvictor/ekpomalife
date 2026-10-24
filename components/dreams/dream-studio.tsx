@@ -19,6 +19,7 @@ import { saveCharacterDream } from '@/lib/game/character-api'
 import { firstNameFor, loadCreation, rememberDream } from '@/lib/game/creation'
 import { DREAMS, type DreamId } from '@/lib/game/dreams'
 import { DEFAULT_APPEARANCE, type Appearance } from '@/lib/game/look'
+import { replaceNavigation } from '@/lib/navigation/safe-nav'
 import { type TraitId } from '@/lib/game/traits'
 
 export function DreamStudio() {
@@ -35,11 +36,11 @@ export function DreamStudio() {
     const session = ensureLocalPlayer()
     const draft = loadCreation(session)
     if (!draft.appearance) {
-      router.replace('/look')
+      replaceNavigation(router, '/look')
       return
     }
     if (draft.traits.length < 2) {
-      router.replace('/traits')
+      replaceNavigation(router, '/traits')
       return
     }
     setAppearance(draft.appearance)
@@ -47,7 +48,8 @@ export function DreamStudio() {
     setPicked(draft.dreamId)
     setPlayerName(firstNameFor(session))
     setUsername(session)
-  }, [router])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount
+  }, [])
 
   const preview = useMemo(() => appearance, [appearance])
 
@@ -67,7 +69,7 @@ export function DreamStudio() {
       setBusy(false)
       return
     }
-    router.replace('/live')
+    replaceNavigation(router, '/live')
   }
 
   if (!username) return null

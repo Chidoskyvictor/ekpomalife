@@ -5,17 +5,23 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { NoToneMapping, Vector3 } from 'three'
 import { getPlace, getPlaceByZone } from '@/lib/game/places'
-import { MAP } from '@/lib/game/map-theme'
+import { mapPalette as MAP } from '@/lib/game/map-theme'
 import { FIRST_SLAB, LAND_CENTER, MAP_ZONES, WORLD } from '@/lib/game/world-layout'
 import { useGame } from '@/hooks/use-game'
 import { MapLoadOverlay, useMapLoadProgress } from './map-load-overlay'
 import { MapLoadReporter } from './map-load-reporter'
 import { PlayerAvatar } from './player-avatar'
 import { WorldGround } from './world-ground'
-import { WorldKenney } from './world-kenney'
 import { WorldRoads } from './world-roads'
+import { WorldScenery } from './world-scenery'
+import { WorldBase } from './world-base'
 import { WorldTrees } from './world-trees'
+import { ExtSlabHostels } from './ext-slab-hostels'
 import { WorldZones } from './world-zones'
+import { WorldZoneDebugPanel } from './world-zone-debug-panel'
+import { BillboardDebugPanel } from './billboard-debug-panel'
+import { ZoneStickerOverlay, ZoneStickerProjector, ZoneStickerProvider } from './world-zone-stickers'
+import { ZoneDebugProvider } from './zone-debug-context'
 
 const PITCH = (32 * Math.PI) / 180
 const HEADING = 0
@@ -29,6 +35,59 @@ const CAMERA_OFFSET = new Vector3(
   DISTANCE * Math.cos(PITCH),
   DISTANCE * Math.sin(PITCH) * Math.cos(HEADING),
 )
+
+/** Light rig per game period — afternoon is the original tuned daylight. */
+const SKY: Record<string, {
+  ambient: number
+  hemi: number
+  hemiSky: string
+  sun: number
+  sunColor: string
+  sunPos: [number, number, number]
+  fill: number
+  ground: string
+}> = {
+  morning: {
+    ambient: 0.5,
+    hemi: 0.95,
+    hemiSky: '#E4EEFF',
+    sun: 1.1,
+    sunColor: '#FFEBCC',
+    sunPos: [-60, 55, 30],
+    fill: 0.26,
+    ground: 'rgb(98, 172, 204)',
+  },
+  afternoon: {
+    ambient: 0.55,
+    hemi: 1,
+    hemiSky: '#FFFFFF',
+    sun: 1.2,
+    sunColor: '#FFFFFF',
+    sunPos: [40, 70, 22],
+    fill: 0.28,
+    ground: MAP.ground,
+  },
+  evening: {
+    ambient: 0.34,
+    hemi: 0.62,
+    hemiSky: '#FFD2B0',
+    sun: 0.95,
+    sunColor: '#FFB070',
+    sunPos: [75, 28, 18],
+    fill: 0.14,
+    ground: 'rgb(72, 128, 168)',
+  },
+  night: {
+    ambient: 0.18,
+    hemi: 0.34,
+    hemiSky: '#C9D7E8',
+    sun: 0.3,
+    sunColor: '#B8C9E0',
+    sunPos: [40, 70, 22],
+    fill: 0.08,
+    ground: '#2a4f66',
+  },
+}
 
 function mobileDprCap() {
   return Math.min(2, window.devicePixelRatio || 1)
@@ -124,19 +183,24 @@ export function WorldCanvas() {
     })
   }, [])
 
-  const ambient = night ? 0.18 : 0.55
-  const hemi = night ? (mobile ? 0.4 : 0.32) : mobile ? 1.15 : 1
-  const sun = night ? (mobile ? 0.38 : 0.3) : mobile ? 1.35 : 1.2
-  const fill = night ? 0.08 : 0.28
-  const water = night ? '#2a4f66' : MAP.water
+  const sky = SKY[state?.period ?? 'afternoon'] ?? SKY.afternoon
+  const ambient = sky.ambient
+  const hemi = sky.hemi * (mobile ? 1.15 : 1)
+  const sun = sky.sun * (mobile ? 1.12 : 1)
+  const fill = sky.fill
+  const ground = sky.ground
 
   return (
+    <ZoneDebugProvider>
+    <ZoneStickerProvider>
     <div
-      className="absolute inset-0"
-      style={{ background: water }}
+      className="absolute inset-0 isolate z-0"
+      style={{ background: ground }}
       aria-label="Interactive map of Ekpoma"
       role="application"
     >
+      <WorldZoneDebugPanel />
+      <BillboardDebugPanel />
       <MapLoadOverlay targetPercent={targetPercent} assetsDone={assetsDone} />
       <Canvas
         shadows={!mobile}
@@ -155,8 +219,8 @@ export function WorldCanvas() {
           far: 420,
         }}
         onCreated={({ gl }) => {
-          // Avoid a black clear-color flash before the water color attaches.
-          gl.setClearColor(water, 1)
+          // Avoid a black clear-color flash before the ground color attaches.
+          gl.setClearColor(ground, 1)
         }}
         onPointerMissed={() => select(null)}
       >
@@ -164,15 +228,16 @@ export function WorldCanvas() {
           <MobileDprMonitor onDecline={onMobileDprDecline} onIncline={onMobileDprIncline} />
         ) : null}
         <MapLoadReporter onProgress={onProgress} />
-        <color attach="background" args={[water]} />
+        <color attach="background" args={[ground]} />
+        <fog attach="fog" args={[ground, 230, 420]} />
         <ambientLight intensity={ambient} />
-        <hemisphereLight args={[night ? '#C9D7E8' : '#FFFFFF', MAP.land, hemi]} />
+        <hemisphereLight args={[sky.hemiSky, MAP.land, hemi]} />
         <directionalLight
-          position={[40, 70, 22]}
+          position={sky.sunPos}
           intensity={sun}
-          color={night ? '#B8C9E0' : '#FFFFFF'}
+          color={sky.sunColor}
           castShadow={!mobile}
-          shadow-mapSize={mobile ? [512, 512] : [2048, 2048]}
+          shadow-mapSize={mobile ? [512, 512] : [1024, 1024]}
           shadow-camera-left={-140}
           shadow-camera-right={140}
           shadow-camera-top={140}
@@ -181,12 +246,14 @@ export function WorldCanvas() {
           shadow-intensity={0.28}
         />
         <directionalLight position={[-28, 36, -18]} intensity={fill} color="#F2FBFF" />
+        <WorldBase color={ground} />
         <WorldGround />
         <WorldRoads />
         <WorldTrees mobile={mobile} />
+        <WorldScenery mobile={mobile} night={night} />
         <WorldZones />
         <Suspense fallback={null}>
-          <WorldKenney />
+          <ExtSlabHostels />
         </Suspense>
         <Suspense fallback={null}>
           {state ? <PlayerAvatar locationId={state.locationId} color={state.avatarColor} appearance={state.appearance} /> : null}
@@ -204,7 +271,11 @@ export function WorldCanvas() {
           target={[FIRST_SLAB.x, 0, FIRST_SLAB.z]}
         />
         <CameraRig focusId={selectedId} />
+        <ZoneStickerProjector />
       </Canvas>
+      <ZoneStickerOverlay />
     </div>
+    </ZoneStickerProvider>
+    </ZoneDebugProvider>
   )
 }

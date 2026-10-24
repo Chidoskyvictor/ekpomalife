@@ -1,4 +1,4 @@
-import type { FurnitureItem, LodgingId, RoomStyle, RoomTier } from './room-types'
+import type { ComfortBreakdown, FurnitureItem, LodgingId, RoomState, RoomStyle, RoomTier } from './room-types'
 
 export const ROOM_TIERS: Record<LodgingId, RoomTier> = {
   'hostel-poultry': {
@@ -42,6 +42,29 @@ export const ROOM_WALL_COLORS = [
 ] as const
 
 export const DEFAULT_ROOM_STYLE: RoomStyle = { wallColor: '#F2EDE4', floorId: 'cement' }
+
+const PLACEHOLDER_COMFORT: ComfortBreakdown = {
+  sleepQuality: 0,
+  happiness: 0,
+  study: 0,
+  hygiene: 0,
+  score: 0,
+  label: 'Bare',
+  sleepEnergyBonusPct: 0,
+  dailyFunBonus: 0,
+}
+
+/** Shown instantly on Home while `/room` loads — slab + shell only. */
+export function placeholderRoomState(): RoomState {
+  return {
+    ownerUsername: '',
+    tier: ROOM_TIERS['hostel-poultry'],
+    style: DEFAULT_ROOM_STYLE,
+    items: [],
+    comfort: PLACEHOLDER_COMFORT,
+    version: 0,
+  }
+}
 
 export const STARTER_ITEMS = ['mattress-floor'] // every player gets one free (no ledger row), placed at x=0,z=0,rot=0
 
@@ -154,7 +177,7 @@ export const FURNITURE_CATALOG: FurnitureItem[] = [
   },
   {
     id: 'small-gen',
-    name: 'I better pass my neighbour gen',
+    name: 'Better than my neighbour\'s generator',
     emoji: '⚡',
     category: 'power',
     price: 55000,

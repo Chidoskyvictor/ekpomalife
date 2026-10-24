@@ -76,6 +76,10 @@
   );
 }
 
+@utility app-wash {
+  background: var(--app-wash);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

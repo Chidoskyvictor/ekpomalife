@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, type ReactNode } from 'react'
+import { createContext, useContext, useMemo, type ReactNode } from 'react'
 import type { AuthUser } from '@/lib/auth/post-auth-redirect'
 
 type AuthGateContextValue = {
@@ -11,7 +11,8 @@ type AuthGateContextValue = {
 const AuthGateContext = createContext<AuthGateContextValue | null>(null)
 
 export function AuthGateProvider({ me, children }: { me: AuthUser | null; children: ReactNode }) {
-  return <AuthGateContext.Provider value={{ me }}>{children}</AuthGateContext.Provider>
+  const value = useMemo(() => ({ me }), [me?.setupComplete, me?.setupStep, me === null])
+  return <AuthGateContext.Provider value={value}>{children}</AuthGateContext.Provider>
 }
 
 export function useAuthGate() {

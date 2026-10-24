@@ -12,7 +12,8 @@ import {
   type AuthGateMode,
   type AuthUser,
 } from '@/lib/auth/post-auth-redirect'
-import { rememberProfile, setSession } from '@/lib/game/accounts'
+import { assignNavigation, pathsEqual, replaceNavigation } from '@/lib/navigation/safe-nav'
+import { getSession, rememberProfile, setSession } from '@/lib/game/accounts'
 import styles from '@/components/game-loader.module.css'
 
 /**
@@ -23,32 +24,47 @@ export function AuthGate({ mode, children }: { mode: AuthGateMode; children: Rea
   const router = useRouter()
   const pathname = usePathname()
   const instantPublic = mode === 'public'
-  const [ready, setReady] = useState(instantPublic)
+  // Home/setup gates must SSR the same shell as the first client paint (sessionStorage cache is client-only).
+  const [ready, setReady] = useState(() => instantPublic)
   const [me, setMe] = useState<AuthUser | null>(() =>
     instantPublic ? (peekAuthMeSession() ?? null) : null,
   )
 
   useEffect(() => {
     let cancelled = false
-    if (!instantPublic) setReady(false)
 
     void (async () => {
-      const session = await fetchAuthMe({ useSessionCache: instantPublic })
-      if (cancelled) return
+      try {
+        const localUsername = getSession()
+        const hasLocalSession = Boolean(localUsername && localUsername !== 'guest')
+        const session = await fetchAuthMe({
+          useSessionCache: instantPublic || peekAuthMeSession() !== undefined,
+          force: hasLocalSession && mode === 'home',
+        })
+        if (cancelled) return
 
-      const dest = resolveGate(mode, pathname, session)
-      if (dest && dest !== pathname) {
-        router.replace(dest)
-        return
+        const dest = resolveGate(mode, pathname, session)
+        if (dest && !pathsEqual(dest, pathname)) {
+          replaceNavigation(router, dest, pathname)
+          return
+        }
+        setMe(session)
+      } finally {
+        if (!cancelled && !instantPublic) setReady(true)
       }
-      setMe(session)
-      if (!instantPublic) setReady(true)
     })()
 
     return () => {
       cancelled = true
     }
-  }, [instantPublic, mode, pathname, router])
+    // `useRouter()` is not stable in dev — omit it or AuthGate re-probes /auth/me every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- router.replace is stable enough to call
+  }, [instantPublic, mode, pathname])
+
+  // Public auth pages must SSR the same shell as the client (no loading gate → no hydration remount loop).
+  if (instantPublic) {
+    return <AuthGateProvider me={me}>{children}</AuthGateProvider>
+  }
 
   if (!ready) {
     return (
@@ -68,5 +84,5 @@ export async function redirectAfterAuth(account: { name: string; username: strin
   rememberProfile(account)
   setSession(account.username)
   const me = await fetchAuthMe({ force: true })
-  window.location.assign(getPostAuthRoute(me))
+  assignNavigation(getPostAuthRoute(me))
 }

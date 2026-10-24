@@ -44,6 +44,23 @@
   margin-bottom: 8px;
 }
 
+.headerWithLeading {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+}
+
+.leading {
+  flex: none;
+}
+
+.headerText {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .title {
   margin: 0;
   font-size: 15px;
@@ -62,6 +79,14 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
+}
+
+/* Tall sheets (profile) sit as a centred card on wider screens instead of spanning the window */
+@media (min-width: 768px) {
+  .contentTall {
+    width: min(560px, calc(100vw - 48px));
+    margin-inline: auto;
+  }
 }
 
 @media (max-width: 639px) {

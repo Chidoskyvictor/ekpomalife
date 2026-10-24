@@ -1,13 +1,11 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
-import { BuildingPanel } from '@/components/buildings/building-panel'
 import { BuySheet } from '@/components/hud/buy-sheet'
 import { ChangeDreamDialog } from '@/components/hud/change-dream-dialog'
 import { DreamCelebration } from '@/components/hud/dream-celebration'
 import { EventDialog } from '@/components/hud/event-dialog'
-import { LocationSheet } from '@/components/hud/location-sheet'
 import { MeCard } from '@/components/hud/me-card'
 import { PhoneDialog } from '@/components/hud/phone-dialog'
 import { PlayNav, type PlayTab } from '@/components/hud/play-nav'
@@ -19,15 +17,17 @@ import { TopBar } from '@/components/hud/top-bar'
 import { WelcomeCard } from '@/components/hud/welcome-card'
 import { useGame } from '@/hooks/use-game'
 import { useLowPerf } from '@/hooks/use-low-perf'
-import { usePhone } from '@/hooks/use-phone'
 import { takeNavIntent } from '@/lib/game/nav-intent'
 import { playerHasPhone } from '@/lib/game/phone-config'
-import { BATTERY } from '@/lib/game/phone'
+import { pushNavigation } from '@/lib/navigation/safe-nav'
 import { cn } from '@/lib/utils'
 import styles from './life-hud.module.css'
+import { HostelFinder } from '@/components/hostel/hostel-finder'
+import { AdViewer } from './ad-viewer'
+import { useChatUnread } from '@/hooks/use-chat-unread'
 
 export function Hud() {
-  const { isGuest, state, booting, bootError, retryBoot, selectedId, select, toast, logOut } =
+  const { isGuest, state, booting, bootError, retryBoot, select, toast, logOut } =
     useGame()
   const guest = isGuest
   const lowPerf = useLowPerf()
@@ -38,19 +38,27 @@ export function Hud() {
   const [dreamOpen, setDreamOpen] = useState(false)
   const [tab, setTab] = useState<PlayTab>('map')
   const router = useRouter()
+  const pathname = usePathname()
   const hasPhone = playerHasPhone(state?.hasPhone)
-  const phone = usePhone(!guest && Boolean(state) && hasPhone, { poll: phoneOpen })
+  // Hostel chat unread counts toward the phone badge too
+  const chatUnread = useChatUnread(!guest && Boolean(state))
   const unread = useMemo(() => {
     if (!hasPhone) return 0
-    return Math.min(9, state?.feed.filter((entry) => entry.day === state.day).length ?? 0)
-  }, [hasPhone, state])
-  const batteryLow = Boolean(hasPhone && phone.battery != null && phone.battery <= BATTERY.low)
+    const feed = state?.feed.filter((entry) => entry.day === state.day).length ?? 0
+    return Math.min(9, feed + chatUnread)
+  }, [hasPhone, state, chatUnread])
+
+  useEffect(() => {
+    if (pathname?.startsWith('/room')) {
+      setTab('home')
+    }
+  }, [pathname])
 
   useEffect(() => {
     const intent = takeNavIntent()
     if (!intent || guest || !state) return
     if (intent === 'home') {
-      router.push('/room')
+      pushNavigation(router, '/room')
       return
     }
     if (intent === 'map') {
@@ -78,12 +86,21 @@ export function Hud() {
   }
 
   const onTab = (next: PlayTab) => {
-    if (!state) return
     setTab(next)
     if (next === 'home') {
-      router.push('/room')
+      setBuyOpen(false)
+      setPhoneOpen(false)
+      pushNavigation(router, '/room', pathname)
       return
     }
+    if (next === 'map') {
+      setBuyOpen(false)
+      setPhoneOpen(false)
+      if (state) select(null)
+      pushNavigation(router, '/', pathname)
+      return
+    }
+    if (!state) return
     if (next === 'buy') {
       setBuyOpen(true)
       setPhoneOpen(false)
@@ -93,28 +110,25 @@ export function Hud() {
       select(null)
       setBuyOpen(false)
       setPhoneOpen(true)
-      return
-    }
-    if (next === 'map') {
-      setBuyOpen(false)
-      setPhoneOpen(false)
-      select(null)
     }
   }
 
   const cashLoading = booting
 
-  if (guest || !state) {
+  if (guest) {
     return (
       <div className={cn(styles.root, lowPerf && styles.lowPerf)}>
         <div className={`${styles.safe} absolute inset-x-0 top-0`}>
-          <TopBar />
+          <div className={styles.topWrap}>
+            <TopBar />
+          </div>
         </div>
         <div className={styles.bottomDock}>
-          {selectedId ? <LocationSheet /> : <WelcomeCard />}
+          <WelcomeCard />
         </div>
         <DreamCelebration />
         <EventDialog />
+        <AdViewer />
       </div>
     )
   }
@@ -133,21 +147,25 @@ export function Hud() {
             onRetry={bootError ? retryBoot : undefined}
           />
         </div>
+        {/* Home (My Room): find / join your real hostel */}
+        {state && pathname?.startsWith('/room') ? (
+          <div className={styles.topWrap}>
+            <HostelFinder />
+          </div>
+        ) : null}
       </div>
 
       <ToastLayer toast={toast} state={state} />
 
-      <MeCard state={state} onOpen={() => setProfileOpen(true)} />
+      {state ? <MeCard state={state} onOpen={() => setProfileOpen(true)} /> : null}
 
       <div className={styles.bottomDock}>
-        {selectedId ? <LocationSheet /> : null}
         <div className={styles.bottomRow}>
           <div className={styles.navSlot}>
             <PlayNav
               value={tab}
               onValueChange={onTab}
               badges={{ phone: unread }}
-              phoneBatteryLow={batteryLow}
             />
           </div>
         </div>
@@ -168,20 +186,22 @@ export function Hud() {
         }}
       />
       <SettingsSheet open={settingsOpen} onOpenChange={setSettingsOpen} onLogOut={logOut} />
-      <ProfileSheet
-        open={profileOpen}
-        onOpenChange={setProfileOpen}
-        state={state}
-        onChangeDream={() => setDreamOpen(true)}
-        onOpenSettings={() => {
-          setProfileOpen(false)
-          setSettingsOpen(true)
-        }}
-      />
+      {state ? (
+        <ProfileSheet
+          open={profileOpen}
+          onOpenChange={setProfileOpen}
+          state={state}
+          onChangeDream={() => setDreamOpen(true)}
+          onOpenSettings={() => {
+            setProfileOpen(false)
+            setSettingsOpen(true)
+          }}
+        />
+      ) : null}
       <ChangeDreamDialog open={dreamOpen} onOpenChange={setDreamOpen} />
       <DreamCelebration />
       <EventDialog />
-      {selectedId ? <BuildingPanel /> : null}
+      <AdViewer />
     </div>
   )
 }

@@ -40,6 +40,7 @@ export type PhoneAppId =
   | 'ride'
   | 'map'
   | 'calendar'
+  | 'profile'
   | 'portal'
   | 'music'
   | 'games'
@@ -60,6 +61,12 @@ export type RideMode = 'keke' | 'okada'
 export const RIDE_BASE = { keke: 150, okada: 250 } as const
 export const RIDE_PER_HOP = { keke: 50, okada: 80 } as const
 export const RIDE_MINUTES = { keke: 20, okada: 10 } as const
+
+/**
+ * Battery is switched off for now: the phone always reads 100%, apps never drain it and nothing
+ * is blocked. The drain/charge code below stays so it can be turned back on.
+ */
+export const BATTERY_ENABLED = false
 
 export const BATTERY = {
   drainPerAppOpen: 1,
@@ -94,6 +101,7 @@ export const PHONE_APP_IDS = [
   'ride',
   'map',
   'calendar',
+  'profile',
   'portal',
   'music',
   'games',
@@ -192,8 +200,8 @@ export function toPhoneState(row: {
   new_apps: string[] | null
 }): PhoneState {
   return {
-    battery: Math.max(0, Math.min(100, Math.floor(row.battery))),
-    charging: !!row.charging,
+    battery: BATTERY_ENABLED ? Math.max(0, Math.min(100, Math.floor(row.battery))) : 100,
+    charging: BATTERY_ENABLED && !!row.charging,
     dataMb: Math.max(0, Math.floor(row.data_mb)),
     wallpaper: parseWallpaper(row.wallpaper),
     unread: parseUnread(row.unread),
@@ -396,7 +404,7 @@ async function tickAndLoad(
 const PROMOS: PhonePromo[] = [
   {
     id: 'promo-jobs',
-    title: 'Shift dey available',
+    title: 'Shift available',
     subtitle: 'Campus Shop POS — quick naira',
     cta: 'Open Jobs',
     emoji: '💼',
@@ -409,14 +417,6 @@ const PROMOS: PhonePromo[] = [
     cta: 'Open Ride',
     emoji: '🛺',
     action: { type: 'app', appId: 'ride' },
-  },
-  {
-    id: 'promo-market',
-    title: 'Ekpoma Market',
-    subtitle: 'Fresh stock for hostel life',
-    cta: 'Go Market',
-    emoji: '🛒',
-    action: { type: 'place', placeId: 'market' },
   },
 ]
 
@@ -588,7 +588,7 @@ export async function charge(userId: string, action: 'start' | 'stop') {
         phone: toPhoneState(saved),
         message: boost
           ? 'Charging with your lamp/gen — double speed.'
-          : 'Phone dey charge. Light na part of rent.',
+          : 'Phone is charging. Power is included in your rent.',
       }
     }
 
@@ -623,7 +623,7 @@ export async function openApp(userId: string, appId: PhoneAppId) {
       return { ...fail(NO_PHONE, 403) }
     }
     const { row, phone } = await tickAndLoad(client, gate.character, gate.traits)
-    if (phone.battery <= 0) {
+    if (BATTERY_ENABLED && phone.battery <= 0) {
       await client.query('ROLLBACK')
       return fail(BATTERY_DEAD)
     }
@@ -631,7 +631,7 @@ export async function openApp(userId: string, appId: PhoneAppId) {
     const dataCost = DATA_COST_MB[appId] ?? 0
     const offline = dataCost > 0 && phone.data_mb < dataCost
     const nextData = offline ? phone.data_mb : Math.max(0, phone.data_mb - dataCost)
-    const nextBattery = Math.max(0, phone.battery - BATTERY.drainPerAppOpen)
+    const nextBattery = BATTERY_ENABLED ? Math.max(0, phone.battery - BATTERY.drainPerAppOpen) : 100
     const unread = { ...parseUnread(phone.unread) }
     delete unread[appId]
     const newApps = parseNewApps(phone.new_apps).filter((id) => id !== appId)
@@ -725,7 +725,7 @@ export async function listNotifications(userId: string) {
           title: 'Rent soon',
           body:
             daysLeft <= 0
-              ? `${rent.label} dey wait for ₦${rent.amount.toLocaleString()}.`
+              ? `${rent.label} is waiting for ₦${rent.amount.toLocaleString()}.`
               : `Rent due in ${daysLeft} day${daysLeft === 1 ? '' : 's'} — ₦${rent.amount.toLocaleString()}.`,
           createdAt: new Date().toISOString(),
         })
@@ -747,7 +747,7 @@ export async function listNotifications(userId: string) {
         id: `job-${job.id}`,
         appId: 'jobs',
         title: 'Job open',
-        body: `${job.title} dey available. Apply sharp.`,
+        body: `${job.title} is available. Apply quickly.`,
         createdAt: new Date().toISOString(),
       })
     }

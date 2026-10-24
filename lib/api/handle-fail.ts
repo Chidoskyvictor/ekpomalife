@@ -1,6 +1,7 @@
 import { fetchAuthMe } from '@/lib/auth/fetch-auth-me'
 import { getPostAuthRoute } from '@/lib/auth/post-auth-redirect'
 import { clearSession } from '@/lib/game/accounts'
+import { pathsEqual } from '@/lib/navigation/safe-nav'
 import { asApiErrorCode, friendlyApiMessage, type ApiFail } from './errors'
 
 type Handlers = {
@@ -24,15 +25,12 @@ export async function handleApiFail(fail: ApiFail, handlers: Handlers): Promise<
 
   if (code === 'UNAUTHORIZED' || fail.status === 401) {
     if (typeof window !== 'undefined') {
-      clearSession()
-      void fetchAuthMe().then((me) => {
-        if (!me) {
-          // No server session — show guest map on home instead of forcing login.
-          if (window.location.pathname === '/' || window.location.pathname === '') {
-            window.location.assign('/')
-            return
-          }
-        }
+      void fetchAuthMe({ force: true }).then((me) => {
+        if (me) return
+        clearSession()
+        // Signed out on home: guest map renders already. Never reload '/' (that looped forever).
+        const path = window.location.pathname
+        if (path === '/' || path === '' || path === '/login') return
         window.location.assign('/login')
       })
     }
@@ -42,7 +40,8 @@ export async function handleApiFail(fail: ApiFail, handlers: Handlers): Promise<
   if (code === 'SETUP_INCOMPLETE') {
     if (typeof window !== 'undefined') {
       const me = await fetchAuthMe()
-      window.location.assign(getPostAuthRoute(me))
+      const dest = getPostAuthRoute(me)
+      if (!pathsEqual(dest, window.location.pathname)) window.location.assign(dest)
     }
     return true
   }

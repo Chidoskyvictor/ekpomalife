@@ -76,13 +76,16 @@ export function EconomyProvider({ children }: { children: ReactNode }) {
   const [networkDown, setNetworkDown] = useState(false)
   const inflight = useRef(0)
 
-  const onFail = useCallback(
-    async (fail: Parameters<typeof handleApiFail>[0]) => {
-      if (fail.network) setNetworkDown(true)
-      await handleApiFail(fail, { toast: notifyToast, refreshServer })
-    },
-    [notifyToast, refreshServer],
-  )
+  // Read the latest game handlers through a ref so onFail (and every load* built on it) keeps one
+  // identity — otherwise each game-state change re-ran the mount effect and refetched rent/inventory.
+  const handlersRef = useRef({ notifyToast, refreshServer })
+  handlersRef.current = { notifyToast, refreshServer }
+
+  const onFail = useCallback(async (fail: Parameters<typeof handleApiFail>[0]) => {
+    if (fail.network) setNetworkDown(true)
+    const { notifyToast: toast, refreshServer: refresh } = handlersRef.current
+    await handleApiFail(fail, { toast, refreshServer: refresh })
+  }, [])
 
   const withBusy = useCallback(async <T,>(fn: () => Promise<T>): Promise<T | null> => {
     if (inflight.current > 0) return null

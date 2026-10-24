@@ -5,27 +5,17 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { Plus, Volume2, VolumeX } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { TextShimmer } from '@/components/arc/text-shimmer/text-shimmer'
-import { usePlayerStats } from '@/hooks/use-player-stats'
 import {
   calendarForDay,
-  compactCount,
   moodFromNeeds,
   PERIOD_CLOCK,
 } from '@/lib/game/needs'
 import { isNepaOutage } from '@/lib/game/quests'
 import type { GameState } from '@/lib/game/types'
 import styles from './life-hud.module.css'
+import { SiteStats } from './site-stats'
 
 const spring = { type: 'spring' as const, stiffness: 400, damping: 32 }
-
-function PlayersSummary({ players }: { players: number }) {
-  return (
-    <>
-      <strong>{compactCount(players)}</strong>
-      <span className={styles.statusMuted}>players</span>
-    </>
-  )
-}
 
 export function StatusBar({
   state,
@@ -40,7 +30,6 @@ export function StatusBar({
   onShop: () => void
   onRetry?: () => void
 }) {
-  const { players } = usePlayerStats()
   const reduced = useReducedMotion() ?? false
   const [muted, setMuted] = useState(false)
   const prev = useRef(state?.cash ?? 0)
@@ -114,7 +103,7 @@ export function StatusBar({
           </strong>
           {nepa ? (
             <span className={styles.nepaChip}>
-              <span aria-hidden="true">⚡</span> NEPA don take light
+              <span aria-hidden="true">⚡</span> Power cut
             </span>
           ) : null}
         </span>
@@ -128,17 +117,7 @@ export function StatusBar({
           {mood ? mood.label : '—'}
         </span>
 
-        {players != null ? (
-          <>
-            <span className={`${styles.statusDivider} ${styles.deskOnly}`} aria-hidden="true" />
-            <span
-              className={`${styles.statusItem} ${styles.statusPlayers}`}
-              aria-label={`${players} players on campus`}
-            >
-              <PlayersSummary players={players} />
-            </span>
-          </>
-        ) : null}
+        <SiteStats variant="inline" />
 
         <div className={styles.statusRight}>
           <button
@@ -197,11 +176,7 @@ export function StatusBar({
         </div>
       </header>
 
-      {players != null ? (
-        <div className={styles.playersDock} aria-label={`${players} players on campus`}>
-          <PlayersSummary players={players} />
-        </div>
-      ) : null}
+      <SiteStats variant="dock" />
     </div>
   )
 }

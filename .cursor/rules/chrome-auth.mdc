@@ -1,0 +1,10 @@
+---
+description: Use Chrome for OAuth and browser-based CLI logins
+alwaysApply: true
+---
+
+For `neon login`, `wrangler login`, Render OAuth, and similar flows:
+
+- Set `BROWSER` to `C:\Program Files\Google\Chrome\Application\chrome.exe` (WSL: `/mnt/c/Program Files/Google/Chrome/Application/chrome.exe`).
+- If the CLI prints an auth URL but no browser opens, launch Chrome with that URL via `Start-Process`.
+- Do not rely on the system default browser unless the user asks otherwise.

@@ -46,7 +46,7 @@ export const LOCATIONS: LocationRecord[] = [
     position: [31.32, -63.2],
     size: [7.4, 1.9, 6.4],
     actions: ['study', 'socialize', 'errand'],
-    npc: { name: 'Chuks', role: 'Student', line: 'Guy, you get ₦200? I go pay you back Friday.' },
+    npc: { name: 'Chuks', role: 'Student', line: 'Hey, do you have ₦200? I will pay you back Friday.' },
   },
   {
     id: 'aau_library',
@@ -97,18 +97,18 @@ export const LOCATIONS: LocationRecord[] = [
     position: [26, -49.14],
     size: [3.6, 2, 3],
     actions: ['buy_snack', 'pos_shift'],
-    npc: { name: 'Mr. Osas', role: 'Shop owner', line: 'Snacks and small things — no dulling.' },
+    npc: { name: 'Mr. Osas', role: 'Shop owner', line: 'Snacks and small things — come quickly.' },
   },
   {
     id: 'keke_park',
     name: 'Keke Park',
     type: 'transport',
     emoji: '🛺',
-    description: 'Keke and bike park. Faster than walking, but the fare dey change.',
+    description: 'Keke and bike park. Faster than walking, but the fare keeps changing.',
     position: [6.48, -10.4],
     size: [5, 0.4, 4],
     actions: [],
-    npc: { name: 'Ife', role: 'Keke rider', line: 'Where you dey go? Enter make we move!' },
+    npc: { name: 'Ife', role: 'Keke rider', line: 'Where are you going? Hop in, let us move!' },
   },
   {
     id: 'roadside_bukka',
@@ -119,7 +119,7 @@ export const LOCATIONS: LocationRecord[] = [
     position: [-22, -14.86],
     size: [3.6, 1.8, 3],
     actions: ['eat', 'socialize'],
-    npc: { name: 'Amina', role: 'Food vendor', line: 'My pepper no be for small pikin o!' },
+    npc: { name: 'Amina', role: 'Food vendor', line: 'My pepper is not for the faint-hearted!' },
   },
   {
     id: 'viewing_centre',
@@ -130,16 +130,6 @@ export const LOCATIONS: LocationRecord[] = [
     position: [-20, -72],
     size: [4.4, 2.2, 3.4],
     actions: ['watch_match', 'socialize'],
-  },
-  {
-    id: 'ekpoma_market',
-    name: 'Ekpoma Market',
-    type: 'shop',
-    emoji: '🧺',
-    description: 'Foodstuff, provisions and haggling at full volume.',
-    position: [-32.4, -10.4],
-    size: [7, 1.4, 5],
-    actions: ['market_run', 'socialize'],
   },
   {
     id: 'innovation_hub',
@@ -205,7 +195,7 @@ export const EVENTS: GameEvent[] = [
   },
   {
     id: 'nepa_took_light',
-    title: 'NEPA don take light',
+    title: 'Power cut',
     description: 'Darkness everywhere. Your neighbour is offering to share his generator for a fee.',
     choices: [
       { label: 'Contribute ₦300 for fuel', effects: { cash: -300, energy: 5, reputation: 2 }, outcome: 'Generator roaring. You charged your phone.' },
@@ -215,7 +205,7 @@ export const EVENTS: GameEvent[] = [
   {
     id: 'chuks_borrow',
     title: 'Chuks needs money',
-    description: '"Bros abeg, ₦500. I go pay you back Friday, I swear."',
+    description: '"Please, can I borrow ₦500? I will pay you back Friday, I promise."',
     choices: [
       { label: 'Give him ₦500', effects: { cash: -500, reputation: 4 }, outcome: 'Chuks is telling everyone you are a real one.' },
       { label: 'I no get', effects: { reputation: -2 }, outcome: 'Chuks hissed and walked away.' },
@@ -232,7 +222,7 @@ export const EVENTS: GameEvent[] = [
   },
   {
     id: 'rain_fall',
-    title: 'Rain don fall',
+    title: 'Heavy rain',
     description: 'Heavy downpour on the laterite road. Everywhere is red mud.',
     choices: [
       { label: 'Buy umbrella ₦400', effects: { cash: -400 }, outcome: 'Dry and stylish.' },
@@ -244,7 +234,7 @@ export const EVENTS: GameEvent[] = [
     title: 'Lucky find',
     description: 'You spot a ₦1,000 note on the ground near the junction.',
     choices: [
-      { label: 'Pocket it', effects: { cash: 1000 }, outcome: 'Today na your day.' },
+      { label: 'Pocket it', effects: { cash: 1000 }, outcome: 'Today is your lucky day.' },
       { label: 'Ask around for the owner', effects: { reputation: 5 }, outcome: 'An old woman blessed you for returning it.' },
     ],
   },

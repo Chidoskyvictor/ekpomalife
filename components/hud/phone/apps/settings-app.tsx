@@ -3,9 +3,7 @@
 import NumberFlow from '@number-flow/react'
 import { useRef, useState } from 'react'
 import {
-  BATTERY,
   DATA_BUNDLES,
-  HOSTEL_PLACE_IDS,
   WALLPAPERS,
   type DataBundleId,
   type PhoneState,
@@ -31,7 +29,6 @@ export function SettingsApp({
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
   const pendingKey = useRef<string | null>(null)
-  const atHostel = !!placeId && (HOSTEL_PLACE_IDS as readonly string[]).includes(placeId)
 
   return (
     <div>
@@ -91,50 +88,6 @@ export function SettingsApp({
         Cash <NumberFlow value={cash} prefix="₦" format={{ maximumFractionDigits: 0 }} />
       </p>
 
-      <h3 className={styles.sectionTitle}>Battery</h3>
-      <div className={styles.listItem}>
-        <div>
-          <p className={styles.promoTitle} style={{ color: '#111', margin: 0 }}>
-            {phone.battery}%{phone.charging ? ' · charging' : ''}
-            {phone.battery <= BATTERY.lowAt ? ' · low' : ''}
-          </p>
-          <p className={styles.listMeta}>
-            Charge at hostel. Rechargeable lamp or gen = faster when NEPA take light.
-          </p>
-        </div>
-        {phone.charging ? (
-          <button
-            type="button"
-            className={`${styles.smallPill} ${styles.smallPillGhost}`}
-            disabled={busy}
-            onClick={() => {
-              void (async () => {
-                setBusy(true)
-                await onCharge('stop')
-                setBusy(false)
-              })()
-            }}
-          >
-            Stop
-          </button>
-        ) : (
-          <button
-            type="button"
-            className={styles.smallPill}
-            disabled={busy || !atHostel}
-            title={atHostel ? undefined : 'Charge for hostel'}
-            onClick={() => {
-              void (async () => {
-                setBusy(true)
-                await onCharge('start')
-                setBusy(false)
-              })()
-            }}
-          >
-            Charge
-          </button>
-        )}
-      </div>
       {msg ? <p className={styles.listMeta}>{msg}</p> : null}
     </div>
   )

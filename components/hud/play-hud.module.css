@@ -58,6 +58,7 @@
   margin-inline: auto;
   flex-direction: column;
   align-items: center;
+  padding-inline: 4px;
 }
 
 .nav [data-overflow] {

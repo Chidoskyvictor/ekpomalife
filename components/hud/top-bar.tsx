@@ -1,9 +1,9 @@
 'use client'
 
 import { AuthLinks } from '@/components/hud/auth-links'
-import { usePlayerStats } from '@/hooks/use-player-stats'
-import guestStyles from './guest-bar.module.css'
+import hudStyles from './life-hud.module.css'
 import logoStyles from './logo.module.css'
+import { SiteStats } from './site-stats'
 
 export function Logo() {
   return (
@@ -16,23 +16,20 @@ export function Logo() {
   )
 }
 
+/** Guest top bar — same pill as the in-game status bar, solid instead of glass. */
 export function TopBar() {
-  const { players } = usePlayerStats()
-
   return (
-    <header className={guestStyles.bar}>
-      <div className={guestStyles.meta}>
-        <Logo />
-        {players != null ? (
-          <span className={guestStyles.stats}>
-            <span className={guestStyles.live} aria-hidden="true" />
-            {players.toLocaleString()} players on campus
-          </span>
-        ) : null}
-      </div>
-      <div className={guestStyles.actions}>
-        <AuthLinks signupFirst variant="lobby" />
-      </div>
-    </header>
+    <div className={hudStyles.statusStack}>
+      <header className={`${hudStyles.statusBar} ${hudStyles.statusSolid}`} aria-label="Ekpoma Life">
+        <span className={hudStyles.statusItem}>
+          <Logo />
+        </span>
+        <SiteStats variant="inline" />
+        <div className={hudStyles.statusRight}>
+          <AuthLinks signupFirst variant="lobby" />
+        </div>
+      </header>
+      <SiteStats variant="dock" />
+    </div>
   )
 }

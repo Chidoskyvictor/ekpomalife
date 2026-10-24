@@ -16,12 +16,12 @@ export { SETUP_INCOMPLETE } from './setup-status.js'
 export const PHONE_ERROR_COPY: Record<string, string> = {
   INSUFFICIENT_FUNDS: 'Not enough cash for this one — a shift at work go sort am',
   NO_PHONE: 'Buy a phone at Campus Shop first.',
-  BAD_BUNDLE: 'That data bundle no dey.',
+  BAD_BUNDLE: 'That data bundle does not exist.',
   NOT_AT_HOSTEL: 'You fit only charge for hostel.',
-  BATTERY_DEAD: 'Phone don die. Charge am for hostel.',
-  SAME_PLACE: 'You dey here already.',
-  BAD_PLACE: 'That place no dey on the map.',
-  CLOSED: 'Keke don close for today. Waka or wait till morning.',
+  BATTERY_DEAD: 'Your phone is dead. Charge it at your hostel.',
+  SAME_PLACE: 'You are already here.',
+  BAD_PLACE: 'That place is not on the map.',
+  CLOSED: 'Kekes have closed for today. Walk or wait till morning.',
 }
 
 import type { RoomErrorCode } from './room-types.js'
@@ -31,7 +31,7 @@ export const ROOM_ERROR_COPY: Partial<Record<RoomErrorCode, string>> & Record<st
   INSUFFICIENT_FUNDS: "Small shortfall — a couple of shifts and it's yours.",
   TIER_LOCKED: 'This one needs a bigger room. Upgrade your lodge to unlock it.',
   OVERLAP: "Something's already there. Try another spot.",
-  OUT_OF_BOUNDS: "That's past the wall, my guy.",
+  OUT_OF_BOUNDS: "That's past the wall.",
   TOO_MANY: 'Your room is full of that one already.',
   VERSION_CONFLICT: 'Your room changed on another device. We loaded the latest.',
   UNKNOWN_ITEM: 'That furniture is gone.',

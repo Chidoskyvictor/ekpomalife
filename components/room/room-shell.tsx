@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react'
 import type { RoomStyle } from '@/lib/game/room-types'
+import { RoomHomeSlab } from './room-home-slab'
 
 const FLOOR_COLORS: Record<RoomStyle['floorId'], string> = {
   cement: '#b8b3a8',
@@ -17,16 +18,22 @@ export function RoomShell({
   period,
   hasGen,
   showGrid,
+  foundationOnly = true,
 }: {
   grid: { w: number; d: number }
   style: RoomStyle
   period?: string
   hasGen: boolean
   showGrid?: boolean
+  /** Round cement slab only — no room box or furniture yet. */
+  foundationOnly?: boolean
 }) {
   const evening = period === 'evening' || period === 'night'
   const dim = evening && !hasGen
   const floorColor = FLOOR_COLORS[style.floorId]
+  const slabRadius = Math.max(grid.w, grid.d) * 0.72
+  const cx = grid.w / 2
+  const cz = grid.d / 2
   const lines = useMemo(() => {
     if (!showGrid) return null
     const segs: [number, number, number, number][] = []
@@ -37,7 +44,8 @@ export function RoomShell({
 
   return (
     <group>
-      <ambientLight intensity={dim ? 0.25 : evening ? 0.45 : 0.7} />
+      <ambientLight intensity={dim ? 0.35 : evening ? 0.55 : 0.85} />
+      <hemisphereLight args={['#ffffff', '#b8b3a8', foundationOnly ? 0.65 : 0.35]} />
       <directionalLight
         position={[6, 10, 4]}
         intensity={dim ? 0.2 : evening ? 0.55 : 1.05}
@@ -47,31 +55,30 @@ export function RoomShell({
         <pointLight position={[grid.w * 0.5, 1.6, 1.2]} intensity={hasGen ? 0.9 : 0.25} color="#ffcc88" />
       ) : null}
 
-      {/* Floor */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[grid.w / 2, 0, grid.d / 2]} receiveShadow>
-        <planeGeometry args={[grid.w, grid.d]} />
-        <meshStandardMaterial color={floorColor} />
-      </mesh>
+      {foundationOnly ? (
+        <RoomHomeSlab radius={slabRadius} cx={cx} cz={cz} />
+      ) : (
+        <>
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[grid.w / 2, 0, grid.d / 2]} receiveShadow>
+            <planeGeometry args={[grid.w, grid.d]} />
+            <meshStandardMaterial color={floorColor} />
+          </mesh>
+          <mesh position={[grid.w / 2, 1.4, 0]}>
+            <boxGeometry args={[grid.w, 2.8, 0.08]} />
+            <meshStandardMaterial color={style.wallColor} />
+          </mesh>
+          <mesh position={[0, 1.4, grid.d / 2]}>
+            <boxGeometry args={[0.08, 2.8, grid.d]} />
+            <meshStandardMaterial color={style.wallColor} />
+          </mesh>
+          <mesh position={[grid.w * 0.65, 1.55, 0.05]}>
+            <planeGeometry args={[1.2, 0.9]} />
+            <meshStandardMaterial color="#9ec9ef" emissive="#7eb6e8" emissiveIntensity={evening ? 0.05 : 0.25} />
+          </mesh>
+        </>
+      )}
 
-      {/* Back wall (z = 0) */}
-      <mesh position={[grid.w / 2, 1.4, 0]}>
-        <boxGeometry args={[grid.w, 2.8, 0.08]} />
-        <meshStandardMaterial color={style.wallColor} />
-      </mesh>
-
-      {/* Left wall */}
-      <mesh position={[0, 1.4, grid.d / 2]}>
-        <boxGeometry args={[0.08, 2.8, grid.d]} />
-        <meshStandardMaterial color={style.wallColor} />
-      </mesh>
-
-      {/* Window on back wall */}
-      <mesh position={[grid.w * 0.65, 1.55, 0.05]}>
-        <planeGeometry args={[1.2, 0.9]} />
-        <meshStandardMaterial color="#9ec9ef" emissive="#7eb6e8" emissiveIntensity={evening ? 0.05 : 0.25} />
-      </mesh>
-
-      {showGrid && lines
+      {!foundationOnly && showGrid && lines
         ? lines.map(([x1, z1, x2, z2], i) => {
             const midX = (x1 + x2) / 2
             const midZ = (z1 + z2) / 2

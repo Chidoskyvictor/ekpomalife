@@ -1,17 +1,23 @@
 'use client'
 
 import { useGLTF } from '@react-three/drei'
-import { Suspense, use, useEffect, useLayoutEffect, useMemo, useRef, type ReactNode } from 'react'
+import { useFrame } from '@react-three/fiber'
+import { Suspense, use, useEffect, useLayoutEffect, useMemo, useRef, type ReactNode, type RefObject } from 'react'
 import {
+  AnimationMixer,
   Box3,
   Bone,
   Group,
+  Matrix4,
   Mesh,
   MeshStandardMaterial,
   SkinnedMesh,
   Vector3,
+  type AnimationAction,
+  type AnimationClip,
   type Object3D,
 } from 'three'
+import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js'
 import { HAIR_CONFIG, hairFitFor, type HairFit } from '@/lib/game/hair-config'
 import { meshoptDecoder } from '@/lib/game/meshopt'
 import {
@@ -491,10 +497,13 @@ function freezeSkinnedMeshes(root: Object3D) {
 
 function HeadSocket({
   bone,
+  boneOffset,
   center,
   children,
 }: {
   bone: Object3D | null
+  /** Head centre in the bone's rest-pose space, so tuned hair stays put and then follows the bone. */
+  boneOffset: Matrix4 | null
   center: [number, number, number]
   children: ReactNode
 }) {
@@ -503,13 +512,17 @@ function HeadSocket({
     const node = group.current
     if (!node || !bone) return
     bone.add(node)
-    node.position.set(0, 0, 0)
-    node.rotation.set(0, 0, 0)
-    node.scale.set(1, 1, 1)
+    if (boneOffset) {
+      boneOffset.decompose(node.position, node.quaternion, node.scale)
+    } else {
+      node.position.set(0, 0, 0)
+      node.rotation.set(0, 0, 0)
+      node.scale.set(1, 1, 1)
+    }
     return () => {
       bone.remove(node)
     }
-  }, [bone])
+  }, [bone, boneOffset])
 
   if (bone) return <group ref={group}>{children}</group>
   return (
@@ -571,20 +584,67 @@ function FittedHair({
   )
 }
 
+/** Clips baked into the rigged body GLBs (see blender/rig.py). */
+export type FigurePose = 'idle' | 'walk' | 'sit' | 'bath'
+
+/**
+ * Plays the model's clips: `pose.current` picks one; otherwise "walk" while
+ * `moving.current` is true, else "idle". Changes cross-fade.
+ */
+function useFigureClips(
+  root: Object3D,
+  clips: AnimationClip[],
+  moving?: RefObject<boolean>,
+  pose?: RefObject<FigurePose | null>,
+) {
+  const state = useRef<{ mixer: AnimationMixer; actions: Map<string, AnimationAction>; current: string } | null>(null)
+
+  useEffect(() => {
+    if (clips.length === 0) return
+    const mixer = new AnimationMixer(root)
+    const actions = new Map(clips.map((clip) => [clip.name.toLowerCase(), mixer.clipAction(clip)]))
+    actions.get('idle')?.play()
+    state.current = { mixer, actions, current: 'idle' }
+    return () => {
+      mixer.stopAllAction()
+      mixer.uncacheRoot(root)
+      state.current = null
+    }
+  }, [root, clips])
+
+  useFrame((_, delta) => {
+    const anim = state.current
+    if (!anim) return
+    const want = pose?.current ?? (moving?.current ? 'walk' : 'idle')
+    if (want !== anim.current && anim.actions.has(want)) {
+      const to = anim.actions.get(want)!
+      to.reset().setEffectiveWeight(1).fadeIn(0.25).play()
+      anim.actions.get(anim.current)?.fadeOut(0.25)
+      anim.current = want
+    }
+    anim.mixer.update(Math.min(delta, 0.1))
+  })
+}
+
 function ImportedFigure({
   url,
   appearance,
   hairTune,
+  moving,
+  pose,
 }: {
   url: string
   appearance: Appearance
   hairTune?: HairFit | null
+  moving?: RefObject<boolean>
+  pose?: RefObject<FigurePose | null>
 }) {
-  const { scene } = useGLTF(url)
+  const { scene, animations } = useGLTF(url)
   const stored = hairFitFor(appearance.body, appearance.hair)
   const hair = hairTune ?? stored
   const fit = useMemo(() => {
-    const clone = scene.clone(true)
+    // Skeleton-aware clone so each figure gets its own bones
+    const clone = cloneSkinned(scene)
     clone.updateMatrixWorld(true)
     const raw = new Box3().setFromObject(clone)
     const rawSize = raw.getSize(new Vector3())
@@ -603,20 +663,26 @@ function ImportedFigure({
     const headCenter = headBox.getCenter(new Vector3())
     const headSize = headBox.getSize(new Vector3())
     const bone = findHeadBone(clone)
+    clone.updateMatrixWorld(true)
+    const boneOffset = bone
+      ? bone.matrixWorld.clone().invert().multiply(new Matrix4().makeTranslation(headCenter.x, headCenter.y, headCenter.z))
+      : null
     return {
       clone,
       bone,
+      boneOffset,
       scale,
       position: [-center.x * scale, -box.min.y * scale, -center.z * scale] as [number, number, number],
       headCenter: [headCenter.x, headCenter.y, headCenter.z] as [number, number, number],
       headSize,
     }
   }, [scene, url, appearance.body, appearance.skin, appearance.topColor, appearance.bottomColor])
+  useFigureClips(fit.clone, animations, moving, pose)
 
   return (
     <group position={fit.position} scale={fit.scale}>
       <primitive object={fit.clone} />
-      <HeadSocket bone={fit.bone} center={fit.headCenter}>
+      <HeadSocket bone={fit.bone} boneOffset={fit.boneOffset} center={fit.headCenter}>
         <Suspense fallback={null}>
           {hair ? (
             <FittedHair file={hair.file} fit={hair} headSize={fit.headSize} color={appearance.hairColor} />
@@ -631,10 +697,16 @@ export function CharacterFigure({
   appearance,
   imported = true,
   hairTune = null,
+  moving,
+  pose,
 }: {
   appearance: Appearance
   imported?: boolean
   hairTune?: HairFit | null
+  /** While true the figure plays its walk cycle; otherwise it idles. */
+  moving?: RefObject<boolean>
+  /** Overrides walk/idle with a specific clip (sit on a chair, bucket bath…). */
+  pose?: RefObject<FigurePose | null>
 }) {
   useEffect(() => {
     void meshoptDecoder.then((decoder) => {
@@ -650,7 +722,7 @@ export function CharacterFigure({
   }, [appearance.body])
 
   if (imported) {
-    return <ImportedFigure url={CHARACTER_GLB[appearance.body]} appearance={appearance} hairTune={hairTune} />
+    return <ImportedFigure url={CHARACTER_GLB[appearance.body]} appearance={appearance} hairTune={hairTune} moving={moving} pose={pose} />
   }
   return <ModularFigure appearance={appearance} />
 }

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import styles from './map-load-overlay.module.css'
 
 /**
- * White “Loading map · N%” over the blue water while assets boot.
+ * White “Loading map · N%” over the blue ground while assets boot.
  * Percent eases toward the real LoadingManager value so it counts on screen.
  */
 export function MapLoadOverlay({

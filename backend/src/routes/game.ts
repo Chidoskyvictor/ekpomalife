@@ -9,6 +9,8 @@ const actionBody = z.object({
   actionId: z.enum(ACTION_IDS as [string, ...string[]]),
   targetPlaceId: z.string().optional().nullable(),
   version: z.number().int().positive(),
+  /** Using furniture in your own room — skips the map-place check. */
+  atHome: z.boolean().optional(),
 })
 
 export async function gameRoutes(app: FastifyInstance) {

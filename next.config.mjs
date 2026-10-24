@@ -20,6 +20,18 @@ const nextConfig = {
     unoptimized: true,
   },
   async headers() {
+    // These headers are for production CDN caching. In `next dev`, webpack
+    // chunk URLs are stable, and `immutable` makes the browser keep a broken
+    // PhoneShell bundle (the error overlay then shows "(stale)").
+    if (process.env.NODE_ENV !== 'production') {
+      // HTML/RSC only — not webpack chunks. Chrome + no-store on /_next/* caused HMR full reload loops.
+      return [
+        {
+          source: '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|glb|woff2?)$).*)',
+          headers: [{ key: 'Cache-Control', value: 'no-store, max-age=0' }],
+        },
+      ]
+    }
     return [
       {
         source: '/:path*',

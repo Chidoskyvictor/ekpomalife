@@ -261,7 +261,7 @@ export function performAction(state: GameState, actionId: ActionId, roll = Math.
         bestFriends,
         facultyPresident: next.dream.facultyPresident || (next.reputation >= 80 && bestFriends >= 3),
       })
-      message = 'You gisted and made new connections.'
+      message = 'You chatted and made new connections.'
       break
     }
     case 'rest': {

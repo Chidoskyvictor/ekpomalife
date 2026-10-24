@@ -17,25 +17,25 @@ export const NEED_META: Record<
 > = {
   hunger: {
     label: 'Hunger',
-    tip: 'You dey hungry, find mama put',
+    tip: 'You are hungry. Find a food stall',
     emoji: '/emoji/pot-of-food.png',
     key: 'hunger',
   },
   energy: {
     label: 'Energy',
-    tip: 'You dey tired. Rest or take a short nap',
+    tip: 'You are tired. Rest or take a short nap',
     emoji: '/emoji/fire.png',
     key: 'energy',
   },
   fun: {
     label: 'Fun',
-    tip: 'You dey bored. Hang out or watch a match',
+    tip: 'You are bored. Hang out or watch a match',
     emoji: '/emoji/party-popper.png',
     key: 'fun',
   },
   social: {
     label: 'Social',
-    tip: 'Go gist with people. Campus no be for loners',
+    tip: 'Go chat with people. Campus is not for loners',
     emoji: '/emoji/handshake.png',
     key: 'social',
   },
@@ -47,7 +47,7 @@ export const NEED_META: Record<
   },
   study: {
     label: 'Study',
-    tip: 'Books dey call. Hit the library',
+    tip: 'The books are calling. Hit the library',
     emoji: '/emoji/books.png',
     key: 'academic',
   },

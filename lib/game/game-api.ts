@@ -99,6 +99,8 @@ export async function postGameAction(input: {
   version: number
   payload?: BuildingActionPayload
   traits?: TraitId[]
+  /** Room furniture — the server skips the map-place check for home actions. */
+  atHome?: boolean
 }): Promise<ServerGameState | Fail> {
   if (useMocks()) {
     return asFailFromMock(mockGameAction(input))
@@ -109,6 +111,7 @@ export async function postGameAction(input: {
     targetPlaceId: input.targetPlaceId,
     version: input.version,
     payload: input.payload,
+    ...(input.atHome ? { atHome: true } : {}),
   })
 
   // Until the backend PC ships §7.6, Phase 3 action ids fall back to the in-process mock.

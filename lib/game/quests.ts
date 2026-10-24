@@ -19,7 +19,7 @@ const CITY_EVENTS = [
   {
     id: 'mama-put',
     emoji: '/emoji/pot-of-food.png',
-    title: 'Free food at the Mama Put',
+    title: 'Free food at the food stall',
     hint: 'By order of the VC',
     locationId: 'roadside_bukka',
     hours: 2,

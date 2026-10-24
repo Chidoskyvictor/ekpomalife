@@ -37,6 +37,7 @@ function failFromBody(status: number, raw: unknown): ApiFail {
     conflict?: boolean
     room?: unknown
     uid?: string
+    matches?: unknown
   }
   const error = body.error || (status === 401 ? 'UNAUTHORIZED' : 'Request failed.')
   const code =
@@ -53,6 +54,8 @@ function failFromBody(status: number, raw: unknown): ApiFail {
     // room / uid attach for callers that cast to RoomFail
     ...(body.room ? { room: body.room } : {}),
     ...(body.uid ? { uid: body.uid } : {}),
+    // hostel "already on the list" matches (POST /hostels)
+    ...(Array.isArray(body.matches) ? { matches: body.matches } : {}),
   } as ApiFail
 }
 

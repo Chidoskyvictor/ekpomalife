@@ -29,6 +29,7 @@ import {
   type BodyId,
 } from '@/lib/game/look'
 import { outfitColorsFor } from '@/lib/game/outfit-config'
+import { replaceNavigation } from '@/lib/navigation/safe-nav'
 
 export function LookStudio() {
   const router = useRouter()
@@ -42,7 +43,8 @@ export function LookStudio() {
     setUsername(session)
     const draft = loadCreation(session)
     if (draft.appearance) setAppearance(draft.appearance)
-  }, [router])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount
+  }, [])
 
   const hair = HAIR_BY_BODY[appearance.body]
   const outfits = OUTFIT_BY_BODY[appearance.body]
@@ -62,7 +64,7 @@ export function LookStudio() {
       setBusy(false)
       return
     }
-    router.replace('/traits')
+    replaceNavigation(router, '/traits')
   }
 
   const preview = useMemo(() => appearance, [appearance])

@@ -60,7 +60,7 @@ describe('phone-api (mocks)', () => {
 
   it('quotes and books a ride without shaming copy on insufficient funds', async () => {
     setPhoneMockLocation('school-hostels-1')
-    const quote = await getRideQuote('market')
+    const quote = await getRideQuote('bukka')
     expect(quote.ok).toBe(true)
     if (!quote.ok) return
     expect(quote.quotes.some((q) => q.mode === 'keke')).toBe(true)
@@ -69,7 +69,7 @@ describe('phone-api (mocks)', () => {
     const { setMockCash } = await import('./economy-mock')
     setMockCash(10)
     const key = crypto.randomUUID()
-    const book = await takeRide('market', 'keke', key)
+    const book = await takeRide('bukka', 'keke', key)
     expect(book.ok).toBe(false)
     if (book.ok) return
     expect(book.code).toBe('INSUFFICIENT_FUNDS')
@@ -79,11 +79,11 @@ describe('phone-api (mocks)', () => {
   it('reuses ride idempotency key', async () => {
     setPhoneMockLocation('school-hostels-1')
     const key = crypto.randomUUID()
-    const first = await takeRide('market', 'okada', key)
+    const first = await takeRide('bukka', 'okada', key)
     expect(first.ok).toBe(true)
     if (!first.ok) return
     const cash = first.cash
-    const second = await takeRide('market', 'okada', key)
+    const second = await takeRide('bukka', 'okada', key)
     expect(second.ok).toBe(true)
     if (!second.ok) return
     expect(second.replayed).toBe(true)

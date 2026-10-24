@@ -22,12 +22,12 @@ const FAQ = [
   {
     question: 'What can I do in the game?',
     answer:
-      'Track six needs (hunger, energy, fun, social, hygiene, study), take jobs and hustles, shop, pay rent, use in-game phone apps (bank, market, rides, gist, and more), decorate your room, and pursue dreams like graduating with a first class or becoming an Ekpoma landlord.',
+      'Track six needs (hunger, energy, fun, social, hygiene, study), take jobs and hustles, shop, pay rent, use in-game phone apps (bank, market, rides, campus news, and more), decorate your room, and pursue dreams like graduating with a first class or becoming an Ekpoma landlord.',
   },
   {
     question: 'Who is it for?',
     answer:
-      'Anyone who wants a funny, broke-but-hopeful AAU campus story. The world is rooted in Ekpoma and AAU culture — from mama put to NEPA blackouts — without needing to be on campus to sign up.',
+      'Anyone who wants a funny, broke-but-hopeful AAU campus story. The world is rooted in Ekpoma and AAU culture — from roadside food stalls to power cuts — without needing to be on campus to sign up.',
   },
 ] as const
 
@@ -96,7 +96,7 @@ export function HomeLanding({ crawlOnly = false }: { crawlOnly?: boolean }) {
             <strong>Your room</strong> — hostel space you can furnish (comfort is display-only today).
           </li>
           <li>
-            <strong>Phone</strong> — bank, market, map, rides, gist, calendar, and more in a campus-style
+            <strong>Phone</strong> — bank, market, map, rides, campus news, calendar, and more in a campus-style
             home screen.
           </li>
         </ul>

@@ -395,6 +395,8 @@ export type PerformActionInput = {
   actionId: string
   targetPlaceId?: string | null
   version: number
+  /** Room furniture: allowed for actions marked `home`, wherever the player is on the map. */
+  atHome?: boolean
 }
 
 export async function performGameAction(
@@ -406,6 +408,7 @@ export async function performGameAction(
 > {
   const action = getAction(input.actionId)
   if (!action) return { ok: false, error: 'Unknown action.', code: 400 }
+  if (input.atHome && !action.home) return { ok: false, error: `You cannot ${action.label.toLowerCase()} at home.`, code: 400 }
 
   const character = await loadCharacterMeta(userId)
   if (!character) return { ok: false, error: SETUP_INCOMPLETE, code: 409 }
@@ -478,6 +481,8 @@ export async function performGameAction(
       }
       place = dest
       locationId = dest.id
+    } else if (input.atHome) {
+      // Your own room: no place or opening-hours check, location stays as it is
     } else {
       const targetId = input.targetPlaceId ?? locationId
       place = getPlace(targetId)

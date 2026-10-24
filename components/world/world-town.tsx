@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
-import { MAP } from '@/lib/game/map-theme'
+import { mapPalette as MAP } from '@/lib/game/map-theme'
 import { generateTown, type House } from '@/lib/game/world-layout'
 import { Block, glass } from './materials'
 
@@ -12,8 +12,8 @@ function GlassBands({ w, d, floors, floorH, base }: { w: number; d: number; floo
         const y = base + floorH * (i + 0.55)
         return (
           <group key={i}>
-            <Block position={[0, y, d / 2 + 0.01]} size={[w * 0.72, floorH * 0.36, 0.04]} material={glass} shadow={false} />
-            <Block position={[0, y, -d / 2 - 0.01]} size={[w * 0.72, floorH * 0.36, 0.04]} material={glass} shadow={false} />
+            <Block position={[0, y, d / 2 + 0.01]} size={[w * 0.72, floorH * 0.36, 0.04]} material={glass()} shadow={false} />
+            <Block position={[0, y, -d / 2 - 0.01]} size={[w * 0.72, floorH * 0.36, 0.04]} material={glass()} shadow={false} />
           </group>
         )
       })}
@@ -38,7 +38,7 @@ function HouseModel({ house }: { house: House }) {
                   key={side}
                   position={[0, floorH * (i + 0.5), (side * d) / 2 + side * 0.01]}
                   size={[w * 0.7, floorH * 0.38, 0.04]}
-                  material={glass}
+                  material={glass()}
                   shadow={false}
                 />
               ))}
@@ -55,8 +55,8 @@ function HouseModel({ house }: { house: House }) {
         <group>
           <Block position={[0, lower / 2, 0]} size={[w, lower, d]} color={wall} />
           <Block position={[w * 0.1, lower + upper / 2, -d * 0.06]} size={[w * 0.8, upper, d * 0.84]} color={MAP.buildingGray} />
-          <Block position={[w * 0.1, lower + upper * 0.52, d * 0.32 + 0.01]} size={[w * 0.5, upper * 0.36, 0.04]} material={glass} shadow={false} />
-          <Block position={[-w * 0.12, lower * 0.48, d / 2 + 0.01]} size={[w * 0.46, lower * 0.38, 0.04]} material={glass} shadow={false} />
+          <Block position={[w * 0.1, lower + upper * 0.52, d * 0.32 + 0.01]} size={[w * 0.5, upper * 0.36, 0.04]} material={glass()} shadow={false} />
+          <Block position={[-w * 0.12, lower * 0.48, d / 2 + 0.01]} size={[w * 0.46, lower * 0.38, 0.04]} material={glass()} shadow={false} />
           <Block position={[w * 0.1, lower + upper + 0.05, -d * 0.06]} size={[w * 0.88, 0.1, d * 0.9]} color={accent} />
         </group>
       )
@@ -68,7 +68,7 @@ function HouseModel({ house }: { house: House }) {
           <group position={[0, h * 0.8 + 0.1, 0]} rotation={[0.16, 0, 0]}>
             <Block position={[0, 0, 0]} size={[w + 0.24, 0.1, d + 0.32]} color={accent} />
           </group>
-          <Block position={[0, h * 0.38, d / 2 + 0.01]} size={[w * 0.58, h * 0.34, 0.04]} material={glass} shadow={false} />
+          <Block position={[0, h * 0.38, d / 2 + 0.01]} size={[w * 0.58, h * 0.34, 0.04]} material={glass()} shadow={false} />
         </group>
       )
     }

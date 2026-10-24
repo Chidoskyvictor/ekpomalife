@@ -1,0 +1,430 @@
+/* Tabbed profile sheet (opened from the bottom-left avatar card). */
+
+.headAvatar {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #e8f1ff, #cfe0fb);
+}
+
+.headAvatarImg {
+  width: 100%;
+  height: 100%;
+  border-radius: 999px;
+  object-fit: cover;
+  font-size: 1.1rem;
+}
+
+/* —— Tabs —— */
+.tabs {
+  display: flex;
+  gap: 6px;
+  margin: 0 -2px 12px;
+  padding: 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  min-height: 38px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  background: #f2f2f7;
+  color: #3c3c43;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.tabActive {
+  background: #111827;
+  color: #fff;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 8px;
+}
+
+/* —— Profile: character stage —— */
+.stage {
+  position: relative;
+  height: 300px;
+  overflow: hidden;
+  border-radius: 24px;
+  background: linear-gradient(180deg, #dbe8fb 0%, #eef3fb 100%);
+  touch-action: none;
+  cursor: grab;
+}
+
+.stage:active {
+  cursor: grabbing;
+}
+
+.stage canvas {
+  position: relative;
+  z-index: 1;
+}
+
+.stageFloor {
+  position: absolute;
+  left: 50%;
+  bottom: -36px;
+  width: 60%;
+  height: 90px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: rgba(17, 24, 39, 0.08);
+}
+
+.stageHint {
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  z-index: 2;
+  transform: translateX(-50%);
+  color: #6e6e73;
+  font-size: 12px;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+/* —— Shared —— */
+.section {
+  margin: 6px 2px 0;
+  color: #8e8e93;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.muted,
+.mutedInline {
+  margin: 0;
+  color: #8e8e93;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 18px;
+  background: #f2f2f7;
+}
+
+.track {
+  position: relative;
+  flex: 1;
+  height: 8px;
+  min-width: 60px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.rowText {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+  color: #6e6e73;
+}
+
+.rowText strong {
+  color: #111;
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.bigEmoji {
+  font-size: 28px;
+  line-height: 1;
+}
+
+/* —— Needs —— */
+.needRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.needLabel {
+  width: 76px;
+  flex: none;
+  color: #111;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.needValue {
+  width: 28px;
+  flex: none;
+  color: #3c3c43;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.statEmoji {
+  width: 20px;
+  font-size: 16px;
+  text-align: center;
+}
+
+.feeling {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: #f2f2f7;
+}
+
+.feelingText {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 1px;
+  color: #6e6e73;
+  font-size: 13px;
+}
+
+.feelingText strong {
+  color: #111;
+  font-size: 14px;
+}
+
+.plus,
+.minus {
+  flex: none;
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.plus {
+  color: #16a34a;
+}
+
+.minus {
+  color: #dc2626;
+}
+
+/* —— Goals / skills —— */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #f2f2f7;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.levelBadge {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border-radius: 12px;
+  background: #2f7cf6;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+/* —— People —— */
+.person {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 4px;
+}
+
+.personAvatar {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.you {
+  color: #8e8e93;
+  font-weight: 500;
+}
+
+/* —— Career —— */
+.factRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: #6e6e73;
+  font-size: 14px;
+}
+
+.factRow strong {
+  color: #111;
+  font-weight: 650;
+}
+
+/* —— Edit your look —— */
+.editLook {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  border: 0;
+  border-radius: 999px;
+  background: #111827;
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.editGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.editGroup .section {
+  margin: 0;
+}
+
+.pick {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 999px;
+  background: #fff;
+  color: #111;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pickOn {
+  border-color: #111827;
+  background: #111827;
+  color: #fff;
+}
+
+.swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.swatch {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 2px solid #fff;
+  border-radius: 999px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12);
+  cursor: pointer;
+}
+
+.swatch[aria-pressed='true'] {
+  box-shadow: 0 0 0 2px #2f7cf6;
+}
+
+.editError {
+  margin: 0;
+  color: #b42318;
+  font-size: 13px;
+}
+
+.editActions {
+  display: flex;
+  gap: 8px;
+}
+
+.editCancel,
+.editSave {
+  flex: 1;
+  min-height: 44px;
+  border: 0;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.editCancel {
+  background: rgba(0, 0, 0, 0.06);
+  color: #111;
+}
+
+.editSave {
+  background: #2f7cf6;
+  color: #fff;
+}
+
+.editCancel:disabled,
+.editSave:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+@media (max-width: 479px) {
+  .stage {
+    height: 250px;
+  }
+
+  .tab {
+    min-height: 34px;
+    padding: 0 13px;
+    font-size: 13px;
+  }
+}

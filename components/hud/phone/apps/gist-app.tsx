@@ -14,7 +14,7 @@ export function GistApp() {
   const feed = state?.feed ?? []
 
   if (!feed.length) {
-    return <p className={styles.listMeta}>No gist yet. Campus go loud soon.</p>
+    return <p className={styles.listMeta}>No news yet. Campus will get busy soon.</p>
   }
 
   return (

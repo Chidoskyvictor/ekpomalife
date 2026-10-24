@@ -1,36 +1,59 @@
 'use client'
 
-import { BATTERY, type PhoneClock, type PhoneState } from '@/lib/game/phone'
+import type { CSSProperties } from 'react'
+import type { PhoneClock, PhoneState } from '@/lib/game/phone'
 import styles from './phone.module.css'
+
+/** Four rising signal bars, iOS style. */
+function SignalBars({ off }: { off?: boolean }) {
+  return (
+    <span className={`${styles.signalBars} ${off ? styles.signalOff : ''}`} aria-hidden="true">
+      <i />
+      <i />
+      <i />
+      <i />
+    </span>
+  )
+}
+
+/** iPhone battery: rounded outline, fill to the level, small cap on the right. */
+function BatteryIcon({ level, charging }: { level: number; charging: boolean }) {
+  const fill = Math.max(0, Math.min(100, level))
+  return (
+    <span className={styles.battery} aria-hidden="true">
+      <span className={styles.batteryBody}>
+        <span className={styles.batteryFill} style={{ '--level': `${fill}%` } as CSSProperties} />
+        {charging ? <span className={styles.batteryBolt}>⚡</span> : null}
+      </span>
+      <span className={styles.batteryCap} />
+    </span>
+  )
+}
 
 export function PhoneStatusBar({
   clock,
   phone,
-  localLabel,
+  onApp = false,
 }: {
   clock: PhoneClock | null
   phone: PhoneState
-  localLabel?: string
+  /** An app is open: dark text on the app's light background (stays visible, like iOS). */
+  onApp?: boolean
 }) {
-  const low = phone.battery <= BATTERY.lowAt
   const noData = phone.dataMb <= 0
+  const time = (clock?.label ?? '').replace(/\s?(AM|PM)$/i, '')
 
   return (
-    <div className={styles.statusBar} aria-label="Phone status">
-      <span>{localLabel ?? clock?.label ?? '—'}</span>
+    <div className={`${styles.statusBar} ${onApp ? styles.statusBarOnApp : ''}`} aria-label="Phone status">
+      <span className={styles.statusTime}>{time || '—'}</span>
       <div className={styles.statusRight}>
-        {noData ? (
-          <span className={styles.signalMuted} aria-label="No data">
-            E · No data
-          </span>
-        ) : (
-          <span aria-label="4G signal">▮▮▮ 4G</span>
-        )}
-        <span
-          className={low ? styles.batteryLow : undefined}
-          aria-label={`Battery ${phone.battery} percent${phone.charging ? ', charging' : ''}`}
-        >
-          {phone.charging ? '⚡' : '🔋'} {phone.battery}%
+        <SignalBars off={noData} />
+        <span className={noData ? styles.signalMuted : undefined} aria-label={noData ? 'No data' : '4G'}>
+          {noData ? 'E' : '4G'}
+        </span>
+        <BatteryIcon level={phone.battery} charging={phone.charging} />
+        <span className="sr-only">
+          Battery {phone.battery} percent{phone.charging ? ', charging' : ''}
         </span>
       </div>
     </div>

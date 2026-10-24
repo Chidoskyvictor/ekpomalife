@@ -1,9 +1,11 @@
-export const MAP = {
+/** Campus / map color tokens. Not named `MAP` — that identifier collides with global `Map` in some webpack chunks. */
+export const mapPalette = {
   land: 'rgb(181, 196, 161)',
   /** First / AAU slab */
   landFirst: 'rgb(157, 183, 131)',
   landLight: 'rgb(181, 196, 161)',
-  water: 'rgb(85, 161, 195)',
+  /** Soft blue ground around the slabs (easy on the eyes — not water) */
+  ground: 'rgb(85, 161, 195)',
   road: '#808A93',
   roadEdge: '#D2D1B7',
   roadMark: '#FFFFFF',
@@ -29,12 +31,15 @@ export const MAP = {
   earthOchre: '#c49a6c',
 } as const
 
+/** @deprecated Use `mapPalette` — `MAP` breaks when webpack rewrites the binding near `Map`. */
+export const MAP = mapPalette
+
 /** Campus wall washes — `undefined` keeps the Kenney colormap as-is. */
 export const BUILDING_TINT = {
   original: undefined as string | undefined,
-  earth: MAP.earthWall,
-  sand: MAP.earthSand,
-  clay: MAP.earthClay,
+  earth: mapPalette.earthWall,
+  sand: mapPalette.earthSand,
+  clay: mapPalette.earthClay,
   purple: '#8B6BAE',
   plum: '#6B4C8A',
   lilac: '#A890C4',
@@ -45,10 +50,10 @@ export const EARTH_TINTS = [
   BUILDING_TINT.earth,
   BUILDING_TINT.sand,
   BUILDING_TINT.clay,
-  MAP.earthMud,
-  MAP.earthCream,
-  MAP.earthOchre,
+  mapPalette.earthMud,
+  mapPalette.earthCream,
+  mapPalette.earthOchre,
 ] as const
 
-export const HOUSE_WALLS = [MAP.building, MAP.buildingGray, '#E5E2D6', '#D8DDE0'] as const
-export const HOUSE_ROOFS = [MAP.roof, '#C8B48A', '#E2D3B4'] as const
+export const HOUSE_WALLS = [mapPalette.building, mapPalette.buildingGray, '#E5E2D6', '#D8DDE0'] as const
+export const HOUSE_ROOFS = [mapPalette.roof, '#C8B48A', '#E2D3B4'] as const

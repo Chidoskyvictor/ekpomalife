@@ -13,11 +13,13 @@ import {
 } from '@/lib/game/phone-api'
 import type { DataBundleId, PhoneAppId, PhoneState, WallpaperId } from '@/lib/game/phone'
 import type { ApiFail } from '@/lib/api/errors'
+import { PHONE_FREE_FOR_ALL } from '@/lib/flags'
 
 const POLL_MS = 60_000
 
 export type PhoneCache = {
-  phone: PhoneState | null
+  /** Avoid property name `phone` on the hook object (webpack/HMR TDZ with `phoneApi.phone`). */
+  device: PhoneState | null
   clock: PhoneGetResponse['clock'] | null
   location: PhoneGetResponse['location'] | null
   promos: PhoneGetResponse['promos']
@@ -25,7 +27,7 @@ export type PhoneCache = {
   cash: number | null
   notifications: PhoneNotificationsResponse['items']
   totalUnread: number
-  noPhone: boolean
+  missingDevice: boolean
   error: string | null
   loading: boolean
 }
@@ -36,7 +38,7 @@ function unreadTotal(unread: Partial<Record<PhoneAppId, number>> | undefined) {
 }
 
 const EMPTY: PhoneCache = {
-  phone: null,
+  device: null,
   clock: null,
   location: null,
   promos: [],
@@ -44,7 +46,7 @@ const EMPTY: PhoneCache = {
   cash: null,
   notifications: [],
   totalUnread: 0,
-  noPhone: false,
+  missingDevice: false,
   error: null,
   loading: true,
 }
@@ -60,12 +62,12 @@ export function usePhone(enabled = true, options?: UsePhoneOptions) {
   const mounted = useRef(true)
   const idemRef = useRef<Map<string, string>>(new Map())
 
-  const applyPhone = useCallback((phone: PhoneState, extra?: Partial<PhoneCache>) => {
+  const applyPhone = useCallback((device: PhoneState, extra?: Partial<PhoneCache>) => {
     setCache((prev) => ({
       ...prev,
-      phone,
-      totalUnread: unreadTotal(phone.unread),
-      noPhone: false,
+      device,
+      totalUnread: unreadTotal(device.unread),
+      missingDevice: false,
       error: null,
       loading: false,
       ...extra,
@@ -74,6 +76,8 @@ export function usePhone(enabled = true, options?: UsePhoneOptions) {
 
   const refresh = useCallback(async () => {
     if (!enabled) return
+    // First load after opening: show "Opening phone…" instead of the error screen while we wait
+    setCache((prev) => (prev.device || prev.loading ? prev : { ...prev, loading: true, error: null }))
     const [phoneRes, notifRes] = await Promise.all([getPhone(), getNotifications()])
     if (!mounted.current) return
 
@@ -82,9 +86,9 @@ export function usePhone(enabled = true, options?: UsePhoneOptions) {
       setCache((prev) => ({
         ...prev,
         loading: false,
-        noPhone: fail.code === 'NO_PHONE' || fail.status === 403,
+        missingDevice: !PHONE_FREE_FOR_ALL && (fail.code === 'NO_PHONE' || fail.status === 403),
         error: fail.code === 'NO_PHONE' ? null : fail.error,
-        phone: fail.code === 'NO_PHONE' ? null : prev.phone,
+        device: fail.code === 'NO_PHONE' && !PHONE_FREE_FOR_ALL ? null : prev.device,
       }))
       return
     }
@@ -95,7 +99,7 @@ export function usePhone(enabled = true, options?: UsePhoneOptions) {
         : ([] as PhoneNotificationsResponse['items'])
 
     setCache({
-      phone: phoneRes.phone,
+      device: phoneRes.phone,
       clock: phoneRes.clock,
       location: phoneRes.location,
       promos: phoneRes.promos,
@@ -103,7 +107,7 @@ export function usePhone(enabled = true, options?: UsePhoneOptions) {
       cash: phoneRes.cash,
       notifications: notifs,
       totalUnread: unreadTotal(phoneRes.phone.unread),
-      noPhone: false,
+      missingDevice: false,
       error: null,
       loading: false,
     })
@@ -132,15 +136,15 @@ export function usePhone(enabled = true, options?: UsePhoneOptions) {
     async (appId: PhoneAppId) => {
       // Optimistic badge clear
       setCache((prev) => {
-        if (!prev.phone) return prev
-        const unread = { ...prev.phone.unread }
+        if (!prev.device) return prev
+        const unread = { ...prev.device.unread }
         delete unread[appId]
         const next = {
-          ...prev.phone,
+          ...prev.device,
           unread,
-          newApps: prev.phone.newApps.filter((id) => id !== appId),
+          newApps: prev.device.newApps.filter((id) => id !== appId),
         }
-        return { ...prev, phone: next, totalUnread: unreadTotal(unread) }
+        return { ...prev, device: next, totalUnread: unreadTotal(unread) }
       })
       const res = await openApp(appId)
       if (!res.ok) {

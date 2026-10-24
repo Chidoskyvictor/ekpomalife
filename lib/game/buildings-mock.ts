@@ -130,7 +130,7 @@ export function mockGameAction(input: {
   switch (actionId) {
     case 'pay-school-fees': {
       const due = feesBalance(campus)
-      if (due <= 0) return fail('Fees already cleared. Sharp!')
+      if (due <= 0) return fail('Fees already cleared. Nice!')
       const amount = Math.max(1, Math.min(due, Math.floor(input.payload?.amount ?? due)))
       const err = spend(amount)
       if (err) return fail(err)
@@ -149,7 +149,7 @@ export function mockGameAction(input: {
       if (err) return fail(err)
       campus.registered = true
       bumpTime(30)
-      return snapshot('Courses registered. You dey on the list.')
+      return snapshot('Courses registered. You are on the list.')
     }
     case 'collect-matric-gown': {
       if (campus.level !== 100) return fail('Comes up in 100 Level only.')
@@ -162,7 +162,7 @@ export function mockGameAction(input: {
       if (campus.hasIdCard) return fail('ID card already with you.')
       campus.hasIdCard = true
       bumpTime(15)
-      return snapshot('ID card is yours. Keep am safe.', { confetti: true })
+      return snapshot('ID card is yours. Keep it safe.', { confetti: true })
     }
     case 'convocation-clearance': {
       if (campus.level < 400) return fail('Comes up in final year.')
@@ -208,7 +208,7 @@ export function mockGameAction(input: {
       campus.attendance.general = Math.min(100, (campus.attendance.general ?? 0) + 8)
       campus.knowledge.general = Math.min(100, (campus.knowledge.general ?? 0) + 6)
       bumpTime(90)
-      return snapshot('Lecture done. Knowledge up small.')
+      return snapshot('Lecture done. Knowledge up a little.')
     }
     case 'submit-assignment': {
       if (!campus.assignmentDueAt) return fail('No assignment on the table right now.')
@@ -241,7 +241,7 @@ export function mockGameAction(input: {
       bumpTime(75)
       return snapshot(
         traits.includes('night-classer')
-          ? 'Night classer mode. Brain dey sharp.'
+          ? 'Night owl mode. Your brain is sharp.'
           : 'Night class done. You tried.',
       )
     }
@@ -273,7 +273,7 @@ export function mockGameAction(input: {
       bumpNeed('energy', 15)
       bumpNeed('hygiene', 10)
       bumpTime(25)
-      return snapshot('Nurse sorted you. Feel better.')
+      return snapshot('The nurse sorted you out. Feel better.')
     }
     case 'sports-train': {
       if (needs.energy < 18) return fail('NO_ENERGY')
@@ -281,7 +281,7 @@ export function mockGameAction(input: {
       bumpNeed('energy', -18 + Math.floor(bonus / 2))
       bumpNeed('fun', 10 + bonus)
       bumpTime(45)
-      return snapshot(traits.includes('gym-rat') ? 'Gym rat session. Legs dey shake.' : 'Training done.')
+      return snapshot(traits.includes('gym-rat') ? 'Gym rat session. Legs are shaking.' : 'Training done.')
     }
     case 'centre-hangout': {
       const bonus = traits.includes('social-butterfly') ? 8 : 0
@@ -319,7 +319,7 @@ export function mockGameAction(input: {
       bumpNeed('hunger', 35)
       bumpNeed('fun', 5)
       bumpTime(30)
-      return snapshot('You chopped. Hunger calm.')
+      return snapshot('You ate. Hunger is calm.')
     }
     case 'sleep': {
       bumpNeed('energy', 50)
@@ -349,7 +349,7 @@ export function mockGameAction(input: {
       bumpNeed('fun', 15)
       bumpNeed('energy', -5)
       bumpTime(30)
-      return snapshot('Gist was sweet.')
+      return snapshot('Great chat.')
     }
     case 'travel': {
       const err = spend(300)

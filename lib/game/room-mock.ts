@@ -270,7 +270,7 @@ export function mockSaveLayout(
       check.code === 'OVERLAP'
         ? "Something's already there. Try another spot."
         : check.code === 'OUT_OF_BOUNDS'
-          ? "That's past the wall, my guy."
+          ? "That's past the wall."
           : check.code
     const fail = { ok: false, error: copy, code: check.code, uid: check.uid }
     storeIdem(idempotencyKey, body, 400, fail)

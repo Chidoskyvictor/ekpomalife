@@ -8,6 +8,11 @@ export type GameActionId =
   | 'hangout'
   | 'travel'
   | 'work-placeholder'
+  // Room furniture (Home tab)
+  | 'nap'
+  | 'rest'
+  | 'toilet'
+  | 'bucket-bath'
   // Building interiors (Phase 3 UI → server POST /game/action)
   | 'pay-school-fees'
   | 'course-registration'
@@ -55,8 +60,8 @@ export const ACTION_LABELS: Partial<Record<GameActionId, { label: string; hint: 
   eat: { label: 'Eat', hint: 'Plate of rice. Fill hunger.' },
   sleep: { label: 'Sleep', hint: 'Rest and refill energy.' },
   shower: { label: 'Shower', hint: 'Fresh body, clear head.' },
-  study: { label: 'Study', hint: 'Books dey call.' },
-  hangout: { label: 'Hang out', hint: 'Gist and vibe.' },
+  study: { label: 'Study', hint: 'The books are calling.' },
+  hangout: { label: 'Hang out', hint: 'Chat and relax.' },
   travel: { label: 'Travel', hint: 'Move to another place (keke).' },
   'work-placeholder': { label: 'Side hustle', hint: 'Earn a small wage.' },
 }
@@ -189,14 +194,6 @@ export const PLACES: Place[] = [
     type: 'transport',
     actions: ['travel', 'hangout'],
     openHours: { open: 5, close: 22 },
-  },
-  {
-    id: 'market',
-    label: 'Ekpoma Market',
-    zoneId: 'market',
-    type: 'shop',
-    actions: ['eat', 'hangout', 'work-placeholder'],
-    openHours: { open: 7, close: 19 },
   },
   {
     id: 'shuttle-park',

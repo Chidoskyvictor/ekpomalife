@@ -18,6 +18,7 @@ import { ensureLocalPlayer } from '@/lib/game/accounts'
 import { saveCharacterTraits } from '@/lib/game/character-api'
 import { firstNameFor, loadCreation, rememberTraits } from '@/lib/game/creation'
 import { DEFAULT_APPEARANCE, type Appearance } from '@/lib/game/look'
+import { replaceNavigation } from '@/lib/navigation/safe-nav'
 import { TRAIT_LIMIT, TRAITS, type TraitId } from '@/lib/game/traits'
 
 export function TraitStudio() {
@@ -33,14 +34,15 @@ export function TraitStudio() {
     const session = ensureLocalPlayer()
     const draft = loadCreation(session)
     if (!draft.appearance) {
-      router.replace('/look')
+      replaceNavigation(router, '/look')
       return
     }
     setAppearance(draft.appearance)
     setPicked(draft.traits)
     setPlayerName(firstNameFor(session))
     setUsername(session)
-  }, [router])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount
+  }, [])
 
   const remaining = TRAIT_LIMIT - picked.length
   const ready = remaining <= 0
@@ -69,7 +71,7 @@ export function TraitStudio() {
       setBusy(false)
       return
     }
-    router.replace('/dream')
+    replaceNavigation(router, '/dream')
   }
 
   if (!username) return null

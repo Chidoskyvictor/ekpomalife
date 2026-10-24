@@ -1,5 +1,5 @@
 import { getMockCash, setMockCash } from '@/lib/game/economy-mock'
-import { PHONE_FREE_FOR_ALL } from '@/lib/game/phone-config'
+import { PHONE_FREE_FOR_ALL } from '@/lib/flags'
 import { PLACES, getPlace } from '@/lib/game/places'
 import {
   BATTERY,
@@ -70,7 +70,7 @@ const PROMOS: PhonePromo[] = [
   {
     id: 'data-promo',
     title: 'Data bundles from ₦100',
-    subtitle: 'Stay online for gist',
+    subtitle: 'Stay online for campus news',
     cta: 'Buy data',
     emoji: '📶',
     action: { type: 'app', appId: 'settings' },
@@ -207,7 +207,7 @@ export function mockBuyData(bundleId: DataBundleId, idempotencyKey: string) {
   }
   recomputeBattery()
   const bundle = DATA_BUNDLES.find((b) => b.id === bundleId)
-  if (!bundle) return fail('BAD_BUNDLE', 'That bundle no dey.')
+  if (!bundle) return fail('BAD_BUNDLE', 'That bundle does not exist.')
   const cash = getMockCash()
   if (cash < bundle.price) {
     return fail(
@@ -238,7 +238,7 @@ export function mockCharge(action: 'start' | 'stop') {
       return fail('NOT_AT_HOSTEL', 'You fit only charge for hostel.')
     }
     phone.charging = true
-    return { ok: true as const, phone: clonePhone(), message: 'Charging… light dey.' }
+    return { ok: true as const, phone: clonePhone(), message: 'Charging… the power is on.' }
   }
   phone.charging = false
   return { ok: true as const, phone: clonePhone(), message: 'Stopped charging.' }
@@ -249,7 +249,7 @@ export function mockOpenApp(appId: PhoneAppId) {
   if (blocked) return blocked
   recomputeBattery()
   if (phone.battery <= 0) {
-    return fail('BATTERY_DEAD', 'Phone don die. Charge am for hostel.', 400)
+    return fail('BATTERY_DEAD', 'Your phone is dead. Charge it at your hostel.', 400)
   }
   const cost = DATA_COST_MB[appId] ?? 0
   const offline = cost > 0 && phone.dataMb < cost
@@ -269,7 +269,7 @@ export function mockSetWallpaper(wallpaper: WallpaperId) {
   if (blocked) return blocked
   recomputeBattery()
   if (!['aau-dusk', 'ekpoma-night', 'harmattan', 'green-white'].includes(wallpaper)) {
-    return fail('UNKNOWN_WALLPAPER', 'That wallpaper no dey.')
+    return fail('UNKNOWN_WALLPAPER', 'That wallpaper does not exist.')
   }
   phone.wallpaper = wallpaper
   return { ok: true as const, phone: clonePhone() }
@@ -291,7 +291,7 @@ export function mockListNotifications() {
       id: 'n-jobs',
       appId: 'jobs',
       title: 'New shifts',
-      body: 'Campus Shop POS dey open',
+      body: 'Campus Shop POS is open',
       createdAt: new Date().toISOString(),
     })
   }
@@ -308,7 +308,7 @@ export function mockListNotifications() {
     items.push({
       id: 'n-gist',
       appId: 'gist',
-      title: 'Campus gist',
+      title: 'Campus news',
       body: 'Fresh posts for your area',
       createdAt: new Date().toISOString(),
     })
@@ -325,12 +325,12 @@ export function mockRideQuote(to: string) {
   const blocked = noPhone()
   if (blocked) return blocked
   recomputeBattery()
-  if (!getPlace(to)) return fail('BAD_PLACE', 'That place no dey map.')
+  if (!getPlace(to)) return fail('BAD_PLACE', 'That place is not on the map.')
   if (!locationId || locationId === to) {
-    return fail('SAME_PLACE', 'You already dey there.')
+    return fail('SAME_PLACE', 'You are already there.')
   }
   const hops = hopDistance(locationId, to)
-  if (hops == null) return fail('BAD_PLACE', 'That place no dey map.')
+  if (hops == null) return fail('BAD_PLACE', 'That place is not on the map.')
   const modes: RideMode[] = ['keke', 'okada']
   return {
     ok: true as const,
@@ -355,10 +355,10 @@ export function mockTakeRide(to: string, mode: RideMode, idempotencyKey: string)
   if (!quote.ok) return quote
   const clock = phoneClock(gameTime)
   if (mode === 'keke' && (clock.hour < 5 || clock.hour >= 22)) {
-    return fail('CLOSED', 'Keke don close for today. Waka or wait till morning.')
+    return fail('CLOSED', 'Kekes have closed for today. Walk or wait till morning.')
   }
   const picked = quote.quotes.find((q) => q.mode === mode)
-  if (!picked) return fail('BAD_PLACE', 'That place no dey map.')
+  if (!picked) return fail('BAD_PLACE', 'That place is not on the map.')
   const cash = getMockCash()
   if (cash < picked.fare) {
     return fail(

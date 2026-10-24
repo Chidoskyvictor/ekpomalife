@@ -6,24 +6,24 @@ import type { Group } from 'three'
 import { LOCATIONS, TYPE_META } from '@/lib/game/content'
 import { isMapLocation } from '@/lib/game/world-layout'
 import type { LocationRecord } from '@/lib/game/types'
-import { MAP } from '@/lib/game/map-theme'
+import { mapPalette as MAP } from '@/lib/game/map-theme'
 import { AdminBlock } from './admin-block'
 import { Block as Box, glass, paint } from './materials'
 
-const CAMPUS_ACCENT: Record<string, string> = {
+const campusAccent = (): Record<string, string> => ({
   aau_library: MAP.laterite,
   mbc: MAP.window,
   college_of_medicine: MAP.laterite,
-}
+})
 
-const HOSTEL_COLORS: Record<string, { wall: string; accent: string }> = {
+const hostelColors = (): Record<string, { wall: string; accent: string }> => ({
   igbinedion_hostel: { wall: MAP.building, accent: MAP.roof },
   maryvale_hostel: { wall: MAP.buildingGray, accent: MAP.roof },
-}
+})
 
 function CampusBuilding({ location }: { location: LocationRecord }) {
   const [w, h, d] = location.size
-  const accent = CAMPUS_ACCENT[location.id] ?? MAP.window
+  const accent = campusAccent()[location.id] ?? MAP.window
   const base = 0.16
   const fins = 6
 
@@ -31,8 +31,8 @@ function CampusBuilding({ location }: { location: LocationRecord }) {
     <group>
       <Box position={[0, base / 2, 0]} size={[w + 1, base, d + 1]} color={MAP.landLight} />
       <Box position={[0, base + h / 2, 0]} size={[w, h, d]} color={MAP.building} />
-      <Box position={[0, base + h * 0.48, d / 2 + 0.02]} size={[w * 0.9, h * 0.78, 0.05]} material={glass} shadow={false} />
-      <Box position={[0, base + h * 0.48, -d / 2 - 0.02]} size={[w * 0.9, h * 0.6, 0.05]} material={glass} shadow={false} />
+      <Box position={[0, base + h * 0.48, d / 2 + 0.02]} size={[w * 0.9, h * 0.78, 0.05]} material={glass()} shadow={false} />
+      <Box position={[0, base + h * 0.48, -d / 2 - 0.02]} size={[w * 0.9, h * 0.6, 0.05]} material={glass()} shadow={false} />
       {Array.from({ length: fins }, (_, i) => (
         <Box
           key={i}
@@ -49,7 +49,7 @@ function CampusBuilding({ location }: { location: LocationRecord }) {
 
       {location.id === 'aau_library' ? (
         <group>
-          <Box position={[0, base + h + 0.2 + 0.5, -d * 0.1]} size={[w * 0.6, 1, d * 0.65]} material={glass} />
+          <Box position={[0, base + h + 0.2 + 0.5, -d * 0.1]} size={[w * 0.6, 1, d * 0.65]} material={glass()} />
           <Box position={[0, base + h + 1.28, -d * 0.1]} size={[w * 0.66, 0.14, d * 0.72]} color={accent} />
         </group>
       ) : null}
@@ -57,7 +57,7 @@ function CampusBuilding({ location }: { location: LocationRecord }) {
       {location.id === 'mbc' ? (
         <group>
           <Box position={[w * 0.25, base + h + 0.7, 0]} size={[w * 0.8, 1, d * 0.9]} color={accent} />
-          <Box position={[w * 0.25, base + h + 0.7, d * 0.45 + 0.02]} size={[w * 0.7, 0.45, 0.04]} material={glass} shadow={false} />
+          <Box position={[w * 0.25, base + h + 0.7, d * 0.45 + 0.02]} size={[w * 0.7, 0.45, 0.04]} material={glass()} shadow={false} />
         </group>
       ) : null}
 
@@ -74,7 +74,7 @@ function CampusBuilding({ location }: { location: LocationRecord }) {
 
 function Hostel({ location }: { location: LocationRecord }) {
   const [w, h, d] = location.size
-  const colors = HOSTEL_COLORS[location.id] ?? { wall: MAP.roof, accent: MAP.roof }
+  const colors = hostelColors()[location.id] ?? { wall: MAP.roof, accent: MAP.roof }
   const floors = 3
   const floorH = h / floors
 
@@ -83,8 +83,8 @@ function Hostel({ location }: { location: LocationRecord }) {
       <Box position={[0, h / 2, 0]} size={[w, h, d]} color={colors.wall} />
       {Array.from({ length: floors }, (_, i) => (
         <group key={i}>
-          <Box position={[0, floorH * (i + 0.55), d / 2 + 0.01]} size={[w * 0.86, floorH * 0.45, 0.04]} material={glass} shadow={false} />
-          <Box position={[0, floorH * (i + 0.55), -d / 2 - 0.01]} size={[w * 0.86, floorH * 0.45, 0.04]} material={glass} shadow={false} />
+          <Box position={[0, floorH * (i + 0.55), d / 2 + 0.01]} size={[w * 0.86, floorH * 0.45, 0.04]} material={glass()} shadow={false} />
+          <Box position={[0, floorH * (i + 0.55), -d / 2 - 0.01]} size={[w * 0.86, floorH * 0.45, 0.04]} material={glass()} shadow={false} />
           {i > 0 ? (
             <>
               <Box position={[0, floorH * i, d / 2 + 0.28]} size={[w + 0.1, 0.08, 0.55]} color={colors.accent} />
@@ -107,7 +107,7 @@ function Storefront({ location, accent }: { location: LocationRecord; accent: st
   return (
     <group>
       <Box position={[0, h / 2, 0]} size={[w, h, d]} color={MAP.building} />
-      <Box position={[0, h * 0.42, d / 2 + 0.02]} size={[w * 0.86, h * 0.62, 0.05]} material={glass} shadow={false} />
+      <Box position={[0, h * 0.42, d / 2 + 0.02]} size={[w * 0.86, h * 0.62, 0.05]} material={glass()} shadow={false} />
       <group position={[0, h * 0.8, d / 2 + 0.45]} rotation={[0.35, 0, 0]}>
         <Box position={[0, 0, 0]} size={[w * 0.95, 0.07, 0.9]} color={accent} />
       </group>
@@ -123,7 +123,7 @@ function Bukka({ location }: { location: LocationRecord }) {
   return (
     <group>
       <Box position={[0, h / 2, -d * 0.15]} size={[w, h, d * 0.7]} color={MAP.building} />
-      <Box position={[0, h * 0.45, d * 0.2 + 0.02]} size={[w * 0.6, h * 0.4, 0.04]} material={glass} shadow={false} />
+      <Box position={[0, h * 0.45, d * 0.2 + 0.02]} size={[w * 0.6, h * 0.4, 0.04]} material={glass()} shadow={false} />
       {stripes.map((color, i) => (
         <group key={i} position={[-w / 2 + (w / stripes.length) * (i + 0.5), h * 0.9, d * 0.42]} rotation={[0.4, 0, 0]}>
           <Box position={[0, 0, 0]} size={[w / stripes.length, 0.06, 0.9]} color={color} />
@@ -149,7 +149,7 @@ function InnovationHub({ location }: { location: LocationRecord }) {
   const frame = MAP.roof
   return (
     <group>
-      <Box position={[0, h / 2, 0]} size={[w, h, d]} material={glass} />
+      <Box position={[0, h / 2, 0]} size={[w, h, d]} material={glass()} />
       <Box position={[0, h * 0.25, 0]} size={[w * 0.8, h * 0.5, d * 0.8]} color={MAP.building} />
       {[-1, 1].flatMap((sx) =>
         [-1, 1].map((sz) => (
@@ -202,25 +202,6 @@ function LandmarkModel({ location }: { location: LocationRecord }) {
           <Box position={[w / 2 - 0.4, 2.1, -d / 2 + 0.4]} size={[1, 0.5, 0.1]} color={MAP.roof} />
         </group>
       )
-    case 'ekpoma_market':
-      return (
-        <group>
-          <Box position={[0, 0.05, 0]} size={[w, 0.1, d]} color={MAP.landLight} />
-          {Array.from({ length: 6 }, (_, i) => {
-            const x = -w / 2 + 1.2 + (i % 3) * 2.3
-            const z = i < 3 ? -1.2 : 1.2
-            const colors = [MAP.roof, MAP.vegetation, MAP.roof, MAP.window, MAP.buildingGray, MAP.roof]
-            return (
-              <group key={i} position={[x, 0, z]}>
-                <Box position={[0, 0.45, 0]} size={[1.6, 0.6, 1.4]} color={MAP.building} />
-                <mesh position={[0, 1.15, 0]} rotation={[0, Math.PI / 4, 0]} castShadow material={paint(colors[i]!)}>
-                  <coneGeometry args={[1.25, 0.6, 4]} />
-                </mesh>
-              </group>
-            )
-          })}
-        </group>
-      )
     case 'church':
       return (
         <group>
@@ -228,7 +209,7 @@ function LandmarkModel({ location }: { location: LocationRecord }) {
           <mesh position={[0, h + 0.5, 0]} castShadow material={paint(MAP.roof)}>
             <cylinderGeometry args={[0, w * 0.72, 1, 4, 1]} />
           </mesh>
-          <Box position={[0, h * 0.5, d / 2 + 0.02]} size={[w * 0.3, h * 0.7, 0.04]} material={glass} shadow={false} />
+          <Box position={[0, h * 0.5, d / 2 + 0.02]} size={[w * 0.3, h * 0.7, 0.04]} material={glass()} shadow={false} />
           <Box position={[0, h + 1.4, d / 2 - 0.6]} size={[1, 2.6, 1]} color={MAP.building} />
           <Box position={[0, h + 3.2, d / 2 - 0.6]} size={[0.12, 1, 0.12]} color={MAP.roof} />
           <Box position={[0, h + 3.3, d / 2 - 0.6]} size={[0.6, 0.12, 0.12]} color={MAP.roof} />
@@ -255,7 +236,7 @@ function LandmarkModel({ location }: { location: LocationRecord }) {
           <Box position={[0, h / 2, 0]} size={[w, h, d]} color={MAP.buildingGray} />
           <Box position={[0, h + 0.08, 0]} size={[w + 0.3, 0.16, d + 0.3]} color={MAP.roof} />
           <Box position={[0, h * 0.62, d / 2 + 0.02]} size={[w * 0.8, h * 0.55, 0.06]} color={MAP.building} />
-          <Box position={[0, h * 0.62, d / 2 + 0.06]} size={[w * 0.7, h * 0.42, 0.02]} material={glass} shadow={false} />
+          <Box position={[0, h * 0.62, d / 2 + 0.06]} size={[w * 0.7, h * 0.42, 0.02]} material={glass()} shadow={false} />
           <Box position={[w / 2 + 0.6, 0.35, 0.6]} size={[0.8, 0.7, 0.6]} color={MAP.roof} />
         </group>
       )
