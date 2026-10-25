@@ -19,7 +19,8 @@ import {
   type Mesh,
 } from 'three'
 import { useGame } from '@/hooks/use-game'
-import { drawAdPlaceholder, openAd } from '@/lib/game/billboard-ad'
+import { drawAdPlaceholder, drawBoardAd, drawBoardImage, openAd, stampBoardNumber } from '@/lib/game/billboard-ad'
+import { adForBoard, boardNumber } from '@/lib/game/billboard-ads'
 import { kenneyUrl } from '@/lib/game/kenney-buildings'
 import { mapPalette as MAP } from '@/lib/game/map-theme'
 import { MAP_ZONES, type MapZone, type OpenZoneKind, type ZonePart } from '@/lib/game/world-layout'
@@ -716,19 +717,83 @@ Object.values(BILLBOARDS).forEach((b) => useGLTF.preload(b.url))
 /** World height of a billboard before the zone's scaleMul. */
 const BILLBOARD_HEIGHT = 9
 
-const adTextures = new globalThis.Map<string, CanvasTexture>()
-/** One shared "Your ad here" texture per face aspect. */
-function adTexture(aspect: number) {
-  const key = aspect.toFixed(2)
-  let texture = adTextures.get(key)
-  if (!texture) {
-    const h = 384
-    texture = new CanvasTexture(drawAdPlaceholder(Math.round(h * aspect), h))
-    texture.colorSpace = SRGBColorSpace
-    texture.anisotropy = 8
-    adTextures.set(key, texture)
+const boardTextures = new globalThis.Map<string, CanvasTexture>()
+const adImages = new globalThis.Map<string, Promise<ImageBitmap>>()
+
+/** fetch + createImageBitmap: decodes even when the tab is in the background. */
+function loadAdImage(src: string) {
+  let image = adImages.get(src)
+  if (!image) {
+    image = fetch(src)
+      .then((res) => {
+        if (!res.ok) throw new Error(`ad image ${res.status}`)
+        return res.blob()
+      })
+      .then((blob) => createImageBitmap(blob))
+    image.catch(() => adImages.delete(src))
+    adImages.set(src, image)
   }
+  return image
+}
+
+function toTexture(canvas: HTMLCanvasElement) {
+  const texture = new CanvasTexture(canvas)
+  texture.colorSpace = SRGBColorSpace
+  texture.anisotropy = 8
   return texture
+}
+
+const BOARD_PX = 512
+
+/** Each numbered board's ad (from billboard-ads.ts), with its number plate. "Your ad here" until it loads. */
+function useBoardTexture(zoneId: string, aspect: number) {
+  const n = boardNumber(zoneId)
+  const key = `${n}:${aspect.toFixed(2)}`
+  const [texture, setTexture] = useState(() => {
+    const ready = boardTextures.get(key)
+    if (ready) return ready
+    const placeholderKey = `placeholder:${key}`
+    let placeholder = boardTextures.get(placeholderKey)
+    if (!placeholder) {
+      placeholder = toTexture(stampBoardNumber(drawAdPlaceholder(Math.round(BOARD_PX * aspect), BOARD_PX), n))
+      boardTextures.set(placeholderKey, placeholder)
+    }
+    return placeholder
+  })
+  useEffect(() => {
+    const ad = adForBoard(n)
+    if (!ad) return
+    const ready = boardTextures.get(key)
+    if (ready) {
+      setTexture(ready)
+      return
+    }
+    let cancelled = false
+    const w = Math.round(BOARD_PX * aspect)
+    // A ready-made wide design wins; otherwise build one from the pop-up artwork
+    loadAdImage(ad.boardImage ?? ad.image)
+      .then((img) => {
+        const art = ad.boardImage ? drawBoardImage(w, BOARD_PX, img, n) : drawBoardAd(w, BOARD_PX, ad.board, img, n)
+        const done = boardTextures.get(key) ?? toTexture(art)
+        boardTextures.set(key, done)
+        if (!cancelled) setTexture(done)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [key, n, aspect])
+  return texture
+}
+
+function AdFace({ zoneId, face }: { zoneId: string; face: AdFace }) {
+  const texture = useBoardTexture(zoneId, face.width / face.height)
+  return (
+    <mesh position={face.center} rotation={[0, face.yaw, 0]}>
+      <planeGeometry args={[face.width, face.height]} />
+      <meshBasicMaterial map={texture} toneMapped={false} />
+    </mesh>
+  )
 }
 
 function BillboardZone({ zone }: { zone: MapZone }) {
@@ -751,10 +816,7 @@ function BillboardZone({ zone }: { zone: MapZone }) {
       <group rotation={[0, config.turn, 0]} scale={scale} position={[0, config.groundY * scale, 0]}>
         <primitive object={prepared} />
         {config.faces.map((face, i) => (
-          <mesh key={i} position={face.center} rotation={[0, face.yaw, 0]}>
-            <planeGeometry args={[face.width, face.height]} />
-            <meshBasicMaterial map={adTexture(face.width / face.height)} toneMapped={false} />
-          </mesh>
+          <AdFace key={i} zoneId={zone.id} face={face} />
         ))}
       </group>
       {/* Tap anywhere on the billboard to see the ad */}

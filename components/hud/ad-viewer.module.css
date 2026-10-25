@@ -1,24 +1,85 @@
+/* Billboard ad: card that slides up from the bottom (like the profile sheet). */
+
 .overlay {
   position: fixed;
   inset: 0;
   z-index: var(--z-modal);
-  display: grid;
-  place-items: center;
-  padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: max(16px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
   background: rgba(10, 16, 30, 0.45);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
+  animation: fadeIn 0.22s ease-out;
+}
+
+.closing {
+  animation: fadeOut 0.22s ease-in forwards;
 }
 
 .card {
   position: relative;
   width: min(30rem, 100%);
-  overflow: hidden;
+  max-height: calc(100dvh - 32px);
+  overflow-x: hidden;
+  overflow-y: auto;
   border-radius: 24px;
   background: #fff;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.34s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
+.closing .card {
+  animation: slideDown 0.22s ease-in forwards;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(105%);
+  }
+}
+
+@keyframes slideDown {
+  to {
+    transform: translateY(105%);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes fadeOut {
+  to {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay,
+  .card,
+  .closing,
+  .closing .card {
+    animation: none;
+  }
+}
+
+.handle {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  z-index: 1;
+  width: 36px;
+  height: 5px;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+/* Ad edge to edge on top */
 .ad {
   display: block;
   width: 100%;
@@ -26,8 +87,23 @@
   object-fit: cover;
 }
 
+.flyer {
+  display: block;
+  width: 100%;
+  max-height: 58dvh;
+  object-fit: contain;
+  background: #0b5a33;
+}
+
 .copy {
   padding: 14px 18px 18px;
+}
+
+.meta {
+  margin: 0 0 6px;
+  color: #8e8e93;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .title {
@@ -44,10 +120,57 @@
   line-height: 1.4;
 }
 
+.ctas {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.whatsapp,
+.call {
+  display: inline-flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.whatsapp {
+  background: #1aa053;
+  color: #fff;
+}
+
+.call {
+  background: #f2f2f7;
+  color: #111;
+}
+
+.share {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 12px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #1d6fd6;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
 .close {
   position: absolute;
   top: 10px;
   right: 10px;
+  z-index: 1;
   display: grid;
   place-items: center;
   width: 34px;
