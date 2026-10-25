@@ -17,7 +17,7 @@ import { advanceGameTime, clockFromGameTime, isOpenAt, DEFAULT_GAME_TIME } from 
 import type { TraitId } from './traits.js'
 import { checkTraits } from './traits.js'
 import { computeSetupStatus, SETUP_INCOMPLETE } from './setup-status.js'
-import { lodgingDecayMultiplier } from './lodging.js'
+import { lodgingDecayMultiplier, lodgingHasKitchen } from './lodging.js'
 import { consumePendingToast, processWeeklyEconomy } from './weekly.js'
 
 export type GameStateRow = {
@@ -422,6 +422,9 @@ export async function performGameAction(
     hasGameState,
   })
   if (!setup.setupComplete) return { ok: false, error: SETUP_INCOMPLETE, code: 409 }
+  if (action.kitchen && !lodgingHasKitchen(character.lodging_id)) {
+    return { ok: false, error: 'Your place has no kitchen. Move to a self-con or one bedroom to cook.', code: 400 }
+  }
 
   const traits = traitsOf(character)
 

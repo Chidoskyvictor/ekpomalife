@@ -1,4 +1,4 @@
-export type LodgingId = 'hostel-poultry' | 'selfcon-oxford' | 'selfcon-g2' | 'onebed-ojo'
+export type LodgingId = 'hostel-poultry' | 'single-poultry' | 'selfcon-g2' | 'onebed-ojo'
 
 export type Rotation = 0 | 90 | 180 | 270
 

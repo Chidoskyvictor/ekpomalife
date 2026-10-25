@@ -120,7 +120,13 @@ export function sendChatMoney(chatId: string, amount: number) {
   )
 }
 
-export type HostCard = { userId: string; username: string; displayName: string; appearance: unknown }
+export type HostCard = {
+  userId: string
+  username: string
+  displayName: string
+  appearance: unknown
+  lodgingId: string | null
+}
 
 /** Name + look of the player whose place you are visiting. */
 export function fetchHostCard(username: string) {

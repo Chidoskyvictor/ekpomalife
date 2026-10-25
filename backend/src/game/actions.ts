@@ -13,6 +13,7 @@ export type GameActionId =
   | 'rest'
   | 'toilet'
   | 'bucket-bath'
+  | 'cook'
 
 export type ActionDef = {
   id: GameActionId
@@ -28,6 +29,8 @@ export type ActionDef = {
   openHours?: OpenHours | null
   /** Can be done on furniture in your own room (Home tab), wherever you are on the map. */
   home?: boolean
+  /** Home action that needs a kitchen (self-con and one bedroom). */
+  kitchen?: boolean
 }
 
 export const ACTIONS: Record<GameActionId, ActionDef> = {
@@ -125,6 +128,16 @@ export const ACTIONS: Record<GameActionId, ActionDef> = {
     duration: 25,
     needEffects: { hygiene: 35, energy: -3 },
     home: true,
+  },
+  cook: {
+    id: 'cook',
+    label: 'Cook',
+    hint: 'Pot of rice on your own gas. Cheaper than buying food.',
+    cost: -400,
+    duration: 45,
+    needEffects: { hunger: 30, fun: 3, energy: -4 },
+    home: true,
+    kitchen: true,
   },
 }
 

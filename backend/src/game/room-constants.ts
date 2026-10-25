@@ -8,10 +8,10 @@ export const ROOM_TIERS: Record<LodgingId, RoomTier> = {
     grid: { w: 6, d: 5 },
     floorOptions: ['cement', 'rug-carpet'],
   },
-  'selfcon-oxford': {
+  'single-poultry': {
     tier: 2,
-    lodgingId: 'selfcon-oxford',
-    label: 'Self-con, Oxford',
+    lodgingId: 'single-poultry',
+    label: 'Single room, Poultry road',
     grid: { w: 7, d: 6 },
     floorOptions: ['cement', 'tiles-white', 'rug-carpet'],
   },

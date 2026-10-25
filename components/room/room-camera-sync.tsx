@@ -2,18 +2,23 @@
 
 import { OrbitControls } from '@react-three/drei'
 import { useFrame, useThree } from '@react-three/fiber'
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import { PerspectiveCamera } from 'three'
-import { applyRoomCamera, ROOM_CAMERA } from '@/lib/game/room-camera'
+import { applyRoomCamera, scaledRoomCamera, type RoomView } from '@/lib/game/room-camera'
 import { useRoomCameraDebug } from './room-camera-debug-context'
 
-export function RoomCameraSync() {
+/** `scale` pulls the camera back for bigger homes (ignored once the camera debug panel has an override). */
+export function RoomCameraSync({ scale = 1, view = 'corner' }: { scale?: number; view?: RoomView }) {
   const ctx = useRoomCameraDebug()
   const controlsRef = useRef<OrbitControlsImpl>(null)
   const camera = useThree((state) => state.camera)
   const size = useThree((state) => state.size)
-  const placement = ctx?.placement ?? ROOM_CAMERA
+  const debugPlacement = ctx?.hasOverride ? ctx.placement : null
+  const placement = useMemo(
+    () => debugPlacement ?? scaledRoomCamera(scale, view),
+    [debugPlacement, scale, view],
+  )
   const resetGeneration = ctx?.resetGeneration ?? 0
 
   useEffect(() => {

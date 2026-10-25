@@ -1,6 +1,6 @@
 export type CharacterTypeId = 'student' | 'lecturer' | 'indigene' | 'casual' | 'graduate'
 
-export type LodgingId = 'hostel-poultry' | 'selfcon-oxford' | 'selfcon-g2' | 'onebed-ojo'
+export type LodgingId = 'hostel-poultry' | 'single-poultry' | 'selfcon-g2' | 'onebed-ojo'
 
 export type CharacterType = {
   id: CharacterTypeId
@@ -78,20 +78,20 @@ export const LODGINGS: Lodging[] = [
     details: AAU_DETAILS,
   },
   {
-    id: 'selfcon-oxford',
+    id: 'single-poultry',
     icon: '/emoji/house.png',
-    title: 'Selfcon · Poultry road',
-    badge: 'Selfcon',
-    description: 'Your own room on Poultry road. Off campus, bed stand included.',
+    title: 'Single room · Poultry road',
+    badge: 'Single room',
+    description: 'One room on Poultry road: bed, toilet and bucket all inside. Off campus, cheapest rent.',
     rentWeekly: 2500,
     startLocationId: 'off-campus-hostels',
   },
   {
     id: 'selfcon-g2',
     icon: '/emoji/house.png',
-    title: 'Selfcon · College of Medicine · G1',
-    badge: 'Selfcon',
-    description: 'Selfcon by College of Medicine and G1. Walk to class, still pay for water.',
+    title: 'Self-con · College of Medicine · G1',
+    badge: 'Self-con',
+    description: 'Your room plus your own toilet, bath and kitchen, by College of Medicine and G1. Walk to class.',
     rentWeekly: 3000,
     startLocationId: 'college-of-medicine',
   },
@@ -101,7 +101,7 @@ export const LODGINGS: Lodging[] = [
     title: 'One bedroom · Ojo street',
     badge: 'One bedroom',
     badgeTone: 'onebed',
-    description: 'A one bedroom on Ojo street. More space, more rent, more peace.',
+    description: 'Parlour, separate bedroom, kitchen and bath on Ojo street. More space, more rent, more peace.',
     rentWeekly: 10_500,
     startLocationId: 'off-campus-hostels',
   },
@@ -118,9 +118,12 @@ export function normalizeCharacterType(input?: string | null): CharacterTypeId |
   return isCharacterTypeId(input) ? input : null
 }
 
+/** Old ids still sitting in saved sign-up drafts. */
+const RENAMED_LODGINGS: Record<string, LodgingId> = { 'selfcon-oxford': 'single-poultry' }
+
 export function getLodging(id: string | null | undefined): Lodging | null {
   if (!id) return null
-  return LODGING_BY_ID.get(id as LodgingId) ?? null
+  return LODGING_BY_ID.get((RENAMED_LODGINGS[id] ?? id) as LodgingId) ?? null
 }
 
 export function normalizeLodgingId(input?: string | null): LodgingId | null {

@@ -157,7 +157,7 @@ Change-dream dialog and dream celebration exist in the HUD. Share card: `share-d
 
 ### 4.5 Live step (client-only today)
 - Character types: `student`, `lecturer`, `indigene`, `casual`.
-- Lodgings: `hostel-poultry` (AAU student, Igbinedion Hostel, rent ₦1,200/wk), `selfcon-oxford` (Poultry road, ₦2,500/wk), `selfcon-g2` (College of Medicine G1, ₦3,000/wk), `onebed-ojo` (Ojo street, ₦10,500/wk). Each also has a `startCash` — **to be removed** (server spin is the only starting money).
+- Lodgings: `hostel-poultry` (AAU student, Igbinedion Hostel, rent ₦1,200/wk), `single-poultry` (Poultry road, ₦2,500/wk), `selfcon-g2` (College of Medicine G1, ₦3,000/wk), `onebed-ojo` (Ojo street, ₦10,500/wk). Each also has a `startCash` — **to be removed** (server spin is the only starting money).
 - Courses (student): computer-science, engineering, mass-comm, law, accounting, theatre-arts, nursing, education. Perk copy mentions ₦3,000 Monday allowance and degree-class pay bonus (up to +25%) — not implemented.
 
 ### 4.6 Starting money (server, once only)
@@ -323,7 +323,7 @@ Auth required (session cookie). Incomplete setup → **409** `{ ok: false, error
 
 **Tables** (`sql/007_phase2_economy.sql` + `sql/008_phase2_economy_complete.sql`): `jobs`, `shop_items`, `inventory`, `rent` (+ warnings / eviction / game-day columns), `player_jobs`, `payouts` `(character_id, kind, game_week)`, `idempotency_keys`; `game_state` gains `hustle_lockout_until`, `reputation`, `pending_toast`; shop seed includes `lodge-deed`.
 
-**Weekly (lazy on state read / economy actions, game clock):** student Monday allowance ₦3,000 (`kind: allowance`, catch-up ≤4 weeks); landlord income when `lodge-deed` owned (`ledger kind: rent` positive; payouts kind `landlord_income`); rent ladder on Saturday rent day → warning 1 → 2 → eviction to `selfcon-oxford` (Off-campus Hostels).
+**Weekly (lazy on state read / economy actions, game clock):** student Monday allowance ₦3,000 (`kind: allowance`, catch-up ≤4 weeks); landlord income when `lodge-deed` owned (`ledger kind: rent` positive; payouts kind `landlord_income`); rent ladder on Saturday rent day → warning 1 → 2 → eviction to `single-poultry` (Off-campus Hostels).
 
 **Money rule:** every cash change goes through `applyCash()` / `writeCashChange()` inside a transaction with `SELECT … FOR UPDATE` on `game_state`, rejects negative balances, bumps `version`, writes a ledger row, mirrors cash onto `characters.cash`. Fines clip to available cash (never below 0).
 

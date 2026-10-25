@@ -45,7 +45,7 @@ export function FurnitureSheet({
                   {gameTimeLabel(action.minutes)}
                 </span>
               </span>
-              <span className={styles.free}>Free</span>
+              <span className={styles.free}>{action.cost ? `₦${action.cost.toLocaleString()}` : 'Free'}</span>
               <span className={styles.title}>{action.title}</span>
               <span className={styles.chips}>
                 {action.gains.map((gain) => (

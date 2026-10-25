@@ -5,7 +5,7 @@ describe('setupBodySchema', () => {
   it('accepts graduate with a selfcon lodge', () => {
     const parsed = setupBodySchema.safeParse({
       characterType: 'graduate',
-      lodgingId: 'selfcon-oxford',
+      lodgingId: 'single-poultry',
       courseId: null,
     })
     expect(parsed.success).toBe(true)

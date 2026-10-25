@@ -13,6 +13,7 @@ export type GameActionId =
   | 'rest'
   | 'toilet'
   | 'bucket-bath'
+  | 'cook'
   // Building interiors (Phase 3 UI → server POST /game/action)
   | 'pay-school-fees'
   | 'course-registration'

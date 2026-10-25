@@ -1,4 +1,4 @@
-/** Default orbit camera for the selfcon room view. */
+/** Default orbit camera for the room view (each home is centred on the origin). */
 
 import type { PerspectiveCamera } from 'three'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
@@ -23,6 +23,32 @@ export const ROOM_CAMERA: RoomCameraPlacement = {
   fov: ROOM_CAMERA_DESKTOP_FOV,
   minDistance: 4.2,
   maxDistance: 15,
+}
+
+/**
+ * Which way the camera looks in. `corner`: from the front-left (the single room, low front
+ * and left walls). `front`: straight in through the open front (self-con and one bedroom,
+ * which have full walls on the other three sides).
+ */
+export type RoomView = 'corner' | 'front'
+
+export const ROOM_CAMERA_FRONT: RoomCameraPlacement = {
+  ...ROOM_CAMERA,
+  position: [-1.4, 8.55, 13.3],
+  target: [0, 0.75, 0.3],
+}
+
+/** The default camera for a view, pulled back along its view line for bigger homes. */
+export function scaledRoomCamera(scale: number, view: RoomView = 'corner'): RoomCameraPlacement {
+  const base = view === 'front' ? ROOM_CAMERA_FRONT : ROOM_CAMERA
+  if (scale === 1) return base
+  const [px, py, pz] = base.position
+  const [tx, ty, tz] = base.target
+  return {
+    ...base,
+    position: [tx + (px - tx) * scale, ty + (py - ty) * scale, tz + (pz - tz) * scale],
+    maxDistance: ROOM_CAMERA.maxDistance * scale,
+  }
 }
 
 /** Portrait uses {@link ROOM_CAMERA_MOBILE_FOV}; wide desktop uses placement FOV (default 40). */

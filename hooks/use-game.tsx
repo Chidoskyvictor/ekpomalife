@@ -84,6 +84,7 @@ const SERVER_ACTIONS = new Set<string>([
   'rest',
   'toilet',
   'bucket-bath',
+  'cook',
   'pay-school-fees',
   'course-registration',
   'collect-matric-gown',

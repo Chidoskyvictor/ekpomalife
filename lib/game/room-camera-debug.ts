@@ -62,7 +62,7 @@ export function roundCamera(n: number, digits = 3) {
 export function formatRoomCameraSnippet(placement: RoomCameraPlacement) {
   const p = placement.position.map((n) => roundCamera(n))
   const t = placement.target.map((n) => roundCamera(n))
-  return `// selfcon-room-canvas.tsx — default camera
+  return `// room-camera.ts — default camera
 position: [${p.join(', ')}],
 target: [${t.join(', ')}],
 fov: ${roundCamera(placement.fov, 1)},

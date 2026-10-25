@@ -1,7 +1,7 @@
-export type LodgingId = 'hostel-poultry' | 'selfcon-oxford' | 'selfcon-g2' | 'onebed-ojo'
+export type LodgingId = 'hostel-poultry' | 'single-poultry' | 'selfcon-g2' | 'onebed-ojo'
 
 /** Eviction target — Off-campus Hostels (cheaper than selfcon-g2 / onebed). */
-export const EVICTION_LODGING_ID: LodgingId = 'selfcon-oxford'
+export const EVICTION_LODGING_ID: LodgingId = 'single-poultry'
 
 export const LODGE_DEED_ITEM_ID = 'lodge-deed'
 
@@ -10,7 +10,7 @@ export const LODGE_INCOME_WEEKLY = 8_000
 
 const RENT_WEEKLY: Record<LodgingId, number> = {
   'hostel-poultry': 1200,
-  'selfcon-oxford': 2500,
+  'single-poultry': 2500,
   'selfcon-g2': 3000,
   'onebed-ojo': 10_500,
 }
@@ -18,7 +18,7 @@ const RENT_WEEKLY: Record<LodgingId, number> = {
 /** Needs drain multiplier (>1 = worse). Eviction lodging drains faster. */
 const DECAY_MULT: Record<LodgingId, number> = {
   'hostel-poultry': 1,
-  'selfcon-oxford': 1.35,
+  'single-poultry': 1.35,
   'selfcon-g2': 1.1,
   'onebed-ojo': 1,
 }
@@ -31,6 +31,12 @@ export function rentWeeklyForLodging(lodgingId: string | null | undefined): numb
 export function normalizeLodgingId(lodgingId: string | null | undefined): LodgingId {
   if (lodgingId && lodgingId in RENT_WEEKLY) return lodgingId as LodgingId
   return 'hostel-poultry'
+}
+
+/** Self-con and one bedroom have their own kitchen; the single room and hostel don't. */
+export function lodgingHasKitchen(lodgingId: string | null | undefined): boolean {
+  const id = normalizeLodgingId(lodgingId)
+  return id === 'selfcon-g2' || id === 'onebed-ojo'
 }
 
 export function lodgingDecayMultiplier(lodgingId: string | null | undefined): number {

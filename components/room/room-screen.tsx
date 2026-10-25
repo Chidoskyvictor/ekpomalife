@@ -7,7 +7,7 @@ import { useGame } from '@/hooks/use-game'
 import { fetchHostCard, type HostCard } from '@/lib/game/hostels-api'
 import { normalizeAppearance, type Appearance } from '@/lib/game/look'
 import type { FurnitureId } from '@/lib/game/room-furniture'
-import { SELFCON_GLB_URL } from '@/lib/game/selfcon-model'
+import { layoutForLodging } from '@/lib/game/room-layouts'
 import { RoomCameraDebugPanel } from './room-camera-debug-panel'
 import { RoomCameraDebugProvider } from './room-camera-debug-context'
 import { FurnitureSheet } from './furniture-sheet'
@@ -15,8 +15,8 @@ import type { RoomPlayerControl } from './room-player'
 import { VisitBanner } from './visit-banner'
 import styles from './room.module.css'
 
-const SelfconRoomCanvas = dynamic(
-  () => import('./selfcon-room-canvas').then((m) => m.SelfconRoomCanvas),
+const HomeCanvas = dynamic(
+  () => import('./home-canvas').then((m) => m.HomeCanvas),
   {
     ssr: false,
     loading: () => <div className={styles.canvasStage} aria-hidden="true" />,
@@ -44,6 +44,9 @@ export function RoomScreen() {
       cancelled = true
     }
   }, [visiting, isOwn])
+  // Your own home, or the host's when visiting (their character shows once the card loads)
+  const visitingOther = !!visiting && !isOwn
+  const layout = layoutForLodging(visitingOther ? host?.lodgingId : state?.lodgingId)
   const hostLook = useMemo<Appearance | undefined>(
     () => (host ? normalizeAppearance(host.appearance as Partial<Appearance>) : undefined),
     [host],
@@ -51,7 +54,8 @@ export function RoomScreen() {
 
   useEffect(() => {
     let cancelled = false
-    void fetch(SELFCON_GLB_URL, { method: 'HEAD' })
+    setModelReady('checking')
+    void fetch(layout.glb, { method: 'HEAD' })
       .then((res) => {
         if (!cancelled) setModelReady(res.ok ? 'ok' : 'missing')
       })
@@ -61,16 +65,18 @@ export function RoomScreen() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [layout.glb])
 
   return (
     <RoomCameraDebugProvider>
-      <div className={styles.root} aria-label="Your selfcon">
+      <div className={styles.root} aria-label={visitingOther ? `${host?.username ?? visiting}'s ${layout.label.toLowerCase()}` : `Your ${layout.label.toLowerCase()}`}>
         <div className={styles.canvasStage}>
-        {modelReady === 'ok' ? <SelfconRoomCanvas appearance={state?.appearance} host={hostLook} onFurniture={setFurniture} control={control} /> : null}
+        {modelReady === 'ok' && (!visitingOther || host) ? (
+          <HomeCanvas layout={layout} appearance={state?.appearance} host={hostLook} onFurniture={setFurniture} control={control} />
+        ) : null}
         {modelReady === 'missing' ? (
           <p className={styles.missingModel} role="status">
-            Add <code>selfcon.glb</code> to <code>public/models/</code> to see your room here.
+            Add <code>{layout.glb.replace('/models/', '')}</code> to <code>public/models/</code> to see your room here.
           </p>
         ) : null}
         {modelReady === 'checking' ? (

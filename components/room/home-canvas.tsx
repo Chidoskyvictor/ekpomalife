@@ -8,13 +8,17 @@ import { applyGlbTextureAnisotropy } from '@/components/world/glb-textures'
 import { useLowPerf } from '@/hooks/use-low-perf'
 import type { Appearance } from '@/lib/game/look'
 import type { FurnitureId } from '@/lib/game/room-furniture'
-import { ROOM_CAMERA } from '@/lib/game/room-camera'
-import { SELFCON_GLB_URL, SELFCON_SLAB_PAD_SCALE_XZ } from '@/lib/game/selfcon-model'
+import { scaledRoomCamera } from '@/lib/game/room-camera'
+import { ROOM_LAYOUTS, type RoomLayout } from '@/lib/game/room-layouts'
 import { RoomCameraSync } from './room-camera-sync'
 import { CharacterFigure } from '@/components/look/character-figure'
 import { RoomPlayer, type RoomPlayerControl } from './room-player'
 
+/** Footprint scale for the thin wide lawn discs in the home GLBs (1 = Blender size). */
+const LAWN_SCALE_XZ = 0.76
+
 type PlayerProps = {
+  layout: RoomLayout
   appearance?: Appearance
   /** Visiting: the owner's look, standing in their room. */
   host?: Appearance
@@ -45,18 +49,20 @@ function shrinkRoundSlabPads(root: Object3D) {
   root.traverse((object) => {
     const mesh = object as Mesh
     if (!mesh.isMesh) return
+    // Only the round lawn discs — the bigger homes' tile floors and pavers are big flat meshes too
+    if (!mesh.name.startsWith('Grass')) return
     const box = new Box3().setFromObject(mesh)
     const size = box.getSize(new Vector3())
     const thinPad = size.y <= 0.35 && size.x >= 8 && size.z >= 8
     if (!thinPad) return
-    mesh.scale.x *= SELFCON_SLAB_PAD_SCALE_XZ
-    mesh.scale.z *= SELFCON_SLAB_PAD_SCALE_XZ
+    mesh.scale.x *= LAWN_SCALE_XZ
+    mesh.scale.z *= LAWN_SCALE_XZ
   })
 }
 
-function SelfconModel({ appearance, host, onFurniture, control }: PlayerProps) {
+function HomeModel({ layout, appearance, host, onFurniture, control }: PlayerProps) {
   const gl = useThree((state) => state.gl)
-  const { scene } = useGLTF(SELFCON_GLB_URL)
+  const { scene } = useGLTF(layout.glb)
   useLayoutEffect(() => {
     applyGlbTextureAnisotropy(scene, gl)
   }, [scene, gl])
@@ -74,10 +80,10 @@ function SelfconModel({ appearance, host, onFurniture, control }: PlayerProps) {
       <primitive object={prepared} />
       {/* Same offset as the model, so the player walks in the GLB's own floor coordinates */}
       <group position={[prepared.position.x, prepared.position.y, prepared.position.z]}>
-        <RoomPlayer appearance={appearance} onFurniture={onFurniture} control={control} />
+        <RoomPlayer key={layout.id} layout={layout} appearance={appearance} onFurniture={onFurniture} control={control} />
         {host ? (
-          // The host waits by the table, facing the door side of the room
-          <group position={[-0.6, 0, -1.4]} rotation={[0, Math.PI / 5, 0]}>
+          // The host waits inside, facing the visitor
+          <group position={layout.host.position} rotation={[0, layout.host.rotation, 0]}>
             <CharacterFigure appearance={host} />
           </group>
         ) : null}
@@ -86,10 +92,11 @@ function SelfconModel({ appearance, host, onFurniture, control }: PlayerProps) {
   )
 }
 
-function SelfconRoomCanvasInner(props: PlayerProps) {
+/** Your home (single room, self-con or one bedroom) with your character in it. */
+export function HomeCanvas(props: PlayerProps) {
   const lowPerf = useLowPerf()
   const debug = useRoomCameraDebug()
-  const cam = debug?.placement ?? ROOM_CAMERA
+  const cam = debug?.hasOverride ? debug.placement : scaledRoomCamera(props.layout.cameraScale, props.layout.view)
 
   return (
     <Canvas
@@ -100,25 +107,22 @@ function SelfconRoomCanvasInner(props: PlayerProps) {
         near: 0.05,
         far: 120,
       }}
-      gl={{ antialias: !lowPerf, powerPreference: 'high-performance' }}
+      gl={{ antialias: !lowPerf, powerPreference: 'high-performance', alpha: true }}
       style={{ width: '100%', height: '100%', touchAction: 'none' }}
       onCreated={({ gl }) => {
-        gl.setClearColor('#eef3f8', 1)
+        // See-through: the page's own background (--app-wash) shows behind the house
+        gl.setClearColor('#000000', 0)
       }}
     >
       <ambientLight intensity={0.75} />
       <hemisphereLight args={['#ffffff', '#c5c0b6', 0.5]} />
       <directionalLight position={[6, 10, 5]} intensity={1.05} />
       <Suspense fallback={null}>
-        <SelfconModel {...props} />
+        <HomeModel {...props} />
       </Suspense>
-      <RoomCameraSync />
+      <RoomCameraSync scale={props.layout.cameraScale} view={props.layout.view} />
     </Canvas>
   )
 }
 
-export function SelfconRoomCanvas(props: PlayerProps) {
-  return <SelfconRoomCanvasInner {...props} />
-}
-
-useGLTF.preload(SELFCON_GLB_URL)
+for (const layout of Object.values(ROOM_LAYOUTS)) useGLTF.preload(layout.glb)

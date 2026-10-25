@@ -1,10 +1,10 @@
 import type { GameActionId } from './places'
 
-/** Tappable furniture in the selfcon room and what you can do with each. */
-export type FurnitureId = 'bed' | 'red-chair' | 'desk-chair' | 'toilet' | 'bucket'
+/** Tappable furniture in the homes and what you can do with each. Which pieces a home has: room-layouts.ts. */
+export type FurnitureId = 'bed' | 'red-chair' | 'desk-chair' | 'sofa' | 'toilet' | 'bucket' | 'cooker'
 
-/** How the character uses the piece: lie on it, sit on it, or crouch for a bucket bath. */
-export type UseStyle = 'lie' | 'sit' | 'bath'
+/** How the character uses the piece: lie on it, sit on it, crouch for a bucket bath, or stand at it. */
+export type UseStyle = 'lie' | 'sit' | 'bath' | 'stand'
 
 export type FurnitureAction = {
   id: GameActionId
@@ -16,6 +16,8 @@ export type FurnitureAction = {
   style: UseStyle
   /** Real seconds the character stays in the pose. */
   seconds: number
+  /** Naira it costs (mirrors backend ACTIONS cost); free when unset. */
+  cost?: number
 }
 
 export type Furniture = {
@@ -50,6 +52,12 @@ export const FURNITURE: Record<FurnitureId, Furniture> = {
       { id: 'study', emoji: '📚', title: 'Study', minutes: 90, gains: ['Study'], style: 'sit', seconds: 7 },
     ],
   },
+  sofa: {
+    id: 'sofa',
+    label: 'Sofa',
+    emoji: '🛋️',
+    actions: [{ id: 'rest', emoji: '🛋️', title: 'Sit down', minutes: 15, gains: ['Energy', 'Fun'], style: 'sit', seconds: 6 }],
+  },
   toilet: {
     id: 'toilet',
     label: 'Toilet (WC)',
@@ -61,6 +69,12 @@ export const FURNITURE: Record<FurnitureId, Furniture> = {
     label: 'Bucket',
     emoji: '🪣',
     actions: [{ id: 'bucket-bath', emoji: '🛁', title: 'Bucket bath', minutes: 25, gains: ['Hygiene'], style: 'bath', seconds: 6 }],
+  },
+  cooker: {
+    id: 'cooker',
+    label: 'Gas cooker',
+    emoji: '🍳',
+    actions: [{ id: 'cook', emoji: '🍲', title: 'Cook a pot of rice', minutes: 45, gains: ['Hunger'], style: 'stand', seconds: 7, cost: 400 }],
   },
 }
 

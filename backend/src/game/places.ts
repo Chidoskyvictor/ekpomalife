@@ -235,7 +235,7 @@ export function hopDistance(fromPlaceId: string, toPlaceId: string): number | nu
 /** Lodging start → place id. */
 export function startPlaceForLodging(lodgingId: string | null | undefined): string {
   if (lodgingId === 'hostel-poultry') return 'school-hostels-1'
-  if (lodgingId === 'selfcon-oxford') return 'off-campus-hostels'
+  if (lodgingId === 'single-poultry') return 'off-campus-hostels'
   if (lodgingId === 'selfcon-g2') return 'college-of-medicine'
   if (lodgingId === 'onebed-ojo') return 'off-campus-hostels'
   return 'admin-block'

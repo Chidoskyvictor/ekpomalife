@@ -483,8 +483,14 @@ export async function sendMoney(
 
 /** Who you'd be visiting: name and look for the room screen. */
 export async function getHostCard(username: string) {
-  const found = await pool.query<{ user_id: string; username: string; display_name: string; appearance: unknown }>(
-    `SELECT u.id AS user_id, u.username, COALESCE(pp.display_name, u.name) AS display_name, c.appearance
+  const found = await pool.query<{
+    user_id: string
+    username: string
+    display_name: string
+    appearance: unknown
+    lodging_id: string | null
+  }>(
+    `SELECT u.id AS user_id, u.username, COALESCE(pp.display_name, u.name) AS display_name, c.appearance, c.lodging_id
      FROM users u
      JOIN characters c ON c.user_id = u.id
      LEFT JOIN player_profiles pp ON pp.user_id = u.id
@@ -493,7 +499,13 @@ export async function getHostCard(username: string) {
   )
   const row = found.rows[0]
   if (!row) return null
-  return { userId: row.user_id, username: row.username, displayName: row.display_name, appearance: row.appearance }
+  return {
+    userId: row.user_id,
+    username: row.username,
+    displayName: row.display_name,
+    appearance: row.appearance,
+    lodgingId: row.lodging_id,
+  }
 }
 
 export async function markRead(userId: string, chatId: string, seq: number) {
