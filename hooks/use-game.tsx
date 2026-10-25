@@ -227,11 +227,36 @@ export function GameProvider({
     }
   }, [])
 
+  /** Look, traits, lodging … from /character, merged once the balance is on screen. */
+  const characterLoaded = useRef(false)
+  const enrichCharacter = useCallback(async (isCancelled: () => boolean = () => false) => {
+    const character = await loadCharacter()
+    if (isCancelled() || !character.ok) return
+    characterLoaded.current = true
+    setState((current) => {
+      if (!current) return current
+      const next = {
+        ...current,
+        dreamId: (character.dreamId as DreamId) ?? current.dreamId,
+        appearance: character.appearance ?? current.appearance,
+        traits: character.traits.length ? character.traits : current.traits,
+        characterType: (character.characterType as CharacterTypeId) ?? current.characterType,
+        lodgingId: (character.lodgingId as LodgingId) ?? current.lodgingId,
+        courseId: character.courseId ?? current.courseId,
+        badges: character.badges.length ? character.badges : current.badges,
+      }
+      shellRef.current = next
+      return next
+    })
+  }, [])
+
   const refreshServer = useCallback(async () => {
     const result = await fetchGameState()
     if (!result.ok) return
     mergeServer(result)
-  }, [mergeServer])
+    // The boot's /character call can be cut short (slow API, a re-run); keep trying on polls
+    if (!characterLoaded.current) void enrichCharacter()
+  }, [mergeServer, enrichCharacter])
 
   const retryBoot = useCallback(() => {
     setBootError(null)
@@ -309,29 +334,12 @@ export function GameProvider({
       shellRef.current = shellRef.current ?? loadLocalShell()
       mergeServer(result)
       // Enrich look/traits after cash is already on screen.
-      void loadCharacter().then((character) => {
-        if (cancelled || !character.ok) return
-        setState((current) => {
-          if (!current) return current
-          const next = {
-            ...current,
-            dreamId: (character.dreamId as DreamId) ?? current.dreamId,
-            appearance: character.appearance ?? current.appearance,
-            traits: character.traits.length ? character.traits : current.traits,
-            characterType: (character.characterType as CharacterTypeId) ?? current.characterType,
-            lodgingId: (character.lodgingId as LodgingId) ?? current.lodgingId,
-            courseId: character.courseId ?? current.courseId,
-            badges: character.badges.length ? character.badges : current.badges,
-          }
-          shellRef.current = next
-          return next
-        })
-      })
+      void enrichCharacter(() => cancelled)
     })()
     return () => {
       cancelled = true
     }
-  }, [mergeServer, bootKey, isGuest, router])
+  }, [mergeServer, enrichCharacter, bootKey, isGuest, router])
 
   // Hard stop — never leave the balance shimmer spinning past 12s.
   useEffect(() => {

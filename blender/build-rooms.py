@@ -3,7 +3,7 @@ Builds the bigger homes from the single room.
 
   blender -b --python blender/build-rooms.py -- <single-room.glb> <out-dir>
 
-Writes <out-dir>/selfcon.glb, <out-dir>/one-bedroom.glb and <out-dir>/room-shifts.json
+Writes <out-dir>/selfcon.glb, <out-dir>/one-bedroom.glb, <out-dir>/hostel-room.glb and <out-dir>/room-shifts.json
 (copy the JSON to lib/game/room-shifts.json: it tells the game where each piece moved).
 
 Blender coords here: x = game x, y = -(game z), z = up. The single room's inside is
@@ -14,10 +14,10 @@ low so the camera (front-left) can see in.
                and kitchen (right). Toilet, bucket and barrel move into the bath.
   One bedroom: self-con + a bedroom on the left (x -7.5 … -3.5). The bed and shelf
                move into it and the main room becomes a parlour with a sofa and TV.
-Both bigger homes have full walls on three sides (back, left, right) with only the
-front left low, a front door in the back wall, and tiled floors in every room (cream
+Both bigger homes have full walls at the back and right, with the front and left low
+(open, like the single room) so the camera sees in from the front-left, a front door in the back wall, and tiled floors in every room (cream
 for the self-con, white/grey for the one bedroom). Inside walls are half height so
-every room stays visible from above; the game views these two from the front.
+every room stays visible from above.
 
 Each home is laid out at the single room's size first, then grown (GROW): walls get
 longer, rooms get wider, but furniture keeps its real size and stays against the wall
@@ -332,11 +332,8 @@ def build_selfcon():
     wall_y('InnerWallBath', 0.0, -6.45, -3.56)
     box('FrontWall', bpy.data.materials['FrontWall'], -3.59, 3.59, -6.59, -6.41, 0, 0.3)
 
-    # Left side is a full wall now (only the front stays low), with a corner post at the back
-    delete([obj('SideWall')])
-    outer_wall_y('Left', -3.5, -6.5, 3.5, inner=+1)
-    move(['EndPostL'], dy=-9.91)  # end of the wall at the front-left corner
-    post('CornerPostL', 'CornerPost', -3.41, 3.41)
+    # Left side stays low and open like the front (two open sides, viewed from the front-left)
+    set_box(obj('SideWall'), y0=-6.59)
 
     front_door()
 
@@ -380,22 +377,18 @@ def build_selfcon():
 # —— One bedroom (built on top of the self-con) ——————————————————————————————————
 
 def build_one_bedroom():
-    # Bedroom: x -7.5 … -3.5, y -3.5 … 3.5. The self-con's left wall now only closes the
+    # Bedroom: x -7.5 … -3.5, y -3.5 … 3.5. The self-con's low left wall now only edges the
     # bath; between parlour and bedroom it becomes a half-height inside wall with a door.
-    set_box(obj('WallLeft'), y1=-3.41)
-    set_box(obj('SkirtLeft'), y1=-3.5)
-    set_box(obj('FasciaLeft'), y1=-3.41)
-    set_box(obj('RoofLeft'), y1=-3.27)
-    delete([obj('CornerPostL')])
+    # The bedroom's own left and front walls are low too (open sides, like the rest).
+    set_box(obj('SideWall'), y1=-3.41)
     wall_y('InnerWallBed', -3.5, -3.44, 3.41, gaps=[(-2.05, -1.05)])
     box('BackWall', bpy.data.materials['Wall'], -7.59, -3.41, 3.41, 3.59, 0, 3.0)
     set_box(obj('SkirtL'), x0=-7.41)
     set_box(obj('FasciaL'), x0=-7.59)
     set_box(obj('RoofL'), x0=-7.83)
-    outer_wall_y('BedLeft', -7.5, -3.5, 3.5, inner=+1)
+    box('SideWall', bpy.data.materials['SideWall'], -7.59, -7.41, -3.59, 3.59, 0, 0.3)
     box('FrontWall', bpy.data.materials['FrontWall'], -7.59, -3.5, -3.59, -3.41, 0, 0.3)
-    post('CornerPostBed', 'CornerPost', -7.41, 3.41)
-    post('EndPostBed', 'EndPostL', -7.5, -3.5)
+    move(['EndPostL'], dx=-4.0)  # end of the back wall, now at the bedroom's corner
 
 
     # Bed, shelf, clothes and lamp go to the bedroom
@@ -434,6 +427,164 @@ def build_one_bedroom():
     screen = mat('TvScreen', srgb('#0d0f12'), rough=0.2)
     box('Tv', screen, 3.15, 3.25, -1.45, 0.15, 0.55, 1.3)
     box('TvFoot', screen, 3.08, 3.32, -0.75, -0.55, 0.5, 0.55)
+
+
+# —— School hostel room ————————————————————————————————————————————————————————————
+# A dorm on campus: white metal bunk beds along both side walls with small wooden lockers
+# between them, walls blue to shoulder height and white above, wood floor, barred window
+# with a tube light at the far end and blue pipes along that wall. Built from scratch; only
+# the lawn, paver and plank materials come from the single room. Room: x ±3.2, y ±5.
+
+HOSTEL_X, HOSTEL_Y = 3.2, 5.0
+DADO = 1.4  # where the blue stops and the white starts
+
+
+def pipe(name, material, x0, x1, y, z, r):
+    o = cyl(name, material, (x0 + x1) / 2, y, z - (x1 - x0) / 2, z + (x1 - x0) / 2, r, seg=16)
+    o.location = ((x0 + x1) / 2, y, z)
+    o.rotation_euler = (0, math.pi / 2, 0)
+    return o
+
+
+def two_tone(name, x0, x1, y0, y1, z0, z1):
+    """Wall piece: blue below the dado line, white above, with a thin dark line between."""
+    if z0 < DADO:
+        box(name, HOSTEL_BLUE, x0, x1, y0, y1, z0, min(z1, DADO))
+    if z1 > DADO:
+        box(name, HOSTEL_WHITE, x0, x1, y0, y1, max(z0, DADO), z1)
+
+
+def bunk(x0, x1, y0, y1, top, bottom):
+    """White tube bunk bed, long side along y, pillows at the back (high y) end."""
+    metal = mat('BunkMetal', srgb('#eef1f4'), rough=0.35)
+    base = mat('BunkBase', srgb('#9aa3ab'), rough=0.6)
+    sheet = mat('Mattress', srgb('#dfe6ee'), rough=0.9)
+    pillow = mat('Pillow', srgb('#fafafa'), rough=0.9)
+    t = 0.022  # tube half-thickness
+    for x in (x0 + 0.03, x1 - 0.03):
+        for y in (y0 + 0.03, y1 - 0.03):
+            cyl('BunkPost', metal, x, y, 0, 1.8, 0.028, seg=12)
+    for y in (y0 + 0.03, y1 - 0.03):  # head and foot ends
+        for z in (0.36, 0.62, 1.26, 1.52, 1.78):
+            box('BunkRail', metal, x0, x1, y - t, y + t, z - t, z + t)
+        for k in (1, 2, 3):
+            x = x0 + (x1 - x0) * k / 4
+            box('BunkBar', metal, x - 0.014, x + 0.014, y - 0.014, y + 0.014, 0.36, 0.62)
+            box('BunkBar', metal, x - 0.014, x + 0.014, y - 0.014, y + 0.014, 1.26, 1.52)
+    for x in (x0 + 0.03, x1 - 0.03):  # long side rails
+        for z in (0.36, 1.26):
+            box('BunkRail', metal, x - t, x + t, y0, y1, z - t, z + t)
+    box('BunkRail', metal, x1 - 0.03 - t, x1 - 0.03 + t, y0 + 0.5, y1, 1.6 - t, 1.6 + t)  # upper guard
+    for z, blanket in ((0.36, bottom), (1.26, top)):
+        box('BunkBase', base, x0 + 0.04, x1 - 0.04, y0 + 0.04, y1 - 0.04, z - 0.02, z + 0.01)
+        box('Mattress', sheet, x0 + 0.06, x1 - 0.06, y0 + 0.06, y1 - 0.06, z + 0.01, z + 0.15)
+        box('Blanket', blanket, x0 + 0.04, x1 - 0.04, y0 + 0.05, y1 - 0.5, z + 0.15, z + 0.18)
+        box('Pillow', pillow, x0 + 0.12, x1 - 0.12, y1 - 0.45, y1 - 0.1, z + 0.15, z + 0.27)
+
+
+def locker(x0, x1, y0, y1):
+    wood = mat('Locker', srgb('#9b6a3f'), rough=0.7)
+    top = mat('LockerTop', srgb('#b98353'), rough=0.6)
+    box('Locker', wood, x0, x1, y0, y1, 0, 0.68)
+    box('LockerTop', top, x0 - 0.02, x1 + 0.02, y0 - 0.02, y1 + 0.02, 0.68, 0.72)
+    box('LockerKnob', mat('LockerKnob', srgb('#2d2d2d')), x1 - 0.01 if x0 < 0 else x0 - 0.02,
+        x1 + 0.02 if x0 < 0 else x0 + 0.01, (y0 + y1) / 2 - 0.03, (y0 + y1) / 2 + 0.03, 0.5, 0.56)
+
+
+def build_hostel():
+    global HOSTEL_BLUE, HOSTEL_WHITE
+    keep = ('Grass', 'GrassInner', 'Paver')
+    delete(o for o in bpy.data.objects if not o.name.startswith(keep))
+    HOSTEL_BLUE = mat('HostelBlue', srgb('#3f8fd8'), rough=0.7)
+    HOSTEL_WHITE = mat('HostelWhite', srgb('#eef1f4'), rough=0.8)
+    X, Y, T = HOSTEL_X, HOSTEL_Y, 0.09
+    trim = mat('HostelTrim', srgb('#4a3f3a'), rough=0.7)
+
+    plank_floor('HostelPlank', -X, X, -Y, Y)
+
+    # Back wall (far end) with the window; side walls full height; front stays low
+    wx0, wx1, sill, head = -0.65, 0.65, 1.15, 2.35
+    two_tone('HostelWall', -X - T, wx0, Y - T, Y + T, 0, 3.0)
+    two_tone('HostelWall', wx1, X + T, Y - T, Y + T, 0, 3.0)
+    two_tone('HostelWall', wx0, wx1, Y - T, Y + T, 0, sill)
+    two_tone('HostelWall', wx0, wx1, Y - T, Y + T, head, 3.0)
+    for x in (-X, X):
+        two_tone('HostelWall', x - T, x + T, -Y - T, Y + T, 0, 3.0)
+    box('HostelFront', trim, -X - T, X + T, -Y - T, -Y + T, 0, 0.3)
+    dado = mat('HostelDado', srgb('#2b6cb0'), rough=0.6)
+    box('HostelDado', dado, -X + T, X - T, Y - T - 0.02, Y - T, DADO - 0.03, DADO + 0.03)
+    for x, inner in ((-X, 1), (X, -1)):
+        a, b = sorted((x + T * inner, x + (T + 0.02) * inner))
+        box('HostelDado', dado, a, b, -Y, Y - T, DADO - 0.03, DADO + 0.03)
+    # Wall tops
+    box('HostelCap', trim, -X - 0.2, X + 0.2, Y - 0.15, Y + 0.2, 3.0, 3.12)
+    for x in (-X, X):
+        box('HostelCap', trim, x - 0.2, x + 0.2, -Y - 0.2, Y + 0.2, 3.0, 3.12)
+
+    # Window: white frame, pale glass, burglar bars on the inside
+    frame = mat('HostelFrame', srgb('#f6f7f8'), rough=0.4)
+    glass = mat('HostelGlass', srgb('#b9d3e6'), rough=0.15)
+    box('HostelGlass', glass, wx0, wx1, Y - 0.01, Y + 0.01, sill, head)
+    for a, b in ((wx0 - 0.06, wx0), (wx1, wx1 + 0.06), (-0.025, 0.025)):
+        box('HostelFrame', frame, a, b, Y - T - 0.03, Y - T + 0.02, sill, head)
+    for a, b in ((sill - 0.06, sill), (head, head + 0.06)):
+        box('HostelFrame', frame, wx0 - 0.06, wx1 + 0.06, Y - T - 0.05, Y - T + 0.02, a, b)
+    bars = mat('HostelBars', srgb('#4b4f55'), rough=0.5)
+    for i in range(1, 8):
+        x = wx0 + (wx1 - wx0) * i / 8
+        box('HostelBar', bars, x - 0.012, x + 0.012, Y - T - 0.07, Y - T - 0.045, sill, head)
+    for z in (sill + 0.4, sill + 0.8):
+        box('HostelBar', bars, wx0, wx1, Y - T - 0.07, Y - T - 0.045, z - 0.012, z + 0.012)
+
+    # Tube light above the window and a red heater bar beside it
+    tube = mat('HostelTube', srgb('#fffdf2'), rough=0.2)
+    tube.node_tree.nodes['Principled BSDF'].inputs['Emission Color'].default_value = (1, 1, 0.95, 1)
+    tube.node_tree.nodes['Principled BSDF'].inputs['Emission Strength'].default_value = 2.0
+    box('HostelTube', tube, -0.6, 0.6, Y - T - 0.08, Y - T - 0.02, 2.62, 2.68)
+    box('HostelHeater', mat('HostelHeater', srgb('#8f2a22'), rough=0.6), -1.2, 1.2, Y - T - 0.06, Y - T, 2.82, 2.92)
+
+    # Blue pipes along the back wall
+    pipe_mat = mat('HostelPipe', srgb('#2f7fd0'), rough=0.4)
+    for z in (0.32, 0.5):
+        pipe('HostelPipe', pipe_mat, -X + T, X - T, Y - T - 0.08, z, 0.06)
+
+    # Bunks along both side walls, lockers between; your bunk is the front-left one
+    navy = mat('BlanketNavy', srgb('#22356e'), rough=1.0)
+    brown = mat('BlanketBrown', srgb('#6b4a33'), rough=1.0)
+    orange = mat('BlanketOrange', srgb('#e89a3c'), rough=1.0)
+    grey = mat('BlanketGrey', srgb('#8a8d91'), rough=1.0)
+    mine = mat('BlanketMine', srgb('#2e9e6a'), rough=1.0)
+    bx0, bx1 = -X + 0.05, -X + 1.0
+    bunk(bx0, bx1, 2.8, 4.8, grey, navy)
+    locker(-X + 0.1, -X + 0.6, 2.15, 2.7)
+    bunk(bx0, bx1, 0.05, 2.05, orange, mine)
+    locker(-X + 0.1, -X + 0.6, -0.6, -0.05)
+    bunk(X - 1.0, X - 0.05, 2.8, 4.8, navy, brown)
+    locker(X - 0.6, X - 0.1, 2.15, 2.7)
+    bunk(X - 1.0, X - 0.05, 0.05, 2.05, grey, orange)
+    locker(X - 0.6, X - 0.1, -0.6, -0.05)
+
+    # Your corner by the door: bucket + basin, small reading table and a plastic chair
+    bucket = mat('Bucket', srgb('#1f5fbf'), rough=0.5)
+    cyl('Bucket', bucket, -2.7, -3.6, 0, 0.55, 0.25)
+    cyl('BucketWater', mat('BucketWater', srgb('#7cb7e8'), rough=0.1), -2.7, -3.6, 0.55, 0.56, 0.22)
+    cyl('RedBasin', mat('RedBasin', srgb('#d63a32'), rough=0.5), -2.75, -4.25, 0, 0.13, 0.3)
+    wood = mat('HostelTable', srgb('#a8784d'), rough=0.6)
+    box('HostelTable', wood, 2.3, 3.1, -2.6, -1.8, 0.72, 0.76)
+    for x in (2.34, 3.06):
+        for y in (-2.56, -1.84):
+            box('HostelTableLeg', wood, x - 0.025, x + 0.025, y - 0.025, y + 0.025, 0, 0.72)
+    box('HostelBook', mat('HostelBook', srgb('#c0392b')), 2.55, 2.85, -2.35, -2.1, 0.76, 0.8)
+    plastic = mat('PlasticChair', srgb('#d93b3b'), rough=0.5)
+    box('PlasticChair', plastic, 1.75, 2.15, -2.4, -2.0, 0.42, 0.46)  # seat
+    box('PlasticChair', plastic, 1.73, 1.77, -2.4, -2.0, 0.46, 0.9)  # back (away from the table)
+    for x in (1.77, 2.13):
+        for y in (-2.38, -2.02):
+            box('PlasticChair', plastic, x - 0.02, x + 0.02, y - 0.02, y + 0.02, 0, 0.42)
+
+    cx, cy, span = pavers([[-X - 0.1, X + 0.1, -Y - 0.1, Y + 0.1]])
+    grass(cx, cy, span)
+    export(os.path.join(OUT, 'hostel-room.glb'))
 
 
 # —— Growing a home ————————————————————————————————————————————————————————————————
@@ -590,6 +741,8 @@ result['one-bedroom'] = finish(
      ('BedTile', (-7.5, -3.5, -3.5, 3.5), ('#dadde1', '#cdd2d8'), 0.6), BATH, KITCHEN],
     WALLS['one-bedroom'],
 )
+load()
+build_hostel()
 with open(os.path.join(OUT, 'room-shifts.json'), 'w') as f:
     json.dump(result, f, indent=1, sort_keys=True)
 print('built rooms ->', OUT)

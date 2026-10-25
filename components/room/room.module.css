@@ -20,6 +20,17 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Time-of-day tint between the page background and the transparent 3D canvas */
+.sky {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  transition:
+    opacity 4s ease,
+    background 4s ease;
+}
+
 .missingModel {
   position: absolute;
   inset: 0;

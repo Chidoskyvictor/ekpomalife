@@ -3,15 +3,18 @@
 import { useGLTF } from '@react-three/drei'
 import { Canvas, useThree } from '@react-three/fiber'
 import { Suspense, useLayoutEffect, useMemo } from 'react'
-import { Box3, Vector3, type Mesh, type Object3D } from 'three'
+import { Box3, Vector3, type Material, type Mesh, type Object3D } from 'three'
 import { applyGlbTextureAnisotropy } from '@/components/world/glb-textures'
 import { useLowPerf } from '@/hooks/use-low-perf'
+import { shadeOf } from '@/lib/game/house-paint'
 import type { Appearance } from '@/lib/game/look'
+import { paintOf, releasePaint } from '@/lib/game/paint-material'
 import type { FurnitureId } from '@/lib/game/room-furniture'
 import { scaledRoomCamera } from '@/lib/game/room-camera'
 import { ROOM_LAYOUTS, type RoomLayout } from '@/lib/game/room-layouts'
 import { RoomCameraSync } from './room-camera-sync'
 import { CharacterFigure } from '@/components/look/character-figure'
+import { RoomLights } from './room-lights'
 import { RoomPlayer, type RoomPlayerControl } from './room-player'
 
 /** Footprint scale for the thin wide lawn discs in the home GLBs (1 = Blender size). */
@@ -19,6 +22,10 @@ const LAWN_SCALE_XZ = 0.76
 
 type PlayerProps = {
   layout: RoomLayout
+  /** Wall paint (#rrggbb) of whoever lives here; the GLB's own colours when unset. */
+  paint?: string
+  /** Current game time in minutes, read every frame for the day/night lighting (midday when unset). */
+  clock?: () => number
   appearance?: Appearance
   /** Visiting: the owner's look, standing in their room. */
   host?: Appearance
@@ -60,7 +67,38 @@ function shrinkRoundSlabPads(root: Object3D) {
   })
 }
 
-function HomeModel({ layout, appearance, host, onFurniture, control }: PlayerProps) {
+/** Wall materials in the home GLBs → which paint they take (right-hand wall full, the rest a shade darker). */
+const WALL_PAINT: Record<string, (hex: string) => string> = {
+  'Wall.001': (hex) => hex,
+  Wall: (hex) => shadeOf(hex),
+  Partition: (hex) => shadeOf(hex),
+}
+
+/** Swap the walls of a cloned home onto painted copies; undo (and release them) on cleanup. */
+function usePaintedWalls(root: Object3D, paint: string | undefined) {
+  useLayoutEffect(() => {
+    if (!paint) return
+    const swapped: [Mesh, Material][] = []
+    root.traverse((object) => {
+      const mesh = object as Mesh
+      if (!mesh.isMesh || Array.isArray(mesh.material)) return
+      const tone = WALL_PAINT[mesh.material.name]
+      if (!tone) return
+      swapped.push([mesh, mesh.material])
+      mesh.material = paintOf(mesh.material, tone(paint))
+    })
+    return () => {
+      for (const [mesh, original] of swapped) {
+        releasePaint(mesh.material as Material)
+        mesh.material = original
+      }
+    }
+  }, [root, paint])
+}
+
+const MIDDAY = () => 12 * 60
+
+function HomeModel({ layout, paint, clock = MIDDAY, appearance, host, onFurniture, control }: PlayerProps) {
   const gl = useThree((state) => state.gl)
   const { scene } = useGLTF(layout.glb)
   useLayoutEffect(() => {
@@ -74,12 +112,14 @@ function HomeModel({ layout, appearance, host, onFurniture, control }: PlayerPro
     shadeMeshes(clone)
     return clone
   }, [scene])
+  usePaintedWalls(prepared, paint)
 
   return (
     <>
       <primitive object={prepared} />
       {/* Same offset as the model, so the player walks in the GLB's own floor coordinates */}
       <group position={[prepared.position.x, prepared.position.y, prepared.position.z]}>
+        <RoomLights layout={layout} root={prepared} clock={clock} />
         <RoomPlayer key={layout.id} layout={layout} appearance={appearance} onFurniture={onFurniture} control={control} />
         {host ? (
           // The host waits inside, facing the visitor
@@ -114,9 +154,6 @@ export function HomeCanvas(props: PlayerProps) {
         gl.setClearColor('#000000', 0)
       }}
     >
-      <ambientLight intensity={0.75} />
-      <hemisphereLight args={['#ffffff', '#c5c0b6', 0.5]} />
-      <directionalLight position={[6, 10, 5]} intensity={1.05} />
       <Suspense fallback={null}>
         <HomeModel {...props} />
       </Suspense>

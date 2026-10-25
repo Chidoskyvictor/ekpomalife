@@ -2,12 +2,14 @@
 
 import dynamic from 'next/dynamic'
 import { useParams } from 'next/navigation'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useGame } from '@/hooks/use-game'
 import { fetchHostCard, type HostCard } from '@/lib/game/hostels-api'
 import { normalizeAppearance, type Appearance } from '@/lib/game/look'
 import type { FurnitureId } from '@/lib/game/room-furniture'
+import { resolvePaint } from '@/lib/game/house-paint'
 import { layoutForLodging } from '@/lib/game/room-layouts'
+import { GAME_MINUTES_PER_MS, pinnedRoomTime, roomLightAt } from '@/lib/game/room-lighting'
 import { RoomCameraDebugPanel } from './room-camera-debug-panel'
 import { RoomCameraDebugProvider } from './room-camera-debug-context'
 import { FurnitureSheet } from './furniture-sheet'
@@ -47,6 +49,30 @@ export function RoomScreen() {
   // Your own home, or the host's when visiting (their character shows once the card loads)
   const visitingOther = !!visiting && !isOwn
   const layout = layoutForLodging(visitingOther ? host?.lodgingId : state?.lodgingId)
+  // Wall paint follows whoever lives here, so visitors see the owner's colour
+  const ownerName = visitingOther ? host?.username : state?.username
+  const paint = ownerName ? resolvePaint({ id: ownerName.toLowerCase() }).hex : undefined
+
+  // Game clock between server refreshes: last known time + real time since (10 game min / real min)
+  const clockBase = useRef({ gameTime: 12 * 60, at: 0 })
+  const [pinned, setPinned] = useState<number | null>(null)
+  useEffect(() => setPinned(pinnedRoomTime(window.location.search)), [])
+  useEffect(() => {
+    if (state?.gameTime != null) clockBase.current = { gameTime: state.gameTime, at: performance.now() }
+  }, [state?.gameTime])
+  const clock = useCallback(() => {
+    if (pinned != null) return pinned
+    const { gameTime, at } = clockBase.current
+    return at ? gameTime + (performance.now() - at) * GAME_MINUTES_PER_MS : gameTime
+  }, [pinned])
+  // The sky tint behind the house only needs to move every few seconds
+  const [sky, setSky] = useState(() => roomLightAt(12 * 60))
+  useEffect(() => {
+    const update = () => setSky(roomLightAt(clock()))
+    update()
+    const id = window.setInterval(update, 5000)
+    return () => window.clearInterval(id)
+  }, [clock, state?.gameTime])
   const hostLook = useMemo<Appearance | undefined>(
     () => (host ? normalizeAppearance(host.appearance as Partial<Appearance>) : undefined),
     [host],
@@ -71,8 +97,14 @@ export function RoomScreen() {
     <RoomCameraDebugProvider>
       <div className={styles.root} aria-label={visitingOther ? `${host?.username ?? visiting}'s ${layout.label.toLowerCase()}` : `Your ${layout.label.toLowerCase()}`}>
         <div className={styles.canvasStage}>
+        {/* Morning / evening / night tint over the page background; clear at midday */}
+        <div
+          className={styles.sky}
+          aria-hidden="true"
+          style={{ background: `linear-gradient(180deg, ${sky.skyTop}, ${sky.skyBottom})`, opacity: sky.skyOpacity }}
+        />
         {modelReady === 'ok' && (!visitingOther || host) ? (
-          <HomeCanvas layout={layout} appearance={state?.appearance} host={hostLook} onFurniture={setFurniture} control={control} />
+          <HomeCanvas layout={layout} paint={paint} clock={clock} appearance={state?.appearance} host={hostLook} onFurniture={setFurniture} control={control} />
         ) : null}
         {modelReady === 'missing' ? (
           <p className={styles.missingModel} role="status">

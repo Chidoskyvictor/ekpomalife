@@ -11,7 +11,7 @@ import ROOM_SHIFTS from './room-shifts.json'
  * using room-shifts.json (where the build moved each piece of furniture).
  */
 
-export type RoomLayoutId = 'single-room' | 'selfcon' | 'one-bedroom'
+export type RoomLayoutId = 'single-room' | 'selfcon' | 'one-bedroom' | 'hostel'
 
 /** [minX, minZ, maxX, maxZ] */
 export type Rect = [number, number, number, number]
@@ -134,6 +134,43 @@ const SINGLE_ROOM: RoomLayout = {
   speed: 1.7,
 }
 
+/** School hostel dorm (blender build_hostel): bunks on both side walls, your bunk front-left. */
+const HOSTEL: RoomLayout = {
+  id: 'hostel',
+  label: 'Hostel room',
+  glb: '/models/hostel-room.glb',
+  floors: [[-2.82, -4.62, 2.82, 4.62]],
+  blocks: [
+    [-3.15, -4.8, -2.2, -2.8], // left bunks + lockers
+    [-3.12, -2.72, -2.58, -2.13],
+    [-3.15, -2.05, -2.2, -0.05], // your bunk
+    [-3.12, 0.03, -2.58, 0.62],
+    [2.2, -4.8, 3.15, -2.8], // right bunks + lockers
+    [2.58, -2.72, 3.12, -2.13],
+    [2.2, -2.05, 3.15, -0.05],
+    [2.58, 0.03, 3.12, 0.62],
+    [-2.95, 3.35, -2.45, 3.85], // bucket
+    [-3.05, 3.95, -2.45, 4.55], // basin
+    [2.3, 1.8, 3.1, 2.6], // reading table
+    [1.73, 2.0, 2.15, 2.4], // plastic chair
+  ],
+  start: [0, 3.2],
+  spots: {
+    bed: { approach: [-1.75, -1.0], at: [-2.67, 0.65, -0.35], heading: 0 },
+    'desk-chair': { approach: [1.35, 2.2], at: [1.95, -0.32, 2.2], heading: Math.PI / 2 },
+    bucket: { approach: [-1.8, 3.6], at: [-2.15, 0, 3.6], heading: -Math.PI / 2 },
+  },
+  tapBoxes: {
+    bed: [-3.15, 0, -2.05, -2.2, 0.75, -0.05],
+    'desk-chair': [1.7, 0, 1.95, 2.2, 1.0, 2.45],
+    bucket: [-3.05, 0, 3.3, -2.4, 0.7, 4.6],
+  },
+  host: { position: [0.5, 0, -1.2], rotation: 0 },
+  view: 'front',
+  cameraScale: 1.4,
+  speed: 1.8,
+}
+
 const SELFCON_SMALL: SmallLayout = {
   id: 'selfcon',
   label: 'Self-con',
@@ -144,8 +181,8 @@ const SELFCON_SMALL: SmallLayout = {
   spots: { bed: BED_SPOT, 'red-chair': RED_CHAIR_SPOT, 'desk-chair': DESK_CHAIR_SPOT, ...STRIP_SPOTS },
   tapBoxes: { bed: BED_TAP, 'red-chair': RED_CHAIR_TAP, 'desk-chair': DESK_CHAIR_TAP, ...STRIP_TAPS },
   pieces: { bed: 'BedBase', 'red-chair': 'RedChair_Seat', 'desk-chair': 'WoodChair_Seat', ...STRIP_PIECES },
-  host: { position: [-0.6, 0, -1.4], rotation: 0 },
-  view: 'front',
+  host: { position: [-0.6, 0, -1.4], rotation: Math.PI / 5 },
+  view: 'corner',
   cameraScale: 1.42,
   speed: 2.1,
 }
@@ -184,8 +221,8 @@ const ONE_BEDROOM_SMALL: SmallLayout = {
     ...STRIP_TAPS,
   },
   pieces: { bed: 'BedBase', sofa: 'SofaBase', 'desk-chair': 'WoodChair_Seat', ...STRIP_PIECES },
-  host: { position: [1.9, 0, -1.5], rotation: -0.3 },
-  view: 'front',
+  host: { position: [1.9, 0, -1.5], rotation: -Math.PI / 4 },
+  view: 'corner',
   cameraScale: 1.72,
   speed: 2.4,
 }
@@ -262,10 +299,12 @@ export const ROOM_LAYOUTS: Record<RoomLayoutId, RoomLayout> = {
   'single-room': SINGLE_ROOM,
   selfcon: grow(SELFCON_SMALL, ROOM_SHIFTS.selfcon),
   'one-bedroom': grow(ONE_BEDROOM_SMALL, ROOM_SHIFTS['one-bedroom']),
+  hostel: HOSTEL,
 }
 
-/** Which home each lodging gets. The hostel has no model of its own yet, so it uses the single room. */
+/** Which home each lodging gets (chosen at sign-up; the hostel is the campus dorm). */
 export function layoutForLodging(lodgingId: LodgingId | string | null | undefined): RoomLayout {
+  if (lodgingId === 'hostel-poultry') return ROOM_LAYOUTS.hostel
   if (lodgingId === 'selfcon-g2') return ROOM_LAYOUTS.selfcon
   if (lodgingId === 'onebed-ojo') return ROOM_LAYOUTS['one-bedroom']
   return ROOM_LAYOUTS['single-room']

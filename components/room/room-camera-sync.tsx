@@ -5,7 +5,7 @@ import { useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useMemo, useRef } from 'react'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import { PerspectiveCamera } from 'three'
-import { applyRoomCamera, scaledRoomCamera, type RoomView } from '@/lib/game/room-camera'
+import { applyRoomCamera, roomCameraTurnLimits, scaledRoomCamera, type RoomView } from '@/lib/game/room-camera'
 import { useRoomCameraDebug } from './room-camera-debug-context'
 
 /** `scale` pulls the camera back for bigger homes (ignored once the camera debug panel has an override). */
@@ -20,6 +20,8 @@ export function RoomCameraSync({ scale = 1, view = 'corner' }: { scale?: number;
     [debugPlacement, scale, view],
   )
   const resetGeneration = ctx?.resetGeneration ?? 0
+  // Keep the camera on the open side of the house; free while tuning in the debug panel
+  const limits = debugPlacement ? null : roomCameraTurnLimits(placement, view)
 
   useEffect(() => {
     if (!(camera instanceof PerspectiveCamera)) return
@@ -55,7 +57,9 @@ export function RoomCameraSync({ scale = 1, view = 'corner' }: { scale?: number;
       minDistance={placement.minDistance}
       maxDistance={placement.maxDistance}
       minPolarAngle={0.15}
-      maxPolarAngle={Math.PI / 2 - 0.08}
+      maxPolarAngle={limits?.maxPolar ?? Math.PI / 2 - 0.08}
+      minAzimuthAngle={limits?.minAzimuth ?? -Infinity}
+      maxAzimuthAngle={limits?.maxAzimuth ?? Infinity}
       rotateSpeed={0.85}
       zoomSpeed={0.9}
     />

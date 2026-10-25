@@ -26,9 +26,9 @@ export const ROOM_CAMERA: RoomCameraPlacement = {
 }
 
 /**
- * Which way the camera looks in. `corner`: from the front-left (the single room, low front
- * and left walls). `front`: straight in through the open front (self-con and one bedroom,
- * which have full walls on the other three sides).
+ * Which way the camera looks in. `corner`: from the front-left (single room, self-con and
+ * one bedroom: low front and left walls). `front`: straight in through the open front (the
+ * hostel, which has full walls on the other three sides).
  */
 export type RoomView = 'corner' | 'front'
 
@@ -49,6 +49,19 @@ export function scaledRoomCamera(scale: number, view: RoomView = 'corner'): Room
     position: [tx + (px - tx) * scale, ty + (py - ty) * scale, tz + (pz - tz) * scale],
     maxDistance: ROOM_CAMERA.maxDistance * scale,
   }
+}
+
+/**
+ * How far players may swing the camera, so they can't end up behind a full wall:
+ * up to 55° either side of the corner view (low front and left walls), 15° either side of
+ * the front view (full side walls), and never down to eye level.
+ */
+export function roomCameraTurnLimits(placement: RoomCameraPlacement, view: RoomView) {
+  const [px, , pz] = placement.position
+  const [tx, , tz] = placement.target
+  const centre = Math.atan2(px - tx, pz - tz)
+  const swing = ((view === 'front' ? 15 : 55) * Math.PI) / 180
+  return { minAzimuth: centre - swing, maxAzimuth: centre + swing, maxPolar: 1.25 }
 }
 
 /** Portrait uses {@link ROOM_CAMERA_MOBILE_FOV}; wide desktop uses placement FOV (default 40). */
