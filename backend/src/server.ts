@@ -1,5 +1,6 @@
 import Fastify from 'fastify'
 import cookie from '@fastify/cookie'
+import websocket from '@fastify/websocket'
 import cors from '@fastify/cors'
 import helmet from '@fastify/helmet'
 import { env } from './env.js'
@@ -21,6 +22,8 @@ import { investRoutes } from './routes/invest.js'
 import { etaRoutes } from './routes/eta.js'
 import { cryptoRoutes } from './routes/crypto.js'
 import { playersRoutes } from './routes/players.js'
+import { venueRoutes } from './routes/venues.js'
+import { gamesRoutes } from './routes/games.js'
 
 const app = Fastify({
   logger: true,
@@ -45,6 +48,7 @@ await app.register(cors, {
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'OPTIONS'],
 })
 await app.register(cookie)
+await app.register(websocket)
 await registerRateLimit(app)
 
 app.get('/', async () => ({
@@ -136,6 +140,8 @@ await app.register(hostelRoutes)
 await app.register(investRoutes)
 await app.register(etaRoutes)
 await app.register(cryptoRoutes)
+await app.register(venueRoutes)
+await app.register(gamesRoutes)
 
 const shutdown = async () => {
   await app.close()

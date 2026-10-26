@@ -1,7 +1,7 @@
-import { afterAll, describe, expect, it } from 'vitest'
+import { afterAll, afterEach, describe, expect, it } from 'vitest'
 import { pool } from '../db.js'
 import { cleanupTestUser, createTestUser } from '../test/db-fixtures.js'
-import { DAY_MINUTES } from './time.js'
+import { DAY_MINUTES, setTestGameTime } from './time.js'
 import { mondayDayForWeek, rentDayForWeek } from './calendar.js'
 import {
   ALLOWANCE_AMOUNT,
@@ -17,6 +17,8 @@ import { advanceRentLadder, ensureRentRow } from './rent-ladder.js'
 import { getHustle, rollHustleOutcome } from './hustles.js'
 
 const usersToClean: string[] = []
+
+afterEach(() => setTestGameTime(null))
 
 afterAll(async () => {
   for (const id of usersToClean) {
@@ -364,6 +366,7 @@ describe('Phase 2 complete — hustles', () => {
       }
     }
 
+    setTestGameTime(14 * 60)
     const locked = await runHustle(user.userId, 'sort-lecturer')
     expect(locked.ok).toBe(false)
     if (!locked.ok) expect(locked.error).toBe('HUSTLE_LOCKED')

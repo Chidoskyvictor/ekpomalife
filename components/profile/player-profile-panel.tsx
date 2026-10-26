@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { fetchMyProfile, fetchPlayerProfile } from '@/lib/game/profile-api'
 import type { PlayerProfile } from '@/lib/game/profile-types'
 import { formatNaira } from '@/lib/game/live'
+import { requestOpenGames } from '@/lib/game/open-games'
 import { ProfileEditSheet } from './profile-edit-sheet'
 import styles from './profile.module.css'
 
@@ -68,10 +69,14 @@ export function PlayerProfilePanel({
           {profile.avatar.emoji ?? initial}
         </div>
         <div className={styles.meta}>
-          <h3 className={styles.name}>{profile.displayName}</h3>
+          {/* Your real name is only shown to you; everyone else sees the @username */}
+          <h3 className={styles.name}>{profile.isOwner ? profile.displayName : `@${profile.username}`}</h3>
           <p className={styles.sub}>
-            @{profile.username} · {profile.studyLevel} · {profile.department}
+            {[profile.isOwner ? `@${profile.username}` : null, profile.studyLevel, profile.department]
+              .filter(Boolean)
+              .join(' · ')}
           </p>
+          {profile.isOwner ? <p className={styles.sub}>🔒 Your name is only visible to you</p> : null}
           <p className={styles.sub}>Joined {formatJoinDate(profile.joinDate)}</p>
         </div>
       </div>
@@ -112,7 +117,13 @@ export function PlayerProfilePanel({
             Edit profile
           </button>
         </div>
-      ) : null}
+      ) : (
+        <div className={styles.actions}>
+          <button type="button" className={styles.editBtn} onClick={() => requestOpenGames({ username: profile.username })}>
+            🎮 Challenge
+          </button>
+        </div>
+      )}
 
       {profile.isOwner ? (
         <ProfileEditSheet

@@ -47,7 +47,7 @@ const BY_ID: Record<string, string> = {
   'parking-ext': '🅿️',
   'physical-science': '🔭',
   'relaxation-centre': '😌',
-  sazza: '🏠',
+  sazza: '🪩',
   'shuttle-park': '🚌',
   'social-science': '🗣️',
   'sports-complex': '⚽',

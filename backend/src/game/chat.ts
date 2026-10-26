@@ -20,7 +20,7 @@ export type ChatSender = {
 }
 
 /** text · system ("X joined") · sticker (body = sticker id) · invite (body = host username) · visit (body = visited username) · money (body = naira amount) */
-export type MessageKind = 'text' | 'system' | 'sticker' | 'invite' | 'visit' | 'money'
+export type MessageKind = 'text' | 'system' | 'sticker' | 'invite' | 'visit' | 'money' | 'game'
 
 /** Naira you can send in one go from a direct chat. */
 export const TRANSFER_MIN = 100
@@ -73,7 +73,7 @@ type MessageRow = {
 
 const MESSAGE_SELECT = `
   SELECT m.seq::text AS seq, m.chat_id, m.kind, m.body, m.created_at, m.sender_id, u.username,
-         COALESCE(pp.display_name, u.name) AS display_name,
+         u.username AS display_name,
          pp.avatar_color, pp.avatar_emoji
   FROM chat_messages m
   LEFT JOIN users u ON u.id = m.sender_id
@@ -190,7 +190,7 @@ export async function listChats(userId: string): Promise<ChatSummary[]> {
      JOIN chats c ON c.id = cm.chat_id
      LEFT JOIN LATERAL (SELECT MAX(seq)::text AS seq FROM chat_messages WHERE chat_id = c.id) last ON true
      LEFT JOIN LATERAL (
-       SELECT u.id AS user_id, u.username, COALESCE(pp.display_name, u.name) AS display_name,
+       SELECT u.id AS user_id, u.username, u.username AS display_name,
               pp.avatar_color, pp.avatar_emoji
        FROM chat_members other
        JOIN users u ON u.id = other.user_id
@@ -232,13 +232,13 @@ export async function searchPlayers(userId: string, rawQuery: string): Promise<P
   if (q.length < 2 || !/^[a-z0-9_ .'-]+$/.test(q)) return []
   const prefix = `${q.replace(/[\\%_]/g, (ch) => `\\${ch}`)}%`
   const rows = await pool.query<PlayerRow>(
-    `SELECT u.id AS user_id, u.username, COALESCE(pp.display_name, u.name) AS display_name,
+    `SELECT u.id AS user_id, u.username, u.username AS display_name,
             pp.avatar_color, pp.avatar_emoji
      FROM users u
      LEFT JOIN player_profiles pp ON pp.user_id = u.id
      WHERE u.id <> $1
        AND EXISTS (SELECT 1 FROM characters c WHERE c.user_id = u.id)
-       AND (LOWER(u.username) LIKE $2 OR LOWER(pp.display_name) LIKE $2)
+       AND LOWER(u.username) LIKE $2
      ORDER BY (LOWER(u.username) = $3) DESC, LENGTH(u.username), u.username
      LIMIT $4`,
     [userId, prefix, q, PLAYER_SEARCH_LIMIT],
@@ -253,7 +253,7 @@ export async function openDirectChat(
 ): Promise<{ ok: true; chat: ChatSummary } | Fail> {
   if (otherUserId === userId) return fail(400, 'SELF', 'That’s you — pick someone else to message.')
   const other = await pool.query<PlayerRow>(
-    `SELECT u.id AS user_id, u.username, COALESCE(pp.display_name, u.name) AS display_name,
+    `SELECT u.id AS user_id, u.username, u.username AS display_name,
             pp.avatar_color, pp.avatar_emoji
      FROM users u LEFT JOIN player_profiles pp ON pp.user_id = u.id WHERE u.id = $1`,
     [otherUserId],
@@ -412,6 +412,16 @@ export async function sendMessage(
 }
 
 /**
+ * A small "challenged you to a game" note in the direct chat between two players
+ * (body = JSON: { matchId, game, stake }). Starts the chat if they've never talked.
+ */
+export async function postGameNotice(fromUserId: string, toUserId: string, body: string) {
+  const opened = await openDirectChat(fromUserId, toUserId)
+  if (!opened.ok) return
+  await insertMessage(pool, fromUserId, opened.chat.id, 'game', body)
+}
+
+/**
  * Send naira to the other player in a direct chat. Both wallets move in one transaction
  * (rows locked in a fixed order), each gets a ledger line, and a "money" message lands in the chat.
  */
@@ -490,7 +500,7 @@ export async function getHostCard(username: string) {
     appearance: unknown
     lodging_id: string | null
   }>(
-    `SELECT u.id AS user_id, u.username, COALESCE(pp.display_name, u.name) AS display_name, c.appearance, c.lodging_id
+    `SELECT u.id AS user_id, u.username, u.username AS display_name, c.appearance, c.lodging_id
      FROM users u
      JOIN characters c ON c.user_id = u.id
      LEFT JOIN player_profiles pp ON pp.user_id = u.id

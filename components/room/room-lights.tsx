@@ -14,7 +14,7 @@ import {
   type PointLight,
 } from 'three'
 import type { RoomLayout } from '@/lib/game/room-layouts'
-import { roomLightAt, type RoomLight } from '@/lib/game/room-lighting'
+import { CLUB_LIGHT, roomLightAt, type RoomLight } from '@/lib/game/room-lighting'
 
 /** Bulb / tube materials in the home GLBs that glow when the lamps are on. */
 const GLOWING = new Set(['LampBulb', 'HostelTube'])
@@ -79,7 +79,7 @@ export function RoomLights({ layout, root, clock }: { layout: RoomLayout; root: 
   }, [root])
 
   useFrame((_, delta) => {
-    const target = roomLightAt(clock())
+    const target = layout.mood === 'club' ? CLUB_LIGHT : roomLightAt(clock())
     const k = live.current ? Math.min(1, delta * 1.5) : 1
     const cur = (live.current ??= { ...target })
     const ease = (a: number, b: number) => a + (b - a) * k

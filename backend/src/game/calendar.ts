@@ -1,6 +1,6 @@
-import { DAY_MINUTES, clockFromGameTime } from './time.js'
+import { DAY_MINUTES, clockFromGameTime, realDateForDay } from './time.js'
 
-/** Match frontend `lib/game/needs.ts` calendarForDay (day 1 = Thursday). */
+/** Match frontend `lib/game/needs.ts` calendarForDay (day 1 = Thursday 15 Jan 2026, the real calendar). */
 const WEEKDAYS = ['Thu', 'Fri', 'Sat', 'Sun', 'Mon', 'Tue', 'Wed'] as const
 
 export type Weekday = (typeof WEEKDAYS)[number]
@@ -8,7 +8,7 @@ export type Weekday = (typeof WEEKDAYS)[number]
 export function calendarForDay(day: number) {
   const offset = Math.max(1, day) - 1
   const weekday = WEEKDAYS[offset % 7]!
-  const date = ((14 + offset) % 31) + 1
+  const date = realDateForDay(day).getUTCDate()
   const weekend = weekday === 'Sat' || weekday === 'Sun'
   const rentDay = weekday === 'Sat'
   return { weekday, date, weekend, rentDay, label: `${weekday} ${date}` }

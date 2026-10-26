@@ -18,6 +18,11 @@ import { WelcomeCard } from '@/components/hud/welcome-card'
 import { useGame } from '@/hooks/use-game'
 import { useLowPerf } from '@/hooks/use-low-perf'
 import { takeNavIntent } from '@/lib/game/nav-intent'
+import { OPEN_CHAT_EVENT } from '@/lib/game/open-chat'
+import { OPEN_GAMES_EVENT } from '@/lib/game/open-games'
+import { ChallengePopup, useIncomingChallenges } from '@/components/hud/challenge-popup'
+import { ActionTiles } from '@/components/hud/action-tiles'
+import { usePlaceSheetActive } from '@/components/hud/place-sheet'
 import { playerHasPhone } from '@/lib/game/phone-config'
 import { pushNavigation } from '@/lib/navigation/safe-nav'
 import { cn } from '@/lib/utils'
@@ -42,11 +47,15 @@ export function Hud() {
   const hasPhone = playerHasPhone(state?.hasPhone)
   // Hostel chat unread counts toward the phone badge too
   const chatUnread = useChatUnread(!guest && Boolean(state))
+  // Snooker (and later other games) challenges waiting for an answer
+  const challenges = useIncomingChallenges(!guest && Boolean(state) && hasPhone)
+  // A place sheet (club…) is at the bottom: the avatar card sits above it
+  const placeSheet = usePlaceSheetActive()
   const unread = useMemo(() => {
     if (!hasPhone) return 0
     const feed = state?.feed.filter((entry) => entry.day === state.day).length ?? 0
-    return Math.min(9, feed + chatUnread)
-  }, [hasPhone, state, chatUnread])
+    return Math.min(9, feed + chatUnread + challenges.incoming.length)
+  }, [hasPhone, state, chatUnread, challenges.incoming.length])
 
   useEffect(() => {
     if (pathname?.startsWith('/room')) {
@@ -77,6 +86,23 @@ export function Hud() {
       setPhoneOpen(true)
     }
   }, [guest, router, select, state])
+
+  // "Message" / "Challenge" from outside the phone (club People list, profile, chat note) opens the phone
+  useEffect(() => {
+    const onOpenChat = () => {
+      if (!state) return
+      select(null)
+      setBuyOpen(false)
+      setTab('phone')
+      setPhoneOpen(true)
+    }
+    window.addEventListener(OPEN_CHAT_EVENT, onOpenChat)
+    window.addEventListener(OPEN_GAMES_EVENT, onOpenChat)
+    return () => {
+      window.removeEventListener(OPEN_CHAT_EVENT, onOpenChat)
+      window.removeEventListener(OPEN_GAMES_EVENT, onOpenChat)
+    }
+  }, [state, select])
 
   const openShop = () => {
     if (!state) return
@@ -150,6 +176,10 @@ export function Hud() {
             onRetry={bootError ? retryBoot : undefined}
           />
         </div>
+        {/* What you're doing and what's next (Sims-style tiles): fills up, ✕ cancels */}
+        <div className={styles.activityRow}>
+          <ActionTiles />
+        </div>
         {/* Home (My Room): find / join your real hostel — not while visiting someone (/room/[username]) */}
         {state && pathname === '/room' ? (
           <div className={styles.topWrap}>
@@ -159,8 +189,9 @@ export function Hud() {
       </div>
 
       <ToastLayer toast={toast} state={state} />
+      <ChallengePopup incoming={challenges.incoming} hidden={phoneOpen} onDone={() => void challenges.reload()} />
 
-      {state ? <MeCard state={state} onOpen={() => setProfileOpen(true)} /> : null}
+      {state ? <MeCard state={state} onOpen={() => setProfileOpen(true)} raised={placeSheet} /> : null}
 
       <div className={styles.bottomDock}>
         <div className={styles.bottomRow}>

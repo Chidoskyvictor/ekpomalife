@@ -146,7 +146,7 @@ export async function createHostel(
 
 async function displayNameOf(userId: string) {
   const found = await pool.query<{ name: string }>(
-    `SELECT COALESCE(pp.display_name, u.name) AS name FROM users u
+    `SELECT u.username AS name FROM users u
      LEFT JOIN player_profiles pp ON pp.user_id = u.id WHERE u.id = $1`,
     [userId],
   )
@@ -238,7 +238,7 @@ export async function listNeighbours(userId: string, hostelId: string): Promise<
     avatar_emoji: string | null
     joined_at: Date
   }>(
-    `SELECT hm.user_id, COALESCE(pp.display_name, u.name) AS display_name, pp.avatar_color, pp.avatar_emoji, hm.joined_at
+    `SELECT hm.user_id, u.username AS display_name, pp.avatar_color, pp.avatar_emoji, hm.joined_at
      FROM hostel_members hm
      JOIN users u ON u.id = hm.user_id
      LEFT JOIN player_profiles pp ON pp.user_id = hm.user_id

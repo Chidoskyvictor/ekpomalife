@@ -3,7 +3,8 @@ Builds the bigger homes from the single room.
 
   blender -b --python blender/build-rooms.py -- <single-room.glb> <out-dir>
 
-Writes <out-dir>/selfcon.glb, <out-dir>/one-bedroom.glb, <out-dir>/hostel-room.glb and <out-dir>/room-shifts.json
+Writes <out-dir>/selfcon.glb, <out-dir>/one-bedroom.glb, <out-dir>/hostel-room.glb,
+<out-dir>/club-sazza.glb and <out-dir>/room-shifts.json
 (copy the JSON to lib/game/room-shifts.json: it tells the game where each piece moved).
 
 Blender coords here: x = game x, y = -(game z), z = up. The single room's inside is
@@ -228,9 +229,10 @@ def merged(name, parts):
     return parts[0]
 
 
-def tile_floor(name, x0, x1, y0, y1, colors, size=0.5):
+def tile_floor(name, x0, x1, y0, y1, colors, size=0.5, grout_color='#9a958c'):
     """Square tiles with grout lines, one mesh per colour."""
-    grout = box(f'{name}Grout', mat('Grout', srgb('#9a958c')), x0, x1, y0, y1, -0.06, -0.008)
+    grout_mat = mat('Grout', srgb('#9a958c')) if grout_color == '#9a958c' else mat(f'{name}GroutMat', srgb(grout_color))
+    grout = box(f'{name}Grout', grout_mat, x0, x1, y0, y1, -0.06, -0.008)
     groups = {i: [] for i in range(len(colors))}
     nx = max(1, round((x1 - x0) / size))
     ny = max(1, round((y1 - y0) / size))
@@ -269,10 +271,10 @@ def plank_floor(name, x0, x1, y0, y1):
         merged(f'{name}{k}', parts)
 
 
-def pavers(rects, pad=2.15):
+def pavers(rects, pad=2.15, size=(0.53, 0.24), materials=None):
     """Replace the paver ring with one around the new footprint (list of [x0, x1, y0, y1])."""
     delete(o for o in bpy.data.objects if o.name == 'Paver' or o.name.startswith('Paver.'))
-    materials = [bpy.data.materials[n] for n in ('Paver', 'Paver.001', 'Paver.002', 'Paver.003', 'Paver.004')]
+    materials = materials or [bpy.data.materials[n] for n in ('Paver', 'Paver.001', 'Paver.002', 'Paver.003', 'Paver.004')]
     rng = random.Random(3)
     X0 = min(r[0] for r in rects) - pad
     X1 = max(r[1] for r in rects) + pad
@@ -280,7 +282,7 @@ def pavers(rects, pad=2.15):
     Y1 = max(r[3] for r in rects) + pad
     inside = lambda x, y: any(r[0] - 0.12 < x < r[1] + 0.12 and r[2] - 0.12 < y < r[3] + 0.12 for r in rects)
     groups = {i: [] for i in range(len(materials))}
-    w, h = 0.53, 0.24
+    w, h = size
     row = 0
     y = Y0
     while y < Y1:
@@ -587,6 +589,154 @@ def build_hostel():
     export(os.path.join(OUT, 'hostel-room.glb'))
 
 
+# —— Club (Sazza; other clubs reuse it with their own colours) ————————————————————————
+# Long black hall: full walls at the back (DJ end) and right (VIP side), front and left
+# low like the homes. Bar on the left, light-up dance floor in the middle, raised DJ booth
+# with a big LED screen at the back, raised VIP lounge on the right with gold posts, red
+# rope and red sofas, the "shutting it down" spender screen above VIP, neon strips on the
+# walls, a disco ball, and big cement slabs outside. Room: x ±6, y ±8.
+# Named meshes the game drives: DanceTile* (animated colours), ClubScreen (DJ visuals),
+# SpendScreen (tonight's top spenders), NeonPink/NeonCyan/NeonYellow (glow).
+
+CLUB_X, CLUB_Y, CLUB_H = 6.0, 8.0, 4.0
+
+
+def neon(name, hex_, strength=4.0):
+    m = mat(name, srgb(hex_), rough=0.3)
+    bsdf = m.node_tree.nodes['Principled BSDF']
+    bsdf.inputs['Emission Color'].default_value = (*srgb(hex_), 1)
+    bsdf.inputs['Emission Strength'].default_value = strength
+    return m
+
+
+def build_club(theme):
+    keep = ('Grass', 'GrassInner', 'Paver')
+    delete(o for o in bpy.data.objects if not o.name.startswith(keep))
+    X, Y, H, T = CLUB_X, CLUB_Y, CLUB_H, 0.09
+    wall = mat('ClubWall', srgb('#141418'), rough=0.85)
+    trim = mat('ClubTrim', srgb('#26272e'), rough=0.6)
+    cap = mat('ClubCap', srgb('#0b0b0e'), rough=0.7)
+    pink, cyan = neon('NeonPink', theme['pink']), neon('NeonCyan', theme['cyan'])
+    yellow, purple = neon('NeonYellow', theme['yellow']), neon('NeonPurple', theme['purple'])
+
+    tile_floor('ClubFloor', -X, X, -Y, Y, [mat('ClubFloorA', srgb('#202128'), rough=0.35),
+                                           mat('ClubFloorB', srgb('#1a1b21'), rough=0.35)], size=1.0, grout_color='#111216')
+
+    # Walls: black, full at the back and right, low at the front and left
+    box('ClubWall', wall, -X - T, X + T, Y - T, Y + T, 0, H)
+    box('ClubWall', wall, X - T, X + T, -Y - T, Y + T, 0, H)
+    box('ClubLowWall', trim, -X - T, -X + T, -Y - T, Y + T, 0, 0.35)
+    box('ClubLowWall', trim, -X - T, X + T, -Y - T, -Y + T, 0, 0.35)
+    box('ClubCap', cap, -X - 0.2, X + 0.2, Y - 0.15, Y + 0.2, H, H + 0.12)
+    box('ClubCap', cap, X - 0.15, X + 0.2, -Y - 0.2, Y + 0.2, H, H + 0.12)
+    # Neon strips at head height, and along the tops of the low walls
+    box('NeonPink', pink, -X + T, -2.9, Y - T - 0.03, Y - T, 3.0, 3.06)
+    box('NeonPink', pink, 2.9, X - T, Y - T - 0.03, Y - T, 3.0, 3.06)
+    box('NeonCyan', cyan, X - T - 0.03, X - T, -Y, 0, 3.0, 3.06)
+    box('NeonPink', pink, X - T - 0.03, X - T, 0, Y - T, 3.0, 3.06)
+    box('NeonCyan', cyan, -X - 0.04, -X + 0.04, -Y, Y, 0.35, 0.39)
+    box('NeonPink', pink, -X, X, -Y - 0.04, -Y + 0.04, 0.35, 0.39)
+
+    # Dance floor: 6 × 6 light-up tiles on a low platform
+    box('DanceBase', mat('DanceBase', srgb('#9aa0aa'), rough=0.3), -2.85, 2.85, -2.35, 3.35, 0, 0.06)
+    colors = [theme['pink'], theme['cyan'], theme['yellow']]
+    for i in range(6):
+        for j in range(6):
+            x0, y0 = -2.7 + i * 0.9, -2.2 + j * 0.9
+            box('DanceTile', neon(f'DanceTile{i}{j}', colors[(i + j * 2) % 3], 2.5), x0 + 0.03, x0 + 0.87, y0 + 0.03, y0 + 0.87, 0.06, 0.1)
+
+    # DJ booth at the back: raised stage, desk, decks, speakers, LED screen
+    box('DjStage', trim, -2.8, 2.8, 5.6, Y - T, 0, 0.55)
+    box('NeonCyan', cyan, -2.8, 2.8, 5.57, 5.6, 0.45, 0.5)
+    box('DjDesk', mat('DjDesk', srgb('#1d1d24'), rough=0.5), -1.3, 1.3, 6.3, 6.9, 0.55, 1.55)
+    box('NeonPink', pink, -1.2, 1.2, 6.27, 6.3, 1.0, 1.06)
+    deck = mat('DjDeck', srgb('#0e0e12'), rough=0.4)
+    for x in (-0.75, 0.75):
+        cyl('DjDeck', deck, x, 6.6, 1.55, 1.6, 0.2)
+    box('DjLaptop', neon('DjLaptop', '#f4f0ff', 2.0), -0.22, 0.22, 6.55, 6.75, 1.55, 1.58)
+    box('ClubScreenFrame', cap, -2.75, 2.75, Y - T - 0.08, Y - T, 1.5, 4.0)
+    box('ClubScreen', neon('ClubScreen', theme['screen'], 2.2), -2.6, 2.6, Y - T - 0.1, Y - T - 0.08, 1.62, 3.88)
+    speaker = mat('Speaker', srgb('#26272c'), rough=0.6)
+    cone = mat('SpeakerCone', srgb('#55575e'), rough=0.5)
+    for x0, x1 in ((-3.7, -2.9), (2.9, 3.7)):
+        box('Speaker', speaker, x0, x1, 6.7, 7.7, 0, 3.0)
+        for z in (0.6, 1.5, 2.4):
+            box('SpeakerCone', cone, x0 + 0.15, x1 - 0.15, 6.66, 6.7, z - 0.25, z + 0.25)
+
+    # Bar on the left: orange front with a yellow neon line, stools, glowing bottle shelves
+    box('BarFront', mat('BarFront', srgb(theme['bar']), rough=0.6), -5.0, -4.0, -5.0, 3.0, 0, 1.1)
+    box('BarTop', mat('BarTop', srgb('#2b1d18'), rough=0.3), -5.05, -3.85, -5.05, 3.05, 1.1, 1.18)
+    box('NeonYellow', yellow, -3.99, -3.96, -5.0, 3.0, 0.25, 0.3)
+    stool_seat = mat('StoolSeat', srgb('#b8325e'), rough=0.5)
+    chrome = mat('Chrome', srgb('#c9ccd2'), rough=0.2)
+    for y in (-4.2, -2.9, -1.6, -0.3, 1.0, 2.3):
+        cyl('StoolBase', chrome, -3.5, y, 0, 0.03, 0.2)
+        cyl('StoolPole', chrome, -3.5, y, 0.03, 0.75, 0.035)
+        cyl('StoolSeat', stool_seat, -3.5, y, 0.75, 0.82, 0.22)
+    # Back-bar kept low (the camera looks in over the left side): a cabinet with two rows of bottles
+    box('BackBar', wall, -X + T, -5.5, -5.0, 3.0, 0, 0.9)
+    shelf = mat('BarShelf', srgb('#2a2a30'), rough=0.5)
+    bottle_mats = [neon(f'Bottle{k}', c, 1.4) for k, c in enumerate(('#7dff9a', '#ffffff', '#ffe066', '#7fd8ff', '#ff9ad5'))]
+    rng = random.Random(11)
+    for z, x in ((0.9, -5.72), (1.25, -5.78)):
+        box('BarShelf', shelf, -5.9, -5.5 if z < 1 else -5.62, -5.0, 3.0, z - 0.03, z)
+        y = -4.85
+        while y < 2.9:
+            cyl('Bottle', bottle_mats[rng.randrange(len(bottle_mats))], x, y, z, z + 0.28, 0.045, seg=10)
+            y += 0.3
+    box('NeonPurple', purple, -5.9, -5.5, -5.0, 3.0, 0.86, 0.9)
+
+    # VIP lounge on the right: raised, gold posts + red rope, red sofas, tables, ice bucket
+    box('VipFloor', mat('VipFloor', srgb('#2a2333'), rough=0.5), 3.3, X - T, -4.5, 4.5, 0, 0.4)
+    box('NeonYellow', yellow, 3.27, 3.3, -4.5, 4.5, 0.3, 0.35)
+    box('VipStep', trim, 3.6, 4.6, -5.0, -4.5, 0, 0.2)
+    gold = mat('Gold', srgb('#c9a227'), rough=0.25)
+    rope = mat('VipRope', srgb('#a3122b'), rough=0.7)
+    posts = [-3.4 + 1.12 * k for k in range(8)]
+    for y in posts:
+        cyl('VipPost', gold, 3.45, y, 0.4, 1.35, 0.045, seg=12)
+        cyl('VipPostTop', gold, 3.45, y, 1.35, 1.42, 0.07, seg=12)
+    for a, b in zip(posts, posts[1:]):
+        box('VipRope', rope, 3.43, 3.47, a, b, 1.18, 1.22)
+    sofa = mat('VipSofa', srgb('#7a1f35'), rough=0.85)
+    glass = mat('VipTable', srgb('#1c1c22'), rough=0.15)
+    for y0, y1 in ((-3.8, -1.8), (-1.2, 0.8), (1.4, 3.4)):
+        box('VipSofa', sofa, 5.05, X - T, y0, y1, 0.4, 0.8)
+        box('VipSofa', sofa, 5.6, X - T, y0, y1, 0.8, 1.45)
+        box('VipSofa', sofa, 5.05, X - T, y0, y0 + 0.2, 0.8, 1.05)
+        box('VipSofa', sofa, 5.05, X - T, y1 - 0.2, y1, 0.8, 1.05)
+        box('VipTable', glass, 4.15, 4.75, (y0 + y1) / 2 - 0.45, (y0 + y1) / 2 + 0.45, 0.4, 0.78)
+    cyl('IceBucket', chrome, 4.45, -0.2, 0.78, 1.0, 0.13)
+    for dy, m in ((-0.04, bottle_mats[0]), (0.05, bottle_mats[2])):
+        cyl('Bottle', m, 4.45 + dy, -0.2 + dy, 0.85, 1.18, 0.045, seg=10)
+    # Spender screen above VIP
+    box('SpendScreenFrame', cap, X - T - 0.08, X - T, -2.7, 2.7, 1.9, 3.7)
+    box('SpendScreen', neon('SpendScreen', '#1b1440', 1.0), X - T - 0.1, X - T - 0.08, -2.55, 2.55, 2.02, 3.58)
+
+    # Disco ball over the dance floor
+    me = bpy.data.meshes.new('DiscoBall')
+    bm = bmesh.new()
+    bmesh.ops.create_icosphere(bm, subdivisions=2, radius=0.35)
+    bm.to_mesh(me)
+    bm.free()
+    ball = bpy.data.objects.new('DiscoBall', me)
+    bpy.context.scene.collection.objects.link(ball)
+    ball.location = (0, 0.5, 3.4)
+    me.materials.append(mat('DiscoBall', srgb('#e8ecf2'), rough=0.05))
+    box('DiscoWire', chrome, -0.01, 0.01, 0.49, 0.51, 3.75, H + 0.1)
+
+    cement = [mat(f'ClubSlab{k}', srgb(c), rough=0.9) for k, c in enumerate(('#a2a29d', '#94948f', '#aaaaa5', '#8c8c87'))]
+    cx, cy, span = pavers([[-X - 0.1, X + 0.1, -Y - 0.1, Y + 0.1]], pad=3.0, size=(1.0, 1.0), materials=cement)
+    grass(cx, cy, span)
+    export(os.path.join(OUT, f"club-{theme['id']}.glb"))
+
+
+CLUB_THEMES = [
+    {'id': 'sazza', 'pink': '#ff3fb4', 'cyan': '#29e7ff', 'yellow': '#ffd23a', 'purple': '#a65bff',
+     'screen': '#ff9cf0', 'bar': '#b8541f'},
+]
+
+
 # —— Growing a home ————————————————————————————————————————————————————————————————
 
 # Wall lines (at the single room's size) that furniture can stand against
@@ -743,6 +893,9 @@ result['one-bedroom'] = finish(
 )
 load()
 build_hostel()
+for theme in CLUB_THEMES:
+    load()
+    build_club(theme)
 with open(os.path.join(OUT, 'room-shifts.json'), 'w') as f:
     json.dump(result, f, indent=1, sort_keys=True)
 print('built rooms ->', OUT)

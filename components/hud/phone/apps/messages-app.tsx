@@ -24,6 +24,8 @@ import {
 } from '@/lib/game/hostels-api'
 import { PHONE_APPS, type PhoneAppId } from '@/lib/game/phone'
 import { STICKERS, stickerById } from '@/lib/game/stickers'
+import { OPEN_CHAT_EVENT, takePendingChat } from '@/lib/game/open-chat'
+import { requestOpenGames } from '@/lib/game/open-games'
 import type { PhoneNotificationsResponse } from '@/lib/game/phone-api'
 import styles from './messages.module.css'
 
@@ -107,7 +109,19 @@ export function MessagesApp({
 }) {
   const { hostel } = useMyHostel()
   const [chats, setChats] = useState<ChatSummary[] | null>(null)
-  const [view, setView] = useState<View>({ name: 'list' })
+  const [view, setView] = useState<View>(() => {
+    const chat = takePendingChat()
+    return chat ? { name: 'chat', chat } : { name: 'list' }
+  })
+  // Asked to open a chat while Messages is already showing
+  useEffect(() => {
+    const onOpenChat = () => {
+      const chat = takePendingChat()
+      if (chat) setView({ name: 'chat', chat })
+    }
+    window.addEventListener(OPEN_CHAT_EVENT, onOpenChat)
+    return () => window.removeEventListener(OPEN_CHAT_EVENT, onOpenChat)
+  }, [])
   const [filter, setFilter] = useState('')
   const [seen, setSeen] = useState<Set<string>>(() => new Set())
   const totalUnread = useChatUnread()
@@ -263,6 +277,7 @@ function previewText(message: ChatMessage) {
   if (message.kind === 'invite') return message.mine ? 'You invited them over 🏠' : 'Invited you over 🏠'
   if (message.kind === 'visit') return message.mine ? 'You visited them 🚪' : 'Visited your place 🚪'
   if (message.kind === 'money') return `💸 ${message.mine ? 'Sent' : 'Received'} ${naira(Number(message.body))}`
+  if (message.kind === 'game') return message.mine ? 'You sent a 🎮 challenge' : '🎮 Challenged you'
   return message.body
 }
 
@@ -384,8 +399,7 @@ function ComposeView({ onCancel, onOpen }: { onCancel: () => void; onOpen: (chat
           <button key={person.userId} type="button" className={styles.personRow} onClick={() => void pick(person)}>
             <Avatar person={person} size={38} />
             <span className={styles.personText}>
-              <span className={styles.personName}>{person.displayName}</span>
-              <span className={styles.personHandle}>@{person.username}</span>
+              <span className={styles.personName}>@{person.username}</span>
             </span>
           </button>
         ))}
@@ -526,7 +540,7 @@ function ChatView({
   const title = direct && chat.peer ? (
     <button type="button" className={styles.peerTitle} onClick={() => onProfile(chat.peer!.userId)}>
       <Avatar person={chat.peer} size={30} />
-      <span className={styles.peerName}>{chat.peer.displayName}</span>
+      <span className={styles.peerName}>@{chat.peer.username}</span>
     </button>
   ) : (
     <span className={styles.groupTitle}>{chat.title}</span>
@@ -714,6 +728,7 @@ function MessageRow({
   if (message.kind === 'invite' || message.kind === 'visit') {
     return <NoticePill message={message} onVisit={onVisit} />
   }
+  if (message.kind === 'game') return <GameNotice message={message} />
   const sender = message.sender
   const content = <MessageContent message={message} onVisit={onVisit} />
   const special = message.kind !== 'text'
@@ -744,7 +759,7 @@ function MessageRow({
       <div className={styles.bubbleWrap}>
         {showSender && !grouped ? (
           <button type="button" className={styles.senderName} onClick={() => onProfile(sender.userId)}>
-            {sender.displayName}
+            {sender.username ? `@${sender.username}` : sender.displayName}
           </button>
         ) : null}
         <div
@@ -789,6 +804,30 @@ function NoticePill({ message, onVisit }: { message: ChatMessage; onVisit: (user
         {invite && !message.mine ? (
           <button type="button" className={styles.noticeLink} onClick={() => onVisit(message.body || message.sender?.username)}>
             Visit
+          </button>
+        ) : null}
+      </span>
+    </div>
+  )
+}
+
+/** "@x challenged you to Snooker" — Open goes to the Games app's challenges list. */
+function GameNotice({ message }: { message: ChatMessage }) {
+  let info: { matchId?: string; game?: string; stake?: number } = {}
+  try {
+    info = JSON.parse(message.body) as typeof info
+  } catch {}
+  const game = info.game === 'snooker' ? 'Snooker' : 'a game'
+  const stake = info.stake ? ` · ${naira(info.stake)}` : ''
+  const name = message.sender?.username ? `@${message.sender.username}` : 'They'
+  const text = message.mine ? `🎮 You challenged them to ${game}${stake}` : `🎮 ${name} challenged you to ${game}${stake}`
+  return (
+    <div className={styles.noticeRow}>
+      <span className={`${styles.noticePill} ${styles.noticeGame}`}>
+        {text} · {clockTime(message.createdAt)}
+        {!message.mine ? (
+          <button type="button" className={styles.noticeLink} onClick={() => requestOpenGames({})}>
+            Open
           </button>
         ) : null}
       </span>

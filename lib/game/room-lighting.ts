@@ -1,6 +1,8 @@
+import { devPinnedMinute } from './wat-clock'
+
 /**
- * Day and night inside the homes, driven by the game clock (1 real minute = 10 game
- * minutes). Morning is soft and golden, afternoon bright, evening orange, and at night
+ * Day and night inside the homes, driven by the real clock (WAT, same for everyone).
+ * Morning is soft and golden, afternoon bright, evening orange, and at night
  * the sun goes, a dim blue moon takes over outside and the room's own lamps come on so
  * the inside stays easy to see.
  */
@@ -89,6 +91,23 @@ const EVENING: RoomLight = {
   skyOpacity: 0.62,
 }
 
+/** Clubs: dark and purple whatever the time; the neon, dance floor and coloured lights do the rest. */
+export const CLUB_LIGHT: RoomLight = {
+  sun: '#6a5cff',
+  sunIntensity: 0.3,
+  sunElevation: 55,
+  sunAzimuth: 160,
+  ambient: '#3a3070',
+  ambientIntensity: 0.45,
+  hemiSky: '#6a48b0',
+  hemiGround: '#140e24',
+  hemiIntensity: 0.45,
+  lamps: 0,
+  skyTop: '#0b1430',
+  skyBottom: '#28344f',
+  skyOpacity: 0,
+}
+
 /** [minute of the day, light]; blended between neighbours. */
 const KEYS: [number, RoomLight][] = [
   [0, NIGHT],
@@ -145,17 +164,8 @@ export function roomLightAt(gameTime: number): RoomLight {
   }
 }
 
-/** Game minutes that pass per real millisecond. */
-export const GAME_MINUTES_PER_MS = 10 / 60_000
-
 /**
- * Dev only: `?roomTime=21:30` pins the room clock so each time of day can be checked
- * without waiting. Returns minute of the day, or null.
+ * Dev only: `?time=21:30` (or `?roomTime=21:30`) pins the clock so each time of day can be
+ * checked without waiting. Returns minute of the day, or null. The real clock is WAT (wat-clock.ts).
  */
-export function pinnedRoomTime(search: string): number | null {
-  if (process.env.NODE_ENV !== 'development') return null
-  const raw = new URLSearchParams(search).get('roomTime')
-  const match = raw?.match(/^(\d{1,2}):(\d{2})$/)
-  if (!match) return null
-  return (Number(match[1]) % 24) * 60 + Math.min(59, Number(match[2]))
-}
+export const pinnedRoomTime = devPinnedMinute

@@ -33,6 +33,8 @@ export type BuildingActionDef = {
   quizBank?: string
   /** Soft lock — server still validates */
   lock?: (ctx: BuildingLockCtx) => string | null
+  /** Goes to a page instead of running a server action (e.g. into a club). */
+  href?: string
 }
 
 export type BuildingDef = {
@@ -773,17 +775,18 @@ export const BUILDINGS: Record<string, BuildingDef> = {
   sazza: {
     id: 'sazza',
     label: 'Sazza',
-    emoji: '🏠',
+    emoji: '🪩',
     kind: 'generic',
-    openHours: { open: 8, close: 20 },
+    openHours: { open: 20, close: 4 },
     actions: [
       {
         id: 'hangout',
-        emoji: '🤝',
-        title: 'Visit Sazza',
-        subtitle: 'Local hangout spot.',
-        chips: [{ kind: 'time', minutes: 20 }],
+        emoji: '🪩',
+        title: 'Enter Sazza',
+        subtitle: 'Club night: dance, drinks, VIP. Entry ₦5,000.',
+        chips: [],
         buttonLabel: 'Enter',
+        href: '/club/sazza',
       },
     ],
   },

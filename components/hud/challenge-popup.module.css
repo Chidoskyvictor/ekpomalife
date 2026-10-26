@@ -1,0 +1,75 @@
+/* Small top card under the status island; stays clear of the bottom dock and joystick. */
+.card {
+  position: fixed;
+  top: calc(max(12px, env(safe-area-inset-top)) + 56px);
+  left: 50%;
+  z-index: var(--z-toast);
+  display: flex;
+  width: min(340px, calc(100vw - 24px));
+  align-items: center;
+  gap: 10px;
+  padding: 10px 10px 10px 12px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
+  color: #111;
+  transform: translateX(-50%);
+  animation: drop 0.25s ease-out;
+}
+
+@keyframes drop {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -10px);
+  }
+}
+
+.icon {
+  flex: none;
+  font-size: 24px;
+}
+
+.text {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  color: #6e6e73;
+  font-size: 12px;
+}
+
+.text strong {
+  overflow: hidden;
+  color: #111;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.actions {
+  display: flex;
+  flex: none;
+  gap: 6px;
+}
+
+.yes,
+.no {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.yes {
+  background: #0891b2;
+  color: #fff;
+}
+
+.no {
+  background: #e9ecef;
+  color: #111;
+}

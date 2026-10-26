@@ -11,7 +11,7 @@ import ROOM_SHIFTS from './room-shifts.json'
  * using room-shifts.json (where the build moved each piece of furniture).
  */
 
-export type RoomLayoutId = 'single-room' | 'selfcon' | 'one-bedroom' | 'hostel'
+export type RoomLayoutId = 'single-room' | 'selfcon' | 'one-bedroom' | 'hostel' | 'club-sazza'
 
 /** [minX, minZ, maxX, maxZ] */
 export type Rect = [number, number, number, number]
@@ -46,6 +46,8 @@ export type RoomLayout = {
   cameraScale: number
   /** Walking speed (m/s); faster in bigger homes so crossing them doesn't drag. */
   speed: number
+  /** Clubs keep their own dark neon lighting whatever the time of day. */
+  mood?: 'club'
 }
 
 /* —— Layout at the single room's size, before growing —— */
@@ -169,6 +171,34 @@ const HOSTEL: RoomLayout = {
   view: 'front',
   cameraScale: 1.4,
   speed: 1.8,
+}
+
+/** Sazza (blender build_club): bar left, dance floor middle, DJ at the back, VIP lounge right. */
+const CLUB_SAZZA: RoomLayout = {
+  id: 'club-sazza',
+  label: 'Sazza',
+  glb: '/models/club-sazza.glb',
+  floors: [[-5.62, -7.62, 5.62, 7.62]],
+  blocks: [
+    [-5.95, -3.05, -3.85, 5.05], // bar + back-bar
+    [-3.75, -2.55, -3.25, 4.45], // bar stools
+    [-2.8, -7.95, 2.8, -5.6], // DJ stage
+    [-3.7, -7.7, -2.9, -6.7], // speakers
+    [2.9, -7.7, 3.7, -6.7],
+    [3.25, -4.5, 5.95, 4.5], // VIP platform
+  ],
+  start: [0, 6.2],
+  spots: {
+    'dance-floor': { approach: [0, -0.5], at: [0, 0.1, -0.5], heading: Math.PI },
+    'bar-stool': { approach: [-2.85, 0.3], at: [-3.5, 0.04, 0.3], heading: -Math.PI / 2 },
+    'vip-sofa': { approach: [4.1, 5.4], at: [5.35, 0.02, 0.2], heading: -Math.PI / 2 },
+  },
+  tapBoxes: {},
+  host: { position: [0, 0, 0], rotation: 0 },
+  view: 'corner',
+  cameraScale: 2.1,
+  speed: 2.6,
+  mood: 'club',
 }
 
 const SELFCON_SMALL: SmallLayout = {
@@ -300,7 +330,11 @@ export const ROOM_LAYOUTS: Record<RoomLayoutId, RoomLayout> = {
   selfcon: grow(SELFCON_SMALL, ROOM_SHIFTS.selfcon),
   'one-bedroom': grow(ONE_BEDROOM_SMALL, ROOM_SHIFTS['one-bedroom']),
   hostel: HOSTEL,
+  'club-sazza': CLUB_SAZZA,
 }
+
+/** The 3D scene for a club, by venue id. */
+export const CLUB_LAYOUTS: Record<string, RoomLayout> = { sazza: CLUB_SAZZA }
 
 /** Which home each lodging gets (chosen at sign-up; the hostel is the campus dorm). */
 export function layoutForLodging(lodgingId: LodgingId | string | null | undefined): RoomLayout {

@@ -892,12 +892,12 @@ export async function takeRide(
             },
           }
         }
-        const nextTime = row.game_time + quote.minutes
+        // Real clock: the ride doesn't move the time
         await client.query(
           `UPDATE game_state
-           SET location_id = $2, game_time = $3, version = $4, updated_at = NOW()
+           SET location_id = $2, version = $3, updated_at = NOW()
            WHERE character_id = $1`,
-          [gate.character.id, toPlaceId, nextTime, wrote.version],
+          [gate.character.id, toPlaceId, wrote.version],
         )
         return {
           status: 200,

@@ -398,12 +398,12 @@ export async function workShift(userId: string) {
       study: -(needsCost.study ?? 0),
     })
 
-    const nextTime = row.game_time + job.shift_minutes
+    // Real clock: a shift costs needs and pays, but doesn't move the time
     await client.query(
       `UPDATE game_state
-       SET needs = $2::jsonb, game_time = $3, version = $4, updated_at = NOW(), last_tick_at = NOW()
+       SET needs = $2::jsonb, version = $3, updated_at = NOW()
        WHERE character_id = $1`,
-      [gate.character.id, JSON.stringify(clampNeeds(needs)), nextTime, wrote.version],
+      [gate.character.id, JSON.stringify(clampNeeds(needs)), wrote.version],
     )
 
     await client.query('COMMIT')
@@ -824,9 +824,9 @@ export async function runHustle(userId: string, hustleId: string) {
 
     await client.query(
       `UPDATE game_state
-       SET needs = $2::jsonb, game_time = $3, version = version + 1, updated_at = NOW(), last_tick_at = NOW()
+       SET needs = $2::jsonb, version = version + 1, updated_at = NOW()
        WHERE character_id = $1`,
-      [gate.character.id, JSON.stringify(clampNeeds(needs)), row.game_time + 30],
+      [gate.character.id, JSON.stringify(clampNeeds(needs))],
     )
 
     await client.query('COMMIT')

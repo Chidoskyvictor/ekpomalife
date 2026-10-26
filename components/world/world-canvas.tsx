@@ -22,6 +22,7 @@ import { WorldZoneDebugPanel } from './world-zone-debug-panel'
 import { BillboardDebugPanel } from './billboard-debug-panel'
 import { ZoneStickerOverlay, ZoneStickerProjector, ZoneStickerProvider } from './world-zone-stickers'
 import { ZoneDebugProvider } from './zone-debug-context'
+import { useWatClock } from '@/lib/game/wat-clock'
 
 const PITCH = (32 * Math.PI) / 180
 const HEADING = 0
@@ -150,7 +151,9 @@ function MobileDprMonitor({
 
 export function WorldCanvas() {
   const { state, selectedId, select } = useGame()
-  const night = state?.period === 'evening' || state?.period === 'night'
+  // Real WAT time of day for everyone (dev: ?time=21:30 previews another hour)
+  const { period } = useWatClock()
+  const night = period === 'evening' || period === 'night'
   const { targetPercent, assetsDone, onProgress } = useMapLoadProgress()
   const [mobile, setMobile] = useState(
     () => window.matchMedia('(max-width: 767px), (pointer: coarse)').matches,
@@ -183,7 +186,7 @@ export function WorldCanvas() {
     })
   }, [])
 
-  const sky = SKY[state?.period ?? 'afternoon'] ?? SKY.afternoon
+  const sky = SKY[period] ?? SKY.afternoon
   const ambient = sky.ambient
   const hemi = sky.hemi * (mobile ? 1.15 : 1)
   const sun = sky.sun * (mobile ? 1.12 : 1)

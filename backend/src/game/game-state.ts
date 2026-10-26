@@ -13,7 +13,7 @@ import {
 } from './needs.js'
 import { getAction, actionForNeed, type GameActionId } from './actions.js'
 import { getPlace, startPlaceForLodging, type Place } from './places.js'
-import { advanceGameTime, clockFromGameTime, isOpenAt, DEFAULT_GAME_TIME } from './time.js'
+import { DAY_MINUTES, clockFromGameTime, isOpenAt, realGameTime } from './time.js'
 import type { TraitId } from './traits.js'
 import { checkTraits } from './traits.js'
 import { computeSetupStatus, SETUP_INCOMPLETE } from './setup-status.js'
@@ -91,7 +91,7 @@ export async function ensureGameState(
   await client.query(
     `INSERT INTO game_state (character_id, cash, needs, location_id, game_time, last_tick_at, version)
      VALUES ($1, $2, $3::jsonb, $4, $5, NOW(), 1)`,
-    [characterId, cash, JSON.stringify(defaultNeeds()), locationId, DEFAULT_GAME_TIME],
+    [characterId, cash, JSON.stringify(defaultNeeds()), locationId, realGameTime()],
   )
   if (cash !== 0) {
     await client.query(
@@ -117,18 +117,25 @@ export async function tickGameState(
 ): Promise<GameStateRow> {
   const last = row.last_tick_at instanceof Date ? row.last_tick_at : new Date(row.last_tick_at)
   const elapsedMs = Math.max(0, now.getTime() - last.getTime())
-  if (elapsedMs < 1000) return row
-
   const prevTime = row.game_time
-  const nextTime = advanceGameTime(prevTime, elapsedMs)
-  const gameMinutes = nextTime - prevTime
-  if (gameMinutes <= 0) {
-    await client.query(`UPDATE game_state SET last_tick_at = $2 WHERE character_id = $1`, [
-      row.character_id,
-      now,
-    ])
-    return { ...row, last_tick_at: now }
+  // The clock is real WAT time for everyone; needs drain by the real minutes since the last tick
+  const nextTime = realGameTime(now)
+  // A save from before the real clock (days behind): move rent dates onto the real calendar
+  // first so the jump doesn't count as weeks of unpaid rent.
+  if (nextTime - prevTime > 2 * DAY_MINUTES) {
+    const { rebaseRentToRealClock } = await import('./rent-ladder.js')
+    await rebaseRentToRealClock(client, row.character_id, nextTime)
   }
+  // Needs are whole numbers, so they drain in whole real hours (a minute's worth would round
+  // to nothing); the part of an hour not used yet carries over to the next tick.
+  const hours = Math.floor(elapsedMs / DECAY_STEP_MS)
+  if (hours <= 0) {
+    if (nextTime === prevTime) return row
+    await client.query(`UPDATE game_state SET game_time = $2 WHERE character_id = $1`, [row.character_id, nextTime])
+    return { ...row, game_time: nextTime }
+  }
+  const gameMinutes = hours * 60
+  const tickedTo = new Date(last.getTime() + hours * DECAY_STEP_MS)
 
   let needs = decayNeeds(parseNeeds(row.needs), gameMinutes, traits, lodgingDecayMult)
   const prevDay = clockFromGameTime(prevTime).day
@@ -158,15 +165,17 @@ export async function tickGameState(
     `UPDATE game_state
      SET needs = $2::jsonb, game_time = $3, last_tick_at = $4, updated_at = NOW()
      WHERE character_id = $1`,
-    [row.character_id, JSON.stringify(needs), nextTime, now],
+    [row.character_id, JSON.stringify(needs), nextTime, tickedTo],
   )
   return {
     ...row,
     needs,
     game_time: nextTime,
-    last_tick_at: now,
+    last_tick_at: tickedTo,
   }
 }
+
+const DECAY_STEP_MS = 60 * 60_000
 
 export async function writeCashChange(
   client: PoolClient,
@@ -527,7 +536,8 @@ export async function performGameAction(
       effects = { ...effects, energy: Math.round(effects.energy * capped) }
     }
     let needs = applyNeedDelta(parseNeeds(row.needs), effects)
-    const nextTime = row.game_time + action.duration
+    // Real clock: sleeping, eating, studying… change needs and money, never the time
+    const nextTime = row.game_time
     let nextCash = cash
     let nextVersion = row.version
 

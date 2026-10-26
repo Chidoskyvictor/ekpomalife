@@ -2,6 +2,7 @@
 
 import confetti from 'canvas-confetti'
 import { X } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import { Drawer } from 'vaul'
 import { QuizFlow } from '@/components/buildings/quiz-flow'
@@ -209,6 +210,7 @@ function Header({
 export function BuildingPanel() {
   const mobile = useIsMobile()
   const { state, selectedId, select, act, travelTo, serverVersion, notifyToast } = useGame()
+  const router = useRouter()
   const [busy, setBusy] = useState(false)
   const [quiz, setQuiz] = useState<{
     mode: 'quiz' | 'exam'
@@ -270,6 +272,10 @@ export function BuildingPanel() {
   }
 
   const onAction = (action: BuildingActionDef) => {
+    if (action.href) {
+      router.push(action.href)
+      return
+    }
     if (action.flow === 'quiz' || action.flow === 'exam') {
       setQuiz({
         mode: action.flow === 'exam' ? 'exam' : 'quiz',

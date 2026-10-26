@@ -1,0 +1,95 @@
+/* Sprayed money falling over the club screen. Notes are big enough to tap (48px+). */
+
+.layer {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: calc(var(--z-hud) + 2);
+  overflow: hidden;
+}
+
+.banner {
+  position: absolute;
+  top: calc(156px + env(safe-area-inset-top));
+  left: 50%;
+  max-width: calc(100% - 32px);
+  overflow: hidden;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(21, 128, 61, 0.92);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+}
+
+.note {
+  pointer-events: auto;
+  position: absolute;
+  top: -64px;
+  display: grid;
+  width: 64px;
+  height: 34px;
+  min-height: 44px;
+  place-items: center;
+  padding: 0;
+  border: 2px solid #0f5132;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #b9f5c9, #4ade80 55%, #22a55a);
+  color: #063d22;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+  animation-name: fall;
+  animation-timing-function: linear;
+  animation-fill-mode: both;
+  touch-action: manipulation;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.mine {
+  opacity: 0.7;
+  cursor: default;
+}
+
+@keyframes fall {
+  from {
+    transform: translateY(0) rotate(var(--tilt));
+  }
+  to {
+    transform: translateY(calc(100dvh + 80px)) rotate(calc(var(--tilt) * -1));
+  }
+}
+
+.pop {
+  position: absolute;
+  top: 42%;
+  left: 50%;
+  color: #4ade80;
+  font-size: 28px;
+  font-weight: 900;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+  transform: translateX(-50%);
+  animation: pop 1.4s ease-out forwards;
+}
+
+@keyframes pop {
+  from {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, -60px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .note {
+    animation-timing-function: steps(6);
+  }
+}

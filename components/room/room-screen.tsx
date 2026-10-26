@@ -4,14 +4,14 @@ import dynamic from 'next/dynamic'
 import { useParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useGame } from '@/hooks/use-game'
+import { endActivity, setActivityQueue, startActivity } from '@/lib/game/activity'
 import { fetchHostCard, type HostCard } from '@/lib/game/hostels-api'
 import { normalizeAppearance, type Appearance } from '@/lib/game/look'
-import type { FurnitureId } from '@/lib/game/room-furniture'
+import type { FurnitureAction, FurnitureId } from '@/lib/game/room-furniture'
 import { resolvePaint } from '@/lib/game/house-paint'
 import { layoutForLodging } from '@/lib/game/room-layouts'
-import { GAME_MINUTES_PER_MS, pinnedRoomTime, roomLightAt } from '@/lib/game/room-lighting'
-import { RoomCameraDebugPanel } from './room-camera-debug-panel'
-import { RoomCameraDebugProvider } from './room-camera-debug-context'
+import { roomLightAt } from '@/lib/game/room-lighting'
+import { devPinnedMinute, watMinuteOfDay } from '@/lib/game/wat-clock'
 import { FurnitureSheet } from './furniture-sheet'
 import type { RoomPlayerControl } from './room-player'
 import { VisitBanner } from './visit-banner'
@@ -30,6 +30,7 @@ export function RoomScreen() {
   const [furniture, setFurniture] = useState<FurnitureId | null>(null)
   // The 3D character fills in control.use once it has mounted
   const control = useMemo<RoomPlayerControl>(() => ({}), [])
+  const pick = useRoomActionQueue(control, (action) => void act(action.id, { atHome: true }))
   const [modelReady, setModelReady] = useState<'checking' | 'ok' | 'missing'>('checking')
   // /room/[username]: visiting someone else's place — their character is home too
   const params = useParams<{ username?: string }>()
@@ -53,18 +54,10 @@ export function RoomScreen() {
   const ownerName = visitingOther ? host?.username : state?.username
   const paint = ownerName ? resolvePaint({ id: ownerName.toLowerCase() }).hex : undefined
 
-  // Game clock between server refreshes: last known time + real time since (10 game min / real min)
-  const clockBase = useRef({ gameTime: 12 * 60, at: 0 })
+  // Real WAT time of day, the same for everyone (dev: ?time=21:30 pins it)
   const [pinned, setPinned] = useState<number | null>(null)
-  useEffect(() => setPinned(pinnedRoomTime(window.location.search)), [])
-  useEffect(() => {
-    if (state?.gameTime != null) clockBase.current = { gameTime: state.gameTime, at: performance.now() }
-  }, [state?.gameTime])
-  const clock = useCallback(() => {
-    if (pinned != null) return pinned
-    const { gameTime, at } = clockBase.current
-    return at ? gameTime + (performance.now() - at) * GAME_MINUTES_PER_MS : gameTime
-  }, [pinned])
+  useEffect(() => setPinned(devPinnedMinute(window.location.search)), [])
+  const clock = useCallback(() => pinned ?? watMinuteOfDay(), [pinned])
   // The sky tint behind the house only needs to move every few seconds
   const [sky, setSky] = useState(() => roomLightAt(12 * 60))
   useEffect(() => {
@@ -94,7 +87,6 @@ export function RoomScreen() {
   }, [layout.glb])
 
   return (
-    <RoomCameraDebugProvider>
       <div className={styles.root} aria-label={visitingOther ? `${host?.username ?? visiting}'s ${layout.label.toLowerCase()}` : `Your ${layout.label.toLowerCase()}`}>
         <div className={styles.canvasStage}>
         {/* Morning / evening / night tint over the page background; clear at midday */}
@@ -117,18 +109,103 @@ export function RoomScreen() {
           </p>
         ) : null}
         </div>
-        <RoomCameraDebugPanel />
         {visiting && !isOwn ? <VisitBanner username={host?.username ?? visiting} displayName={host?.displayName ?? null} /> : null}
         <FurnitureSheet
           furniture={furniture}
           onClose={() => setFurniture(null)}
           onPick={(id, action) => {
             setFurniture(null)
-            // Walk over, then the server applies the action once the character starts using it
-            control.use?.(id, action, () => void act(action.id, { atHome: true }))
+            pick(id, action)
           }}
         />
       </div>
-    </RoomCameraDebugProvider>
+  )
+}
+
+type Queued = { key: string; furniture: FurnitureId; action: FurnitureAction }
+const MAX_QUEUED = 3
+
+/**
+ * Sims-style action queue for the room: pick something while busy and it lines up (up to 3) as a
+ * dim tile; each runs when the one before finishes. The running action walks over, then the tile
+ * fills and the server applies it at the end. ✕ on the running tile skips to the next one; ✕ on a
+ * waiting tile drops it; walking off (tap the floor / arrow keys) stops everything.
+ */
+function useRoomActionQueue(control: RoomPlayerControl, run: (action: FurnitureAction) => void) {
+  const queue = useRef<Queued[]>([])
+  const busy = useRef(false)
+  const skipped = useRef(false)
+
+  const sync = useCallback(() => {
+    setActivityQueue(
+      queue.current.map((q) => ({
+        key: q.key,
+        emoji: q.action.emoji,
+        title: q.action.title,
+        onRemove: () => {
+          queue.current = queue.current.filter((x) => x.key !== q.key)
+          sync()
+        },
+      })),
+    )
+  }, [])
+
+  const start = useRef<(item: Queued) => void>(() => undefined)
+  const next = useCallback(() => {
+    busy.current = false
+    const item = queue.current.shift()
+    sync()
+    if (item) start.current(item)
+  }, [sync])
+
+  start.current = (item: Queued) => {
+    busy.current = true
+    const { action } = item
+    control.use?.(item.furniture, action, {
+      onStart: () =>
+        startActivity({
+          emoji: action.emoji,
+          title: action.title,
+          seconds: action.seconds,
+          onCancel: () => {
+            skipped.current = true
+            control.stop?.()
+          },
+        }),
+      onDone: () => {
+        endActivity()
+        run(action)
+        next()
+      },
+      onAbort: () => {
+        endActivity()
+        if (skipped.current) {
+          skipped.current = false
+          next()
+          return
+        }
+        // Walked away: drop everything lined up
+        queue.current = []
+        busy.current = false
+        sync()
+      },
+    })
+  }
+
+  // Leaving the room clears the queue tiles
+  useEffect(() => () => setActivityQueue([]), [])
+
+  return useCallback(
+    (furniture: FurnitureId, action: FurnitureAction) => {
+      const item = { key: `${Date.now()}-${Math.random()}`, furniture, action }
+      if (!busy.current) {
+        start.current(item)
+        return
+      }
+      if (queue.current.length >= MAX_QUEUED) return
+      queue.current = [...queue.current, item]
+      sync()
+    },
+    [sync],
   )
 }

@@ -981,6 +981,11 @@
   color: #0f766e;
 }
 
+.noticeGame {
+  background: #e0f2fe;
+  color: #075985;
+}
+
 .noticeLink {
   padding: 2px 8px;
   border: 0;

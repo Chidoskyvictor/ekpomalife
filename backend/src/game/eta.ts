@@ -96,7 +96,7 @@ type PostRow = {
 const POST_SELECT = (viewer: string) => `
   SELECT p.id::text, p.author_user_id, p.author_npc_id, p.body, p.tags, p.reply_to::text, p.like_count, p.reply_count,
          p.giveaway_prize::text, p.giveaway_ends_at, p.giveaway_settled, p.giveaway_winner_post::text, p.created_at,
-         u.username, COALESCE(pp.display_name, u.name) AS display_name, pp.avatar_color, pp.avatar_emoji,
+         u.username, u.username AS display_name, pp.avatar_color, pp.avatar_emoji,
          EXISTS (SELECT 1 FROM eta_likes l WHERE l.post_id = p.id AND l.user_id = ${viewer}) AS liked
   FROM eta_posts p
   LEFT JOIN users u ON u.id = p.author_user_id
@@ -281,7 +281,7 @@ export async function getProfile(viewerId: string, kind: 'user' | 'npc', idOrHan
     }
   }
   const user = await pool.query<{ id: string; username: string; display_name: string; avatar_color: string | null; avatar_emoji: string | null; bio: string | null }>(
-    `SELECT u.id, u.username, COALESCE(pp.display_name, u.name) AS display_name, pp.avatar_color, pp.avatar_emoji, pp.bio
+    `SELECT u.id, u.username, u.username AS display_name, pp.avatar_color, pp.avatar_emoji, pp.bio
      FROM users u LEFT JOIN player_profiles pp ON pp.user_id = u.id
      WHERE u.id = $1 OR LOWER(u.username) = LOWER($1) LIMIT 1`,
     [idOrHandle],
@@ -322,7 +322,7 @@ export async function getProfile(viewerId: string, kind: 'user' | 'npc', idOrHan
 export async function topVoices() {
   const rows = await pool.query<{ id: string; username: string; display_name: string; avatar_color: string | null; avatar_emoji: string | null; followers: number; fire: number }>(
     `SELECT * FROM (
-       SELECT u.id, u.username, COALESCE(pp.display_name, u.name) AS display_name, pp.avatar_color, pp.avatar_emoji,
+       SELECT u.id, u.username, u.username AS display_name, pp.avatar_color, pp.avatar_emoji,
               (SELECT COUNT(*)::int FROM eta_follows f WHERE f.target_kind = 'user' AND f.target_id = u.id) AS followers,
               COALESCE((SELECT SUM(p.like_count)::int FROM eta_posts p WHERE p.author_user_id = u.id AND p.created_at > NOW() - INTERVAL '7 days'), 0) AS fire
        FROM users u LEFT JOIN player_profiles pp ON pp.user_id = u.id

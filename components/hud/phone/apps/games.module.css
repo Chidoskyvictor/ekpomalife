@@ -1,0 +1,372 @@
+/* Phone → Games. Draws its own header (bare app frame) so a game can use the whole phone screen. */
+
+.screen {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  gap: 10px;
+  padding: 2px 12px 16px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  color: #111;
+}
+
+.screen > * {
+  flex: none;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 0;
+}
+
+.wordmark {
+  background: linear-gradient(120deg, #0891b2, #16a34a);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.tagline,
+.fine {
+  color: #8e8e93;
+  font-size: 12px;
+}
+
+.fine {
+  margin: 0 4px;
+  line-height: 1.35;
+}
+
+.section {
+  margin: 6px 4px 0;
+  color: #8e8e93;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.error {
+  margin: 0 4px;
+  color: #b42318;
+  font-size: 13px;
+}
+
+/* —— Cards —— */
+.card,
+.game {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 18px;
+  background: #f4f6f8;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.game {
+  min-height: 72px;
+  background: linear-gradient(135deg, #ecfdf5, #e0f2fe);
+  cursor: pointer;
+}
+
+.cardIcon {
+  flex: none;
+  font-size: 22px;
+}
+
+.gameArt {
+  display: grid;
+  flex: none;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border-radius: 14px;
+  background: #0f5a24;
+  font-size: 26px;
+}
+
+.cardText {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  color: #6e6e73;
+  font-size: 12px;
+}
+
+.cardText strong {
+  overflow: hidden;
+  color: #111;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cardActions {
+  display: flex;
+  flex: none;
+  gap: 6px;
+}
+
+.play {
+  flex: none;
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: #16a34a;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* —— Buttons —— */
+.primary,
+.ghost,
+.ghostSmall {
+  min-height: 34px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.primary {
+  background: #0891b2;
+  color: #fff;
+}
+
+.ghost,
+.ghostSmall {
+  background: #e9ecef;
+  color: #111;
+}
+
+.ghostSmall {
+  min-height: 30px;
+  padding: 0 12px;
+  font-size: 12px;
+}
+
+.primary:disabled,
+.big:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.big {
+  min-height: 46px;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(120deg, #0891b2, #16a34a);
+  color: #fff;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+/* —— Setup —— */
+.backBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 15px;
+}
+
+.back {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex: none;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: #f2f2f7;
+  color: #111;
+  cursor: pointer;
+}
+
+.backSpacer {
+  width: 34px;
+  flex: none;
+}
+
+.chips {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.chips::-webkit-scrollbar {
+  display: none;
+}
+
+.chip {
+  display: inline-flex;
+  min-height: 44px;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  padding: 4px 12px;
+  border: 0;
+  border-radius: 14px;
+  background: #f2f2f7;
+  color: #111;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.chip small {
+  color: #8e8e93;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.chipOn {
+  background: #0891b2;
+  color: #fff;
+}
+
+.chipOn small {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.row {
+  display: flex;
+  gap: 6px;
+}
+
+.input {
+  min-width: 0;
+  min-height: 40px;
+  flex: 1;
+  padding: 0 12px;
+  border: 1px solid #d5dde3;
+  border-radius: 12px;
+  background: #fff;
+  color: #111;
+  font: inherit;
+  font-size: 15px;
+  outline: none;
+}
+
+.input:focus {
+  border-color: #0891b2;
+}
+
+.friends {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.friend {
+  max-width: 100%;
+  overflow: hidden;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 999px;
+  background: #e0f2fe;
+  color: #075985;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+/* —— Waiting —— */
+.waiting {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 40px 16px;
+  color: #6e6e73;
+  font-size: 13px;
+  text-align: center;
+}
+
+.waiting strong {
+  color: #111;
+  font-size: 16px;
+}
+
+.spinner {
+  width: 36px;
+  height: 36px;
+  border: 4px solid #e0f2fe;
+  border-top-color: #0891b2;
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* —— Play: the game fills the phone screen edge to edge (it draws its own header) —— */
+.playScreen {
+  position: relative;
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  background: #0f1a14;
+}
+
+/* Away / result notes float over the bottom of the game */
+.banner {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  left: 8px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 44px;
+  padding: 6px 8px 6px 12px;
+  border-radius: 14px;
+  background: #fff4c7;
+  color: #7a5200;
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+}
+
+.frame {
+  width: 100%;
+  min-height: 0;
+  flex: 1;
+  border: 0;
+  background: #0f1a14;
+}

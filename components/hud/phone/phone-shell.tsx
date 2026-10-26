@@ -28,10 +28,13 @@ import { useChatUnread } from '@/hooks/use-chat-unread'
 import { MapApp } from './apps/map-app'
 import { MarketApp } from './apps/market-app'
 import { RideApp } from './apps/ride-app'
+import { OPEN_CHAT_EVENT } from '@/lib/game/open-chat'
+import { OPEN_GAMES_EVENT } from '@/lib/game/open-games'
 import { SettingsApp } from './apps/settings-app'
 import { ProfileApp } from './apps/profile-app'
 import { InvestApp } from './apps/invest-app'
 import { EtaApp } from './apps/eta-app'
+import { GamesApp } from './apps/games-app'
 import { PhoneHome, phoneModeFromStorage } from './phone-home'
 import { PhoneStatusBar } from './phone-status-bar'
 import { WallpaperSkyline } from './wallpaper-skyline'
@@ -181,6 +184,19 @@ export function PhoneShell({
     setOffline(!!res.offline)
   }
 
+  useEffect(() => {
+    const onOpenChat = () => void openApp('messages')
+    const onOpenGames = () => {
+      if (appId !== 'games') void openApp('games')
+    }
+    window.addEventListener(OPEN_CHAT_EVENT, onOpenChat)
+    window.addEventListener(OPEN_GAMES_EVENT, onOpenGames)
+    return () => {
+      window.removeEventListener(OPEN_CHAT_EVENT, onOpenChat)
+      window.removeEventListener(OPEN_GAMES_EVENT, onOpenGames)
+    }
+  })
+
   const onPromo = (promo: PhonePromo) => {
     if (promo.action.type === 'app') {
       void openApp(promo.action.appId)
@@ -244,7 +260,7 @@ export function PhoneShell({
                   <div className={styles.content}>
                     <PhoneStatusBar clock={phoneClock} phone={deviceState} onApp={Boolean(appId)} />
                     {appId ? (
-                      <AppFrame appId={appId} offline={offline} onHome={goHome} bare={appId === 'messages'}>
+                      <AppFrame appId={appId} offline={offline} onHome={goHome} bare={appId === 'messages' || appId === 'games'}>
                         {appId === 'jobs' ? <JobsApp /> : null}
                         {appId === 'bank' ? <BankApp /> : null}
                         {appId === 'gist' ? <GistApp /> : null}
@@ -283,6 +299,7 @@ export function PhoneShell({
                         {appId === 'profile' ? <ProfileApp /> : null}
                         {appId === 'invest' ? <InvestApp /> : null}
                         {appId === 'eta' ? <EtaApp /> : null}
+                        {appId === 'games' ? <GamesApp onHome={goHome} /> : null}
                         {appId === 'settings' ? (
                           <SettingsApp
                             phone={deviceState}

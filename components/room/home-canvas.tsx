@@ -2,7 +2,7 @@
 
 import { useGLTF } from '@react-three/drei'
 import { Canvas, useThree } from '@react-three/fiber'
-import { Suspense, useLayoutEffect, useMemo } from 'react'
+import { Suspense, useLayoutEffect, useMemo, type ReactNode } from 'react'
 import { Box3, Vector3, type Material, type Mesh, type Object3D } from 'three'
 import { applyGlbTextureAnisotropy } from '@/components/world/glb-textures'
 import { useLowPerf } from '@/hooks/use-low-perf'
@@ -15,7 +15,7 @@ import { ROOM_LAYOUTS, type RoomLayout } from '@/lib/game/room-layouts'
 import { RoomCameraSync } from './room-camera-sync'
 import { CharacterFigure } from '@/components/look/character-figure'
 import { RoomLights } from './room-lights'
-import { RoomPlayer, type RoomPlayerControl } from './room-player'
+import { RoomPlayer, type PlayerMove, type RoomPlayerControl } from './room-player'
 
 /** Footprint scale for the thin wide lawn discs in the home GLBs (1 = Blender size). */
 const LAWN_SCALE_XZ = 0.76
@@ -26,13 +26,16 @@ type PlayerProps = {
   paint?: string
   /** Current game time in minutes, read every frame for the day/night lighting (midday when unset). */
   clock?: () => number
+  /** Extra scene pieces in the model's own coordinates (e.g. a club's lights and screens). */
+  effects?: (root: Object3D) => ReactNode
+  /** Your character's position and pose every frame. */
+  onPlayerMove?: (move: PlayerMove) => void
   appearance?: Appearance
   /** Visiting: the owner's look, standing in their room. */
   host?: Appearance
   onFurniture?: (id: FurnitureId) => void
   control?: RoomPlayerControl
 }
-import { useRoomCameraDebug } from './room-camera-debug-context'
 
 function centerOnGround(scene: Object3D) {
   const box = new Box3().setFromObject(scene)
@@ -98,7 +101,7 @@ function usePaintedWalls(root: Object3D, paint: string | undefined) {
 
 const MIDDAY = () => 12 * 60
 
-function HomeModel({ layout, paint, clock = MIDDAY, appearance, host, onFurniture, control }: PlayerProps) {
+function HomeModel({ layout, paint, clock = MIDDAY, effects, onPlayerMove, appearance, host, onFurniture, control }: PlayerProps) {
   const gl = useThree((state) => state.gl)
   const { scene } = useGLTF(layout.glb)
   useLayoutEffect(() => {
@@ -120,7 +123,15 @@ function HomeModel({ layout, paint, clock = MIDDAY, appearance, host, onFurnitur
       {/* Same offset as the model, so the player walks in the GLB's own floor coordinates */}
       <group position={[prepared.position.x, prepared.position.y, prepared.position.z]}>
         <RoomLights layout={layout} root={prepared} clock={clock} />
-        <RoomPlayer key={layout.id} layout={layout} appearance={appearance} onFurniture={onFurniture} control={control} />
+        {effects?.(prepared)}
+        <RoomPlayer
+          key={layout.id}
+          layout={layout}
+          appearance={appearance}
+          onFurniture={onFurniture}
+          control={control}
+          onMove={onPlayerMove}
+        />
         {host ? (
           // The host waits inside, facing the visitor
           <group position={layout.host.position} rotation={[0, layout.host.rotation, 0]}>
@@ -135,8 +146,7 @@ function HomeModel({ layout, paint, clock = MIDDAY, appearance, host, onFurnitur
 /** Your home (single room, self-con or one bedroom) with your character in it. */
 export function HomeCanvas(props: PlayerProps) {
   const lowPerf = useLowPerf()
-  const debug = useRoomCameraDebug()
-  const cam = debug?.hasOverride ? debug.placement : scaledRoomCamera(props.layout.cameraScale, props.layout.view)
+  const cam = scaledRoomCamera(props.layout.cameraScale, props.layout.view)
 
   return (
     <Canvas

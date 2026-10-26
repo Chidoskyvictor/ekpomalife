@@ -48,11 +48,11 @@ function Avatar({ author, size = 38 }: { author: EtaAuthor; size?: number }) {
   )
 }
 
-/** Name · gold check · NPC tag */
+/** NPC: name · gold check · NPC tag. Players: @username only (real names are private). */
 export function AuthorName({ author }: { author: EtaAuthor }) {
   return (
     <span className={styles.nameRow}>
-      <strong className={styles.name}>{author.name}</strong>
+      <strong className={styles.name}>{author.npc ? author.name : `@${author.handle}`}</strong>
       {author.npc ? (
         <>
           <BadgeCheck size={15} className={styles.gold} aria-label="Verified" />
@@ -124,7 +124,8 @@ export function GistCard({
             <AuthorName author={post.author} />
           </button>
           <span className={styles.handle}>
-            @{post.author.handle} · {ago(post.createdAt)}
+            {post.author.npc ? `@${post.author.handle} · ` : ''}
+            {ago(post.createdAt)}
           </span>
         </div>
         <div className={styles.clickable} onClick={onOpen} role={onOpen ? 'button' : undefined} tabIndex={onOpen ? 0 : undefined}>
@@ -418,7 +419,7 @@ function Profile({ kind, id, onBack, onOpen }: { kind: 'user' | 'npc'; id: strin
           <section className={styles.profileHead}>
             <Avatar author={profile.author} size={64} />
             <AuthorName author={profile.author} />
-            <span className={styles.handle}>@{profile.author.handle}</span>
+            {profile.author.npc ? <span className={styles.handle}>@{profile.author.handle}</span> : null}
             {profile.bio ? <p className={styles.bio}>{profile.bio}</p> : null}
             {profile.author.npc ? (
               <p className={styles.npcNote}>Game character. Its calls raise the odds, they never guarantee a win.</p>
@@ -458,7 +459,7 @@ function TopVoices({ onAuthor }: { onAuthor: (a: EtaAuthor) => void }) {
           <Avatar author={voice.author} size={34} />
           <span className={styles.voiceText}>
             <AuthorName author={voice.author} />
-            <span className={styles.handle}>@{voice.author.handle}</span>
+            {voice.author.npc ? <span className={styles.handle}>@{voice.author.handle}</span> : null}
           </span>
           <span className={styles.voiceStats}>
             {voice.followers} followers · {voice.fire} 🔥

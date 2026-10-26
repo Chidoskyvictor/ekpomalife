@@ -76,6 +76,33 @@ export function mapRentPublic(row: RentRow): RentPublic {
   }
 }
 
+/**
+ * Moving a save onto the real clock (its game day jumps from ~15 to the real date): start rent
+ * fresh on the real calendar (next Saturday due, no warnings) instead of counting the jump as
+ * weeks of unpaid rent, and mark the skipped weeks (and this one) as already paid out so four
+ * allowances don't land at once; pay starts again next Monday. Evicted players stay evicted.
+ */
+export async function rebaseRentToRealClock(client: PoolClient, characterId: string, gameTime: number) {
+  const day = dayFromGameTime(gameTime)
+  const dueDay = nextRentDay(day)
+  const paidUntilDay = Math.max(1, dueDay - 7)
+  await client.query(
+    `UPDATE rent
+     SET due_game_day = $2, paid_until_game_day = $3, due_at = $4::timestamptz, paid_until = $5::timestamptz,
+         warnings = 0, status = 'ok', message = NULL, last_warned_at = NULL
+     WHERE character_id = $1 AND evicted_at IS NULL`,
+    [characterId, dueDay, paidUntilDay, displayDateForGameDay(dueDay), displayDateForGameDay(paidUntilDay)],
+  )
+  const week = gameWeekFromDay(day)
+  await client.query(
+    `INSERT INTO payouts (character_id, kind, game_week, amount)
+     SELECT $1, kind, w, 0
+     FROM unnest($2::text[]) AS kind, generate_series($3::int, $4::int) AS w
+     ON CONFLICT (character_id, kind, game_week) DO NOTHING`,
+    [characterId, ['allowance', 'landlord_income'], Math.max(0, week - 4), week],
+  )
+}
+
 export async function ensureRentRow(
   client: PoolClient,
   characterId: string,

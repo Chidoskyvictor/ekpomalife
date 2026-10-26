@@ -1,6 +1,5 @@
 import type { PoolClient } from 'pg'
 import { pool } from '../db.js'
-import { clockFromGameTime } from './time.js'
 import { containsBlockedLanguage, defaultDisplayNameFromAccount, validateDisplayName } from './display-name.js'
 import {
   AVATAR_COLORS,
@@ -206,8 +205,8 @@ function toPublic(
   viewerUserId: string | null,
 ): PlayerProfileResponse {
   const isOwner = viewerUserId === user.id
-  const gameTime = character?.game_time ?? 480
-  const day = clockFromGameTime(gameTime).day
+  // The clock is the real calendar for everyone, so "days in Ekpoma" counts from when they joined
+  const day = Math.floor((Date.now() - user.created_at.getTime()) / 86_400_000) + 1
   const reputation =
     typeof character?.reputation === 'number' && Number.isFinite(character.reputation)
       ? character.reputation
@@ -216,7 +215,8 @@ function toPublic(
   const base: PlayerProfileResponse = {
     userId: user.id,
     username: user.username,
-    displayName: profile.display_name,
+    // Real name is private: only the owner sees it, everyone else sees the username
+    displayName: isOwner ? profile.display_name : user.username,
     avatar: { color: profile.avatar_color, emoji: profile.avatar_emoji },
     department: profile.department,
     studyLevel: profile.study_level,

@@ -11,6 +11,7 @@ import {
   PERIOD_CLOCK,
 } from '@/lib/game/needs'
 import { isNepaOutage } from '@/lib/game/quests'
+import { useWatClock } from '@/lib/game/wat-clock'
 import type { GameState } from '@/lib/game/types'
 import styles from './life-hud.module.css'
 import { SiteStats } from './site-stats'
@@ -35,10 +36,12 @@ export function StatusBar({
   const prev = useRef(state?.cash ?? 0)
   const [delta, setDelta] = useState<number | null>(null)
 
-  const period = state?.period ?? 'morning'
+  // Real WAT time, ticking on the device (dev: ?time=21:30 previews another hour)
+  const wat = useWatClock()
+  const period = wat.period
   const clock = PERIOD_CLOCK[period]
   const cal = calendarForDay(state?.day ?? 1)
-  const timeLabel = state?.timeLabel ?? clock.time
+  const timeLabel = wat.timeLabel
   const mood = state ? moodFromNeeds(state) : null
   const nepa = state ? isNepaOutage(state) : false
   const moodClass = !mood

@@ -585,7 +585,7 @@ function FittedHair({
 }
 
 /** Clips baked into the rigged body GLBs (see blender/rig.py). */
-export type FigurePose = 'idle' | 'walk' | 'sit' | 'bath'
+export type FigurePose = 'idle' | 'walk' | 'sit' | 'bath' | 'dance'
 
 /**
  * Plays the model's clips: `pose.current` picks one; otherwise "walk" while

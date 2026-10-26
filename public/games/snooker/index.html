@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<!--
+  Snooker for Ekpoma Life (Phone → Games). Runs inside the phone frame (an iframe);
+  the app drives it with postMessage (see BRIDGE below).
+
+  Based on Mini-Snooker by Joeyfully — https://github.com/Lambchem/Mini-Snooker
+  MIT License, Copyright (c) 2026 Joeyfully:
+  Permission is hereby granted, free of charge, to any person obtaining a copy of this
+  software and associated documentation files (the "Software"), to deal in the Software
+  without restriction, including without limitation the rights to use, copy, modify,
+  merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+  permit persons to whom the Software is furnished to do so, subject to the following
+  conditions: The above copyright notice and this permission notice shall be included in
+  all copies or substantial portions of the Software. THE SOFTWARE IS PROVIDED "AS IS",
+  WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
+  WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+  NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+  OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+  OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+  Changes for Ekpoma Life: phone layout (table stands upright, baulk at the bottom), touch aim +
+  vertical power bar + fine-aim buttons, player cards, last-shot line, ball in hand, six-reds variant, computer opponent,
+  online play bridge, English text.
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Snooker</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html, body { height:100%; }
+body {
+  display:flex; flex-direction:column; height:100%;
+  background:#0f1a14; color:#fff; overflow:hidden; user-select:none;
+  font-family:system-ui,-apple-system,'Segoe UI',sans-serif;
+}
+.top {
+  display:flex; align-items:center; gap:8px; padding:8px 10px 4px; flex:none;
+}
+.title { flex:1; min-width:0; display:flex; flex-direction:column; }
+.title b { font-size:15px; font-weight:800; }
+.title span { font-size:11px; color:#9fb8a8; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.icon {
+  width:36px; height:36px; flex:none; border:0; border-radius:12px;
+  background:rgba(255,255,255,0.1); color:#fff; font-size:16px; font-weight:700;
+}
+.icon:active { background:rgba(255,255,255,0.22); }
+.icon[hidden] { display:none; }
+.hud { display:flex; gap:6px; padding:4px 10px; flex:none; }
+.player {
+  flex:1; min-width:0; display:flex; align-items:center; gap:7px;
+  padding:6px 8px; border-radius:14px; background:rgba(255,255,255,0.06);
+  transition:background .2s, box-shadow .2s;
+}
+.player.active { background:rgba(255,255,255,0.14); box-shadow:inset 0 0 0 1.5px rgba(255,217,61,0.75); }
+.avatar {
+  width:30px; height:30px; flex:none; border-radius:50%; display:grid; place-items:center;
+  font-size:13px; font-weight:800; color:#0f1a14;
+}
+.p1 .avatar { background:#4dabf7; } .p2 .avatar { background:#ff6b9d; }
+.pinfo { flex:1; min-width:0; display:flex; flex-direction:column; }
+.pname { font-size:12px; font-weight:700; color:#e4efe8; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.psub { font-size:10px; color:#9fb8a8; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.pside { display:flex; flex-direction:column; align-items:flex-end; flex:none; }
+.pscore { font-size:17px; font-weight:800; font-variant-numeric:tabular-nums; line-height:1.1; }
+.ptimer { font-size:10px; font-weight:800; color:#ff9f43; font-variant-numeric:tabular-nums; min-height:12px; }
+.status {
+  display:flex; align-items:center; gap:8px;
+  margin:2px 10px 4px; padding:5px 10px; border-radius:10px; background:rgba(255,255,255,0.05);
+  font-size:11px; color:#c3d6ca; flex:none; min-height:24px;
+}
+.status #lastShot { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.status #target { flex:none; color:#9fb8a8; }
+.status b { color:#ffd93d; font-weight:700; }
+.stage {
+  position:relative; flex:1; min-height:0; display:flex; align-items:center; justify-content:center;
+  gap:8px; padding:4px 8px max(8px, env(safe-area-inset-bottom));
+}
+canvas { display:block; border-radius:12px; touch-action:none; }
+/* Power: a tall bar left of the table; drag up, let go to shoot */
+.power {
+  position:relative; width:44px; height:min(70%, 320px); flex:none; border-radius:14px; overflow:hidden;
+  background:rgba(255,255,255,0.08); touch-action:none;
+}
+.power-fill {
+  position:absolute; inset:auto 0 0 0; height:0%;
+  background:linear-gradient(0deg,#2ed573,#ffd93d 45%,#ff9f43 70%,#ff4757);
+}
+.power-label {
+  position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  writing-mode:vertical-rl; transform:rotate(180deg);
+  font-size:11px; font-weight:700; color:rgba(255,255,255,0.85); text-shadow:0 1px 2px rgba(0,0,0,0.5);
+  pointer-events:none;
+}
+.aim { display:flex; flex-direction:column; gap:8px; flex:none; }
+.fine {
+  width:44px; height:44px; flex:none; border:0; border-radius:14px;
+  background:rgba(255,255,255,0.1); color:#fff; font-size:18px; font-weight:700;
+  touch-action:none;
+}
+.fine:active { background:rgba(255,255,255,0.22); }
+.locked { opacity:0.45; pointer-events:none; }
+.msg {
+  position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none;
+}
+.msg-box {
+  max-width:86%; padding:16px 22px; border-radius:18px; text-align:center;
+  background:rgba(10,20,14,0.82); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+  border:1px solid rgba(255,255,255,0.1);
+  opacity:0; transform:scale(.92); transition:all .3s cubic-bezier(.34,1.56,.64,1);
+}
+.msg-box.show { opacity:1; transform:scale(1); }
+.msg-title { font-size:20px; font-weight:800; }
+.msg-sub { margin-top:4px; font-size:13px; color:#bcd2c4; line-height:1.35; }
+.msg-sub em { color:#ffd93d; font-style:normal; font-weight:700; }
+.foul {
+  position:absolute; top:8px; left:50%; transform:translateX(-50%);
+  max-width:90%; padding:5px 12px; border-radius:12px; font-size:12px; font-weight:600;
+  background:rgba(255,71,87,0.18); color:#ff8a94; border:1px solid rgba(255,71,87,0.3);
+  opacity:0; transition:opacity .3s; pointer-events:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.foul.show { opacity:1; }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="title"><b>🎱 Snooker</b><span id="subtitle">Six reds</span></div>
+  <button class="icon" id="restartBtn" aria-label="Restart" hidden>↻</button>
+  <button class="icon" id="closeBtn" aria-label="Leave game">✕</button>
+</header>
+<div class="hud">
+  <div class="player p1" id="p1Box"><span class="avatar" id="p1Av">1</span><span class="pinfo"><span class="pname" id="p1Name">Player 1</span><span class="psub" id="p1Sub"></span></span><span class="pside"><span class="pscore" id="p1Score">0</span><span class="ptimer" id="p1Timer"></span></span></div>
+  <div class="player p2" id="p2Box"><span class="avatar" id="p2Av">2</span><span class="pinfo"><span class="pname" id="p2Name">Player 2</span><span class="psub" id="p2Sub"></span></span><span class="pside"><span class="pscore" id="p2Score">0</span><span class="ptimer" id="p2Timer"></span></span></div>
+</div>
+<div class="status"><span id="lastShot">Break off from the D</span><span id="target">On: <b>red</b></span></div>
+<div class="stage" id="stage">
+  <div class="power" id="power" aria-label="Power: drag up, let go to shoot"><div class="power-fill" id="powerFill"></div><div class="power-label" id="powerLabel">Drag up to shoot</div></div>
+  <canvas id="gc"></canvas>
+  <div class="aim" id="aimBox">
+    <button class="fine" id="aimLeft" aria-label="Aim left">◀</button>
+    <button class="fine" id="aimRight" aria-label="Aim right">▶</button>
+  </div>
+  <div class="msg"><div class="msg-box" id="msgBox"><div class="msg-title" id="msgTitle"></div><div class="msg-sub" id="msgSub"></div></div></div>
+  <div class="foul" id="foulToast"></div>
+</div>
+
+<script>
+// ================================================================
+//  TABLE + PHYSICS CONSTANTS (from Mini-Snooker)
+// ================================================================
+const BALL_R = 10, BALL_D = BALL_R * 2, CUSHION = 28;
+const TABLE_W = 68 * BALL_D, TABLE_H = 34 * BALL_D, POCKET_R = 22;
+const W = TABLE_W + CUSHION * 2, H = TABLE_H + CUSHION * 2;
+const L = CUSHION, R = CUSHION + TABLE_W, T = CUSHION, B = CUSHION + TABLE_H;
+const FRICTION = 0.992, BOUNCE = 0.82, MIN_SPEED = 0.06, MAX_POWER = 24;
+
+const canvas = document.getElementById('gc');
+const ctx = canvas.getContext('2d');
+const $ = (id) => document.getElementById(id);
+const els = {
+  p1Box: $('p1Box'), p2Box: $('p2Box'), p1Name: $('p1Name'), p2Name: $('p2Name'),
+  p1Score: $('p1Score'), p2Score: $('p2Score'), target: $('target'), lastShot: $('lastShot'),
+  p1Av: $('p1Av'), p2Av: $('p2Av'), p1Sub: $('p1Sub'), p2Sub: $('p2Sub'), p1Timer: $('p1Timer'), p2Timer: $('p2Timer'),
+  subtitle: $('subtitle'), restart: $('restartBtn'), close: $('closeBtn'), aimBox: $('aimBox'),
+  msgBox: $('msgBox'), msgTitle: $('msgTitle'), msgSub: $('msgSub'), foul: $('foulToast'),
+  power: $('power'), powerFill: $('powerFill'), powerLabel: $('powerLabel'),
+};
+
+const CX_TABLE = L + TABLE_W / 2;
+const pockets = [
+  { x: L - 2, y: T - 2 }, { x: L - 2, y: B + 2 }, { x: CX_TABLE, y: T - 6 },
+  { x: CX_TABLE, y: B + 6 }, { x: R + 2, y: T - 2 }, { x: R + 2, y: B + 2 },
+];
+const COL = { red:'#ff4757', yellow:'#ffd93d', green:'#2ed573', brown:'#c0854a', blue:'#4dabf7', pink:'#ff6b9d', black:'#222', white:'#f5f5f5' };
+const COL_VAL = { red:1, yellow:2, green:3, brown:4, blue:5, pink:6, black:7 };
+const COL_ORDER = ['yellow','green','brown','blue','pink','black'];
+
+class Ball {
+  constructor(x, y, label) {
+    this.x = x; this.y = y; this.r = BALL_R; this.label = label; this.color = COL[label];
+    this.vx = 0; this.vy = 0; this.active = true; this.potted = false;
+  }
+  get speed() { return Math.hypot(this.vx, this.vy); }
+  get value() { return COL_VAL[this.label] || 0; }
+  get isColor() { return this.label !== 'red' && this.label !== 'white'; }
+  update() {
+    if (!this.active || this.potted) return;
+    this.x += this.vx; this.y += this.vy;
+    this.vx *= FRICTION; this.vy *= FRICTION;
+    if (this.speed < MIN_SPEED) { this.vx = 0; this.vy = 0; }
+    if (this.x - this.r < L) { this.x = L + this.r; this.vx = -this.vx * BOUNCE; }
+    if (this.x + this.r > R) { this.x = R - this.r; this.vx = -this.vx * BOUNCE; }
+    if (this.y - this.r < T) { this.y = T + this.r; this.vy = -this.vy * BOUNCE; }
+    if (this.y + this.r > B) { this.y = B - this.r; this.vy = -this.vy * BOUNCE; }
+  }
+  isOnTable() { return this.active && !this.potted; }
+}
+
+// ================================================================
+//  MATCH SETUP (set by the app: see BRIDGE)
+// ================================================================
+const setup = {
+  variant: 'classic',      // classic | six | clearance | black
+  opponent: 'local',       // local (pass & play) | cpu | online
+  difficulty: 'medium',    // easy | medium | hard (cpu)
+  myIndex: 0,              // online: which player this phone is
+  names: ['Player 1', 'Player 2'],
+  shotSeconds: 30,         // online turn timer
+  subtitle: '',            // header line under the title, e.g. "Pot ₦20,000 · Online"
+};
+
+// ================================================================
+//  STATE
+// ================================================================
+let balls = [], cueBall = null;
+let scores = [0, 0], currentPlayer = 0, state = 'aim';
+let aimAngle = 0, power = 0;
+let foul = false, needRed = true, pottedRedThisTurn = false, firstContact = null;
+let pottedThisShot = [], isRespottedBlack = false, gameMode = 'classic';
+let ballInHand = true, draggingCue = false;
+let shotBy = 0;               // who took the shot now in play
+let pendingSync = null;       // online: the shooter's final table for the shot in play
+let msgTimer = null, turnStarted = Date.now(), timeoutSent = false;
+let shotPots = [], shotFoul = '', shotScore = 0;   // for the "last shot" line
+
+const countActive = (label) => balls.filter(b => b.label === label && b.isOnTable()).length;
+const countRed = () => countActive('red');
+const countColors = () => balls.filter(b => b.isColor && b.isOnTable()).length;
+function getNextColorInOrder() {
+  for (const label of COL_ORDER) { const b = balls.find(bb => bb.label === label && bb.isOnTable()); if (b) return b; }
+  return null;
+}
+function ballOverlaps(x, y, exclude) {
+  for (const b of balls) { if (b === exclude || !b.isOnTable()) continue; if (Math.hypot(x - b.x, y - b.y) < BALL_R * 2 + 1.5) return true; }
+  return false;
+}
+
+const CX2 = L + TABLE_W / 2, CY2 = T + TABLE_H / 2, SCALE = TABLE_W / 3569;
+const BAULK_X = L + Math.round(737 * SCALE), DR = Math.round(292 * SCALE);
+const BLACK_X = R - Math.round(324 * SCALE), PINK_X = L + Math.round(2676.75 * SCALE);
+function getColorPos(label) {
+  return ({ yellow:{x:BAULK_X,y:CY2+DR}, green:{x:BAULK_X,y:CY2-DR}, brown:{x:BAULK_X,y:CY2}, blue:{x:CX2,y:CY2}, pink:{x:PINK_X,y:CY2}, black:{x:BLACK_X,y:CY2} })[label] || null;
+}
+function tryPlace(ball, tx, ty) {
+  const offsets = [[0,0],[4,0],[-4,0],[0,4],[0,-4],[8,0],[-8,0],[0,8],[0,-8],[12,0],[-12,0],[0,12],[0,-12]];
+  for (const [dx, dy] of offsets) {
+    if (!ballOverlaps(tx + dx, ty + dy, ball)) { ball.x = tx + dx; ball.y = ty + dy; ball.active = true; ball.potted = false; ball.vx = 0; ball.vy = 0; return true; }
+  }
+  return false;
+}
+
+function initBalls() {
+  balls = [];
+  cueBall = new Ball(BAULK_X - DR / 2, CY2, 'white');
+  balls.push(cueBall);
+  if (gameMode === 'black') { balls.push(new Ball(BLACK_X, CY2, 'black')); return; }
+  if (gameMode === 'classic' || gameMode === 'six') {
+    const rows = gameMode === 'six' ? 3 : 5;
+    const apexX = PINK_X + BALL_D + 1;
+    const rowStep = Math.round(Math.sqrt(3) / 2 * BALL_D * 100) / 100;
+    for (let row = 0; row < rows; row++)
+      for (let col = 0; col <= row; col++) balls.push(new Ball(apexX + row * rowStep, CY2 + (col - row / 2) * BALL_D, 'red'));
+  }
+  for (const label of COL_ORDER) { const p = getColorPos(label); balls.push(new Ball(p.x, p.y, label)); }
+}
+function separateBalls() {
+  for (let iter = 0; iter < 80; iter++)
+    for (let i = 0; i < balls.length; i++)
+      for (let j = i + 1; j < balls.length; j++) {
+        const a = balls[i], b = balls[j];
+        if (!a.isOnTable() || !b.isOnTable()) continue;
+        const dx = b.x - a.x, dy = b.y - a.y, dist = Math.hypot(dx, dy);
+        if (dist < a.r + b.r && dist > 0.01) {
+          const o = (a.r + b.r - dist) / 2, nx = dx / dist, ny = dy / dist;
+          a.x -= nx * o; a.y -= ny * o; b.x += nx * o; b.y += ny * o;
+        }
+      }
+}
+
+// ================================================================
+//  PHYSICS
+// ================================================================
+function resolveCollision(a, b) {
+  const dx = b.x - a.x, dy = b.y - a.y, dist = Math.hypot(dx, dy);
+  if (dist > a.r + b.r || dist < 0.001) return false;
+  const nx = dx / dist, ny = dy / dist, o = (a.r + b.r - dist) / 2;
+  a.x -= nx * o; a.y -= ny * o; b.x += nx * o; b.y += ny * o;
+  const relVn = (a.vx - b.vx) * nx + (a.vy - b.vy) * ny;
+  if (relVn <= 0) return true;
+  const imp = relVn * 0.82;
+  a.vx -= imp * nx; a.vy -= imp * ny; b.vx += imp * nx; b.vy += imp * ny;
+  return true;
+}
+const checkPocket = (ball) => !ball.potted && pockets.some(p => Math.hypot(ball.x - p.x, ball.y - p.y) < POCKET_R + ball.r * 0.25);
+function inD(x, y) { return Math.hypot(x - BAULK_X, y - CY2) <= DR && x <= BAULK_X; }
+function placeCueBallInDZ() {
+  cueBall.active = true; cueBall.potted = false; cueBall.vx = 0; cueBall.vy = 0;
+  cueBall.x = BAULK_X - DR / 2; cueBall.y = CY2;
+  for (let t = 0; ballOverlaps(cueBall.x, cueBall.y, cueBall) && t < 200; t++) {
+    const step = t * 5, ang = t * 1.2;
+    cueBall.x = Math.min(BAULK_X - BALL_R, BAULK_X - Math.abs(Math.cos(ang)) * Math.min(DR - BALL_R * 2, step));
+    cueBall.y = CY2 + Math.sin(ang) * Math.min(DR - BALL_R * 2, step);
+  }
+}
+
+// ================================================================
+//  RULES (from Mini-Snooker, messages in English)
+// ================================================================
+const nameOf = (i) => setup.names[i] || `Player ${i + 1}`;
+function getFoulPenalty() { let base = 4; if (firstContact && firstContact.value > base) base = firstContact.value; return base; }
+function showMsg(title, sub, duration) {
+  els.msgTitle.textContent = title; els.msgSub.innerHTML = sub || '';
+  els.msgBox.classList.add('show'); clearTimeout(msgTimer);
+  msgTimer = setTimeout(() => els.msgBox.classList.remove('show'), duration || 2000);
+}
+function showFoul(text) {
+  foul = true; if (!shotFoul) shotFoul = text;
+  els.foul.textContent = '⚠ Foul: ' + text;
+  els.foul.classList.add('show');
+  setTimeout(() => els.foul.classList.remove('show'), 3000);
+  scores[1 - currentPlayer] += getFoulPenalty();
+  updateHUD();
+}
+function switchPlayer() {
+  currentPlayer = 1 - currentPlayer;
+  needRed = countRed() > 0;
+  pottedRedThisTurn = false; pottedThisShot = []; firstContact = null; foul = false;
+  state = 'aim'; resetAim(); startTurnClock(); updateHUD();
+}
+function startRespottedBlack() {
+  isRespottedBlack = true; needRed = false; pottedRedThisTurn = false; pottedThisShot = []; firstContact = null; foul = false;
+  balls = []; cueBall = new Ball(BAULK_X - DR / 2, CY2, 'white'); balls.push(cueBall); balls.push(new Ball(BLACK_X, CY2, 'black'));
+  ballInHand = true; state = 'aim'; resetAim(); startTurnClock(); updateHUD();
+  showMsg('⚫ Re-spotted black', `Level at ${scores[0]} : ${scores[1]}<br>First to pot the black wins`, 4000);
+}
+function endMatch(winner) {
+  isRespottedBlack = false; state = 'over';
+  showMsg('🏆 Game over', `<em>${nameOf(winner)}</em> wins!<br>${scores[0]} : ${scores[1]}`, 60000);
+  updateHUD();
+  post({ type: 'over', winner, scores: scores.slice() });
+}
+function endRespottedBlack(winner) { endMatch(winner); }
+
+function targetText() {
+  if (isRespottedBlack) return 'black';
+  if (gameMode === 'clearance' || (countRed() === 0 && !pottedRedThisTurn && !needRed)) { const n = getNextColorInOrder(); return n ? n.label : '—'; }
+  return needRed ? 'red' : 'any colour';
+}
+function updateHUD() {
+  els.p1Score.textContent = scores[0]; els.p2Score.textContent = scores[1];
+  els.p1Name.textContent = nameOf(0); els.p2Name.textContent = nameOf(1);
+  els.p1Box.classList.toggle('active', currentPlayer === 0 && state !== 'over');
+  els.p2Box.classList.toggle('active', currentPlayer === 1 && state !== 'over');
+  els.target.innerHTML = state === 'over' ? 'Finished' : `On: <b>${targetText()}</b>`;
+  const locked = !canControl();
+  els.power.classList.toggle('locked', locked); els.aimBox.classList.toggle('locked', locked);
+  els.p1Av.textContent = initial(nameOf(0)); els.p2Av.textContent = initial(nameOf(1));
+  const reds = countRed(), cols = countColors();
+  const left = (gameMode === 'classic' || gameMode === 'six') && reds ? `${reds} red${reds === 1 ? '' : 's'} left` : `${cols} colour${cols === 1 ? '' : 's'} left`;
+  for (const i of [0, 1]) {
+    const sub = i ? els.p2Sub : els.p1Sub;
+    sub.textContent = state === 'over' ? '' : currentPlayer === i ? (ballInHand && state === 'aim' ? 'Ball in hand' : left) : 'Waiting';
+    if (currentPlayer !== i || state === 'over' || setup.opponent !== 'online') (i ? els.p2Timer : els.p1Timer).textContent = '';
+  }
+}
+const initial = (name) => (String(name).replace(/^@/, '').trim()[0] || '?').toUpperCase();
+
+// ================================================================
+//  SHOOT
+// ================================================================
+function canControl() {
+  if (state !== 'aim' && state !== 'powering') return false;
+  if (setup.opponent === 'cpu') return currentPlayer === 0;
+  if (setup.opponent === 'online') return currentPlayer === setup.myIndex;
+  return true;
+}
+/** Take a shot. `fromRemote`: the other phone's shot arriving over the network. */
+function takeShot(angle, pwr, cuePos, fromRemote) {
+  if (cuePos && ballInHand && inD(cuePos.x, cuePos.y) && !ballOverlaps(cuePos.x, cuePos.y, cueBall)) { cueBall.x = cuePos.x; cueBall.y = cuePos.y; }
+  aimAngle = angle; power = pwr;
+  cueBall.vx = Math.cos(angle) * pwr; cueBall.vy = Math.sin(angle) * pwr;
+  shotBy = currentPlayer; state = 'moving'; firstContact = null; pottedThisShot = []; foul = false;
+  shotPots = []; shotFoul = ''; shotScore = scores[shotBy];
+  ballInHand = false; draggingCue = false; setPower(0); updateHUD();
+  if (setup.opponent === 'online' && !fromRemote) post({ type: 'shot', shot: { angle, power: pwr, cue: { x: cueBall.x, y: cueBall.y } } });
+}
+function shootNow() {
+  if (!canControl() || power < 0.5) { setPower(0); state = 'aim'; return; }
+  takeShot(aimAngle, power, null, false);
+}
+
+// ================================================================
+//  PHYSICS LOOP
+// ================================================================
+function tickPhysics() {
+  for (const b of balls) if (b.isOnTable()) b.update();
+  for (let i = 0; i < balls.length; i++)
+    for (let j = i + 1; j < balls.length; j++) {
+      const a = balls[i], b = balls[j];
+      if (!a.isOnTable() || !b.isOnTable()) continue;
+      if (resolveCollision(a, b)) {
+        if (a === cueBall && !firstContact) firstContact = b;
+        if (b === cueBall && !firstContact) firstContact = a;
+      }
+    }
+  for (const b of balls) {
+    if (!b.isOnTable()) continue;
+    if (checkPocket(b)) { b.potted = true; b.active = false; b.vx = 0; b.vy = 0; shotPots.push(b.label); onPocket(b); }
+  }
+  if (state === 'moving' && !balls.some(b => b.isOnTable() && b.speed > MIN_SPEED)) {
+    for (const b of balls) if (b.isOnTable()) { b.vx = 0; b.vy = 0; }
+    onStop();
+    describeShot();
+    afterShot();
+  }
+}
+
+function onPocket(ball) {
+  if (state === 'over') return;
+  if (isRespottedBlack) {
+    if (ball.label === 'white') { scores[1 - currentPlayer] += 7; endRespottedBlack(1 - currentPlayer); return; }
+    if (ball.label === 'black') {
+      if (foul) { scores[1 - currentPlayer] += 7; endRespottedBlack(1 - currentPlayer); }
+      else { scores[currentPlayer] += 7; endRespottedBlack(currentPlayer); }
+    }
+    return;
+  }
+  if (ball.label === 'white') { showFoul('cue ball in the pocket'); return; }
+  let legal = true, reason = '';
+  if (needRed) {
+    if (firstContact && firstContact.label !== 'red') { legal = false; reason = `hit ${firstContact.label} before a red`; }
+    if (ball.label === 'red') { pottedRedThisTurn = true; scores[currentPlayer] += 1; }
+    else { legal = false; reason = `potted ${ball.label} when a red was on`; }
+  } else {
+    if (firstContact && firstContact.label === 'red') { legal = false; reason = 'hit a red when a colour was on'; }
+    if (ball.isColor) {
+      if (countRed() === 0 && !pottedRedThisTurn) {
+        const fcIdx = COL_ORDER.indexOf(firstContact?.label);
+        let wrong = false;
+        if (fcIdx >= 0) for (let i = 0; i < fcIdx; i++) { if (balls.find(bb => bb.label === COL_ORDER[i] && bb.isOnTable() && bb !== ball)) { wrong = true; break; } }
+        if (firstContact && firstContact.isColor && wrong) { legal = false; reason = `should hit ${getNextColorInOrder()?.label || 'the next colour'} first`; }
+        const idx = COL_ORDER.indexOf(ball.label);
+        for (let i = 0; i < idx; i++) { const e = balls.find(bb => bb.label === COL_ORDER[i] && bb.isOnTable()); if (e) { legal = false; reason = `colours go in order: ${e.label} first`; break; } }
+      }
+      if (legal) scores[currentPlayer] += ball.value;
+    } else { legal = false; reason = 'potted a red when a colour was on'; }
+  }
+  if (!firstContact && legal) { legal = false; reason = 'missed every ball'; }
+  if (!legal) { showFoul(reason); return; }
+  pottedThisShot.push(ball.label);
+  updateHUD();
+}
+
+function onStop() {
+  if (state === 'over') return;
+  if (isRespottedBlack) {
+    if (cueBall.potted || foul || firstContact === null || firstContact.label !== 'black') { scores[1 - currentPlayer] += 7; endRespottedBlack(1 - currentPlayer); return; }
+    if (!balls.some(b => b.label === 'black' && b.isOnTable())) return;
+    switchPlayer(); return;
+  }
+  if (countRed() > 0 || pottedRedThisTurn) {
+    for (const b of balls) if (b.potted && b.isColor) { const p = getColorPos(b.label); if (p) tryPlace(b, p.x, p.y); }
+  } else if (foul) {
+    for (const b of balls) if (b.potted && b.isColor && !pottedThisShot.includes(b.label)) { const p = getColorPos(b.label); if (p) tryPlace(b, p.x, p.y); }
+  }
+  if (cueBall.potted) { placeCueBallInDZ(); if (!foul) showFoul('cue ball in the pocket'); ballInHand = true; switchPlayer(); return; }
+  if (foul) { switchPlayer(); return; }
+  if (firstContact === null) { showFoul('missed every ball'); switchPlayer(); return; }
+  if (needRed && firstContact.label !== 'red') { showFoul(`hit ${firstContact.label} before a red`); switchPlayer(); return; }
+  if (!needRed && firstContact.label === 'red') { showFoul('hit a red when a colour was on'); switchPlayer(); return; }
+  if (!needRed && countRed() === 0 && !pottedRedThisTurn && firstContact.isColor) {
+    const fcIdx = COL_ORDER.indexOf(firstContact.label);
+    for (let i = 0; i < fcIdx; i++) {
+      if (balls.find(bb => bb.label === COL_ORDER[i] && bb.isOnTable())) { showFoul(`should hit ${getNextColorInOrder()?.label || 'the next colour'} first`); switchPlayer(); return; }
+    }
+  }
+  if (countRed() === 0 && countColors() === 0) {
+    if (scores[0] === scores[1]) { startRespottedBlack(); return; }
+    endMatch(scores[0] > scores[1] ? 0 : 1); return;
+  }
+  if ((gameMode === 'classic' || gameMode === 'six') && countRed() === 0 && countColors() > 0 && !needRed && !pottedRedThisTurn) {
+    showMsg('🎯 Colours now', 'Yellow → green → brown → blue → pink → black', 2500);
+  }
+  if (!pottedThisShot.length) { switchPlayer(); return; }
+  if (needRed && pottedRedThisTurn) { needRed = false; if (countRed() > 0) pottedRedThisTurn = false; }
+  else if (!needRed && countRed() > 0) { needRed = true; pottedRedThisTurn = false; }
+  else if (!needRed && countRed() === 0) {
+    pottedRedThisTurn = false;
+    if (!getNextColorInOrder()) {
+      if (scores[0] === scores[1]) { startRespottedBlack(); return; }
+      endMatch(scores[0] > scores[1] ? 0 : 1); return;
+    }
+  }
+  firstContact = null; state = 'aim'; startTurnClock(); updateHUD();
+}
+
+/** After every shot settles: online, the shooter's phone sends its table so both match exactly. */
+function afterShot() {
+  if (setup.opponent !== 'online') return;
+  if (shotBy === setup.myIndex) post({ type: 'settled', snap: snapshot() });
+  else if (pendingSync) { applySnapshot(pendingSync); pendingSync = null; }
+}
+
+// ================================================================
+//  ONLINE SNAPSHOTS
+// ================================================================
+function snapshot() {
+  return {
+    balls: balls.map(b => ({ l: b.label, x: b.x, y: b.y, p: b.potted ? 1 : 0 })),
+    scores: scores.slice(), currentPlayer, needRed, pottedRedThisTurn, isRespottedBlack, gameMode, ballInHand,
+    over: state === 'over',
+  };
+}
+function applySnapshot(s) {
+  balls = s.balls.map(o => { const b = new Ball(o.x, o.y, o.l); if (o.p) { b.potted = true; b.active = false; } return b; });
+  cueBall = balls.find(b => b.label === 'white');
+  scores = s.scores.slice(); currentPlayer = s.currentPlayer; needRed = s.needRed; pottedRedThisTurn = s.pottedRedThisTurn;
+  isRespottedBlack = s.isRespottedBlack; gameMode = s.gameMode; ballInHand = s.ballInHand;
+  firstContact = null; foul = false;
+  if (s.over) state = 'over';
+  else if (state !== 'moving') { state = 'aim'; startTurnClock(); }
+  updateHUD();
+}
+
+// ================================================================
+//  COMPUTER OPPONENT
+// ================================================================
+const CPU = {
+  easy:   { noise: 0.045, tries: 0, safety: 0.6 },
+  medium: { noise: 0.016, tries: 6, safety: 0.25 },
+  hard:   { noise: 0.004, tries: 14, safety: 0.05 },
+};
+function legalTargets() {
+  if (isRespottedBlack) return balls.filter(b => b.label === 'black' && b.isOnTable());
+  if (needRed) return balls.filter(b => b.label === 'red' && b.isOnTable());
+  if (countRed() > 0 || pottedRedThisTurn) return balls.filter(b => b.isColor && b.isOnTable());
+  const n = getNextColorInOrder(); return n ? [n] : [];
+}
+function pathClear(x1, y1, x2, y2, ignore) {
+  const dx = x2 - x1, dy = y2 - y1, len2 = dx * dx + dy * dy;
+  for (const b of balls) {
+    if (!b.isOnTable() || ignore.includes(b)) continue;
+    const t = Math.max(0, Math.min(1, ((b.x - x1) * dx + (b.y - y1) * dy) / (len2 || 1)));
+    if (Math.hypot(x1 + dx * t - b.x, y1 + dy * t - b.y) < BALL_D - 0.5) return false;
+  }
+  return true;
+}
+/** Run a shot on a copy of the table: did it pot a legal ball without a foul? */
+function simulate(angle, pwr) {
+  const saved = { balls, cueBall, scores: scores.slice(), currentPlayer, needRed, pottedRedThisTurn, firstContact, pottedThisShot, foul, state, isRespottedBlack };
+  balls = balls.map(b => { const c = new Ball(b.x, b.y, b.label); c.potted = b.potted; c.active = b.active; return c; });
+  cueBall = balls.find(b => b.label === 'white');
+  const silent = { showFoul, showMsg, endRespottedBlack };
+  let simFoul = false, potted = 0;
+  showFoul = () => { simFoul = true; foul = true; }; showMsg = () => {}; endRespottedBlack = (w) => { state = 'over'; if (w !== saved.currentPlayer) simFoul = true; else potted++; };
+  firstContact = null; pottedThisShot = []; foul = false; state = 'moving';
+  cueBall.vx = Math.cos(angle) * pwr; cueBall.vy = Math.sin(angle) * pwr;
+  for (let f = 0; f < 3000; f++) {
+    for (const b of balls) if (b.isOnTable()) b.update();
+    for (let i = 0; i < balls.length; i++) for (let j = i + 1; j < balls.length; j++) {
+      const a = balls[i], b = balls[j];
+      if (a.isOnTable() && b.isOnTable() && resolveCollision(a, b)) {
+        if (a === cueBall && !firstContact) firstContact = b;
+        if (b === cueBall && !firstContact) firstContact = a;
+      }
+    }
+    for (const b of balls) if (b.isOnTable() && checkPocket(b)) { b.potted = true; b.active = false; onPocket(b); }
+    if (!balls.some(b => b.isOnTable() && b.speed > MIN_SPEED)) break;
+  }
+  potted += pottedThisShot.length;
+  const okFirst = firstContact && legalTargetsFor(saved).includes(firstContact.label);
+  const result = { potted, foul: simFoul || foul || cueBall.potted || !firstContact || !okFirst, cue: { x: cueBall.x, y: cueBall.y } };
+  ({ showFoul, showMsg, endRespottedBlack } = silent);
+  ({ balls, cueBall, currentPlayer, needRed, pottedRedThisTurn, firstContact, pottedThisShot, foul, state, isRespottedBlack } = saved);
+  scores = saved.scores;
+  return result;
+}
+function legalTargetsFor(s) {
+  if (s.isRespottedBlack) return ['black'];
+  if (s.needRed) return ['red'];
+  if (s.balls.some(b => b.label === 'red' && b.isOnTable()) || s.pottedRedThisTurn) return COL_ORDER;
+  const n = COL_ORDER.find(l => s.balls.some(b => b.label === l && b.isOnTable()));
+  return n ? [n] : [];
+}
+function planCpuShot() {
+  const level = CPU[setup.difficulty] || CPU.medium;
+  const cands = [];
+  for (const t of legalTargets()) {
+    for (const p of pockets) {
+      const tx = p.x - t.x, ty = p.y - t.y, td = Math.hypot(tx, ty);
+      const gx = t.x - (tx / td) * BALL_D, gy = t.y - (ty / td) * BALL_D;
+      const ax = gx - cueBall.x, ay = gy - cueBall.y, ad = Math.hypot(ax, ay);
+      const cos = (ax * tx + ay * ty) / (ad * td);
+      if (cos < 0.25) continue; // cut too thin
+      if (!pathClear(cueBall.x, cueBall.y, gx, gy, [cueBall, t]) || !pathClear(t.x, t.y, p.x, p.y, [t])) continue;
+      const pwr = Math.min(MAX_POWER, 5 + (ad + td) * 0.0105 / Math.max(0.35, cos));
+      cands.push({ angle: Math.atan2(ay, ax), power: pwr, score: cos * cos * (1600 / (ad + td + 400)) });
+    }
+  }
+  cands.sort((a, b) => b.score - a.score);
+  // Medium / hard: test the best options on a copy of the table and keep one that works
+  let pick = cands[0] || null;
+  if (level.tries && cands.length) {
+    for (const c of cands.slice(0, level.tries)) {
+      for (const tweak of [1, 0.85, 1.15]) {
+        const r = simulate(c.angle, Math.min(MAX_POWER, c.power * tweak));
+        if (r.potted && !r.foul) { pick = { ...c, power: Math.min(MAX_POWER, c.power * tweak) }; break; }
+      }
+      if (pick && pick !== cands[0]) break;
+    }
+  }
+  if (!pick || Math.random() < level.safety * (cands.length ? 0.3 : 1)) {
+    // Safety: roll softly into the nearest ball that's on
+    const ts = legalTargets().sort((a, b) => Math.hypot(a.x - cueBall.x, a.y - cueBall.y) - Math.hypot(b.x - cueBall.x, b.y - cueBall.y));
+    const t = ts[0];
+    if (t && (!pick || !cands.length)) pick = { angle: Math.atan2(t.y - cueBall.y, t.x - cueBall.x), power: Math.min(10, 3 + Math.hypot(t.x - cueBall.x, t.y - cueBall.y) * 0.006) };
+  }
+  if (!pick) pick = { angle: Math.random() * Math.PI * 2, power: 8 };
+  updateHUD(); // test shots ran on a copy; show the real table again
+  return { angle: pick.angle + (Math.random() * 2 - 1) * level.noise, power: pick.power };
+}
+let cpuTimer = null;
+function maybeCpuTurn() {
+  if (setup.opponent !== 'cpu' || currentPlayer !== 1 || state !== 'aim' || cpuTimer) return;
+  els.p2Sub.textContent = 'Thinking…';
+  cpuTimer = setTimeout(() => {
+    cpuTimer = null;
+    if (setup.opponent !== 'cpu' || currentPlayer !== 1 || state !== 'aim') return;
+    const shot = planCpuShot();
+    // Swing the cue into place, then shoot
+    const start = aimAngle, diff = Math.atan2(Math.sin(shot.angle - start), Math.cos(shot.angle - start));
+    let k = 0;
+    const swing = setInterval(() => {
+      k++;
+      aimAngle = start + diff * Math.min(1, k / 18);
+      power = shot.power * Math.min(1, k / 18);
+      if (k >= 24) { clearInterval(swing); takeShot(shot.angle, shot.power, null, true); }
+    }, 30);
+  }, 700 + Math.random() * 500);
+}
+
+// ================================================================
+//  ONLINE TURN TIMER
+// ================================================================
+function startTurnClock() { turnStarted = Date.now(); timeoutSent = false; }
+function checkTurnClock() {
+  if (setup.opponent !== 'online' || state === 'over' || state === 'moving') return;
+  const left = Math.max(0, setup.shotSeconds - Math.floor((Date.now() - turnStarted) / 1000));
+  const mine = currentPlayer === setup.myIndex;
+  (currentPlayer ? els.p2Timer : els.p1Timer).textContent = `${left}s`;
+  if (left === 0 && mine && !timeoutSent) { timeoutSent = true; post({ type: 'timeout' }); applyTimeout(); post({ type: 'settled', snap: snapshot() }); }
+}
+function applyTimeout() {
+  if (state !== 'aim' && state !== 'powering') return;
+  const who = nameOf(currentPlayer);
+  firstContact = null; showFoul('ran out of time'); switchPlayer();
+  els.lastShot.textContent = `${who}: ran out of time`;
+}
+/** One line about the shot that just finished, e.g. "@ada potted red, black (+8)". */
+function describeShot() {
+  const who = nameOf(shotBy), gained = scores[shotBy] - shotScore;
+  const pots = shotPots.filter(l => l !== 'white');
+  els.lastShot.textContent = shotFoul ? `${who}: foul, ${shotFoul}`
+    : pots.length ? `${who} potted ${pots.join(', ')}${gained > 0 ? ` (+${gained})` : ''}`
+    : `${who}: Nothing went down`;
+}
+
+// ================================================================
+//  RENDER (table turned on its side when the screen is tall)
+// ================================================================
+let viewScale = 1;
+// The table always stands up: its long side runs top to bottom with the baulk (the D) at the bottom.
+// Table (x, y) -> canvas (y, W - x).
+function layout() {
+  const stage = $('stage').getBoundingClientRect();
+  const side = els.power.offsetWidth + els.aimBox.offsetWidth + 16 + 16;
+  viewScale = Math.min((stage.width - side) / H, (stage.height - 12) / W);
+  canvas.width = H; canvas.height = W;
+  canvas.style.width = `${H * viewScale}px`; canvas.style.height = `${W * viewScale}px`;
+}
+window.addEventListener('resize', layout);
+function toTable(clientX, clientY) {
+  const r = canvas.getBoundingClientRect();
+  const cx = (clientX - r.left) / viewScale, cy = (clientY - r.top) / viewScale;
+  return { x: W - cy, y: cx };
+}
+
+function render() {
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.setTransform(0, -1, 1, 0, 0, W);
+  drawTable(); drawBalls();
+  if (state === 'aim' || state === 'powering') drawAim();
+}
+function drawTable() {
+  const fg = ctx.createLinearGradient(0, 0, W, H);
+  fg.addColorStop(0, '#4a2e18'); fg.addColorStop(0.5, '#6b4428'); fg.addColorStop(1, '#3d2412');
+  ctx.fillStyle = fg; ctx.fillRect(0, 0, W, H);
+  const felt = ctx.createRadialGradient(L + TABLE_W * 0.3, T + TABLE_H * 0.35, 30, L + TABLE_W * 0.5, T + TABLE_H * 0.5, TABLE_W * 0.65);
+  felt.addColorStop(0, '#2a8a4a'); felt.addColorStop(0.3, '#1c7a3a'); felt.addColorStop(0.6, '#156b30'); felt.addColorStop(1, '#0d5a24');
+  ctx.fillStyle = felt; ctx.fillRect(L, T, TABLE_W, TABLE_H);
+  ctx.strokeStyle = '#145a28'; ctx.lineWidth = 5; ctx.strokeRect(L, T, TABLE_W, TABLE_H);
+  ctx.strokeStyle = 'rgba(255,255,255,0.14)'; ctx.lineWidth = 1.5; ctx.setLineDash([6, 5]);
+  ctx.beginPath(); ctx.moveTo(BAULK_X, T + 6); ctx.lineTo(BAULK_X, B - 6); ctx.stroke(); ctx.setLineDash([]);
+  ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.arc(BAULK_X, CY2, DR, 3 * Math.PI / 2, Math.PI / 2, true); ctx.stroke();
+  ctx.fillStyle = 'rgba(255,255,255,0.08)';
+  for (const [mx, my] of [[BAULK_X, CY2], [CX2, CY2], [PINK_X, CY2], [BLACK_X, CY2]]) { ctx.beginPath(); ctx.arc(mx, my, 3.5, 0, Math.PI * 2); ctx.fill(); }
+  for (const p of pockets) {
+    ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(p.x, p.y, POCKET_R + 3, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#060606'; ctx.beginPath(); ctx.arc(p.x, p.y, POCKET_R, 0, Math.PI * 2); ctx.fill();
+  }
+}
+function shade(hex, amt) {
+  const c = hex.replace('#', ''); const n = (i) => Math.max(0, Math.min(255, parseInt(c.substr(i, 2), 16) + amt));
+  return `rgb(${n(0)},${n(2)},${n(4)})`;
+}
+function drawBall(b) {
+  if (!b.isOnTable()) return;
+  const { x, y, r, color, label } = b;
+  const g = ctx.createRadialGradient(x - r * 0.3, y - r * 0.35, r * 0.1, x, y, r);
+  if (label === 'white') { g.addColorStop(0, '#fff'); g.addColorStop(1, '#c9c9c9'); }
+  else if (label === 'black') { g.addColorStop(0, '#555'); g.addColorStop(1, '#111'); }
+  else { g.addColorStop(0, shade(color, 50)); g.addColorStop(0.5, color); g.addColorStop(1, shade(color, -25)); }
+  ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.beginPath(); ctx.arc(x + 2, y + 3, r, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.beginPath(); ctx.arc(x - r * 0.35, y - r * 0.38, r * 0.2, 0, Math.PI * 2); ctx.fill();
+}
+function drawBalls() {
+  if (state === 'aim' && cueBall.isOnTable() && ballInHand && canControl()) {
+    ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = 1.5; ctx.setLineDash([4, 5]);
+    ctx.beginPath(); ctx.arc(cueBall.x, cueBall.y, BALL_R * 2.4, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
+  }
+  if ((state === 'aim' || state === 'powering') && cueBall.isOnTable()) {
+    const on = legalTargets(), pulse = Math.sin(Date.now() * 0.005) * 0.3 + 0.7;
+    ctx.strokeStyle = `rgba(255,255,255,${pulse * 0.25})`; ctx.lineWidth = 1.6; ctx.setLineDash([3, 6]);
+    for (const b of on) { ctx.beginPath(); ctx.arc(b.x, b.y, b.r + 4, 0, Math.PI * 2); ctx.stroke(); }
+    ctx.setLineDash([]);
+  }
+  for (const b of balls) drawBall(b);
+}
+function predictContact() {
+  const cx = cueBall.x, cy = cueBall.y, dx = Math.cos(aimAngle), dy = Math.sin(aimAngle);
+  let best = null;
+  for (const b of balls) {
+    if (b === cueBall || !b.isOnTable()) continue;
+    const ex = b.x - cx, ey = b.y - cy, t = ex * dx + ey * dy;
+    if (t < 0) continue;
+    const d = Math.hypot(b.x - (cx + t * dx), b.y - (cy + t * dy));
+    if (d < BALL_D) { const hit = t - Math.sqrt(BALL_D * BALL_D - d * d); if (!best || hit < best.t) best = { b, t: Math.max(0, hit) }; }
+  }
+  return best;
+}
+function drawAim() {
+  if (!cueBall.isOnTable()) return;
+  const cx = cueBall.x, cy = cueBall.y, dx = Math.cos(aimAngle), dy = Math.sin(aimAngle);
+  const hit = predictContact();
+  ctx.save();
+  if (hit) {
+    const px = cx + dx * hit.t, py = cy + dy * hit.t;
+    ctx.strokeStyle = '#ffee66'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(px, py); ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(px, py, BALL_R, 0, Math.PI * 2); ctx.stroke();
+    const nx = hit.b.x - px, ny = hit.b.y - py, nd = Math.hypot(nx, ny) || 1;
+    ctx.strokeStyle = '#f9a825'; ctx.lineWidth = 2.5; ctx.beginPath();
+    ctx.moveTo(hit.b.x, hit.b.y); ctx.lineTo(hit.b.x + (nx / nd) * 90, hit.b.y + (ny / nd) * 90); ctx.stroke();
+  } else {
+    ctx.strokeStyle = 'rgba(255,255,255,0.25)'; ctx.lineWidth = 1.2; ctx.setLineDash([5, 8]);
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + dx * 320, cy + dy * 320); ctx.stroke(); ctx.setLineDash([]);
+  }
+  const back = BALL_R + 6 + power * 2.2, len = 360;
+  const sx = cx - dx * back, sy = cy - dy * back, ex = cx - dx * (back + len), ey = cy - dy * (back + len);
+  const cg = ctx.createLinearGradient(sx, sy, ex, ey);
+  cg.addColorStop(0, '#f5e6c8'); cg.addColorStop(0.7, '#d4b87a'); cg.addColorStop(1, '#7a5a28');
+  ctx.strokeStyle = cg; ctx.lineWidth = 6; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(ex, ey); ctx.stroke();
+  ctx.fillStyle = '#5a9fd4'; ctx.beginPath(); ctx.arc(sx, sy, 3, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+
+// ================================================================
+//  TOUCH CONTROLS
+// ================================================================
+function setPower(p) {
+  power = Math.max(0, Math.min(MAX_POWER, p));
+  const pct = Math.round(power / MAX_POWER * 100);
+  els.powerFill.style.height = pct + '%';
+  els.powerLabel.textContent = pct > 0 ? `${pct}% · let go` : 'Drag up to shoot';
+}
+canvas.addEventListener('pointerdown', (e) => {
+  if (!canControl()) return;
+  canvas.setPointerCapture(e.pointerId);
+  const p = toTable(e.clientX, e.clientY);
+  if (ballInHand && Math.hypot(p.x - cueBall.x, p.y - cueBall.y) < BALL_R * 3) { draggingCue = true; return; }
+  aimAngle = Math.atan2(p.y - cueBall.y, p.x - cueBall.x);
+});
+canvas.addEventListener('pointermove', (e) => {
+  if (!canControl() || !(e.buttons || e.pointerType === 'touch')) return;
+  const p = toTable(e.clientX, e.clientY);
+  if (draggingCue) { if (inD(p.x, p.y) && !ballOverlaps(p.x, p.y, cueBall)) { cueBall.x = p.x; cueBall.y = p.y; } return; }
+  if (Math.hypot(p.x - cueBall.x, p.y - cueBall.y) > 6) aimAngle = Math.atan2(p.y - cueBall.y, p.x - cueBall.x);
+});
+canvas.addEventListener('pointerup', () => { draggingCue = false; });
+
+function powerFrom(e) {
+  const r = els.power.getBoundingClientRect();
+  return ((r.bottom - e.clientY) / r.height) * MAX_POWER;
+}
+els.power.addEventListener('pointerdown', (e) => { if (!canControl()) return; els.power.setPointerCapture(e.pointerId); state = 'powering'; setPower(powerFrom(e)); });
+els.power.addEventListener('pointermove', (e) => { if (state === 'powering') setPower(powerFrom(e)); });
+els.power.addEventListener('pointerup', () => { if (state === 'powering') shootNow(); });
+els.power.addEventListener('pointercancel', () => { if (state === 'powering') { setPower(0); state = 'aim'; } });
+
+function holdButton(el, step) {
+  let timer = null;
+  const tick = () => { if (canControl()) aimAngle += step; };
+  el.addEventListener('pointerdown', (e) => { e.preventDefault(); tick(); clearInterval(timer); timer = setInterval(tick, 45); });
+  for (const ev of ['pointerup', 'pointerleave', 'pointercancel']) el.addEventListener(ev, () => clearInterval(timer));
+}
+holdButton($('aimLeft'), -0.004);
+holdButton($('aimRight'), 0.004);
+document.addEventListener('contextmenu', (e) => e.preventDefault());
+
+// ================================================================
+//  START / RESET
+// ================================================================
+function resetAim() {
+  if (!cueBall || !cueBall.isOnTable()) return;
+  const t = legalTargets()[0];
+  aimAngle = t ? Math.atan2(t.y - cueBall.y, t.x - cueBall.x) : 0;
+}
+function resetGame() {
+  clearTimeout(cpuTimer); cpuTimer = null;
+  gameMode = setup.variant;
+  scores = [0, 0]; currentPlayer = 0; state = 'aim'; foul = false; setPower(0);
+  els.msgBox.classList.remove('show'); els.foul.classList.remove('show');
+  needRed = gameMode === 'classic' || gameMode === 'six';
+  pottedRedThisTurn = false; firstContact = null; pottedThisShot = []; pendingSync = null;
+  isRespottedBlack = gameMode === 'black'; ballInHand = true; draggingCue = false;
+  initBalls(); if (needRed) separateBalls(); resetAim(); startTurnClock();
+  const intro = { classic: ['🎱 New frame', '15 reds. Drag to aim, pull the bar up to shoot.'], six: ['🎱 Six reds', 'A quick frame. Drag to aim, pull the bar up to shoot.'], clearance: ['🎯 Colours', 'Yellow → green → brown → blue → pink → black'], black: ['⚫ Black ball', 'First to pot the black wins'] }[gameMode];
+  showMsg(intro[0], intro[1], 2600);
+  updateHUD();
+}
+
+let last = performance.now(), acc = 0;
+function loop(now) {
+  // Fixed 60 physics steps a second on every screen (60 Hz or 120 Hz) so all phones match
+  acc = Math.min(acc + (now - last), 100);
+  last = now;
+  while (acc >= 1000 / 60) { acc -= 1000 / 60; if (state === 'moving') tickPhysics(); }
+  maybeCpuTurn(); checkTurnClock();
+  render();
+  requestAnimationFrame(loop);
+}
+
+// ================================================================
+//  BRIDGE (app ⇄ game, postMessage)
+//   app → game: init {variant, opponent, difficulty, myIndex, names, shotSeconds}
+//               restart · remoteShot {shot} · sync {snap} · remoteTimeout · snap (send your table)
+//   game → app: ready · shot {shot} · settled {snap} · timeout · over {winner, scores}
+// ================================================================
+function post(msg) { try { parent.postMessage({ source: 'ekpoma-snooker', ...msg }, '*'); } catch (_) {} }
+window.addEventListener('message', (e) => {
+  const m = e.data;
+  if (!m || m.target !== 'ekpoma-snooker') return;
+  if (m.type === 'init') {
+    Object.assign(setup, {
+      variant: ['classic', 'six', 'clearance', 'black'].includes(m.variant) ? m.variant : 'six',
+      opponent: ['local', 'cpu', 'online'].includes(m.opponent) ? m.opponent : 'local',
+      difficulty: ['easy', 'medium', 'hard'].includes(m.difficulty) ? m.difficulty : 'medium',
+      myIndex: m.myIndex === 1 ? 1 : 0,
+      names: Array.isArray(m.names) && m.names.length === 2 ? m.names.map(String) : setup.names,
+      shotSeconds: Number(m.shotSeconds) || 30,
+      subtitle: typeof m.subtitle === 'string' ? m.subtitle.slice(0, 60) : '',
+    });
+    applySetupChrome();
+    layout(); resetGame();
+  } else if (m.type === 'restart') {
+    resetGame();
+  } else if (m.type === 'remoteShot' && m.shot && setup.opponent === 'online' && currentPlayer !== setup.myIndex && (state === 'aim' || state === 'powering')) {
+    takeShot(Number(m.shot.angle), Number(m.shot.power), m.shot.cue || null, true);
+  } else if (m.type === 'sync' && m.snap && setup.opponent === 'online') {
+    if (state === 'moving') pendingSync = m.snap; else applySnapshot(m.snap);
+  } else if (m.type === 'snap' && setup.opponent === 'online' && state !== 'moving') {
+    post({ type: 'settled', snap: snapshot() });
+  } else if (m.type === 'remoteTimeout' && setup.opponent === 'online' && currentPlayer !== setup.myIndex) {
+    applyTimeout();
+  }
+});
+
+const VARIANT_NAMES = { classic: '15 reds', six: 'Six reds', clearance: 'Colours', black: 'Black ball' };
+function applySetupChrome() {
+  els.subtitle.textContent = [VARIANT_NAMES[setup.variant], setup.subtitle].filter(Boolean).join(' · ');
+  els.restart.hidden = setup.opponent === 'online';
+  els.lastShot.textContent = ballInHand ? 'Break off from the D' : '';
+}
+els.restart.addEventListener('click', () => { resetGame(); applySetupChrome(); });
+els.close.addEventListener('click', () => post({ type: 'exit' }));
+
+layout();
+resetGame();
+applySetupChrome();
+requestAnimationFrame(loop);
+post({ type: 'ready' });
+</script>
+</body>
+</html>

@@ -18,7 +18,9 @@ export type ZonePlacement = {
   scaleMul: number
 }
 
-const STORAGE_KEY = 'ekpo-zone-overrides'
+// v2: older saved nudges were moving the school gate and resizing billboard 3 after those
+// values had been baked into world-layout, so anything saved before then is ignored.
+const STORAGE_KEY = 'ekpo-zone-overrides-v2'
 
 export function isZoneDebugEnabled() {
   if (process.env.NEXT_PUBLIC_ZONE_DEBUG === '0') return false

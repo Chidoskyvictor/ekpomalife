@@ -2,12 +2,14 @@
 
 import { calendarForDay, PERIOD_CLOCK } from '@/lib/game/needs'
 import type { GameState } from '@/lib/game/types'
+import { useWatClock } from '@/lib/game/wat-clock'
 import styles from './life-hud.module.css'
 
 export function ClockPill({ state }: { state: GameState }) {
-  const clock = PERIOD_CLOCK[state.period]
+  const wat = useWatClock()
+  const clock = PERIOD_CLOCK[wat.period]
   const cal = calendarForDay(state.day)
-  const timeLabel = state.timeLabel ?? clock.time
+  const timeLabel = wat.timeLabel
   const eventLabel = cal.rentDay ? 'Rent day' : cal.weekend ? 'Weekend' : null
 
   return (

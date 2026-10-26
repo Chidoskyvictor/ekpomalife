@@ -1,10 +1,35 @@
-/** 1 real minute = 10 in-game minutes. */
-export const REAL_TO_GAME_MINUTES = 10
+/**
+ * The game runs on the real clock: Nigerian time (WAT, UTC+1), the same for every player.
+ * Sleeping, working or anything else never moves it; it just ticks like real life.
+ * Game time = minutes since day 1, Thursday 15 Jan 2026, 00:00 WAT.
+ */
+export const REAL_TO_GAME_MINUTES = 1
 
 /** Minutes in one in-game day. */
 export const DAY_MINUTES = 24 * 60
 
-/** Default start: 8:00 AM day 1. */
+/** Day 1 00:00 WAT (= 14 Jan 2026 23:00 UTC). */
+export const GAME_EPOCH_MS = Date.UTC(2026, 0, 14, 23, 0, 0)
+
+/** The game clock right now (real WAT time), in minutes since day 1. */
+export function realGameTime(now: number | Date = Date.now()): number {
+  if (testGameTime != null) return testGameTime
+  const ms = typeof now === 'number' ? now : now.getTime()
+  return Math.max(0, Math.floor((ms - GAME_EPOCH_MS) / 60_000))
+}
+
+let testGameTime: number | null = null
+/** Tests only: pin "now" to a game time (e.g. 23:00 on day 1) instead of the real clock; null to unpin. */
+export function setTestGameTime(gameTime: number | null) {
+  testGameTime = gameTime
+}
+
+/** Real date for a game day (day 1 = 15 Jan 2026). */
+export function realDateForDay(day: number): Date {
+  return new Date(GAME_EPOCH_MS + (Math.max(1, day) - 1) * DAY_MINUTES * 60_000 + 60 * 60_000)
+}
+
+/** @deprecated new players start on the real clock (realGameTime). */
 export const DEFAULT_GAME_TIME = 8 * 60
 
 export function advanceGameTime(gameTime: number, realMsElapsed: number): number {

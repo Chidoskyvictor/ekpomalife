@@ -1,12 +1,18 @@
 'use client'
 
+import { Html } from '@react-three/drei'
 import { useFrame, type ThreeEvent } from '@react-three/fiber'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Group, Mesh } from 'three'
 import { CharacterFigure, type FigurePose } from '@/components/look/character-figure'
 import { DEFAULT_APPEARANCE, normalizeAppearance, type Appearance } from '@/lib/game/look'
 import type { FurnitureAction, FurnitureId } from '@/lib/game/room-furniture'
+
+/** What the character needs to know to use a piece: the pose and how long to hold it. */
+type UseHow = Pick<FurnitureAction, 'style' | 'seconds'>
 import type { FurnitureSpot, RoomLayout } from '@/lib/game/room-layouts'
+import { useActivity } from '@/lib/game/activity'
+import bubbleStyles from './head-bubble.module.css'
 
 /*
  * The player's character inside a home. Coordinates are the room GLB's own (floor at
@@ -166,19 +172,29 @@ const KEYS: Record<string, [number, number]> = {
 
 /** Lets the room screen tell the character to go and use something. */
 export type RoomPlayerControl = {
-  use?: (furniture: FurnitureId, action: FurnitureAction, onStart: () => void) => void
+  use?: (furniture: FurnitureId, action: UseHow, hooks: UseHooks) => void
+  /** Stand up / stop walking over (e.g. the busy pill was tapped). */
+  stop?: () => void
 }
+
+/** onStart: sat / lay down · onDone: the time ran out · onAbort: stopped early (walked away, tapped stop). */
+export type UseHooks = { onStart: () => void; onDone: () => void; onAbort: () => void }
+
+/** Where the character is and what it's doing, reported every frame (e.g. for the live club crowd). */
+export type PlayerMove = { x: number; y: number; z: number; h: number; pose: FigurePose; moving: boolean }
 
 export function RoomPlayer({
   layout,
   appearance,
   onFurniture,
   control,
+  onMove,
 }: {
   layout: RoomLayout
   appearance?: Appearance
   onFurniture?: (id: FurnitureId) => void
   control?: RoomPlayerControl
+  onMove?: (move: PlayerMove) => void
 }) {
   const look = normalizeAppearance(appearance ?? DEFAULT_APPEARANCE)
   const nav = useMemo(() => makeNav(layout), [layout])
@@ -198,8 +214,8 @@ export function RoomPlayer({
   /** Furniture the character is heading to or using right now. */
   const task = useRef<{
     furniture: FurnitureId
-    action: FurnitureAction
-    onStart: () => void
+    action: UseHow
+    hooks: UseHooks
     using: boolean
     until: number
   } | null>(null)
@@ -211,26 +227,34 @@ export function RoomPlayer({
     setReady(true)
   }, [layout, nav])
 
-  const stopUsing = () => {
-    if (!task.current) return
-    if (task.current.using) {
-      pos.current = [...SPOTS[task.current.furniture].approach]
+  const stopUsing = (finished = false) => {
+    const job = task.current
+    if (!job) return
+    if (job.using) {
+      pos.current = [...SPOTS[job.furniture].approach]
       saveSpot(layout, ...pos.current)
     }
     task.current = null
     pose.current = null
+    if (finished) job.hooks.onDone()
+    else job.hooks.onAbort()
   }
 
   useEffect(() => {
     if (!control) return
-    control.use = (furniture, action, onStart) => {
+    control.use = (furniture, action, hooks) => {
       stopUsing()
       held.current.clear()
-      task.current = { furniture, action, onStart, using: false, until: 0 }
+      task.current = { furniture, action, hooks, using: false, until: 0 }
       path.current = findPath(pos.current, SPOTS[furniture].approach)
+    }
+    control.stop = () => {
+      stopUsing()
+      path.current = []
     }
     return () => {
       control.use = undefined
+      control.stop = undefined
     }
   }, [control, findPath, SPOTS])
 
@@ -269,7 +293,7 @@ export function RoomPlayer({
     const job = task.current
     if (job?.using) {
       if (now >= job.until) {
-        stopUsing()
+        stopUsing(true)
       } else {
         const spot = SPOTS[job.furniture]
         group.position.set(...spot.at)
@@ -278,6 +302,14 @@ export function RoomPlayer({
         if (shadow.current) shadow.current.visible = false
         if (marker.current) marker.current.visible = false
         moving.current = false
+        onMove?.({
+          x: group.position.x,
+          y: group.position.y,
+          z: group.position.z,
+          h: spot.heading,
+          pose: pose.current ?? 'idle',
+          moving: false,
+        })
         return
       }
     }
@@ -315,7 +347,7 @@ export function RoomPlayer({
       job.using = true
       job.until = now + job.action.seconds
       pose.current = job.action.style === 'lie' || job.action.style === 'stand' ? 'idle' : job.action.style
-      job.onStart()
+      job.hooks.onStart()
     }
 
     const length = Math.hypot(dx, dz)
@@ -348,6 +380,14 @@ export function RoomPlayer({
       marker.current.visible = !!last && !task.current
       if (last) marker.current.position.set(last[0], 0.03, last[1])
     }
+    onMove?.({
+      x: group.position.x,
+      y: 0,
+      z: group.position.z,
+      h: group.rotation.y,
+      pose: moving.current ? 'walk' : 'idle',
+      moving: moving.current,
+    })
   })
 
   const onFloorTap = (event: ThreeEvent<MouseEvent>) => {
@@ -419,6 +459,46 @@ export function RoomPlayer({
         </mesh>
         <CharacterFigure appearance={look} moving={moving} pose={pose} />
       </group>
+      <HeadBubble body={body} lying={() => task.current?.using === true && task.current.action.style === 'lie'} />
     </>
+  )
+}
+
+/**
+ * What you're doing, over your head: the action's emoji and the seconds left ("😴 6s") while
+ * the busy tile runs. Follows the character (lower when lying down).
+ */
+function HeadBubble({ body, lying }: { body: React.RefObject<Group | null>; lying: () => boolean }) {
+  const activity = useActivity()
+  const anchor = useRef<Group>(null)
+  const [now, setNow] = useState(() => Date.now())
+
+  useEffect(() => {
+    if (!activity) return
+    setNow(Date.now())
+    const id = window.setInterval(() => setNow(Date.now()), 250)
+    return () => window.clearInterval(id)
+  }, [activity])
+
+  useFrame(() => {
+    const from = body.current
+    const to = anchor.current
+    if (!from || !to) return
+    to.position.set(from.position.x, lying() ? 1.15 : 2.15, from.position.z)
+  })
+
+  const left = activity ? Math.max(0, Math.ceil(activity.seconds - (now - activity.startedAt) / 1000)) : 0
+  return (
+    <group ref={anchor}>
+      {/* Fixed on-screen size (no distance scaling) so it reads the same on phones and desktop */}
+      {activity ? (
+        <Html center zIndexRange={[20, 0]} style={{ pointerEvents: 'none' }}>
+          <span className={bubbleStyles.bubble}>
+            <span aria-hidden="true">{activity.emoji}</span>
+            <strong>{left}s</strong>
+          </span>
+        </Html>
+      ) : null}
+    </group>
   )
 }

@@ -103,7 +103,7 @@ export const PHONE_APPS: PhoneAppMeta[] = [
   { id: 'profile', label: 'Profile', emoji: '👤', status: 'live', tint: '#0ea5e9' },
   { id: 'portal', label: 'Results', emoji: '🎓', status: 'soon', tint: '#7c3aed' },
   { id: 'music', label: 'Music', emoji: '🎧', status: 'soon', tint: '#e11d48' },
-  { id: 'games', label: 'Games', emoji: '🎮', status: 'soon', tint: '#0891b2' },
+  { id: 'games', label: 'Games', emoji: '🎮', status: 'live', tint: '#0891b2' },
   { id: 'settings', label: 'Settings', emoji: '⚙️', status: 'live', tint: '#64748b' },
 ]
 

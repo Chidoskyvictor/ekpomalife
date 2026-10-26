@@ -1,0 +1,186 @@
+/* Club screen: the 3D club with a small in-club HUD on top (name, People, action chips). */
+
+.root {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, #0b1430 0%, #1b1838 60%, #28344f 100%);
+}
+
+.stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.status {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #e9e6ff;
+  font-size: 15px;
+}
+
+/* The in-club HUD is the shared place sheet (components/hud/place-sheet), night tone. */
+
+.note {
+  margin: 0 0 10px;
+  color: #6e6e73;
+  font-size: 13px;
+}
+
+.doorNote {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 13px;
+}
+
+/* —— At the door (inside the place sheet) —— */
+.entry {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.entryRow {
+  display: flex;
+  justify-content: space-between;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 14px;
+}
+
+.entryRow strong {
+  color: #fff;
+}
+
+.primary,
+.ghost {
+  min-height: 46px;
+  border: 0;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.primary {
+  background: linear-gradient(120deg, #db2777, #7c3aed);
+  color: #fff;
+}
+
+.primary:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.ghost {
+  background: #f2f2f7;
+  color: #111;
+}
+
+.error {
+  margin: 0;
+  color: #b42318;
+  font-size: 13px;
+}
+
+/* —— People —— */
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-bottom: 8px;
+}
+
+.person {
+  display: flex;
+  min-height: 56px;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 16px;
+  background: #f7f6fb;
+  color: #111;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.avatar {
+  display: grid;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: 999px;
+  background: linear-gradient(140deg, #db2777, #7c3aed);
+  color: #fff;
+  font-weight: 800;
+}
+
+.personText {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.personName {
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.personMeta {
+  overflow: hidden;
+  color: #6e6e73;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tag {
+  flex: none;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #ece6ff;
+  color: #5b3fd1;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.tagVip {
+  background: #fff4c7;
+  color: #8a5a00;
+}
+
+.more {
+  align-self: center;
+  min-height: 40px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  background: #ececf0;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.profileBar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.profileBar > button {
+  flex: 1;
+}

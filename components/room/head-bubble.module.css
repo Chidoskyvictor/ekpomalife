@@ -1,0 +1,33 @@
+/* Countdown bubble over the character's head: emoji + seconds left, with a little tail. */
+.bubble {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px 5px 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
+  color: #111;
+  font-family: var(--font-jakarta), system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.bubble strong {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.bubble::after {
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.95);
+  transform: translateX(-50%) rotate(45deg);
+}

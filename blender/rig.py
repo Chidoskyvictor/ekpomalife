@@ -219,7 +219,28 @@ def bath(t):
     rots['LowerArm.R'] = (ELBOW * (55 - 25 * s), 0, 0)
     return rots, -0.32 * HEIGHT_SCALE
 
+def dance(t):
+    # Club two-step: bounce on the beat, step side to side, arms pumping, head nodding
+    ph = 2 * math.pi * t
+    s, beat = math.sin(ph), math.cos(2 * ph)
+    rots = arms_down(ARMS[1] - 4)
+    rots['UpperLeg.L'] = (LEG * (10 + 8 * max(0.0, s)), 0, 6 + 4 * s)
+    rots['UpperLeg.R'] = (LEG * (10 + 8 * max(0.0, -s)), 0, -6 + 4 * s)
+    rots['LowerLeg.L'] = (KNEE * (14 + 10 * (1 - beat)), 0, 0)
+    rots['LowerLeg.R'] = (KNEE * (14 + 10 * (1 - beat)), 0, 0)
+    rots['Spine'] = (SPINE_FWD * 5, 5 * s, 0)
+    rots['Chest'] = (SPINE_FWD * 3, -3 * s, 3 * s)
+    ul, ur = rots['UpperArm.L'], rots['UpperArm.R']
+    rots['UpperArm.L'] = (25 + 18 * s, ul[1], ul[2])
+    rots['UpperArm.R'] = (25 - 18 * s, ur[1], ur[2])
+    rots['LowerArm.L'] = (ELBOW * (62 + 18 * s), 0, 0)
+    rots['LowerArm.R'] = (ELBOW * (62 - 18 * s), 0, 0)
+    rots['Head'] = (8 * max(0.0, beat), 6 * s, 0)
+    return rots, -0.035 * (1 - beat) * HEIGHT_SCALE
+
+
 make_action('Sit', 60, sit)
+make_action('Dance', 30, dance)
 make_action('Bath', 40, bath)
 make_action('Idle', 90, idle)
 make_action('Walk', 30, walk)

@@ -132,10 +132,11 @@ export const PERIOD_CLOCK: Record<
 
 const WEEKDAYS = ['Thu', 'Fri', 'Sat', 'Sun', 'Mon', 'Tue', 'Wed'] as const
 
+/** The game runs on real Nigerian time: day 1 = Thursday 15 Jan 2026 (mirrors backend time.ts). */
 export function calendarForDay(day: number) {
   const offset = Math.max(1, day) - 1
   const weekday = WEEKDAYS[offset % 7]!
-  const date = ((14 + offset) % 31) + 1
+  const date = new Date(Date.UTC(2026, 0, 15 + offset)).getUTCDate()
   const weekend = weekday === 'Sat' || weekday === 'Sun'
   const rentDay = weekday === 'Sat'
   return { weekday, date, weekend, rentDay, label: `${weekday} ${date}` }

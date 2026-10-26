@@ -1,0 +1,138 @@
+/* Item menu: a medium card in the lower middle (not full screen); the room shows around it.
+   Phones: under ~45% of the screen above the nav. Wide screens: up to 760px wide. */
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  pointer-events: auto;
+}
+
+.card {
+  /* Centred, but never over the profile card bottom-left (~370px wide) */
+  --w: min(720px, calc(100% - 432px));
+  position: absolute;
+  left: max(calc(50% - var(--w) / 2), 416px);
+  bottom: calc(88px + env(safe-area-inset-bottom));
+  display: flex;
+  width: var(--w);
+  max-height: min(60dvh, 560px);
+  flex-direction: column;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  color: #111;
+  animation: rise 0.2s ease-out;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    translate: 0 12px;
+  }
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 12px 10px 16px;
+}
+
+.icon {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  flex: none;
+  place-items: center;
+  border-radius: 50%;
+  background: #eef2ff;
+  font-size: 24px;
+}
+
+.titles {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.titles strong {
+  overflow: hidden;
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.titles span {
+  overflow: hidden;
+  display: -webkit-box;
+  color: #6e6e73;
+  font-size: 13px;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.close {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  align-self: flex-start;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: #f2f2f7;
+  color: #111;
+  cursor: pointer;
+}
+
+.body {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 2px 16px 16px;
+}
+
+/* Tablets / small laptops: not enough room beside the profile card, so sit above it */
+@media (min-width: 640px) and (max-width: 1023px) {
+  .card {
+    --w: min(720px, calc(100% - 32px));
+    left: calc(50% - var(--w) / 2);
+    bottom: calc(88px + 80px + env(safe-area-inset-bottom));
+    max-height: min(50dvh, 520px);
+  }
+}
+
+@media (max-width: 639px) {
+  .card {
+    --w: calc(100% - 16px);
+    left: 8px;
+    bottom: calc(76px + env(safe-area-inset-bottom));
+    max-height: 45dvh;
+    border-radius: 22px;
+  }
+
+  .head {
+    padding: 12px 10px 8px 12px;
+  }
+
+  .icon {
+    width: 42px;
+    height: 42px;
+    font-size: 21px;
+  }
+
+  .titles strong {
+    font-size: 17px;
+  }
+
+  .body {
+    padding: 2px 12px 12px;
+  }
+}

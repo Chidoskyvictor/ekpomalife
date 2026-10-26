@@ -1,10 +1,10 @@
 import { randomUUID } from 'node:crypto'
-import { afterAll, describe, expect, it } from 'vitest'
+import { afterAll, afterEach, describe, expect, it } from 'vitest'
 import { pool } from '../db.js'
 import { cleanupTestUser, createTestUser } from '../test/db-fixtures.js'
 import { asMoney } from './game-state.js'
 import { sumLedgerEqualsCash } from './payouts.js'
-import { DAY_MINUTES } from './time.js'
+import { DAY_MINUTES, setTestGameTime } from './time.js'
 import {
   BATTERY,
   BATTERY_ENABLED,
@@ -47,8 +47,12 @@ async function givePhone(characterId: string) {
   )
 }
 
+afterEach(() => setTestGameTime(null))
+
 async function setLocation(characterId: string, placeId: string, gameTime?: number) {
   if (typeof gameTime === 'number') {
+    // The game runs on the real clock; pin "now" to this time for the test
+    setTestGameTime(gameTime)
     await pool.query(
       `UPDATE game_state SET location_id = $2, game_time = $3, last_tick_at = NOW()
        WHERE character_id = $1`,
@@ -228,7 +232,7 @@ describe('Phone (DB)', () => {
     expect(asMoney(cash.rows[0]!.cash)).toBe(50)
   })
 
-  it('takeRide moves place, advances time, ledger ride; CLOSED at 23:00', async () => {
+  it('takeRide moves place (the clock stays real), ledger ride; CLOSED at 23:00', async () => {
     const user = await createTestUser({ cash: 10_000 })
     usersToClean.push(user.userId)
     await givePhone(user.characterId)
@@ -240,7 +244,8 @@ describe('Phone (DB)', () => {
     if (!ride.ok) return
     expect(ride.replayed).toBe(false)
     expect(ride.state.locationId).toBe('bukka')
-    expect(ride.state.gameTime).toBe(11 * 60 + RIDE_MINUTES.keke)
+    // Real clock: a ride doesn't move the time
+    expect(ride.state.gameTime).toBe(11 * 60)
 
     const ledger = await pool.query(
       `SELECT kind FROM ledger WHERE character_id = $1 AND kind = 'ride'`,
