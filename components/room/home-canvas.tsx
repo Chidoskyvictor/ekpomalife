@@ -209,7 +209,7 @@ export function HomeCanvas({ street, onReady, visit = 0, ...props }: CanvasProps
         {street ? <StreetScene key={`street-${visit}`} {...street} /> : <HomeModel key={`${props.layout.id}-${visit}`} {...props} />}
         <SceneReady key={`ready-${street ? 'street' : props.layout.id}-${visit}`} onReady={onReady} />
       </Suspense>
-      {street ? null : <RoomCameraSync scale={props.layout.cameraScale} view={props.layout.view} turn={turn} locked={buying} topDown={buying} />}
+      {street ? null : <RoomCameraSync scale={props.layout.cameraScale} view={props.layout.view} turn={turn} topDown={buying} />}
     </Canvas>
   )
 }

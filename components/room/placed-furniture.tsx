@@ -6,7 +6,7 @@ import { Vector3, type Group } from 'three'
 import type { HomeItem, OwnedPiece } from '@/lib/game/home-buy-api'
 import { checkHomePlacement, type HomeSpec } from '@/lib/game/home-buy-rules'
 import { pickPlaced, setBuySpot, useBuyUi } from '@/lib/game/home-buy-store'
-import { HOME_TILE, pieceRect, shapeMap, spotUnder } from '@/lib/game/home-placed'
+import { FRONT, HOME_TILE, pieceRect, shapeMap, spotUnder } from '@/lib/game/home-placed'
 
 /** Wall pieces hang at this height (m) and stick out this far from the wall. */
 const WALL_Y = 1.35
@@ -50,6 +50,16 @@ function Block({
           emissiveIntensity={ghost ? 0.25 : 0}
         />
       </mesh>
+      {/* A dark stripe on the top edge that faces front, so every quarter turn looks different from above */}
+      {!item.wall ? (
+        <mesh
+          position={[cx + FRONT[spot.rot][0] * (w / 2 - 0.09), h + 0.012, cz + FRONT[spot.rot][1] * (d / 2 - 0.09)]}
+          raycast={() => null}
+        >
+          <boxGeometry args={FRONT[spot.rot][0] === 0 ? [Math.max(0.12, w - 0.3), 0.02, 0.1] : [0.1, 0.02, Math.max(0.12, d - 0.3)]} />
+          <meshBasicMaterial color="#111827" />
+        </mesh>
+      ) : null}
       {ghost && !item.wall ? (
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[cx, 0.03, cz]} raycast={() => null}>
           <planeGeometry args={[w, d]} />
@@ -94,6 +104,7 @@ export function BuyLayer({ furnishing }: { furnishing: HomeFurnishing }) {
   const root = useRef<Group>(null)
   const camera = useThree((state) => state.camera)
   const canvas = useThree((state) => state.gl.domElement)
+  const controls = useThree((state) => state.controls) as { enabled: boolean } | null
   const { spec, catalog, placements } = furnishing
   const shapes = useMemo(() => shapeMap(catalog), [catalog])
   const byId = useMemo(() => new Map(catalog.map((i) => [i.id, i])), [catalog])
@@ -166,13 +177,21 @@ export function BuyLayer({ furnishing }: { furnishing: HomeFurnishing }) {
             onPointerDown={(event) => {
               event.stopPropagation()
               dragging.current = true
+              // Dragging the ghost must not also swing the camera
+              if (controls) controls.enabled = false
               toSpot(event)
             }}
             onPointerMove={(event) => {
               if (dragging.current) toSpot(event)
             }}
-            onPointerUp={() => (dragging.current = false)}
-            onPointerLeave={() => (dragging.current = false)}
+            onPointerUp={() => {
+              dragging.current = false
+              if (controls) controls.enabled = true
+            }}
+            onPointerLeave={() => {
+              dragging.current = false
+              if (controls) controls.enabled = true
+            }}
             // The character's own floor-tap must not fire under the plane
             onClick={(event) => event.stopPropagation()}
           >

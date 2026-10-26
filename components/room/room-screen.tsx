@@ -103,7 +103,8 @@ export function RoomScreen() {
   const scene = useHomeScene(own, leaveInside)
 
   // The nav's Buy tab opens Buy mode while you are inside your own home (and only then)
-  const canBuy = own && !scene.outside && !!furnishing && home.enabled
+  // (as soon as the home is known: waiting for the furniture list made an early tap open the town shop)
+  const canBuy = own && !scene.outside && spec !== null
   useEffect(() => {
     setBuyAvailable(canBuy)
     return () => setBuyAvailable(false)
@@ -229,6 +230,20 @@ export function RoomScreen() {
             view={layout.view}
             onPlacements={home.setPlacements}
           />
+        ) : null}
+        {/* Buy mode is on but the furniture list isn't here yet (or failed): never leave the player stuck */}
+        {buy.active && !furnishing ? (
+          <div className={styles.buyWait} role="status">
+            <span>{home.failed ? 'Couldn’t load the items.' : 'Loading items…'}</span>
+            {home.failed ? (
+              <button type="button" onClick={home.retry}>
+                Try again
+              </button>
+            ) : null}
+            <button type="button" onClick={exitBuyMode}>
+              Exit
+            </button>
+          </div>
         ) : null}
       </div>
   )
@@ -395,11 +410,18 @@ function useHomeFurniture(who: string | null, hasGrid: boolean) {
   const [placements, setPlacements] = useState<OwnedPiece[]>([])
   const [loaded, setLoaded] = useState(false)
   const [enabled, setEnabled] = useState(false)
+  const [failed, setFailed] = useState(false)
+  const [attempt, setAttempt] = useState(0)
   useEffect(() => {
     if (who === null || !hasGrid) return
     let cancelled = false
+    setFailed(false)
     void (who === '' ? fetchHomeFurniture() : fetchVisitFurniture(who)).then((res) => {
-      if (cancelled || !res.ok) return
+      if (cancelled) return
+      if (!res.ok) {
+        setFailed(true)
+        return
+      }
       setCatalog(res.catalog)
       setPlacements(res.placements)
       setEnabled('enabled' in res ? res.enabled : false)
@@ -408,6 +430,6 @@ function useHomeFurniture(who: string | null, hasGrid: boolean) {
     return () => {
       cancelled = true
     }
-  }, [who, hasGrid])
-  return { catalog, placements, setPlacements, loaded, enabled }
+  }, [who, hasGrid, attempt])
+  return { catalog, placements, setPlacements, loaded, enabled, failed, retry: () => setAttempt((n) => n + 1) }
 }

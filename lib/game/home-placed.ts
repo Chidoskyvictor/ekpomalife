@@ -13,6 +13,14 @@ import { normalizeLodging } from './home-lodging'
 
 export { HOME_TILE }
 
+/** Which way each turn faces (x, z): 0 toward the camera, then a quarter turn each. */
+export const FRONT: Record<0 | 90 | 180 | 270, [number, number]> = {
+  0: [0, 1],
+  90: [-1, 0],
+  180: [0, -1],
+  270: [1, 0],
+}
+
 export const placedKey = (id: string): SpotKey => `placed:${id}`
 export const placedIdOf = (key: string) => (key.startsWith('placed:') ? key.slice('placed:'.length) : null)
 
@@ -95,11 +103,17 @@ export function layoutWithPlaced(
     const use = furnitureUse(item)
     if (!use) continue
 
-    // A free tile beside it: the side facing the camera first
+    // A free tile beside it
     const { w, d } = homeFootprint(item, p.rot)
-    const candidates: [number, number][] = []
-    for (let i = 0; i < w; i++) candidates.push([p.x + i, p.z + d], [p.x + i, p.z - 1])
-    for (let j = 0; j < d; j++) candidates.push([p.x + w, p.z + j], [p.x - 1, p.z + j])
+    const sides = {
+      '0,1': Array.from({ length: w }, (_, i): [number, number] => [p.x + i, p.z + d]),
+      '0,-1': Array.from({ length: w }, (_, i): [number, number] => [p.x + i, p.z - 1]),
+      '1,0': Array.from({ length: d }, (_, j): [number, number] => [p.x + w, p.z + j]),
+      '-1,0': Array.from({ length: d }, (_, j): [number, number] => [p.x - 1, p.z + j]),
+    }
+    // The side it faces first (so you stand and sit on its front), then the others
+    const [fx, fz] = FRONT[p.rot]
+    const candidates = [sides[`${fx},${fz}` as keyof typeof sides], ...Object.values(sides)].flat()
     const side = candidates.find(([x, z]) => free(x, z))
     if (!side) continue
     const approach: [number, number] = [spec.ox + (side[0] + 0.5) * HOME_TILE, spec.oz + (side[1] + 0.5) * HOME_TILE]

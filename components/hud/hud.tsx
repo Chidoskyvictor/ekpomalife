@@ -200,7 +200,8 @@ export function Hud() {
       className={cn(styles.root, lowPerf && styles.lowPerf)}
       aria-busy={cashLoading || undefined}
     >
-      <div className={`${styles.safe} absolute inset-x-0 top-0`}>
+      {/* Buy mode has its own top pills (wallet, turn, exit), so the status bar steps aside */}
+      <div className={`${styles.safe} absolute inset-x-0 top-0`} hidden={homeBuy.active}>
         <div className={styles.topWrap}>
           <StatusBar
             state={state}
