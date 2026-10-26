@@ -15,6 +15,7 @@ export type PhoneAppId =
   | 'portal'
   | 'music'
   | 'games'
+  | 'spaces'
   | 'settings'
 
 export type WallpaperId = 'aau-dusk' | 'ekpoma-night' | 'harmattan' | 'green-white'
@@ -45,6 +46,7 @@ export const DATA_COST_MB: Partial<Record<PhoneAppId, number>> = {
   messages: 1,
   music: 5,
   games: 3,
+  spaces: 3,
   map: 1,
 }
 
@@ -104,6 +106,7 @@ export const PHONE_APPS: PhoneAppMeta[] = [
   { id: 'portal', label: 'Results', emoji: '🎓', status: 'soon', tint: '#7c3aed' },
   { id: 'music', label: 'Music', emoji: '🎧', status: 'soon', tint: '#e11d48' },
   { id: 'games', label: 'Games', emoji: '🎮', status: 'live', tint: '#0891b2' },
+  { id: 'spaces', label: 'Spaces', emoji: '🎙️', status: 'live', tint: '#7c3aed' },
   { id: 'settings', label: 'Settings', emoji: '⚙️', status: 'live', tint: '#64748b' },
 ]
 
@@ -143,6 +146,7 @@ export const COMING_SOON_COPY: Record<PhoneAppId, string> = {
   portal: 'Portal go open after exams. Check Result at Student Affairs for now.',
   music: 'DJ Ojemu still mastering the mix. Hold your neck.',
   games: 'Campus games loading. Go touch grass at Sports Complex meantime.',
+  spaces: '',
   settings: '',
 }
 

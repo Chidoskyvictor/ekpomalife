@@ -9,8 +9,10 @@ import { runMigrations } from './migrations.js'
 import { registerRateLimit } from './rate-limit.js'
 import { characterRoutes } from './routes/character.js'
 import { economyRoutes } from './routes/economy.js'
+import { homeBuyRoutes } from './routes/home-buy.js'
 import { roomRoutes } from './routes/room.js'
 import { phoneRoutes } from './routes/phone.js'
+import { travelRoutes } from './routes/travel.js'
 import { forgotRoutes } from './routes/forgot.js'
 import { gameRoutes } from './routes/game.js'
 import { loginRoutes } from './routes/login.js'
@@ -24,6 +26,9 @@ import { cryptoRoutes } from './routes/crypto.js'
 import { playersRoutes } from './routes/players.js'
 import { venueRoutes } from './routes/venues.js'
 import { gamesRoutes } from './routes/games.js'
+import { whotRoutes } from './routes/whot.js'
+import { adminRoutes } from './routes/admin.js'
+import { spacesRoutes } from './routes/spaces.js'
 
 const app = Fastify({
   logger: true,
@@ -112,6 +117,10 @@ app.get('/', async () => ({
   chatReport: 'POST /chats/messages/:seq/report',
   playerSearch: 'GET /players/search?q=',
   chatDirect: 'POST /chats/direct',
+  spaces: 'GET /spaces?tab=live|upcoming|mine|here&place_id=',
+  spaceCreate: 'POST /spaces',
+  spaceJoin: 'POST /spaces/:id/join',
+  spaceJoinCode: 'POST /spaces/join-code/:code',
 }))
 
 // Never rate limited — uptime monitors must not see 429s.
@@ -134,7 +143,9 @@ await app.register(characterRoutes)
 await app.register(gameRoutes)
 await app.register(economyRoutes)
 await app.register(roomRoutes)
+await app.register(homeBuyRoutes)
 await app.register(phoneRoutes)
+await app.register(travelRoutes)
 await app.register(playersRoutes)
 await app.register(hostelRoutes)
 await app.register(investRoutes)
@@ -142,6 +153,9 @@ await app.register(etaRoutes)
 await app.register(cryptoRoutes)
 await app.register(venueRoutes)
 await app.register(gamesRoutes)
+await app.register(whotRoutes)
+await app.register(spacesRoutes)
+await app.register(adminRoutes)
 
 const shutdown = async () => {
   await app.close()

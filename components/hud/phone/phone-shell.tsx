@@ -30,11 +30,14 @@ import { MarketApp } from './apps/market-app'
 import { RideApp } from './apps/ride-app'
 import { OPEN_CHAT_EVENT } from '@/lib/game/open-chat'
 import { OPEN_GAMES_EVENT } from '@/lib/game/open-games'
+import { useLiveSpaces } from '@/hooks/use-live-spaces'
+import { OPEN_SPACES_EVENT, hasPendingSpace, requestOpenSpace } from '@/lib/game/open-spaces'
 import { SettingsApp } from './apps/settings-app'
 import { ProfileApp } from './apps/profile-app'
 import { InvestApp } from './apps/invest-app'
 import { EtaApp } from './apps/eta-app'
 import { GamesApp } from './apps/games-app'
+import { SpacesApp } from './apps/spaces-app'
 import { PhoneHome, phoneModeFromStorage } from './phone-home'
 import { PhoneStatusBar } from './phone-status-bar'
 import { WallpaperSkyline } from './wallpaper-skyline'
@@ -111,6 +114,8 @@ export function PhoneShell({
   )
 
   const [appId, setAppId] = useState<PhoneAppId | null>(null)
+  // "Live now" strip on the home screen only
+  const liveSpaces = useLiveSpaces(open && canUsePhone && !appId)
   const [offline, setOffline] = useState(false)
   const [ridePreset, setRidePreset] = useState<string | null>(null)
   const [night, setNight] = useState(false)
@@ -127,6 +132,8 @@ export function PhoneShell({
     setNight(phoneModeFromStorage() === 'night')
     closeRef.current?.focus()
     void mobileApi.refresh()
+    // A shared Space link opened the phone: land in Spaces, not on the home screen
+    if (hasPendingSpace()) void openApp('spaces')
   }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -190,8 +197,13 @@ export function PhoneShell({
       if (appId !== 'games') void openApp('games')
     }
     window.addEventListener(OPEN_CHAT_EVENT, onOpenChat)
+    const onOpenSpaces = () => {
+      if (appId !== 'spaces') void openApp('spaces')
+    }
     window.addEventListener(OPEN_GAMES_EVENT, onOpenGames)
+    window.addEventListener(OPEN_SPACES_EVENT, onOpenSpaces)
     return () => {
+      window.removeEventListener(OPEN_SPACES_EVENT, onOpenSpaces)
       window.removeEventListener(OPEN_CHAT_EVENT, onOpenChat)
       window.removeEventListener(OPEN_GAMES_EVENT, onOpenGames)
     }
@@ -260,7 +272,7 @@ export function PhoneShell({
                   <div className={styles.content}>
                     <PhoneStatusBar clock={phoneClock} phone={deviceState} onApp={Boolean(appId)} />
                     {appId ? (
-                      <AppFrame appId={appId} offline={offline} onHome={goHome} bare={appId === 'messages' || appId === 'games'}>
+                      <AppFrame appId={appId} offline={offline} onHome={goHome} bare={appId === 'messages' || appId === 'games' || appId === 'spaces'}>
                         {appId === 'jobs' ? <JobsApp /> : null}
                         {appId === 'bank' ? <BankApp /> : null}
                         {appId === 'gist' ? <GistApp /> : null}
@@ -300,6 +312,9 @@ export function PhoneShell({
                         {appId === 'invest' ? <InvestApp /> : null}
                         {appId === 'eta' ? <EtaApp /> : null}
                         {appId === 'games' ? <GamesApp onHome={goHome} /> : null}
+                        {appId === 'spaces' ? (
+                          <SpacesApp currentPlaceId={mobileApi.location?.placeId ?? state?.locationId ?? null} onHome={goHome} />
+                        ) : null}
                         {appId === 'settings' ? (
                           <SettingsApp
                             phone={deviceState}
@@ -336,6 +351,8 @@ export function PhoneShell({
                         dateLabel={state ? phoneDateLabel(state.day) : null}
                         promos={mobileApi.promos}
                         lowPerf={lowPerf}
+                        liveSpaces={liveSpaces}
+                        onOpenSpace={(spaceId) => requestOpenSpace({ spaceId })}
                         onOpenApp={(id) => void openApp(id)}
                         onPromo={onPromo}
                       />

@@ -465,13 +465,8 @@ const SOUTH_ZONES: MapZone[] = [
       { model: 'parking-lot', dx: 4, dz: 0, size: [6, 6.5], noPad: true },
     ],
   }),
-  // No Kenney church exists — two plain buildings, the taller one wears a cross
-  southZone('above-the-hills-church', 'Above the Hills Church', 0.41, 0.33, 'cluster', [16, 9], {
-    parts: [
-      { model: 'building-c', dx: -3.6, dz: 0, tint: original, cross: true },
-      { model: 'building-d', dx: 3.8, dz: 0, scale: 4.3, tint: sand },
-    ],
-  }),
+  // Hand-made low-poly GLB (public/models/above-the-hills.glb): cream hall with a hip roof, built in Blender
+  southZone('above-the-hills-church', 'Above the Hills Church', 0.3002, 0.6573, 'above-the-hills', [16, 9], { rotation: 0 }),
   // Landmark name on the slab (no road drawn)
   southZone('poultry-road', 'Poultry Road', 0.73, 0.27, 'label', [1, 1]),
   // Billboards (same size band as the first slab's)
@@ -492,7 +487,8 @@ const SOUTH_ZONES: MapZone[] = [
   southZone('park', 'Park', 0.06, 0.58, 'open', [12, 14], { open: 'park' }),
   southZone('shop-mid-1', 'Shop', 0.16, 0.5, 'building-b', [9, 7], { scale: 4.3, tint: purple }),
   southZone('shop-mid-2', 'Shop', 0.24, 0.5, 'building-e', [9, 7], { scale: 4.3, tint: earth }),
-  southZone('forbes', 'Forbes', 0.45, 0.55, 'open', [30, 16], { open: 'plaza' }),
+  // Club. Hand-made low-poly GLB (public/models/forbes.glb): white diamond-tile facade, built in Blender
+  southZone('forbes', 'Forbes', 0.45, 0.55, 'forbes', [15, 11]),
   // Tall blue glass towers (Kenney skyscrapers, untinted)
   southZone('spot-rite', 'Spot Rite', 0.9, 0.52, 'cluster', [22, 10], {
     parts: [

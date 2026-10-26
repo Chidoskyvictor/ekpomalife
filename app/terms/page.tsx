@@ -16,7 +16,7 @@ export default function TermsPage() {
       <h1 className="mt-6 text-[clamp(1.35rem,5vw,1.5rem)] font-medium break-words">Terms</h1>
       <p className="mt-4 break-words text-neutral-700">
         Ekpoma Life is a game. You must be 18 or older to create an account. Be kind on campus, do not
-        share passwords, and treat other players how you want to be treated at AAU.
+        share passwords, and treat other players how you want to be treated at AAU. No begging, money or crypto giveaways; giveaways may only use in-game cosmetic items.
       </p>
     </main>
   )

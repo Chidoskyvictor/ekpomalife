@@ -20,6 +20,16 @@ import {
 } from '@/lib/game/games-api'
 import { fetchChats, type ChatSummary } from '@/lib/game/hostels-api'
 import { OPEN_GAMES_EVENT, takePendingGames } from '@/lib/game/open-games'
+import { WhotCpuGame } from '@/components/games/whot/whot-cpu-game'
+import { WhotOnlineGame } from '@/components/games/whot/whot-online-game'
+import {
+  createWhotTable,
+  fetchWhotTable,
+  joinWhotTable,
+  leaveWhotTable,
+  startWhotTable,
+  type WhotTable,
+} from '@/lib/game/whot-api'
 import styles from './games.module.css'
 
 /*
@@ -35,9 +45,16 @@ type PlaySetup =
   | { opponent: 'local'; variant: SnookerVariant }
   | { opponent: 'online'; match: GameMatch }
 
+type WhotPlay =
+  | { mode: 'cpu'; players: number }
+  | { mode: 'online'; tableId: string; potLabel: string }
+
 type View =
   | { name: 'home' }
   | { name: 'snooker'; username?: string }
+  | { name: 'whot' }
+  | { name: 'whot-lobby'; table: WhotTable }
+  | { name: 'whot-play'; play: WhotPlay }
   | { name: 'waiting'; match: GameMatch }
   | { name: 'play'; setup: PlaySetup }
 
@@ -107,6 +124,45 @@ export function GamesApp({ onHome }: { onHome: () => void }) {
         match={view.match}
         onBack={() => setView({ name: 'home' })}
         onLive={(m) => setView({ name: 'play', setup: { opponent: 'online', match: m } })}
+      />
+    )
+  }
+  if (view.name === 'whot-play') {
+    if (view.play.mode === 'cpu') {
+      return (
+        <div className={styles.playScreen}>
+          <WhotCpuGame players={view.play.players} onExit={() => setView({ name: 'home' })} notify={notifyToast} />
+        </div>
+      )
+    }
+    return (
+      <div className={styles.playScreen}>
+        <WhotOnlineGame
+          tableId={view.play.tableId}
+          potLabel={view.play.potLabel}
+          onExit={() => setView({ name: 'home' })}
+          notify={notifyToast}
+        />
+      </div>
+    )
+  }
+  if (view.name === 'whot-lobby') {
+    return (
+      <WhotLobbyView
+        table={view.table}
+        onBack={() => setView({ name: 'home' })}
+        onLive={(t, label) => setView({ name: 'whot-play', play: { mode: 'online', tableId: t.id, potLabel: label } })}
+        onTable={setView}
+      />
+    )
+  }
+  if (view.name === 'whot') {
+    return (
+      <WhotSetup
+        betLeft={betLeft}
+        onBack={() => setView({ name: 'home' })}
+        onCpu={(players) => setView({ name: 'whot-play', play: { mode: 'cpu', players } })}
+        onLobby={(table) => setView({ name: 'whot-lobby', table })}
       />
     )
   }
@@ -212,8 +268,200 @@ export function GamesApp({ onHome }: { onHome: () => void }) {
           </span>
           <span className={styles.play}>Play</span>
         </button>
+        <button type="button" className={styles.game} onClick={() => setView({ name: 'whot' })}>
+          <span className={styles.gameArt}>🃏</span>
+          <span className={styles.cardText}>
+            <strong>Naija Whot!</strong>
+            <span>vs computer · friends · 2–4 players</span>
+          </span>
+          <span className={styles.play}>Play</span>
+        </button>
         <p className={styles.fine}>More games are coming.</p>
       </section>
+    </div>
+  )
+}
+
+function WhotSetup({
+  betLeft,
+  onBack,
+  onCpu,
+  onLobby,
+}: {
+  betLeft: number | null
+  onBack: () => void
+  onCpu: (players: number) => void
+  onLobby: (table: WhotTable) => void
+}) {
+  const [mode, setMode] = useState<'cpu' | 'friends'>('cpu')
+  const [players, setPlayers] = useState(4)
+  const [maxPlayers, setMaxPlayers] = useState(4)
+  const [bet, setBet] = useState(false)
+  const [stake, setStake] = useState('')
+  const [code, setCode] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const amount = bet ? Math.floor(Number(stake.replace(/[^\d]/g, '')) || 0) : 0
+  const betInvalid = bet && amount <= 0
+
+  const create = async () => {
+    if (betInvalid) return
+    setBusy(true)
+    setError(null)
+    const res = await createWhotTable(maxPlayers, amount)
+    setBusy(false)
+    if (!res.ok) return setError(res.error)
+    onLobby(res.table)
+  }
+  const join = async () => {
+    if (!code.trim()) return
+    setBusy(true)
+    setError(null)
+    const res = await joinWhotTable(code.trim())
+    setBusy(false)
+    if (!res.ok) return setError(res.error)
+    onLobby(res.table)
+  }
+
+  return (
+    <div className={styles.screen}>
+      <div className={styles.backBar}>
+        <button type="button" className={styles.back} onClick={onBack} aria-label="Back">
+          <ChevronLeft size={18} />
+        </button>
+        <strong>🃏 Naija Whot!</strong>
+        <span className={styles.backSpacer} />
+      </div>
+      <p className={styles.section}>Mode</p>
+      <div className={styles.chips}>
+        <button type="button" className={`${styles.chip} ${mode === 'cpu' ? styles.chipOn : ''}`} onClick={() => setMode('cpu')}>
+          🤖 Computer
+        </button>
+        <button type="button" className={`${styles.chip} ${mode === 'friends' ? styles.chipOn : ''}`} onClick={() => setMode('friends')}>
+          👥 Friends
+        </button>
+      </div>
+      {mode === 'cpu' ? (
+        <>
+          <p className={styles.section}>Players</p>
+          <div className={styles.chips}>
+            {[2, 3, 4].map((n) => (
+              <button key={n} type="button" className={`${styles.chip} ${players === n ? styles.chipOn : ''}`} onClick={() => setPlayers(n)}>
+                {n}
+              </button>
+            ))}
+          </div>
+          <button type="button" className={styles.big} onClick={() => onCpu(players)}>Play vs computer</button>
+        </>
+      ) : (
+        <>
+          <p className={styles.section}>Stakes</p>
+          <div className={styles.chips}>
+            <button type="button" className={`${styles.chip} ${!bet ? styles.chipOn : ''}`} onClick={() => setBet(false)}>Friendly</button>
+            <button type="button" className={`${styles.chip} ${bet ? styles.chipOn : ''}`} onClick={() => setBet(true)}>💰 Bet</button>
+          </div>
+          {bet ? (
+            <>
+              <input className={styles.input} inputMode="numeric" placeholder="Amount (₦)" value={stake} onChange={(e) => setStake(e.target.value)} />
+              <p className={styles.fine}>
+                Everyone puts in the same amount; winner takes the full pot.
+                {betLeft != null ? ` ${betLeft} bet tables left today.` : ''}
+              </p>
+            </>
+          ) : null}
+          <p className={styles.section}>Create table</p>
+          <div className={styles.chips}>
+            {[2, 3, 4].map((n) => (
+              <button key={n} type="button" className={`${styles.chip} ${maxPlayers === n ? styles.chipOn : ''}`} onClick={() => setMaxPlayers(n)}>
+                Up to {n}
+              </button>
+            ))}
+          </div>
+          <button type="button" className={styles.big} disabled={busy || betInvalid} onClick={() => void create()}>Create & get code</button>
+          <p className={styles.section}>Join with code</p>
+          <div className={styles.row}>
+            <input className={styles.input} placeholder="Code" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} autoCapitalize="characters" />
+            <button type="button" className={styles.primary} disabled={busy || !code.trim()} onClick={() => void join()}>Join</button>
+          </div>
+        </>
+      )}
+      {error ? <p className={styles.error}>{error}</p> : null}
+    </div>
+  )
+}
+
+function WhotLobbyView({
+  table: initial,
+  onBack,
+  onLive,
+  onTable,
+}: {
+  table: WhotTable
+  onBack: () => void
+  onLive: (t: WhotTable, label: string) => void
+  onTable: (v: View) => void
+}) {
+  const [table, setTable] = useState(initial)
+  const naira = (n: number) => `₦${n.toLocaleString()}`
+  useEffect(() => {
+    const id = window.setInterval(async () => {
+      const res = await fetchWhotTable(table.id)
+      if (!res.ok) return
+      setTable(res.table)
+      if (res.table.status === 'active') {
+        onLive(
+          res.table,
+          res.table.stake ? `Pot ${naira(res.table.pot)}` : 'Friendly · Online',
+        )
+      }
+    }, 2500)
+    return () => window.clearInterval(id)
+  }, [table.id, onLive])
+
+  const label = table.stake ? `${naira(table.stake)} each · pot ${naira(table.pot)}` : 'Friendly'
+  return (
+    <div className={styles.screen}>
+      <div className={styles.backBar}>
+        <button type="button" className={styles.back} onClick={onBack} aria-label="Back">
+          <ChevronLeft size={18} />
+        </button>
+        <strong>🃏 Lobby</strong>
+        <span className={styles.backSpacer} />
+      </div>
+      <div className={styles.waiting}>
+        <strong>Code: {table.code}</strong>
+        <span>{label}</span>
+        <span>{table.players.length}/{table.maxPlayers} seated</span>
+        {table.players.map((p) => (
+          <span key={p.seat}>Seat {p.seat + 1}: {p.username}</span>
+        ))}
+        {table.isHost ? (
+          <button
+            type="button"
+            className={styles.big}
+            disabled={table.players.length < 2}
+            onClick={async () => {
+              const res = await startWhotTable(table.id)
+              if (!res.ok) return
+              onLive(res.table, res.table.stake ? `Pot ${naira(res.table.pot)}` : 'Friendly · Online')
+            }}
+          >
+            Start game
+          </button>
+        ) : (
+          <span>Waiting for host to start…</span>
+        )}
+        <button
+          type="button"
+          className={styles.ghost}
+          onClick={async () => {
+            await leaveWhotTable(table.id)
+            onTable({ name: 'home' })
+          }}
+        >
+          Leave table
+        </button>
+      </div>
     </div>
   )
 }

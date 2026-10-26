@@ -53,7 +53,7 @@ export async function roomRoutes(app: FastifyInstance) {
     try {
       const result = await getRoom(user.id)
       if (!result.ok) return fail(reply, result)
-      return reply.send({ ok: true, room: result.room, catalog: result.catalog })
+      return reply.send({ ok: true, room: result.room, catalog: result.catalog, home: result.home })
     } catch (error) {
       request.log.error(error)
       return reply.code(500).send({ ok: false, error: 'Could not load your room.' })

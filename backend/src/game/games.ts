@@ -4,6 +4,7 @@ import { createId } from '../ids.js'
 import { postGameNotice } from './chat.js'
 import { opponentAwaySeconds } from './game-live.js'
 import { applyCash, asMoney, parseNeeds } from './game-state.js'
+import { liveSpaceMoneyBlock, liveSpaceMoneyBlockForCharacters } from './spaces-money.js'
 import { applyNeedDelta } from './needs.js'
 
 /*
@@ -16,11 +17,12 @@ import { applyNeedDelta } from './needs.js'
 
 export const GAMES: Record<string, { name: string; emoji: string; variants: string[] }> = {
   snooker: { name: 'Snooker', emoji: '🎱', variants: ['six', 'classic', 'clearance', 'black'] },
+  whot: { name: 'Naija Whot!', emoji: '🃏', variants: ['standard'] },
 }
 
 export const DAILY_BET_MATCHES = 10
 export const DAILY_WIN_REWARDS = 5
-const WIN_FUN = 12
+export const WIN_FUN = 12
 const CHALLENGE_MINUTES = 10
 const QUICK_MINUTES = 2
 /** How long a player can be gone from a live match before the other can claim the win. */
@@ -158,6 +160,10 @@ export async function createChallenge(userId: string, input: { game: string; var
   if (stake > 0 && (await betMatchesToday(pool, host.id)) >= DAILY_BET_MATCHES) {
     return fail(429, `That's your ${DAILY_BET_MATCHES} bet matches for today. Friendly games are still on.`)
   }
+  if (stake > 0) {
+    const inSpace = await liveSpaceMoneyBlock([userId, guest.user_id])
+    if (inSpace) return fail(409, inSpace)
+  }
   const result = await inTx(async (client) => {
     if (!(await hold(client, host.id, stake, game.name))) return fail(400, `You don't have ₦${stake.toLocaleString()} to bet.`)
     const id = createId()
@@ -215,6 +221,10 @@ export async function acceptChallenge(userId: string, matchId: string) {
     if (stake > 0 && (await betMatchesToday(client, player.id)) > DAILY_BET_MATCHES) {
       return fail(429, `That's your ${DAILY_BET_MATCHES} bet matches for today.`)
     }
+    if (stake > 0) {
+      const inSpace = await liveSpaceMoneyBlock([userId], client)
+      if (inSpace) return fail(409, inSpace)
+    }
     if (!(await hold(client, player.id, stake, GAMES[m.game]?.name ?? 'Game'))) {
       return fail(400, `You need ₦${stake.toLocaleString()} to accept this bet.`)
     }
@@ -257,6 +267,10 @@ export async function quickMatch(userId: string, input: { game: string; variant:
   if (!player) return fail(409, 'Finish setting up your character first.')
   if (stake > 0 && (await betMatchesToday(pool, player.id)) >= DAILY_BET_MATCHES) {
     return fail(429, `That's your ${DAILY_BET_MATCHES} bet matches for today. Friendly games are still on.`)
+  }
+  if (stake > 0) {
+    const inSpace = await liveSpaceMoneyBlock([userId])
+    if (inSpace) return fail(409, inSpace)
   }
   const result = await inTx(async (client) => {
     const seat = await client.query<{ id: string }>(
@@ -324,6 +338,11 @@ export async function reportResult(userId: string, matchId: string, input: { win
     const m = found.rows[0]
     if (!m || (m.host_id !== player.id && m.guest_id !== player.id)) return fail(404, 'Match not found.')
     if (m.status !== 'active') return { ok: true as const, status: m.status, winnerId: m.winner_id }
+    if (asMoney(m.stake) > 0) {
+      // Checked before the report is saved, so it can simply be sent again after leaving the Space
+      const inSpace = await liveSpaceMoneyBlockForCharacters([m.host_id, m.guest_id], client)
+      if (inSpace) return fail(409, inSpace)
+    }
     const isHost = m.host_id === player.id
     const opponentId = (isHost ? m.guest_id : m.host_id)!
     const claimed = input.winner === 'me' ? player.id : opponentId

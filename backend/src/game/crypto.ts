@@ -5,6 +5,7 @@ import { requireEconomySetup } from './economy.js'
 import { tagMentions } from './eta-tags.js'
 import { applyCash } from './game-state.js'
 import { withIdempotency } from './idempotency.js'
+import { liveSpaceMoneyBlock } from './spaces-money.js'
 
 /**
  * Player-made coins on a constant-product curve: price = naira reserve / token reserve.
@@ -303,6 +304,10 @@ export async function launchCoin(
   const name = input.name.trim()
   if (name.length < 2 || name.length > 24) return bad(400, 'BAD_NAME', 'Name: 2–24 characters.')
   const devBuy = Math.max(0, Math.floor(input.devBuy || 0))
+  if (devBuy > 0) {
+    const inSpace = await liveSpaceMoneyBlock([userId])
+    if (inSpace) return { ok: false, error: inSpace, code: 409 }
+  }
   return inTx((client) =>
     withIdempotency(client, {
       userId,
@@ -390,6 +395,8 @@ export async function tradeCoin(
 ): Promise<ActionResult | Fail> {
   const gate = await requireEconomySetup(userId)
   if (!gate.ok) return { ok: false, error: gate.error, code: gate.code }
+  const inSpace = await liveSpaceMoneyBlock([userId])
+  if (inSpace) return { ok: false, error: inSpace, code: 409 }
   await runCryptoMarket()
   return inTx((client) =>
     withIdempotency(client, {

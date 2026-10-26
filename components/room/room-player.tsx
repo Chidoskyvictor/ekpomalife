@@ -6,11 +6,12 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Group, Mesh } from 'three'
 import { CharacterFigure, type FigurePose } from '@/components/look/character-figure'
 import { DEFAULT_APPEARANCE, normalizeAppearance, type Appearance } from '@/lib/game/look'
-import type { FurnitureAction, FurnitureId } from '@/lib/game/room-furniture'
+import type { FurnitureAction } from '@/lib/game/room-furniture'
+import { buyUi } from '@/lib/game/home-buy-store'
 
 /** What the character needs to know to use a piece: the pose and how long to hold it. */
 type UseHow = Pick<FurnitureAction, 'style' | 'seconds'>
-import type { FurnitureSpot, RoomLayout } from '@/lib/game/room-layouts'
+import type { FurnitureSpot, RoomLayout, SpotKey } from '@/lib/game/room-layouts'
 import { useActivity } from '@/lib/game/activity'
 import bubbleStyles from './head-bubble.module.css'
 
@@ -172,7 +173,7 @@ const KEYS: Record<string, [number, number]> = {
 
 /** Lets the room screen tell the character to go and use something. */
 export type RoomPlayerControl = {
-  use?: (furniture: FurnitureId, action: UseHow, hooks: UseHooks) => void
+  use?: (furniture: SpotKey, action: UseHow, hooks: UseHooks) => void
   /** Stand up / stop walking over (e.g. the busy pill was tapped). */
   stop?: () => void
 }
@@ -189,17 +190,20 @@ export function RoomPlayer({
   onFurniture,
   control,
   onMove,
+  spawn,
 }: {
   layout: RoomLayout
+  /** Start here instead of the last saved spot (e.g. at your gate / just inside the door). */
+  spawn?: [number, number]
   appearance?: Appearance
-  onFurniture?: (id: FurnitureId) => void
+  onFurniture?: (id: SpotKey) => void
   control?: RoomPlayerControl
   onMove?: (move: PlayerMove) => void
 }) {
   const look = normalizeAppearance(appearance ?? DEFAULT_APPEARANCE)
   const nav = useMemo(() => makeNav(layout), [layout])
   const { blocked, findPath, bounds: BOUNDS } = nav
-  const SPOTS = layout.spots as Record<FurnitureId, FurnitureSpot>
+  const SPOTS = layout.spots as Record<SpotKey, FurnitureSpot>
   const TAP_BOXES = layout.tapBoxes
   const body = useRef<Group>(null)
   const shadow = useRef<Mesh>(null)
@@ -213,7 +217,7 @@ export function RoomPlayer({
   const pose = useRef<FigurePose | null>(null)
   /** Furniture the character is heading to or using right now. */
   const task = useRef<{
-    furniture: FurnitureId
+    furniture: SpotKey
     action: UseHow
     hooks: UseHooks
     using: boolean
@@ -222,10 +226,20 @@ export function RoomPlayer({
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    pos.current = readSpot(layout, nav)
+    pos.current = spawn && !nav.blocked(...spawn) ? spawn : readSpot(layout, nav)
     path.current = []
     setReady(true)
-  }, [layout, nav])
+    // spawn is read once per home: walking around (or bought furniture changing nav) must not snap back to it
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [layout.id])
+
+  // Furniture bought or moved while you stand there: step out to the door instead of being stuck inside it
+  useEffect(() => {
+    if (!nav.blocked(...pos.current)) return
+    pos.current = layout.start
+    path.current = []
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nav])
 
   const stopUsing = (finished = false) => {
     const job = task.current
@@ -265,7 +279,8 @@ export function RoomPlayer({
       return !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)
     }
     const down = (e: KeyboardEvent) => {
-      if (!KEYS[e.code] || typing(e)) return
+      // Buy mode moves the preview with the arrows, not the character
+      if (!KEYS[e.code] || typing(e) || buyUi().active) return
       stopUsing()
       held.current.add(e.code)
       path.current = []
@@ -391,8 +406,8 @@ export function RoomPlayer({
   })
 
   const onFloorTap = (event: ThreeEvent<MouseEvent>) => {
-    // Ignore taps that were really a camera drag
-    if (event.delta > 6) return
+    // Ignore taps that were really a camera drag, and every tap while shopping (it picks furniture instead)
+    if (event.delta > 6 || buyUi().active) return
     event.stopPropagation()
     const local = event.object.parent?.worldToLocal(event.point.clone()) ?? event.point
     const x = Math.min(BOUNDS.maxX, Math.max(BOUNDS.minX, local.x))
@@ -427,7 +442,7 @@ export function RoomPlayer({
 
       {/* Invisible boxes over furniture: tap to see what you can do */}
       {onFurniture
-        ? (Object.keys(TAP_BOXES) as FurnitureId[]).map((id) => {
+        ? (Object.keys(TAP_BOXES) as SpotKey[]).map((id) => {
             const [x0, y0, z0, x1, y1, z1] = TAP_BOXES[id]!
             return (
               <mesh

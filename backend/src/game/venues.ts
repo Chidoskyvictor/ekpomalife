@@ -6,6 +6,7 @@ import { requireEconomySetup, tickAndWeekly } from './economy.js'
 import { applyCash, asMoney, parseNeeds } from './game-state.js'
 import { withIdempotency } from './idempotency.js'
 import { applyNeedDelta, type Needs } from './needs.js'
+import { liveSpaceMoneyBlock } from './spaces-money.js'
 import { clockFromGameTime } from './time.js'
 
 /*
@@ -299,6 +300,8 @@ export async function sprayAtVenue(userId: string, venueId: string, amount: numb
   const venue = VENUES[venueId]
   if (!venue) return { ok: false as const, error: 'No such club.', code: 404 }
   if (!SPRAY_AMOUNTS.includes(amount)) return { ok: false as const, error: 'Pick an amount to spray.', code: 400 }
+  const inSpace = await liveSpaceMoneyBlock([userId])
+  if (inSpace) return { ok: false as const, error: inSpace, code: 409 }
   const night = nightKey()
   let announce: (() => void) | null = null
   const result = await withPlayer(userId, async ({ client, characterId, gameTime }) =>

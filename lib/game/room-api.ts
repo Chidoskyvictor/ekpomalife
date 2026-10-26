@@ -10,7 +10,10 @@ export type RoomFail = ApiFail & {
   room?: RoomState
 }
 
-type OkRoom = { ok: true; room: RoomState; catalog: FurnitureItem[] }
+/** Which street template and lot your house is on */
+export type HomeLot = { lodgingId: string; houseNumber: number | null }
+
+type OkRoom = { ok: true; room: RoomState; catalog: FurnitureItem[]; home?: HomeLot }
 type OkVisit = { ok: true; room: RoomState; readOnly: true }
 type OkBuy = {
   ok: true

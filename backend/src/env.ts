@@ -55,6 +55,17 @@ const envSchema = z.object({
     .transform((value) => value === 'true' || value === '1'),
   /** Comma-separated IPs that skip rate limits (load testing). Empty by default. */
   RATE_LIMIT_ALLOWLIST: z.preprocess(emptyToUndefined, z.string().optional()),
+  /** Campus Spaces (voice rooms) on LiveKit Cloud. Unset = Spaces can be browsed but not joined. */
+  LIVEKIT_URL: z.preprocess(emptyToUndefined, z.string().url().optional()),
+  LIVEKIT_API_KEY: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
+  LIVEKIT_API_SECRET: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
+  /**
+   * Participant-minutes (people × minutes, as LiveKit bills) all Spaces may use per Lagos day.
+   * 160 × 31 stays under the LiveKit free plan's 5,000 a month.
+   */
+  /** Comma-separated usernames allowed to use /admin routes (moderation) */
+  ADMIN_USERNAMES: z.preprocess((value) => (value == null ? '' : value), z.string()),
+  SPACES_DAILY_MINUTES: z.preprocess((value) => (value == null || value === '' ? 160 : value), z.coerce.number().int().min(0)),
   PHONE_FREE_FOR_ALL: z.preprocess((value) => value !== 'false' && value !== '0', z.boolean()),
 })
 

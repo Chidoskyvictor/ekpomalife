@@ -242,6 +242,7 @@ export function GameProvider({
         traits: character.traits.length ? character.traits : current.traits,
         characterType: (character.characterType as CharacterTypeId) ?? current.characterType,
         lodgingId: (character.lodgingId as LodgingId) ?? current.lodgingId,
+        houseNumber: character.houseNumber ?? current.houseNumber,
         courseId: character.courseId ?? current.courseId,
         badges: character.badges.length ? character.badges : current.badges,
       }

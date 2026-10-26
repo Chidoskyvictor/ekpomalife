@@ -23,6 +23,7 @@ import { BillboardDebugPanel } from './billboard-debug-panel'
 import { ZoneStickerOverlay, ZoneStickerProjector, ZoneStickerProvider } from './world-zone-stickers'
 import { ZoneDebugProvider } from './zone-debug-context'
 import { useWatClock } from '@/lib/game/wat-clock'
+import { markSceneReady } from '@/lib/game/trip'
 
 const PITCH = (32 * Math.PI) / 180
 const HEADING = 0
@@ -155,6 +156,12 @@ export function WorldCanvas() {
   const { period } = useWatClock()
   const night = period === 'evening' || period === 'night'
   const { targetPercent, assetsDone, onProgress } = useMapLoadProgress()
+  // A trip to a campus place waits for the map to finish loading
+  useEffect(() => {
+    if (!assetsDone) return
+    markSceneReady('map')
+    return () => markSceneReady('map', false)
+  }, [assetsDone])
   const [mobile, setMobile] = useState(
     () => window.matchMedia('(max-width: 767px), (pointer: coarse)').matches,
   )

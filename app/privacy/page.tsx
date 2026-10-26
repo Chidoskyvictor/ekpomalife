@@ -31,6 +31,7 @@ export default function PrivacyPage() {
           We do not sell your personal information. Contact the game team through official support channels
           listed in the app when those are published.
         </p>
+        <p>Live voice in Spaces is never recorded.</p>
         <p>
           For terms of use, see <Link href="/terms" className="text-[#1a6fb0] underline">Terms</Link>.
         </p>

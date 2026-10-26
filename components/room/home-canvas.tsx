@@ -2,20 +2,23 @@
 
 import { useGLTF } from '@react-three/drei'
 import { Canvas, useThree } from '@react-three/fiber'
-import { Suspense, useLayoutEffect, useMemo, type ReactNode } from 'react'
+import { Suspense, useEffect, useLayoutEffect, useMemo, type ReactNode } from 'react'
 import { Box3, Vector3, type Material, type Mesh, type Object3D } from 'three'
 import { applyGlbTextureAnisotropy } from '@/components/world/glb-textures'
 import { useLowPerf } from '@/hooks/use-low-perf'
 import { shadeOf } from '@/lib/game/house-paint'
 import type { Appearance } from '@/lib/game/look'
 import { paintOf, releasePaint } from '@/lib/game/paint-material'
-import type { FurnitureId } from '@/lib/game/room-furniture'
+import type { SpotKey } from '@/lib/game/room-layouts'
 import { scaledRoomCamera } from '@/lib/game/room-camera'
-import { ROOM_LAYOUTS, type RoomLayout } from '@/lib/game/room-layouts'
+import type { RoomLayout } from '@/lib/game/room-layouts'
+import { StreetScene, type StreetProps } from '@/components/home/street-scene'
 import { RoomCameraSync } from './room-camera-sync'
 import { CharacterFigure } from '@/components/look/character-figure'
 import { RoomLights } from './room-lights'
 import { RoomPlayer, type PlayerMove, type RoomPlayerControl } from './room-player'
+import { BuyLayer, PlacedPieces, type HomeFurnishing } from './placed-furniture'
+import { useBuyUi } from '@/lib/game/home-buy-store'
 
 /** Footprint scale for the thin wide lawn discs in the home GLBs (1 = Blender size). */
 const LAWN_SCALE_XZ = 0.76
@@ -33,8 +36,21 @@ type PlayerProps = {
   appearance?: Appearance
   /** Visiting: the owner's look, standing in their room. */
   host?: Appearance
-  onFurniture?: (id: FurnitureId) => void
+  onFurniture?: (id: SpotKey) => void
+  /** What the player bought and placed in this home (drawn, blocks walking, and Buy mode edits it). */
+  furnishing?: HomeFurnishing | null
   control?: RoomPlayerControl
+  /** Start the character here (e.g. just inside the door when coming in from the street). */
+  spawn?: [number, number]
+}
+
+type CanvasProps = PlayerProps & {
+  /** Outside on your street instead of in the home (same canvas, so switching is quick). */
+  street?: StreetProps | null
+  /** The scene (inside or the street) has loaded and drawn its first frame. */
+  onReady?: () => void
+  /** Changes on every inside ↔ outside switch, so the scene and player start fresh. */
+  visit?: number
 }
 
 function centerOnGround(scene: Object3D) {
@@ -101,7 +117,7 @@ function usePaintedWalls(root: Object3D, paint: string | undefined) {
 
 const MIDDAY = () => 12 * 60
 
-function HomeModel({ layout, paint, clock = MIDDAY, effects, onPlayerMove, appearance, host, onFurniture, control }: PlayerProps) {
+function HomeModel({ layout, paint, clock = MIDDAY, effects, onPlayerMove, appearance, host, onFurniture, control, spawn, furnishing }: PlayerProps) {
   const gl = useThree((state) => state.gl)
   const { scene } = useGLTF(layout.glb)
   useLayoutEffect(() => {
@@ -124,6 +140,8 @@ function HomeModel({ layout, paint, clock = MIDDAY, effects, onPlayerMove, appea
       <group position={[prepared.position.x, prepared.position.y, prepared.position.z]}>
         <RoomLights layout={layout} root={prepared} clock={clock} />
         {effects?.(prepared)}
+        {furnishing ? <PlacedPieces furnishing={furnishing} /> : null}
+        {furnishing ? <BuyLayer furnishing={furnishing} /> : null}
         <RoomPlayer
           key={layout.id}
           layout={layout}
@@ -131,6 +149,7 @@ function HomeModel({ layout, paint, clock = MIDDAY, effects, onPlayerMove, appea
           onFurniture={onFurniture}
           control={control}
           onMove={onPlayerMove}
+          spawn={spawn}
         />
         {host ? (
           // The host waits inside, facing the visitor
@@ -143,10 +162,32 @@ function HomeModel({ layout, paint, clock = MIDDAY, effects, onPlayerMove, appea
   )
 }
 
-/** Your home (single room, self-con or one bedroom) with your character in it. */
-export function HomeCanvas(props: PlayerProps) {
+/** Mounted inside the scene's Suspense: runs once everything above it has loaded. */
+function SceneReady({ onReady }: { onReady?: () => void }) {
+  useEffect(() => {
+    if (!onReady) return
+    // Two frames: the first draw of the new scene has reached the screen
+    let second = 0
+    const first = requestAnimationFrame(() => {
+      second = requestAnimationFrame(() => onReady())
+    })
+    return () => {
+      cancelAnimationFrame(first)
+      cancelAnimationFrame(second)
+    }
+  }, [onReady])
+  return null
+}
+
+/**
+ * Your home (single room, self-con or one bedroom) with your character in it, or the street
+ * outside it. Only one is mounted at a time: the one you leave is torn down (its street
+ * meshes disposed); the home's GLB stays cached so going back in is instant.
+ */
+export function HomeCanvas({ street, onReady, visit = 0, ...props }: CanvasProps) {
   const lowPerf = useLowPerf()
   const cam = scaledRoomCamera(props.layout.cameraScale, props.layout.view)
+  const { turn, active: buying } = useBuyUi()
 
   return (
     <Canvas
@@ -165,11 +206,20 @@ export function HomeCanvas(props: PlayerProps) {
       }}
     >
       <Suspense fallback={null}>
-        <HomeModel {...props} />
+        {street ? <StreetScene key={`street-${visit}`} {...street} /> : <HomeModel key={`${props.layout.id}-${visit}`} {...props} />}
+        <SceneReady key={`ready-${street ? 'street' : props.layout.id}-${visit}`} onReady={onReady} />
       </Suspense>
-      <RoomCameraSync scale={props.layout.cameraScale} view={props.layout.view} />
+      {street ? null : <RoomCameraSync scale={props.layout.cameraScale} view={props.layout.view} turn={turn} locked={buying} topDown={buying} />}
     </Canvas>
   )
 }
 
-for (const layout of Object.values(ROOM_LAYOUTS)) useGLTF.preload(layout.glb)
+/** Fetch and parse a home in the background (only the one you'll see, not every home). */
+export function preloadHome(layout: RoomLayout) {
+  useGLTF.preload(layout.glb)
+}
+
+/** Drop a home's GLB from memory once you've left it for good (e.g. off to the map). */
+export function releaseHome(layout: RoomLayout) {
+  useGLTF.clear(layout.glb)
+}

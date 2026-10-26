@@ -2,6 +2,7 @@ import type { PoolClient } from 'pg'
 import { pool } from '../db.js'
 import { createId } from '../ids.js'
 import { applyCash } from './game-state.js'
+import { liveSpaceMoneyBlock } from './spaces-money.js'
 import { isStickerId } from './stickers.js'
 
 /** Group chat (hostel chats today). Message ids are the `seq` column, sent as strings. */
@@ -458,6 +459,8 @@ export async function sendMoney(
   const peer = people.rows.find((row) => row.user_id !== userId)
   if (!me) return fail(409, 'NO_WALLET', 'Finish setting up your character first.')
   if (!peer) return fail(409, 'PEER_NO_WALLET', 'They can’t receive money yet.')
+  const inSpace = await liveSpaceMoneyBlock([userId, peer.user_id])
+  if (inSpace) return fail(409, 'IN_LIVE_SPACE', inSpace)
 
   const client = await pool.connect()
   try {

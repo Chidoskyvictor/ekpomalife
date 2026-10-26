@@ -8,14 +8,24 @@ import { endActivity, setActivityQueue, startActivity } from '@/lib/game/activit
 import { fetchHostCard, type HostCard } from '@/lib/game/hostels-api'
 import { normalizeAppearance, type Appearance } from '@/lib/game/look'
 import type { FurnitureAction, FurnitureId } from '@/lib/game/room-furniture'
+import { fetchHomeFurniture, fetchVisitFurniture, type HomeItem, type OwnedPiece } from '@/lib/game/home-buy-api'
+import { exitBuyMode, setBuyAvailable, useBuyUi } from '@/lib/game/home-buy-store'
+import { furnitureUse, homeSpecFor, layoutWithPlaced, placedIdOf } from '@/lib/game/home-placed'
 import { resolvePaint } from '@/lib/game/house-paint'
-import { layoutForLodging } from '@/lib/game/room-layouts'
+import { layoutForLodging, type SpotKey } from '@/lib/game/room-layouts'
 import { roomLightAt } from '@/lib/game/room-lighting'
 import { devPinnedMinute, watMinuteOfDay } from '@/lib/game/wat-clock'
+import { HOME_STREET_EVENT, markSceneReady, openTravel, takeHomeStreet } from '@/lib/game/trip'
+import travelStyles from '@/components/travel/travel.module.css'
+import { STREET_AND_TRAVEL } from '@/lib/flags'
+import { BuyPanel } from './buy-panel'
 import { FurnitureSheet } from './furniture-sheet'
 import type { RoomPlayerControl } from './room-player'
 import { VisitBanner } from './visit-banner'
 import styles from './room.module.css'
+
+/** Fade to dark, swap scenes, fade back (each way): ~0.5s when the scene is cached. */
+const FADE_MS = 220
 
 const HomeCanvas = dynamic(
   () => import('./home-canvas').then((m) => m.HomeCanvas),
@@ -27,7 +37,8 @@ const HomeCanvas = dynamic(
 
 export function RoomScreen() {
   const { state, act } = useGame()
-  const [furniture, setFurniture] = useState<FurnitureId | null>(null)
+  // The piece that was tapped: a built-in one, or one the player bought (`placed:<id>`)
+  const [furnitureKey, setFurnitureKey] = useState<SpotKey | null>(null)
   // The 3D character fills in control.use once it has mounted
   const control = useMemo<RoomPlayerControl>(() => ({}), [])
   const pick = useRoomActionQueue(control, (action) => void act(action.id, { atHome: true }))
@@ -49,7 +60,27 @@ export function RoomScreen() {
   }, [visiting, isOwn])
   // Your own home, or the host's when visiting (their character shows once the card loads)
   const visitingOther = !!visiting && !isOwn
-  const layout = layoutForLodging(visitingOther ? host?.lodgingId : state?.lodgingId)
+  const lodgingId = visitingOther ? host?.lodgingId : state?.lodgingId
+  const baseLayout = layoutForLodging(lodgingId)
+  // Furniture bought in Buy mode: yours, or the host's when visiting
+  const spec = useMemo(() => homeSpecFor(lodgingId), [lodgingId])
+  const home = useHomeFurniture(visitingOther ? (host ? visiting : null) : '', spec !== null)
+  const layout = useMemo(
+    () => layoutWithPlaced(baseLayout, spec, home.placements, home.catalog),
+    [baseLayout, spec, home.placements, home.catalog],
+  )
+  const furnishing = useMemo(
+    () => (spec && home.loaded ? { spec, catalog: home.catalog, placements: home.placements } : null),
+    [spec, home.loaded, home.catalog, home.placements],
+  )
+  const furniture = useMemo<FurnitureId | null>(() => {
+    if (!furnitureKey) return null
+    const id = placedIdOf(furnitureKey)
+    if (!id) return furnitureKey as FurnitureId
+    const piece = home.placements.find((p) => p.id === id)
+    return furnitureUse(home.catalog.find((i) => i.id === piece?.itemId))
+  }, [furnitureKey, home.placements, home.catalog])
+  const buy = useBuyUi()
   // Wall paint follows whoever lives here, so visitors see the owner's colour
   const ownerName = visitingOther ? host?.username : state?.username
   const paint = ownerName ? resolvePaint({ id: ownerName.toLowerCase() }).hex : undefined
@@ -66,6 +97,29 @@ export function RoomScreen() {
     const id = window.setInterval(update, 5000)
     return () => window.clearInterval(id)
   }, [clock, state?.gameTime])
+  const own = !visitingOther
+  // Stepping outside stops whatever you were doing in there
+  const leaveInside = useCallback(() => control.stop?.(), [control])
+  const scene = useHomeScene(own, leaveInside)
+
+  // The nav's Buy tab opens Buy mode while you are inside your own home (and only then)
+  const canBuy = own && !scene.outside && !!furnishing && home.enabled
+  useEffect(() => {
+    setBuyAvailable(canBuy)
+    return () => setBuyAvailable(false)
+  }, [canBuy])
+  // Stop whatever you were doing when Buy mode opens
+  useEffect(() => {
+    if (buy.active) leaveInside()
+  }, [buy.active, leaveInside])
+  useEffect(() => () => exitBuyMode(), [])
+
+  // Only your own home is fetched (no more preloading every home); dropped when you leave
+  useEffect(() => {
+    void import('./home-canvas').then((m) => m.preloadHome(baseLayout))
+    return () => void import('./home-canvas').then((m) => m.releaseHome(baseLayout))
+  }, [baseLayout])
+
   const hostLook = useMemo<Appearance | undefined>(
     () => (host ? normalizeAppearance(host.appearance as Partial<Appearance>) : undefined),
     [host],
@@ -95,34 +149,156 @@ export function RoomScreen() {
           aria-hidden="true"
           style={{ background: `linear-gradient(180deg, ${sky.skyTop}, ${sky.skyBottom})`, opacity: sky.skyOpacity }}
         />
-        {modelReady === 'ok' && (!visitingOther || host) ? (
-          <HomeCanvas layout={layout} paint={paint} clock={clock} appearance={state?.appearance} host={hostLook} onFurniture={setFurniture} control={control} />
+        {(modelReady === 'ok' || scene.outside) && (!visitingOther || host) ? (
+          <HomeCanvas
+            layout={layout}
+            paint={paint}
+            clock={clock}
+            appearance={state?.appearance}
+            host={hostLook}
+            onFurniture={buy.active ? undefined : setFurnitureKey}
+            furnishing={furnishing}
+            control={control}
+            spawn={scene.spawnAtDoor ? layout.start : undefined}
+            visit={scene.visit}
+            onReady={scene.onReady}
+            street={
+              scene.outside
+                ? {
+                    lodgingId: state?.lodgingId,
+                    houseNumber: state?.houseNumber,
+                    paint,
+                    appearance: state?.appearance,
+                    clock,
+                    preloadGlb: layout.glb,
+                    onNearGate: scene.setNearGate,
+                  }
+                : null
+            }
+          />
         ) : null}
-        {modelReady === 'missing' ? (
+        <div className={travelStyles.fade} data-on={scene.cover} aria-hidden={!scene.cover}>
+          {scene.slow ? 'Loading…' : null}
+        </div>
+        {modelReady === 'missing' && !scene.outside ? (
           <p className={styles.missingModel} role="status">
             Add <code>{layout.glb.replace('/models/', '')}</code> to <code>public/models/</code> to see your room here.
           </p>
         ) : null}
-        {modelReady === 'checking' ? (
+        {modelReady === 'checking' && !scene.outside ? (
           <p className={styles.missingModel} role="status" aria-live="polite">
             Loading room…
           </p>
         ) : null}
         </div>
+        {STREET_AND_TRAVEL && own && state && !buy.active ? (
+          <div className={travelStyles.corner}>
+            {scene.outside ? (
+              <>
+                {scene.nearGate ? (
+                  <button type="button" className={`${travelStyles.cornerBtn} ${travelStyles.go}`} onClick={() => scene.goTo(false)}>
+                    🏠 Go inside
+                  </button>
+                ) : null}
+                <button type="button" className={travelStyles.cornerBtn} onClick={openTravel}>
+                  🧭 Where to?
+                </button>
+              </>
+            ) : (
+              <button type="button" className={travelStyles.cornerBtn} onClick={() => scene.goTo(true)}>
+                🚪 Go outside
+              </button>
+            )}
+          </div>
+        ) : null}
         {visiting && !isOwn ? <VisitBanner username={host?.username ?? visiting} displayName={host?.displayName ?? null} /> : null}
         <FurnitureSheet
           furniture={furniture}
-          onClose={() => setFurniture(null)}
-          onPick={(id, action) => {
-            setFurniture(null)
-            pick(id, action)
+          onClose={() => setFurnitureKey(null)}
+          onPick={(_id, action) => {
+            const key = furnitureKey
+            setFurnitureKey(null)
+            if (key) pick(key, action)
           }}
         />
+        {buy.active && furnishing ? (
+          <BuyPanel
+            spec={furnishing.spec}
+            catalog={furnishing.catalog}
+            placements={furnishing.placements}
+            view={layout.view}
+            onPlacements={home.setPlacements}
+          />
+        ) : null}
       </div>
   )
 }
 
-type Queued = { key: string; furniture: FurnitureId; action: FurnitureAction }
+/**
+ * Inside your home or out on your street. Switching fades to dark, swaps what the canvas
+ * shows (the scene you leave is unmounted), and fades back once the new one has drawn.
+ * Arriving home by trip (or "Where to? → Home" while here) puts you outside at your gate.
+ */
+function useHomeScene(own: boolean, leaveInside: () => void) {
+  const [outside, setOutside] = useState(false)
+  const [cover, setCover] = useState(false)
+  const [slow, setSlow] = useState(false)
+  const [nearGate, setNearGate] = useState(false)
+  /** Bumps on every switch so the player re-spawns (at the gate / inside the door). */
+  const [visit, setVisit] = useState(0)
+  const [spawnAtDoor, setSpawnAtDoor] = useState(false)
+  const outsideRef = useRef(false)
+  const timers = useRef<number[]>([])
+
+  const goTo = useCallback(
+    (next: boolean) => {
+      if (!own) return
+      if (!next) setNearGate(false)
+      else leaveInside()
+      setCover(true)
+      timers.current.push(
+        window.setTimeout(() => {
+          outsideRef.current = next
+          setOutside(next)
+          setSpawnAtDoor(!next)
+          setVisit((v) => v + 1)
+        }, FADE_MS),
+        // Only say "Loading…" when the scene isn't cached
+        window.setTimeout(() => setSlow(true), FADE_MS + 350),
+      )
+    },
+    [own, leaveInside],
+  )
+
+  const onReady = useCallback(() => {
+    for (const id of timers.current) window.clearTimeout(id)
+    timers.current = []
+    setSlow(false)
+    setCover(false)
+    if (outsideRef.current) markSceneReady('home')
+  }, [])
+
+  // Came here by trip: start on the street
+  useEffect(() => {
+    if (own && takeHomeStreet()) {
+      outsideRef.current = true
+      setOutside(true)
+      setVisit((v) => v + 1)
+    }
+  }, [own])
+
+  useEffect(() => {
+    const onStreet = () => goTo(true)
+    window.addEventListener(HOME_STREET_EVENT, onStreet)
+    return () => window.removeEventListener(HOME_STREET_EVENT, onStreet)
+  }, [goTo])
+
+  useEffect(() => () => timers.current.forEach((id) => window.clearTimeout(id)), [])
+
+  return { outside: own && outside, cover, slow, nearGate, setNearGate, visit, spawnAtDoor, goTo, onReady }
+}
+
+type Queued = { key: string; furniture: SpotKey; action: FurnitureAction }
 const MAX_QUEUED = 3
 
 /**
@@ -196,7 +372,7 @@ function useRoomActionQueue(control: RoomPlayerControl, run: (action: FurnitureA
   useEffect(() => () => setActivityQueue([]), [])
 
   return useCallback(
-    (furniture: FurnitureId, action: FurnitureAction) => {
+    (furniture: SpotKey, action: FurnitureAction) => {
       const item = { key: `${Date.now()}-${Math.random()}`, furniture, action }
       if (!busy.current) {
         start.current(item)
@@ -208,4 +384,30 @@ function useRoomActionQueue(control: RoomPlayerControl, run: (action: FurnitureA
     },
     [sync],
   )
+}
+
+/**
+ * What was bought and placed in a home: yours (`who` = '') or a host's when visiting. The catalogue
+ * comes with it. `enabled` is false for homes without a grid (the hostel bunk) and when it can't load.
+ */
+function useHomeFurniture(who: string | null, hasGrid: boolean) {
+  const [catalog, setCatalog] = useState<HomeItem[]>([])
+  const [placements, setPlacements] = useState<OwnedPiece[]>([])
+  const [loaded, setLoaded] = useState(false)
+  const [enabled, setEnabled] = useState(false)
+  useEffect(() => {
+    if (who === null || !hasGrid) return
+    let cancelled = false
+    void (who === '' ? fetchHomeFurniture() : fetchVisitFurniture(who)).then((res) => {
+      if (cancelled || !res.ok) return
+      setCatalog(res.catalog)
+      setPlacements(res.placements)
+      setEnabled('enabled' in res ? res.enabled : false)
+      setLoaded(true)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [who, hasGrid])
+  return { catalog, placements, setPlacements, loaded, enabled }
 }

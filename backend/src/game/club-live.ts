@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto'
 import type { WebSocket } from 'ws'
 import { pool } from '../db.js'
 import { applyCash } from './game-state.js'
+import { liveSpaceMoneyBlock } from './spaces-money.js'
 
 /*
  * Live crowd in a club. Every player inside is in a crowd group (venue_visits.group_no,
@@ -193,6 +194,12 @@ async function pickNote(key: string, me: Member, msg: Record<string, unknown>) {
   me.picks = me.picks.filter((t) => now - t < 1000)
   if (me.picks.length >= 8) return
   me.picks.push(now)
+
+  // No picking up money while you're in a live Space
+  if (await liveSpaceMoneyBlock([me.info.userId]).catch(() => null)) {
+    send(me.socket, { t: 'missed', sprayId, note, reason: 'IN_LIVE_SPACE' })
+    return
+  }
 
   const [venueId, night, group] = key.split(':')
   const client = await pool.connect()

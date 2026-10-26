@@ -12,6 +12,11 @@ import {
 } from 'react'
 import type { ReactNode } from 'react'
 import { PerspectiveCamera, Vector3, type Group, type Object3D } from 'three'
+import { useGame } from '@/hooks/use-game'
+import { useLiveSpaces } from '@/hooks/use-live-spaces'
+import { requestOpenSpace } from '@/lib/game/open-spaces'
+import { PLACES } from '@/lib/game/places'
+import type { SpaceCard } from '@/lib/game/spaces-api'
 import { stickerForZone } from '@/lib/game/zone-stickers'
 import labelStyles from './zone-label.module.css'
 
@@ -72,24 +77,39 @@ export function ZoneStickerRegistry({ children }: { children: ReactNode }) {
   return <>{children}</>
 }
 
-function StickerButton({ zoneId, label }: { zoneId: string; label: string }) {
+function StickerButton({ zoneId, label, space }: { zoneId: string; label: string; space?: SpaceCard }) {
   const [open, setOpen] = useState(false)
   const sticker = stickerForZone(zoneId, label)
   return (
-    <button
-      type="button"
-      className={labelStyles.sticker}
-      data-open={open ? 'true' : 'false'}
-      aria-label={label}
-      aria-expanded={open}
-      onPointerEnter={() => setOpen(true)}
-      onPointerLeave={() => setOpen(false)}
-      onFocus={() => setOpen(true)}
-      onBlur={() => setOpen(false)}
-    >
-      <span className={labelStyles.emoji} aria-hidden="true">{sticker}</span>
-      <span className={labelStyles.name}>{label}</span>
-    </button>
+    <span className={labelStyles.stickerWrap}>
+      <button
+        type="button"
+        className={labelStyles.sticker}
+        data-open={open ? 'true' : 'false'}
+        aria-label={label}
+        aria-expanded={open}
+        onPointerEnter={() => setOpen(true)}
+        onPointerLeave={() => setOpen(false)}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setOpen(false)}
+      >
+        <span className={labelStyles.emoji} aria-hidden="true">{sticker}</span>
+        <span className={labelStyles.name}>{label}</span>
+      </button>
+      {space ? (
+        <button
+          type="button"
+          className={labelStyles.liveBadge}
+          aria-label={`Live Space at ${label}: ${space.title}`}
+          onClick={() => requestOpenSpace({ spaceId: space.id })}
+        >
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
+            <rect x="9" y="3" width="6" height="11" rx="3" fill="currentColor" />
+            <path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
+          </svg>
+        </button>
+      ) : null}
+    </span>
   )
 }
 
@@ -175,6 +195,18 @@ export function ZoneStickerOverlay() {
     zero,
   )
   const anchors = useMemo(() => (store ? [...store.anchors.entries()] : []), [store, version])
+  const { isGuest } = useGame()
+  // Busiest live public room per map zone (a Space's place is a place id; stickers are keyed by zone id)
+  const live = useLiveSpaces(!isGuest)
+  const byZone = useMemo(() => {
+    const zoneOf = new Map(PLACES.map((p) => [p.id, p.zoneId]))
+    const out = new Map<string, SpaceCard>()
+    for (const space of live) {
+      const zone = space.placeId ? zoneOf.get(space.placeId) : null
+      if (zone && !out.has(zone)) out.set(zone, space)
+    }
+    return out
+  }, [live])
   if (!store) return null
 
   return (
@@ -189,7 +221,7 @@ export function ZoneStickerOverlay() {
         >
           {/* Bottom-centre on the anchor so the pill rests on the roof */}
           <div style={{ transform: 'translate3d(-50%,-100%,0)' }}>
-            <StickerButton zoneId={anchor.zoneId} label={anchor.label} />
+            <StickerButton zoneId={anchor.zoneId} label={anchor.label} space={byZone.get(anchor.zoneId)} />
           </div>
         </div>
       ))}

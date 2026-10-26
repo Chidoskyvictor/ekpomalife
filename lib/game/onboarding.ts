@@ -18,6 +18,7 @@ export type CharacterRecord = {
   dreamId: DreamId | null
   characterType?: CharacterTypeId | null
   lodgingId?: LodgingId | null
+  houseNumber?: number | null
   courseId?: string | null
   cash?: number
   startingCash?: number | null

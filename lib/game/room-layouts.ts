@@ -11,10 +11,13 @@ import ROOM_SHIFTS from './room-shifts.json'
  * using room-shifts.json (where the build moved each piece of furniture).
  */
 
-export type RoomLayoutId = 'single-room' | 'selfcon' | 'one-bedroom' | 'hostel' | 'club-sazza'
+export type RoomLayoutId = 'single-room' | 'selfcon' | 'one-bedroom' | 'hostel' | 'club-sazza' | 'street'
 
 /** [minX, minZ, maxX, maxZ] */
 export type Rect = [number, number, number, number]
+
+/** A built-in piece of furniture, or one the player bought and placed (`placed:<placement id>`). */
+export type SpotKey = FurnitureId | `placed:${string}`
 
 export type FurnitureSpot = {
   /** Where the character stands before using it */
@@ -35,9 +38,9 @@ export type RoomLayout = {
   /** Furniture and inside walls, before adding the character's radius. */
   blocks: Rect[]
   start: [number, number]
-  spots: Partial<Record<FurnitureId, FurnitureSpot>>
+  spots: Partial<Record<SpotKey, FurnitureSpot>>
   /** Invisible tap boxes over each piece: [minX, minY, minZ, maxX, maxY, maxZ]. */
-  tapBoxes: Partial<Record<FurnitureId, TapBox>>
+  tapBoxes: Partial<Record<SpotKey, TapBox>>
   /** Where the owner stands when you visit. */
   host: { position: [number, number, number]; rotation: number }
   /** Which way the camera looks in (the open side of the house). */
@@ -325,7 +328,7 @@ function grow(small: SmallLayout, { k, shifts }: Grown): RoomLayout {
   }
 }
 
-export const ROOM_LAYOUTS: Record<RoomLayoutId, RoomLayout> = {
+export const ROOM_LAYOUTS: Record<Exclude<RoomLayoutId, 'street'>, RoomLayout> = {
   'single-room': SINGLE_ROOM,
   selfcon: grow(SELFCON_SMALL, ROOM_SHIFTS.selfcon),
   'one-bedroom': grow(ONE_BEDROOM_SMALL, ROOM_SHIFTS['one-bedroom']),

@@ -13,6 +13,7 @@ export type PlayerProfile = {
   stats: {
     daysPlayed: number
     reputation: number
+    whotWins: number
   }
   isOwner: boolean
   private?: {

@@ -33,6 +33,7 @@ export type PublicPlayerProfile = {
   stats: {
     daysPlayed: number
     reputation: number
+    whotWins: number
   }
   isOwner: boolean
 }
@@ -61,6 +62,7 @@ type CharacterGameRow = {
   needs: Needs | string | null
   game_time: number | null
   reputation: number | null
+  whot_wins?: number | null
 }
 
 function parseNeeds(raw: Needs | string | null | undefined): Needs {
@@ -175,7 +177,7 @@ async function loadUserBundle(userId: string): Promise<{
     let character: CharacterGameRow | null = null
     if (charRow) {
       const gs = await client.query<CharacterGameRow>(
-        `SELECT gs.character_id, c.course_id, c.appearance, gs.cash, gs.needs, gs.game_time, gs.reputation
+        `SELECT gs.character_id, c.course_id, c.appearance, gs.cash, gs.needs, gs.game_time, gs.reputation, gs.whot_wins
          FROM characters c
          LEFT JOIN game_state gs ON gs.character_id = c.id
          WHERE c.id = $1`,
@@ -189,6 +191,7 @@ async function loadUserBundle(userId: string): Promise<{
         needs: defaultNeeds(),
         game_time: 480,
         reputation: 0,
+        whot_wins: 0,
       }
     }
 
@@ -211,6 +214,8 @@ function toPublic(
     typeof character?.reputation === 'number' && Number.isFinite(character.reputation)
       ? character.reputation
       : 0
+  const whotWins =
+    typeof character?.whot_wins === 'number' && Number.isFinite(character.whot_wins) ? character.whot_wins : 0
 
   const base: PlayerProfileResponse = {
     userId: user.id,
@@ -225,6 +230,7 @@ function toPublic(
     stats: {
       daysPlayed: Math.max(1, day),
       reputation,
+      whotWins,
     },
     isOwner,
   }

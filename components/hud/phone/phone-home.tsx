@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import type { PhoneGetResponse } from '@/lib/game/phone-api'
+import type { SpaceCard } from '@/lib/game/spaces-api'
 import { PHONE_MODE_KEY, type PhoneAppId, type PhonePromo, type PhoneState } from '@/lib/game/phone'
 import { AppGrid } from './app-grid'
 import { PromoBanner } from './promo-banner'
@@ -13,8 +14,10 @@ export function PhoneHome({
   dateLabel,
   promos,
   lowPerf,
+  liveSpaces = [],
   onOpenApp,
   onPromo,
+  onOpenSpace,
 }: {
   phone: PhoneState
   clock: PhoneGetResponse['clock'] | null
@@ -22,8 +25,11 @@ export function PhoneHome({
   dateLabel: string | null
   promos: PhonePromo[]
   lowPerf?: boolean
+  /** Public rooms live now (top 3 are shown) */
+  liveSpaces?: SpaceCard[]
   onOpenApp: (id: PhoneAppId) => void
   onPromo: (promo: PhonePromo) => void
+  onOpenSpace?: (spaceId: string) => void
 }) {
   const [mode, setMode] = useState<'day' | 'night'>('day')
 
@@ -75,6 +81,26 @@ export function PhoneHome({
       </div>
 
       <PromoBanner promos={promos} onAction={onPromo} lowPerf={lowPerf} />
+
+      {liveSpaces.length > 0 ? (
+        <section className={styles.liveStrip} aria-label="Live now">
+          <p className={styles.liveHead}>
+            <span className={styles.liveDot} aria-hidden="true" /> Live now
+          </p>
+          <ul className={styles.liveRow}>
+            {liveSpaces.slice(0, 3).map((space) => (
+              <li key={space.id}>
+                <button type="button" className={styles.liveCard} onClick={() => onOpenSpace?.(space.id)}>
+                  <span className={styles.liveTitle}>{space.title}</span>
+                  <span className={styles.liveMeta}>
+                    @{space.host.username} · 🎧 {space.present}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <AppGrid phone={phone} onOpen={onOpenApp} />
       <div style={{ height: 12 }} />

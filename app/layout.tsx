@@ -2,6 +2,7 @@ import type { Viewport } from 'next'
 import { Fredoka, Geist, Inter, Plus_Jakarta_Sans } from 'next/font/google'
 import { NoHScrollGuard } from '@/components/dev/no-hscroll-guard'
 import { RateLimitToast } from '@/components/ui/rate-limit-toast'
+import { TripLayer } from '@/components/travel/trip-layer'
 import '@/components/arc/foundation.css'
 import './globals.css'
 import { rootMetadata } from '@/lib/seo/metadata'
@@ -53,6 +54,7 @@ export default function RootLayout({
       <body className="font-sans antialiased" style={{ colorScheme: 'light' }}>
         {process.env.NODE_ENV === 'development' ? <NoHScrollGuard /> : null}
         {children}
+        <TripLayer />
         <RateLimitToast />
       </body>
     </html>

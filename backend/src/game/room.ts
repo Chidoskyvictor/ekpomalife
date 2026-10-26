@@ -228,18 +228,25 @@ export async function getRoom(userId: string) {
   const client = await pool.connect()
   try {
     await client.query('BEGIN')
-    const username = await client.query<{ username: string }>(
-      `SELECT username FROM users WHERE id = $1`,
+    const owner = await client.query<{ username: string; house_number: number | null }>(
+      `SELECT u.username, c.house_number
+       FROM users u JOIN characters c ON c.user_id = u.id
+       WHERE u.id = $1`,
       [userId],
     )
     const room = await loadRoomState(client, {
       characterId: gate.character.id,
-      username: username.rows[0]?.username ?? 'player',
+      username: owner.rows[0]?.username ?? 'player',
       lodgingId: gate.character.lodging_id,
     })
     const catalog = await loadCatalog(client)
     await client.query('COMMIT')
-    return { ok: true as const, room, catalog }
+    // Which street template and lot the player's house sits on
+    const home = {
+      lodgingId: normalizeLodgingId(gate.character.lodging_id),
+      houseNumber: owner.rows[0]?.house_number ?? null,
+    }
+    return { ok: true as const, room, catalog, home }
   } catch (error) {
     await client.query('ROLLBACK')
     throw error

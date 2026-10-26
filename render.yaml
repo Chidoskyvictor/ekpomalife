@@ -28,3 +28,14 @@ services:
         generateValue: true
       - key: RESEND_API_KEY
         sync: false
+      # Campus Spaces (live voice via LiveKit Cloud). Values are set in the Render dashboard, never committed.
+      - key: LIVEKIT_URL
+        sync: false
+      - key: LIVEKIT_API_KEY
+        sync: false
+      - key: LIVEKIT_API_SECRET
+        sync: false
+      - key: SPACES_DAILY_MINUTES
+        sync: false
+      - key: ADMIN_USERNAMES
+        sync: false

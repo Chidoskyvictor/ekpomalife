@@ -45,6 +45,7 @@ type CharacterRow = {
   character_type: string | null
   lodging_id: string | null
   course_id: string | null
+  house_number: number | null
 }
 
 function asMoney(value: string | number | null | undefined): number {
@@ -86,6 +87,8 @@ function payload(row: CharacterRow | null) {
     dreamId,
     characterType: row?.character_type ?? null,
     lodgingId,
+    /** Your lot on your street (shown on the gate in the street scene). */
+    houseNumber: row?.house_number ?? null,
     courseId: row?.course_id ?? null,
     badges: row?.badges ?? [],
     cash: row ? asMoney(row.cash) : 0,
@@ -98,7 +101,7 @@ async function loadCharacter(userId: string) {
   const found = await pool.query<CharacterRow>(
     `SELECT id, appearance, traits, dream_id, snapshot, badges, dream_completed_at,
             cash, starting_cash, starting_tier, cash_rolled_at,
-            character_type, lodging_id, course_id
+            character_type, lodging_id, course_id, house_number
      FROM characters WHERE user_id = $1`,
     [userId],
   )
@@ -313,7 +316,7 @@ export async function characterRoutes(app: FastifyInstance) {
       const found = await client.query<CharacterRow>(
         `SELECT id, appearance, traits, dream_id, snapshot, badges, dream_completed_at,
                 cash, starting_cash, starting_tier, cash_rolled_at,
-                character_type, lodging_id, course_id
+                character_type, lodging_id, course_id, house_number
          FROM characters WHERE user_id = $1 FOR UPDATE`,
         [user.id],
       )

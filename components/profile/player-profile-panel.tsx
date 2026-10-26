@@ -96,6 +96,10 @@ export function PlayerProfilePanel({
           <p className={styles.statLabel}>Campus rep</p>
           <p className={styles.statValue}>{profile.stats.reputation}</p>
         </div>
+        <div className={styles.statCard}>
+          <p className={styles.statLabel}>Whot wins</p>
+          <p className={styles.statValue}>{profile.stats.whotWins}</p>
+        </div>
       </div>
 
       {profile.isOwner && profile.private && !compact ? (

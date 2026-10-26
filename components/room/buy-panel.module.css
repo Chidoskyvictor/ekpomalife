@@ -1,0 +1,353 @@
+/* Buy mode sheet: bottom of the room screen, under ~40% of the height so the room stays visible. */
+.sheet {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 40;
+  display: flex;
+  max-height: min(40dvh, 360px);
+  overflow-y: auto;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px max(12px, env(safe-area-inset-left)) calc(10px + env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-right));
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-bottom: 0;
+  border-radius: 24px 24px 0 0;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 -10px 32px rgba(0, 0, 0, 0.16);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  color: #111;
+  animation: rise 0.2s ease-out;
+}
+
+@media (min-width: 720px) {
+  .sheet {
+    inset-inline: auto;
+    left: 50%;
+    width: min(640px, 100%);
+    translate: -50% 0;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    translate: 0 12px;
+  }
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.wallet {
+  display: inline-flex;
+  min-width: 0;
+  min-height: 44px;
+  flex: 1;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pill {
+  display: inline-flex;
+  min-height: 44px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #1f2a5a;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pill:disabled {
+  opacity: 0.5;
+}
+
+.round {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: #eef2ff;
+  color: #1f2a5a;
+  cursor: pointer;
+}
+
+.round:disabled {
+  opacity: 0.4;
+}
+
+.search {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.search input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  background: transparent;
+  color: #111;
+  font: inherit;
+  font-size: 16px;
+  outline: none;
+}
+
+.chips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: none;
+}
+
+.chips::-webkit-scrollbar {
+  display: none;
+}
+
+.chip {
+  min-height: 44px;
+  flex: none;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #374151;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.chipOn {
+  background: #111;
+  color: #fff;
+}
+
+.cards {
+  display: flex;
+  min-height: 0;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.card {
+  display: flex;
+  width: 124px;
+  flex: none;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  background: #fff;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cardEmoji {
+  font-size: 26px;
+  line-height: 1.1;
+}
+
+.cardName {
+  width: 100%;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cardMeta {
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.price,
+.priceShort {
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.priceShort {
+  color: #b91c1c;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.tag {
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: #e8f7ee;
+  color: #15803d;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.again {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #15803d;
+}
+
+.placing {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.placingTitle {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 15px;
+}
+
+.placingTitle strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.size {
+  margin-left: auto;
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.arrows {
+  display: flex;
+  flex: 1;
+  gap: 8px;
+}
+
+.twoUp {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.go {
+  min-height: 48px;
+  border: 0;
+  border-radius: 999px;
+  background: #111;
+  color: #fff;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.go:disabled {
+  background: #d1d5db;
+  color: #6b7280;
+}
+
+.hint,
+.bad {
+  margin: 0;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.bad {
+  color: #b91c1c;
+}
+
+.placingHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.placingIcon {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  place-items: center;
+  border-radius: 50%;
+  background: #eef2ff;
+  font-size: 22px;
+}
+
+.placingText {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.placingText strong {
+  overflow: hidden;
+  font-size: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.placingText span {
+  overflow: hidden;
+  color: #6b7280;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pillOn {
+  background: #111;
+  color: #fff;
+}
+
+.goFlex {
+  flex: 1;
+  padding: 0 14px;
+}

@@ -1,0 +1,288 @@
+/* —— Corner buttons over the 3D scene: bottom right, above the tab bar, opposite the avatar card —— */
+.corner {
+  pointer-events: none;
+  position: absolute;
+  right: max(16px, env(safe-area-inset-right));
+  bottom: calc(88px + env(safe-area-inset-bottom));
+  z-index: calc(var(--z-hud) + 2);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+@media (max-width: 639px) {
+  .corner {
+    bottom: calc(80px + env(safe-area-inset-bottom));
+  }
+}
+
+.cornerBtn {
+  pointer-events: auto;
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 6px;
+  padding: 0 16px;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  color: #111;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  -webkit-tap-highlight-color: transparent;
+  animation: pop 0.18s ease-out;
+}
+
+.cornerBtn:active {
+  transform: scale(0.96);
+}
+
+.go {
+  border-color: transparent;
+  background: #22a35a;
+  color: #fff;
+}
+
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.96);
+  }
+}
+
+/* —— Fade between inside and outside —— */
+.fade {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0b0f17;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 14px;
+  font-weight: 600;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.22s ease;
+}
+
+.fade[data-on='true'] {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* —— Where to? sheet —— */
+.modes {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.mode {
+  display: flex;
+  min-height: 52px;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  border: 0;
+  border-radius: 16px;
+  background: #f2f2f7;
+  color: #111;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.mode small {
+  color: #6b7280;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.modeOn {
+  background: #111;
+  color: #fff;
+}
+
+.modeOn small {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.place {
+  display: flex;
+  width: 100%;
+  min-height: 52px;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 16px;
+  background: #fff;
+  color: #111;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.place:active {
+  background: #f7f7fa;
+}
+
+.placeEmoji {
+  flex: none;
+  width: 24px;
+  font-size: 20px;
+  text-align: center;
+}
+
+.placeText {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.placeName {
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.placeMeta {
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.fare {
+  flex: none;
+  font-size: 14px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.fareShort {
+  color: #c2410c;
+}
+
+.status {
+  margin: 8px 0;
+  color: #6b7280;
+  font-size: 14px;
+  text-align: center;
+}
+
+/* —— Trip screen —— */
+.trip {
+  position: fixed;
+  inset: 0;
+  /* Above page boot splashes and sheets, below toasts */
+  z-index: calc(var(--z-phone) + 5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px max(16px, env(safe-area-inset-right)) 16px max(16px, env(safe-area-inset-left));
+  background: rgba(11, 15, 23, 0.72);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  opacity: 1;
+  transition: opacity 0.3s ease;
+  animation: tripIn 0.2s ease-out;
+}
+
+.trip[data-done='true'] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+@keyframes tripIn {
+  from {
+    opacity: 0;
+  }
+}
+
+.tripCard {
+  display: flex;
+  width: 100%;
+  max-width: 320px;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 24px;
+  background: #fff;
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.28);
+}
+
+.map {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 16px;
+}
+
+.tripTitle {
+  overflow: hidden;
+  margin: 0;
+  color: #111;
+  font-size: 15px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pill {
+  position: relative;
+  height: 28px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #f2f2f7;
+}
+
+.pillFill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: inherit;
+  background: #22a35a;
+  transition: width 0.15s linear;
+}
+
+.pillText {
+  position: relative;
+  display: flex;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  color: #111;
+  font-size: 12px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cornerBtn,
+  .trip {
+    animation: none;
+  }
+}

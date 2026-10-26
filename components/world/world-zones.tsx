@@ -38,6 +38,8 @@ const AAU_GATE_URL = '/models/aau_gate.glb'
 /** Hand-made GLBs, set on the same cement pad as other buildings — zone `model` → file. */
 const CUSTOM_GLB: Record<string, string> = {
   sazza: '/models/sazza.glb',
+  'above-the-hills': '/models/above-the-hills.glb',
+  forbes: '/models/forbes.glb',
 }
 /** Parking Lot by Alex Safayan [CC-BY] via Poly Pizza — ~4.1 × 3.9 */
 const PARKING_SIZE = { w: 4.1, d: 3.9 }

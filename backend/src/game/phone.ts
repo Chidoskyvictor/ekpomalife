@@ -46,6 +46,7 @@ export type PhoneAppId =
   | 'portal'
   | 'music'
   | 'games'
+  | 'spaces'
   | 'settings'
 
 export type WallpaperId = 'aau-dusk' | 'ekpoma-night' | 'harmattan' | 'green-white'
@@ -82,6 +83,7 @@ export const DATA_COST_MB: Partial<Record<PhoneAppId, number>> = {
   messages: 1,
   music: 5,
   games: 3,
+  spaces: 3,
   map: 1,
 }
 
@@ -109,6 +111,7 @@ export const PHONE_APP_IDS = [
   'portal',
   'music',
   'games',
+  'spaces',
   'settings',
 ] as const satisfies readonly PhoneAppId[]
 

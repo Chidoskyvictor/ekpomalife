@@ -38,6 +38,8 @@ export type GameState = {
   dreamId?: DreamId | null
   characterType?: CharacterTypeId
   lodgingId?: LodgingId
+  /** Your lot on your street (server-assigned, shown on your gate) */
+  houseNumber?: number | null
   courseId?: string
   dream: DreamSnapshot
   badges: string[]
