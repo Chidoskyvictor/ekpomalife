@@ -4,7 +4,7 @@ import { getSessionUser } from '../auth/current-user.js'
 import { pool } from '../db.js'
 import { clampSnapshot, dreamProgress, getDream, type DreamId } from '../game/dreams.js'
 import { ensureGameState } from '../game/game-state.js'
-import { startPlaceForLodging } from '../game/places.js'
+import { moveInFeeFor } from '../game/lodging.js'
 import { checkAppearance, type Appearance } from '../game/look.js'
 import { onboardingStep, type OnboardingStep } from '../game/onboarding.js'
 import { setupBodySchema } from '../game/setup.js'
@@ -47,6 +47,8 @@ type CharacterRow = {
   course_id: string | null
   house_number: number | null
 }
+
+const naira = (amount: number) => `₦${Math.round(amount).toLocaleString('en-NG')}`
 
 function asMoney(value: string | number | null | undefined): number {
   if (typeof value === 'number' && Number.isFinite(value)) return value
@@ -231,13 +233,69 @@ export async function characterRoutes(app: FastifyInstance) {
       })
     }
 
-    const courseId = parsed.data.lodgingId === 'hostel-poultry' ? (parsed.data.courseId ?? null) : null
-    await pool.query(
-      `UPDATE characters
-       SET character_type = $2, lodging_id = $3, course_id = $4, updated_at = NOW()
-       WHERE user_id = $1`,
-      [user.id, parsed.data.characterType, parsed.data.lodgingId, courseId],
-    )
+    // The spin comes first now: what you rolled decides which houses you can afford.
+    if (!row.cash_rolled_at || row.starting_cash == null) {
+      return reply.code(409).send({
+        ok: false,
+        error: 'Spin your starting money first.',
+        code: 'NO_ROLL',
+        step: 'live' as OnboardingStep,
+      })
+    }
+    const starting = asMoney(row.starting_cash)
+    const fee = moveInFeeFor(parsed.data.lodgingId)
+    if (fee > starting) {
+      return reply.code(409).send({
+        ok: false,
+        error: `You cannot afford that house yet. Move-in is ${naira(fee)} and you have ${naira(starting)}.`,
+        code: 'CANT_AFFORD',
+      })
+    }
+
+    const courseId = parsed.data.characterType === 'student' ? (parsed.data.courseId ?? null) : null
+    const client = await pool.connect()
+    try {
+      await client.query('BEGIN')
+      await client.query(
+        `UPDATE characters
+         SET character_type = $2, lodging_id = $3, course_id = $4, updated_at = NOW()
+         WHERE user_id = $1`,
+        [user.id, parsed.data.characterType, parsed.data.lodgingId, courseId],
+      )
+      if (parsed.data.moveIn) {
+        // The game starts here, once: starting money in, move-in fee out (never twice)
+        const had = await client.query('SELECT 1 FROM game_state WHERE character_id = $1 FOR UPDATE', [row.id])
+        if (!had.rows[0]) {
+          await ensureGameState(client, row.id, {
+            cash: starting,
+            lodgingId: parsed.data.lodgingId,
+            reason: 'starting-money',
+          })
+          if (fee > 0) {
+            await client.query('UPDATE game_state SET cash = cash - $2, updated_at = NOW() WHERE character_id = $1', [
+              row.id,
+              fee,
+            ])
+            await client.query('UPDATE characters SET cash = $2, updated_at = NOW() WHERE id = $1', [
+              row.id,
+              starting - fee,
+            ])
+            await client.query(
+              `INSERT INTO ledger (id, character_id, amount, reason, kind, balance_after)
+               VALUES ($1, $2, $3, $4, $5, $6)`,
+              [createId(), row.id, -fee, 'move-in', 'move_in', starting - fee],
+            )
+          }
+        }
+      }
+      await client.query('COMMIT')
+    } catch (error) {
+      await client.query('ROLLBACK')
+      request.log.error(error)
+      return reply.code(500).send({ ok: false, error: 'Could not save where you live.' })
+    } finally {
+      client.release()
+    }
     return reply.send(payload(await loadCharacter(user.id)))
   })
 
@@ -335,15 +393,6 @@ export async function characterRoutes(app: FastifyInstance) {
         })
       }
 
-      if (!row.lodging_id) {
-        await client.query('ROLLBACK')
-        return reply.code(409).send({
-          ok: false,
-          error: 'Pick where you live first.',
-          step: 'live' as OnboardingStep,
-        })
-      }
-
       const body = appearance.body === 'woman' ? 'woman' : 'man'
 
       if (row.cash_rolled_at && row.starting_cash != null) {
@@ -351,11 +400,6 @@ export async function characterRoutes(app: FastifyInstance) {
         const stored = row.starting_tier
         const tierId = tierIdForAmount(amount)
         const tier = stored || tierNameFor(tierId, body)
-        await ensureGameState(client, row.id, {
-          cash: amount,
-          lodgingId: row.lodging_id,
-          reason: 'starting-money',
-        })
         await client.query('COMMIT')
         return reply.send({
           ok: true,
@@ -382,29 +426,7 @@ export async function characterRoutes(app: FastifyInstance) {
          WHERE user_id = $1`,
         [user.id, rolled.amount, rolled.tier],
       )
-      await ensureGameState(client, row.id, {
-        cash: rolled.amount,
-        lodgingId: row.lodging_id,
-        reason: 'starting-money',
-      })
-      /** If game_state was created early with 0, overwrite with the roll + ledger. */
-      await client.query(
-        `UPDATE game_state
-         SET cash = $2, location_id = COALESCE(location_id, $3), updated_at = NOW()
-         WHERE character_id = $1 AND cash = 0 AND version = 1`,
-        [row.id, rolled.amount, startPlaceForLodging(row.lodging_id)],
-      )
-      const ledgerCheck = await client.query(
-        `SELECT 1 FROM ledger WHERE character_id = $1 AND reason = 'starting-money' LIMIT 1`,
-        [row.id],
-      )
-      if ((ledgerCheck.rowCount ?? 0) === 0) {
-        await client.query(
-          `INSERT INTO ledger (id, character_id, amount, reason, kind, balance_after)
-           VALUES ($1, $2, $3, $4, $5, $6)`,
-          [createId(), row.id, rolled.amount, 'starting-money', 'starting_money', rolled.amount],
-        )
-      }
+      // The game itself (game_state + the ledger entry) starts when you move in, after you pick a house
       await client.query('COMMIT')
       return reply.send({
         ok: true,

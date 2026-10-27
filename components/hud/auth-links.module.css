@@ -175,6 +175,46 @@
   box-shadow: 0 2px 0 #d7dee6;
 }
 
+/* Phones: slimmer buttons so the sign-up card and top bar don't crowd the map */
+@media (max-width: 639px) {
+  .lobbyRow {
+    gap: 8px;
+  }
+
+  .lobbySignup,
+  .lobbyLogin {
+    min-height: 40px;
+    padding: 0 0.8rem;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    box-shadow: 0 4px 0 color-mix(in oklab, var(--primary) 62%, black);
+  }
+
+  .lobbyLogin {
+    box-shadow: 0 4px 0 #d7dee6;
+  }
+
+  .compact .lobbySignup,
+  .compact .lobbyLogin {
+    min-height: 34px;
+    padding: 0 0.6rem;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    box-shadow: 0 3px 0 color-mix(in oklab, var(--primary) 62%, black);
+  }
+
+  .compact .lobbyLogin {
+    min-width: 0;
+    box-shadow: 0 3px 0 #d7dee6;
+  }
+
+  .playSticker,
+  .compact .playSticker {
+    width: 0.65rem;
+    height: 0.65rem;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .play,
   .lobbyLogin {

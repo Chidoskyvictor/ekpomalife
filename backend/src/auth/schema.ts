@@ -23,7 +23,8 @@ export const signupSchema = z.object({
   }),
 })
 
+/** `username` is the handle or the email the account signed up with. */
 export const loginSchema = z.object({
-  username: z.string().trim().toLowerCase().min(1).max(20),
+  username: z.string().trim().toLowerCase().min(1).max(120),
   password: z.string().min(1).max(72),
 })

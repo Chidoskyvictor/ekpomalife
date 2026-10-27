@@ -57,16 +57,20 @@ export function StartingMoneySpin({
   onEnter,
   entering,
   onDismiss,
+  actionLabel = 'Pick your home ▶',
+  dismissLabel = 'Back',
 }: {
   username: string
   appearance: Appearance
   traits: TraitId[]
   dreamId: DreamId
   onEnter: (amount: number) => void
-  /** True while navigating into the game after Enter Ekpoma. */
+  /** True while the next step is loading after the button. */
   entering?: boolean
   /** Close overlay so the player can go back / re-pick lodging before money is granted. */
   onDismiss?: () => void
+  actionLabel?: string
+  dismissLabel?: string
 }) {
   const reduced = useReducedMotion() ?? false
   const [amount, setAmount] = useState(0)
@@ -212,7 +216,7 @@ export function StartingMoneySpin({
             </LobbyButton>
             {onDismiss ? (
               <button type="button" className={styles.share} onClick={onDismiss}>
-                Back to lodging
+                {dismissLabel}
               </button>
             ) : null}
           </div>
@@ -253,7 +257,7 @@ export function StartingMoneySpin({
               Share
             </button>
             <LobbyButton type="button" loading={entering} onClick={() => onEnter(amount)}>
-              Enter Ekpoma 🚀
+              {actionLabel}
             </LobbyButton>
           </div>
         ) : null}

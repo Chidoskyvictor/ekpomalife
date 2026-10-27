@@ -48,7 +48,7 @@ export function localCharacterRecord(draft: {
   const dreamId = normalizeDreamId(draft?.dreamId)
   const characterType = normalizeCharacterType(draft?.characterType)
   const lodgingId = normalizeLodgingId(draft?.lodgingId)
-  const courseId = normalizeCourseId(lodgingId, draft?.courseId)
+  const courseId = normalizeCourseId(characterType, draft?.courseId)
   const cashRolled = typeof draft?.startingCash === 'number' && draft.startingCash > 0
   const step: OnboardingStep = !appearance
     ? 'look'

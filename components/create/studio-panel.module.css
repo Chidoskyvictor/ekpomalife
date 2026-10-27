@@ -592,6 +592,25 @@
   font-weight: 400;
 }
 
+.moveIn {
+  color: #16a34a;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.moveInLocked {
+  color: #b45309;
+}
+
+/* A house you can't cover yet: dimmed and not pressable */
+.lodgeLocked {
+  opacity: 0.62;
+}
+
+.lodgeLocked button {
+  cursor: not-allowed;
+}
+
 @media (max-width: 1023px) {
   .shell {
     position: relative;

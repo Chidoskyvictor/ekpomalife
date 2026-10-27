@@ -3,11 +3,11 @@
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import { LobbyButton } from '@/components/auth/lobby-button'
+import { CourseSearch } from '@/components/create/course-search'
 import { CreateStage } from '@/components/create/create-stage'
 import { StartingMoneySpin } from '@/components/create/starting-money-spin'
 import {
   Blurb,
-  LodgeDetails,
   LodgeHead,
   LodgeList,
   LodgeMoney,
@@ -28,15 +28,17 @@ import { fetchAuthMe } from '@/lib/auth/fetch-auth-me'
 import { getPostAuthRoute } from '@/lib/auth/post-auth-redirect'
 import { assignNavigation, replaceNavigation } from '@/lib/navigation/safe-nav'
 import { ensureLocalPlayer, getAccount, getProfile } from '@/lib/game/accounts'
-import { commitCharacter, loadCharacter, saveCharacterSetup } from '@/lib/game/character-api'
+import { loadCharacter, saveCharacterSetup } from '@/lib/game/character-api'
 import { firstNameFor, loadCreation, rememberLive, rememberStartingMoney } from '@/lib/game/creation'
 import panelStyles from '@/components/create/studio-panel.module.css'
 import { DEFAULT_APPEARANCE, type Appearance } from '@/lib/game/look'
 import {
   CHARACTER_TYPES,
-  LODGINGS,
+  canAffordLodging,
   formatNaira,
-  lodgingNeedsCourse,
+  getLodging,
+  lodgingsFor,
+  needsCourse,
   type CharacterTypeId,
   type LodgingId,
 } from '@/lib/game/live'
@@ -55,6 +57,7 @@ export function LiveStudio() {
   const [courseId, setCourseId] = useState<string | null>(null)
   const [pocket, setPocket] = useState<number | null>(null)
   const [spinOpen, setSpinOpen] = useState(false)
+  const [checked, setChecked] = useState(false)
   const [busy, setBusy] = useState(false)
   const [entering, setEntering] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -77,19 +80,31 @@ export function LiveStudio() {
     setAppearance(draft.appearance)
     setTraits(draft.traits)
     setDreamId(draft.dreamId)
-    setCharacterType(draft.characterType ?? 'student')
-    setLodgingId(draft.lodgingId)
-    setCourseId(draft.courseId ?? null)
+    const type = draft.characterType ?? 'student'
+    setCharacterType(type)
+    // An older draft may hold the student hostel for someone who is not a student
+    setLodgingId(getLodging(draft.lodgingId)?.studentOnly && type !== 'student' ? null : draft.lodgingId)
+    setCourseId(needsCourse(type) ? (draft.courseId ?? null) : null)
     setPlayerName(firstNameFor(session))
     setUsername(session)
     if (draft.startingCash && draft.startingCash > 0) setPocket(draft.startingCash)
+    // The spin comes first: no starting money on the server yet means the spinner opens right away
     void loadCharacter().then((character) => {
-      if (!character.ok) return
-      const cash = character.startingCash ?? character.cash
+      const cash = character.ok ? (character.startingCash ?? null) : null
       if (cash && cash > 0) {
         setPocket(cash)
-        if (character.startingTier) rememberStartingMoney(session, cash, character.startingTier)
+        if (character.ok && character.startingTier) rememberStartingMoney(session, cash, character.startingTier)
+        // A house picked earlier that this money can't cover is un-picked
+        if (character.ok && character.lodgingId && !canAffordLodging(getLodging(character.lodgingId) ?? { moveInFee: 0 }, cash)) {
+          setLodgingId(null)
+          setCourseId(null)
+        }
+      } else if (!character.ok && draft.startingCash && draft.startingCash > 0) {
+        // Offline blip: keep the local roll
+      } else {
+        setSpinOpen(true)
       }
+      setChecked(true)
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount; router is unstable in dev
   }, [])
@@ -115,25 +130,23 @@ export function LiveStudio() {
     }
   }
 
-  const canMoveIn = Boolean(lodgingId) && (!lodgingNeedsCourse(lodgingId) || Boolean(courseId))
+  const chosen = getLodging(lodgingId)
+  const cash = pocket ?? 0
+  const fee = chosen?.moveInFee ?? 0
+  const canMoveIn =
+    pocket !== null && Boolean(chosen) && canAffordLodging(chosen!, cash) && (!needsCourse(characterType) || Boolean(courseId))
 
   const finish = async () => {
     if (!username || !dreamId || !lodgingId || !canMoveIn || busy) return
     setBusy(true)
     setError(null)
 
-    // Look / traits / dream are local until here — setup requires them on the server.
-    const committed = await commitCharacter({ appearance, traits, dreamId })
-    if (!committed.ok) {
-      setError(committed.error || 'Could not save your character. Log in and try again.')
-      setBusy(false)
-      return
-    }
-
+    // Pays the move-in fee out of the spin and starts the game (the server does it once)
     const saved = await saveCharacterSetup({
       characterType,
       lodgingId,
       courseId,
+      moveIn: true,
     })
     if (!saved.ok) {
       setError(saved.error || 'Could not save where you live.')
@@ -149,8 +162,8 @@ export function LiveStudio() {
       lodgingId,
       courseId,
     })
-    setSpinOpen(true)
     setBusy(false)
+    enterCampus(Math.max(0, cash - fee))
   }
 
   const enterCampus = (amount: number) => {
@@ -188,6 +201,8 @@ export function LiveStudio() {
   }
 
   if (!username || !dreamId) return null
+  // Wait for the server's word on the spin, so the house list never flashes before the spinner
+  if (!checked && !spinOpen && pocket === null) return null
 
   return (
     <main className="app-wash relative flex h-dvh max-w-full flex-col overflow-x-hidden overflow-y-hidden lg:flex-row">
@@ -203,9 +218,11 @@ export function LiveStudio() {
           appearance={appearance}
           traits={traits}
           dreamId={dreamId}
-          onEnter={(rolled) => enterCampus(rolled)}
-          entering={entering}
-          onDismiss={() => setSpinOpen(false)}
+          onEnter={(rolled) => {
+            setPocket(rolled)
+            setSpinOpen(false)
+          }}
+          onDismiss={() => replaceNavigation(router, '/dream')}
         />
       ) : null}
       <CreateStage title="Home" step={4} backHref="/dream" appearance={preview} />
@@ -230,8 +247,15 @@ export function LiveStudio() {
           </div>
         ) : null}
         <PanelPrompt>
-          Where will {playerName} live? Rent is paid every Saturday.
+          {pocket !== null
+            ? `You start with ${formatNaira(pocket)}. Where will ${playerName} live? Rent is paid every Saturday.`
+            : `Where will ${playerName} live? Rent is paid every Saturday.`}
         </PanelPrompt>
+        {chosen && fee > 0 ? (
+          <p className="mb-3 text-left text-sm font-medium text-emerald-800" role="status">
+            Move-in {formatNaira(fee)} comes out of your {formatNaira(cash)}, leaving {formatNaira(Math.max(0, cash - fee))}.
+          </p>
+        ) : null}
         <PanelGroup label="Character type">
           <PillRow compact>
             {CHARACTER_TYPES.map((item, index) => (
@@ -242,9 +266,13 @@ export function LiveStudio() {
                 className={pillClass(true)}
                 onClick={() => {
                   setCharacterType(item.id)
-                  // Graduates (and non-students) keep lodging; course only matters for AAU hostel.
-                  const nextCourse = lodgingNeedsCourse(lodgingId) ? courseId : null
-                  saveLive(item.id, lodgingId, nextCourse)
+                  // Only students have a course, and only students can live in the AAU hostel
+                  const nextCourse = needsCourse(item.id) ? courseId : null
+                  const stays = !getLodging(lodgingId)?.studentOnly || item.id === 'student'
+                  const nextLodge = stays ? lodgingId : null
+                  setCourseId(nextCourse)
+                  setLodgingId(nextLodge)
+                  saveLive(item.id, nextLodge, nextCourse)
                 }}
               >
                 {item.label}
@@ -252,27 +280,38 @@ export function LiveStudio() {
             ))}
           </PillRow>
         </PanelGroup>
-        {!canMoveIn && lodgingId && lodgingNeedsCourse(lodgingId) && !courseId ? (
-          <p className="mb-3 text-left text-sm font-medium text-amber-800" role="status">
-            Pick a course under AAU student lodging, then Move in. Same for Graduate or Student.
-          </p>
+        {needsCourse(characterType) ? (
+          <div className="mb-3">
+            <CourseSearch
+              value={courseId}
+              onChange={(id) => {
+                setCourseId(id)
+                saveLive(characterType, lodgingId, id)
+              }}
+            />
+            {!courseId ? (
+              <p className="mt-2 text-left text-sm font-medium text-amber-800" role="status">
+                Pick your course to move in.
+              </p>
+            ) : null}
+          </div>
         ) : null}
         <PanelSection label="Where to live">
           <LodgeList label="Where to live">
-            {LODGINGS.map((item, index) => {
+            {lodgingsFor(characterType).map((item, index) => {
               const picked = lodgingId === item.id
+              const locked = pocket !== null && !canAffordLodging(item, pocket)
               return (
-                <div key={item.id} className={lodgeCardClass(picked)}>
+                <div key={item.id} className={lodgeCardClass(picked, locked)}>
                   <Selectable
                     index={index}
                     pressed={picked}
                     role="radio"
+                    disabled={locked}
                     className={lodgeHitClass()}
                     onClick={() => {
-                      const nextCourse = item.details ? courseId : null
                       setLodgingId(item.id)
-                      if (!item.details) setCourseId(null)
-                      saveLive(characterType, item.id, nextCourse)
+                      saveLive(characterType, item.id, courseId)
                     }}
                   >
                     <LodgeHead
@@ -283,20 +322,12 @@ export function LiveStudio() {
                       badgeTone={item.badgeTone}
                     />
                     <Blurb>{item.description}</Blurb>
-                    <LodgeMoney rent={formatNaira(item.rentWeekly)} />
-                  </Selectable>
-                  {picked && item.details ? (
-                    <LodgeDetails
-                      perks={item.details.perks}
-                      coursesLabel={item.details.coursesLabel}
-                      courses={item.details.courses}
-                      courseId={courseId}
-                      onCourse={(id) => {
-                        setCourseId(id)
-                        saveLive(characterType, item.id, id)
-                      }}
+                    <LodgeMoney
+                      rent={formatNaira(item.rentWeekly)}
+                      moveIn={item.moveInFee > 0 ? formatNaira(item.moveInFee) : 'free'}
+                      locked={locked}
                     />
-                  ) : null}
+                  </Selectable>
                 </div>
               )
             })}

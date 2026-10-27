@@ -75,6 +75,7 @@ export function Selectable({
   ariaLabel,
   style,
   role,
+  disabled,
 }: {
   index: number
   pressed: boolean
@@ -84,6 +85,7 @@ export function Selectable({
   ariaLabel?: string
   style?: { backgroundColor?: string }
   role?: 'radio'
+  disabled?: boolean
 }) {
   const reduce = useReducedMotion()
 
@@ -96,6 +98,7 @@ export function Selectable({
       aria-checked={role === 'radio' ? pressed : undefined}
       aria-label={ariaLabel}
       style={style}
+      disabled={disabled}
       onClick={onClick}
       initial={reduce ? false : { opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
@@ -157,8 +160,8 @@ export function LodgeList({ children, label = 'Where to live' }: { children: Rea
   )
 }
 
-export function lodgeCardClass(picked?: boolean) {
-  return [styles.card, styles.lodge, styles.lodgeShell, picked ? styles.lodgePicked : '']
+export function lodgeCardClass(picked?: boolean, locked?: boolean) {
+  return [styles.card, styles.lodge, styles.lodgeShell, picked ? styles.lodgePicked : '', locked ? styles.lodgeLocked : '']
     .filter(Boolean)
     .join(' ')
 }
@@ -211,54 +214,15 @@ export function Blurb({ children }: { children: ReactNode }) {
   return <span className={styles.blurb}>{children}</span>
 }
 
-export function LodgeDetails({
-  perks,
-  coursesLabel,
-  courses,
-  courseId,
-  onCourse,
-}: {
-  perks: string[]
-  coursesLabel: string
-  courses: { id: string; label: string; years: string; icon: string }[]
-  courseId: string | null
-  onCourse: (id: string) => void
-}) {
-  return (
-    <div className={styles.details}>
-      <ul className={styles.perks}>
-        {perks.map((perk) => (
-          <li key={perk} className={styles.perk}>
-            {perk}
-          </li>
-        ))}
-      </ul>
-      <h3 className={styles.label}>{coursesLabel}</h3>
-      <div className={styles.courseGrid} role="group" aria-label={coursesLabel}>
-        {courses.map((course, index) => (
-          <Selectable
-            key={course.id}
-            index={index}
-            pressed={courseId === course.id}
-            className={styles.course}
-            onClick={() => onCourse(course.id)}
-          >
-            <span className={styles.courseName}>
-              <span aria-hidden="true">{course.icon}</span>
-              {course.label}
-            </span>
-            <span className={styles.courseYears}>{course.years}</span>
-          </Selectable>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-export function LodgeMoney({ rent }: { rent: string }) {
+export function LodgeMoney({ rent, moveIn, locked }: { rent: string; moveIn?: string; locked?: boolean }) {
   return (
     <span className={styles.money}>
       <span className={styles.rent}>Rent {rent}/wk</span>
+      {moveIn ? (
+        <span className={locked ? `${styles.moveIn} ${styles.moveInLocked}` : styles.moveIn}>
+          {locked ? '🔒 ' : ''}Move-in {moveIn}
+        </span>
+      ) : null}
     </span>
   )
 }

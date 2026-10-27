@@ -75,7 +75,13 @@
 @media (max-width: 480px) {
   .card {
     max-width: 100%;
-    padding: 16px;
+    gap: 10px;
+    padding: 12px;
+    border-radius: 22px;
+  }
+
+  .status {
+    font-size: 13px;
   }
 }
 

@@ -1,3 +1,5 @@
+import { isCourseId } from './aau-courses'
+
 export type CharacterTypeId = 'student' | 'lecturer' | 'indigene' | 'casual' | 'graduate'
 
 export type LodgingId = 'hostel-poultry' | 'single-poultry' | 'selfcon-g2' | 'onebed-ojo'
@@ -5,19 +7,6 @@ export type LodgingId = 'hostel-poultry' | 'single-poultry' | 'selfcon-g2' | 'on
 export type CharacterType = {
   id: CharacterTypeId
   label: string
-}
-
-export type Course = {
-  id: string
-  label: string
-  years: string
-  icon: string
-}
-
-export type LodgingDetails = {
-  perks: string[]
-  coursesLabel: string
-  courses: Course[]
 }
 
 export type Lodging = {
@@ -30,29 +19,11 @@ export type Lodging = {
   description: string
   /** Weekly rent only — starting cash is rolled on the server. */
   rentWeekly: number
+  /** Rent paid in advance, taken from the starting money when you move in. Mirrors backend/src/game/lodging.ts. */
+  moveInFee: number
   startLocationId: string
-  details?: LodgingDetails
-}
-
-/** Edit AAU expand copy, perks, and courses here. */
-export const AAU_DETAILS: LodgingDetails = {
-  perks: [
-    '100L in the course you pick. Mummy and Daddy paid the first session fees.',
-    '₦3,000 allowance every Monday, and no LAPO loan to repay.',
-    'A bunk in Igbinedion Hostel for ₦1,200 a week.',
-    'Graduate with a First, 2:1, 2:2 or Third. Up to 25% more pay on every shift.',
-  ],
-  coursesLabel: 'Your course',
-  courses: [
-    { id: 'computer-science', label: 'Computer Science', years: '4 years', icon: '💻' },
-    { id: 'engineering', label: 'Engineering', years: '5 years', icon: '⚙️' },
-    { id: 'mass-comm', label: 'Mass Communication', years: '4 years', icon: '🎤' },
-    { id: 'law', label: 'Law', years: '5 years', icon: '⚖️' },
-    { id: 'accounting', label: 'Accounting', years: '4 years', icon: '📗' },
-    { id: 'theatre-arts', label: 'Theatre Arts', years: '4 years', icon: '🎨' },
-    { id: 'nursing', label: 'Nursing Science', years: '5 years', icon: '🩺' },
-    { id: 'education', label: 'Education', years: '4 years', icon: '📚' },
-  ],
+  /** Only students can live here (the Igbinedion hostel). */
+  studentOnly?: boolean
 }
 
 export const CHARACTER_TYPES: CharacterType[] = [
@@ -74,8 +45,9 @@ export const LODGINGS: Lodging[] = [
     description:
       'A bunk in Igbinedion Hostel on campus. Lectures, night class, hostel life, exams, CGPA, and sign-out day.',
     rentWeekly: 1200,
+    moveInFee: 0,
     startLocationId: 'school-hostels-1',
-    details: AAU_DETAILS,
+    studentOnly: true,
   },
   {
     id: 'single-poultry',
@@ -84,6 +56,7 @@ export const LODGINGS: Lodging[] = [
     badge: 'Single room',
     description: 'One room on Poultry road: bed, toilet and bucket all inside. Off campus, cheapest rent.',
     rentWeekly: 2500,
+    moveInFee: 150_000,
     startLocationId: 'off-campus-hostels',
   },
   {
@@ -93,6 +66,7 @@ export const LODGINGS: Lodging[] = [
     badge: 'Self-con',
     description: 'Your room plus your own toilet, bath and kitchen, by College of Medicine and G1. Walk to class.',
     rentWeekly: 3000,
+    moveInFee: 250_000,
     startLocationId: 'college-of-medicine',
   },
   {
@@ -103,6 +77,7 @@ export const LODGINGS: Lodging[] = [
     badgeTone: 'onebed',
     description: 'Parlour, separate bedroom, kitchen and bath on Ojo street. More space, more rent, more peace.',
     rentWeekly: 10_500,
+    moveInFee: 400_000,
     startLocationId: 'off-campus-hostels',
   },
 ]
@@ -130,15 +105,20 @@ export function normalizeLodgingId(input?: string | null): LodgingId | null {
   return getLodging(input)?.id ?? null
 }
 
-export function normalizeCourseId(lodgingId: string | null | undefined, courseId?: string | null) {
-  const lodging = getLodging(lodgingId)
-  if (!lodging?.details || !courseId) return null
-  return lodging.details.courses.some((course) => course.id === courseId) ? courseId : null
+/** A course is kept only for students, and only if it is on the AAU list. */
+export function normalizeCourseId(characterType: string | null | undefined, courseId?: string | null) {
+  return characterType === 'student' && isCourseId(courseId) ? courseId : null
 }
 
-export function lodgingNeedsCourse(lodgingId: string | null | undefined) {
-  return Boolean(getLodging(lodgingId)?.details?.courses.length)
-}
+/** Students pick a course (wherever they live); everyone else has none. */
+export const needsCourse = (characterType: string | null | undefined) => characterType === 'student'
+
+/** Houses this kind of character can choose from. */
+export const lodgingsFor = (characterType: string | null | undefined) =>
+  LODGINGS.filter((lodging) => !lodging.studentOnly || characterType === 'student')
+
+/** Can this much cash cover the house's move-in fee? */
+export const canAffordLodging = (lodging: Pick<Lodging, 'moveInFee'>, cash: number) => cash >= lodging.moveInFee
 
 export function formatNaira(value: number) {
   return `₦${Math.max(0, Math.round(value)).toLocaleString()}`

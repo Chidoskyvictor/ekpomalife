@@ -5,7 +5,7 @@ import { createSession, setSessionCookie } from '../auth/session.js'
 import { pool } from '../db.js'
 import { authIdentityRateLimit, authIpRateLimit } from '../rate-limit.js'
 
-const INVALID = 'Wrong username or password.'
+const INVALID = 'Wrong username, email or password.'
 
 let dummyHash: string | null = null
 
@@ -27,15 +27,26 @@ export async function loginRoutes(app: FastifyInstance) {
         return reply.code(401).send({ ok: false, error: INVALID })
       }
 
-      const { username, password } = parsed.data
+      // The handle, or the email used at signup (emails are not unique, so every account on it is tried)
+      const { username: identifier, password } = parsed.data
+      const byEmail = identifier.includes('@')
       const found = await pool.query<{ id: string; name: string; username: string; password_hash: string }>(
-        'SELECT id, name, username, password_hash FROM users WHERE username = $1',
-        [username],
+        byEmail
+          ? 'SELECT id, name, username, password_hash FROM users WHERE LOWER(email) = $1 ORDER BY created_at LIMIT 5'
+          : 'SELECT id, name, username, password_hash FROM users WHERE username = $1',
+        [identifier],
       )
-      const user = found.rows[0]
-      const matches = await verifyPassword(user?.password_hash ?? (await unusedPasswordHash()), password)
+      let user: (typeof found.rows)[number] | undefined
+      for (const row of found.rows) {
+        if (await verifyPassword(row.password_hash, password)) {
+          user = row
+          break
+        }
+      }
+      // Same work for an unknown login, so timing doesn't reveal which accounts exist
+      if (found.rows.length === 0) await verifyPassword(await unusedPasswordHash(), password)
 
-      if (!user || !matches) {
+      if (!user) {
         return reply.code(401).send({ ok: false, error: INVALID })
       }
 

@@ -1,4 +1,5 @@
 import { RATE_LIMIT_MESSAGE, withRateLimitRetry } from '@/lib/api/rate-limit'
+import { markSetupStepDone } from '@/lib/auth/auth-me-cache'
 import { apiUrl } from './api'
 import type { DreamId, DreamSnapshot } from './dreams'
 import type { Appearance } from './look'
@@ -111,7 +112,9 @@ export async function saveCharacterLook(appearance: Appearance): Promise<Charact
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ appearance }),
     })
-    return await readJson<CharacterOk>(response, 'Save look')
+    const result = await readJson<CharacterOk>(response, 'Save look')
+    if (result.ok) markSetupStepDone('look')
+    return result
   } catch (err) {
     return networkFail('Save look', err)
   }
@@ -124,7 +127,9 @@ export async function saveCharacterTraits(traits: TraitId[]): Promise<CharacterO
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ traits }),
     })
-    return await readJson<CharacterOk>(response, 'Save traits')
+    const result = await readJson<CharacterOk>(response, 'Save traits')
+    if (result.ok) markSetupStepDone('traits')
+    return result
   } catch (err) {
     return networkFail('Save traits', err)
   }
@@ -150,7 +155,9 @@ export async function saveCharacterDream(dreamId: DreamId): Promise<CharacterOk 
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ dreamId }),
     })
-    return await readJson<CharacterOk>(response, 'Save dream')
+    const result = await readJson<CharacterOk>(response, 'Save dream')
+    if (result.ok) markSetupStepDone('dream')
+    return result
   } catch (err) {
     return networkFail('Save dream', err)
   }
@@ -196,6 +203,8 @@ export async function saveCharacterSetup(input: {
   characterType: string
   lodgingId: string
   courseId?: string | null
+  /** Pay the move-in fee and start the game. */
+  moveIn?: boolean
 }): Promise<CharacterOk | Fail> {
   try {
     const response = await apiFetch('/character/setup', {

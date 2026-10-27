@@ -81,7 +81,7 @@ export function DreamStudio() {
       <StudioPanel
         action={
           <LobbyButton type="button" loading={busy} disabled={!picked} onClick={() => void finish()}>
-            Next: Where you live ▶
+            Next: Spin your money ▶
           </LobbyButton>
         }
       >

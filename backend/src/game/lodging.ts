@@ -15,6 +15,21 @@ const RENT_WEEKLY: Record<LodgingId, number> = {
   'onebed-ojo': 10_500,
 }
 
+/**
+ * Rent paid in advance when you move in, taken from the starting money. A house you can't cover
+ * after the spin is locked. Keep in sync with `moveInFee` in lib/game/live.ts.
+ */
+const MOVE_IN_FEE: Record<LodgingId, number> = {
+  'hostel-poultry': 0,
+  'single-poultry': 150_000,
+  'selfcon-g2': 250_000,
+  'onebed-ojo': 400_000,
+}
+
+export function moveInFeeFor(lodgingId: string | null | undefined): number {
+  return MOVE_IN_FEE[normalizeLodgingId(lodgingId)]
+}
+
 /** Needs drain multiplier (>1 = worse). Eviction lodging drains faster. */
 const DECAY_MULT: Record<LodgingId, number> = {
   'hostel-poultry': 1,

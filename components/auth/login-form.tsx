@@ -16,7 +16,9 @@ export function LoginForm({ onShake }: { onShake: () => void }) {
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
-  const handle = username.replace(/^@/, '')
+  // A handle (with or without @) or the email used at signup
+  const handle = username.trim().replace(/^@/, '')
+  const isEmail = handle.includes('@')
   const ready = handle.length > 0 && password.length > 0
   const resetOk = search.get('reset') === '1'
 
@@ -43,17 +45,18 @@ export function LoginForm({ onShake }: { onShake: () => void }) {
       ) : null}
       <LobbyField
         id="login-username"
-        label="Username"
+        label="Username or email"
         icon="🎮"
         value={username}
         onChange={(event) => setUsername(event.target.value.replace(/^@/, ''))}
         autoComplete="username"
+        inputMode="email"
         autoCapitalize="none"
         spellCheck={false}
         required
-        placeholder="ese_star"
+        placeholder="ese_star or you@email.com"
         hint={
-          handle ? (
+          handle && !isEmail ? (
             <p className={styles.handleChip}>@{handle.toLowerCase()}</p>
           ) : null
         }

@@ -107,7 +107,7 @@ export async function createAccount(input: SignupInput): Promise<Result> {
 
 export async function verifyLogin(usernameInput: string, password: string): Promise<Result> {
   const username = normalizeUsername(usernameInput)
-  if (!username || !password) return { ok: false, error: 'Wrong username or password.' }
+  if (!username || !password) return { ok: false, error: 'Wrong username, email or password.' }
 
   try {
     const response = await withRateLimitRetry(() =>
@@ -120,7 +120,7 @@ export async function verifyLogin(usernameInput: string, password: string): Prom
     )
     if (response.status === 429) return { ok: false, error: RATE_LIMIT_MESSAGE }
     const data = (await response.json()) as Result
-    if (!data.ok) return { ok: false, error: data.error || 'Wrong username or password.' }
+    if (!data.ok) return { ok: false, error: data.error || 'Wrong username, email or password.' }
     rememberProfile(data.account)
     return data
   } catch {

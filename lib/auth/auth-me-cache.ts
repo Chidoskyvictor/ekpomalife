@@ -63,6 +63,21 @@ export function writeAuthMeSession(user: AuthUser) {
   if (!user) clearStored()
 }
 
+const SETUP_ORDER = ['look', 'traits', 'dream'] as const
+
+/**
+ * A setup step was saved: move the cached /auth/me answer on to the next one. Without this the next
+ * page's gate still reads "you are on look" from the cache and sends you straight back.
+ */
+export function markSetupStepDone(step: (typeof SETUP_ORDER)[number]) {
+  const current = peekAuthMeSession()
+  if (!current || current.setupComplete) return
+  const at = current.setupStep ? SETUP_ORDER.indexOf(current.setupStep) : SETUP_ORDER.length
+  const done = SETUP_ORDER.indexOf(step)
+  if (at > done) return
+  writeAuthMeSession({ setupComplete: false, setupStep: SETUP_ORDER[done + 1] ?? null })
+}
+
 export function invalidateAuthMeSession() {
   loaded = false
   cached = null

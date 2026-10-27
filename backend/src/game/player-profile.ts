@@ -3,11 +3,11 @@ import { pool } from '../db.js'
 import { containsBlockedLanguage, defaultDisplayNameFromAccount, validateDisplayName } from './display-name.js'
 import {
   AVATAR_COLORS,
-  COURSE_ID_TO_DEPARTMENT,
   PROFILE_DEPARTMENTS,
   STUDY_LEVELS,
   type StudyLevel,
 } from './profile-constants.js'
+import { departmentForCourse } from './aau-courses.js'
 import { clampNeeds, defaultNeeds, type Needs } from './needs.js'
 
 export type ProfileRow = {
@@ -95,8 +95,7 @@ function defaultAvatarColor(appearance: CharacterGameRow['appearance']): string 
 }
 
 function defaultDepartment(courseId: string | null): string {
-  if (courseId && COURSE_ID_TO_DEPARTMENT[courseId]) return COURSE_ID_TO_DEPARTMENT[courseId]
-  return 'Undeclared'
+  return departmentForCourse(courseId) ?? 'Undeclared'
 }
 
 export async function resolveProfileUserId(idParam: string): Promise<string | null> {
