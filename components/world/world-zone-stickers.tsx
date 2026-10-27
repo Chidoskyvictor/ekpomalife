@@ -15,6 +15,7 @@ import { PerspectiveCamera, Vector3, type Group, type Object3D } from 'three'
 import { useGame } from '@/hooks/use-game'
 import { useLiveSpaces } from '@/hooks/use-live-spaces'
 import { requestOpenSpace } from '@/lib/game/open-spaces'
+import { placeFor } from '@/lib/game/place-info'
 import { PLACES } from '@/lib/game/places'
 import type { SpaceCard } from '@/lib/game/spaces-api'
 import { stickerForZone } from '@/lib/game/zone-stickers'
@@ -79,6 +80,7 @@ export function ZoneStickerRegistry({ children }: { children: ReactNode }) {
 
 function StickerButton({ zoneId, label, space }: { zoneId: string; label: string; space?: SpaceCard }) {
   const [open, setOpen] = useState(false)
+  const { select } = useGame()
   const sticker = stickerForZone(zoneId, label)
   return (
     <span className={labelStyles.stickerWrap}>
@@ -92,6 +94,9 @@ function StickerButton({ zoneId, label, space }: { zoneId: string; label: string
         onPointerLeave={() => setOpen(false)}
         onFocus={() => setOpen(true)}
         onBlur={() => setOpen(false)}
+        onClick={() => {
+          if (placeFor(zoneId)) select(zoneId)
+        }}
       >
         <span className={labelStyles.emoji} aria-hidden="true">{sticker}</span>
         <span className={labelStyles.name}>{label}</span>

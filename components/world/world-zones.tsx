@@ -23,6 +23,7 @@ import { drawAdPlaceholder, drawBoardAd, drawBoardImage, openAd, stampBoardNumbe
 import { adForBoard, boardNumber } from '@/lib/game/billboard-ads'
 import { kenneyUrl } from '@/lib/game/kenney-buildings'
 import { mapPalette as MAP } from '@/lib/game/map-theme'
+import { placeFor } from '@/lib/game/place-info'
 import { MAP_ZONES, type MapZone, type OpenZoneKind, type ZonePart } from '@/lib/game/world-layout'
 import { bakeStaticGroup, disposeBaked } from './bake-static'
 import { applyGlbTextureAnisotropy } from './glb-textures'
@@ -904,7 +905,7 @@ function ZoneRoot({ zone }: { zone: MapZone }) {
       <Suspense fallback={<ZoneFallback zone={effective} />}>
         <ZoneMesh zone={effective} />
       </Suspense>
-      {effective.slab === 'south' && effective.model !== 'label' && !effective.model.startsWith('billboard') ? (
+      {(effective.slab === 'south' || placeFor(effective.id)) && effective.model !== 'label' && !effective.model.startsWith('billboard') ? (
         <ZoneTapTarget zone={effective} />
       ) : null}
     </ZoneExtrasProvider>

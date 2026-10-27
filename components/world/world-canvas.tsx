@@ -3,8 +3,9 @@
 import { MapControls, PerformanceMonitor } from '@react-three/drei'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
-import { NoToneMapping, Vector3 } from 'three'
+import { NoToneMapping, PerspectiveCamera, Vector3 } from 'three'
 import { getPlace, getPlaceByZone } from '@/lib/game/places'
+import { placeFor } from '@/lib/game/place-info'
 import { mapPalette as MAP } from '@/lib/game/map-theme'
 import { FIRST_SLAB, LAND_CENTER, MAP_ZONES, WORLD } from '@/lib/game/world-layout'
 import { useGame } from '@/hooks/use-game'
@@ -100,7 +101,23 @@ type PanControls = { target: Vector3; update: () => void }
 function CameraRig({ focusId }: { focusId: string | null }) {
   const controls = useThree((state) => state.controls) as unknown as PanControls | null
   const camera = useThree((state) => state.camera)
+  const size = useThree((state) => state.size)
   const goal = useRef<Vector3 | null>(null)
+
+  // A place's sheet covers the bottom of a phone (or the right side of a wide screen): slide the
+  // picture so the building the camera glides to stays in the part you can still see
+  useEffect(() => {
+    if (!(camera instanceof PerspectiveCamera)) return
+    if (focusId && placeFor(focusId)) {
+      const wide = size.width >= 900
+      const x = wide ? 190 : 0
+      const y = wide ? 0 : Math.round(Math.min(size.height * 0.5, 440) / 2)
+      camera.setViewOffset(size.width, size.height, x, y, size.width, size.height)
+    } else {
+      camera.clearViewOffset()
+    }
+    camera.updateProjectionMatrix()
+  }, [camera, focusId, size.width, size.height])
 
   useEffect(() => {
     if (!focusId) {

@@ -1,22 +1,11 @@
 'use client'
 
-import { usePathname, useRouter } from 'next/navigation'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { HudDrawer } from '@/components/hud/hud-drawer'
-import { hapticTap } from '@/components/hud/haptic'
 import { useGame } from '@/hooks/use-game'
-import { newIdempotencyKey } from '@/lib/game/room-api'
-import { fareOf, fetchTravelOptions, travel, type TravelOption, type TravelOptions, type TripMode } from '@/lib/game/travel-api'
-import {
-  cancelTrip,
-  HOME_STREET_EVENT,
-  OPEN_TRAVEL_EVENT,
-  startTrip,
-  stashHomeStreet,
-  tripMoved,
-  useTrip,
-} from '@/lib/game/trip'
-import { pushNavigation } from '@/lib/navigation/safe-nav'
+import { fareOf, fetchTravelOptions, type TravelOption, type TravelOptions, type TripMode } from '@/lib/game/travel-api'
+import { OPEN_TRAVEL_EVENT } from '@/lib/game/trip'
+import { useGoTo } from './use-go'
 import styles from './travel.module.css'
 
 const MODES: { id: TripMode; emoji: string; label: string }[] = [
@@ -42,15 +31,11 @@ const TYPE_EMOJI: Record<string, string> = {
  * The trip screen itself is TripLayer (root layout), so it survives the page change.
  */
 export function TravelControl() {
-  const { state, select, refreshServer, notifyToast } = useGame()
-  const router = useRouter()
-  const pathname = usePathname()
+  const { state } = useGame()
   const [open, setOpen] = useState(false)
   const [mode, setMode] = useState<TripMode>('trek')
   const [options, setOptions] = useState<TravelOptions | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const idem = useRef<{ intent: string; key: string } | null>(null)
-  const trip = useTrip()
 
   useEffect(() => {
     const onOpen = () => setOpen(true)
@@ -73,46 +58,12 @@ export function TravelControl() {
     }
   }, [open])
 
+  const { go: takeTrip } = useGoTo()
   const go = useCallback(
-    async (option: TravelOption, how: TripMode) => {
-      if (!options || trip) return
-      hapticTap()
-      setOpen(false)
-      const id = startTrip({
-        label: option.home ? 'your house' : option.label,
-        mode: option.hops === 0 ? 'trek' : how,
-        from: options.fromUv,
-        to: option.uv,
-        scene: option.home ? 'home' : 'map',
-      })
-      // One key per intent, reused if the player retries the same ride
-      const intent = `${option.id}:${how}`
-      if (idem.current?.intent !== intent) idem.current = { intent, key: newIdempotencyKey() }
-      let res = await travel(option, how, idem.current.key)
-      // Timed out on a slow server: the ride may have gone through, so ask again with the
-      // same key (the server replays it instead of charging twice)
-      if (!res.ok && res.network) res = await travel(option, how, idem.current.key)
-      if (!res.ok) {
-        cancelTrip()
-        notifyToast(res.error, false)
-        return
-      }
-      idem.current = null
-      tripMoved(id)
-      void refreshServer()
-      if (option.home) {
-        if (pathname === '/room') {
-          window.dispatchEvent(new CustomEvent(HOME_STREET_EVENT))
-        } else {
-          stashHomeStreet()
-          pushNavigation(router, '/room', pathname)
-        }
-        return
-      }
-      select(option.id)
-      if (pathname !== '/') pushNavigation(router, '/', pathname)
+    (option: TravelOption, how: TripMode) => {
+      if (options) return takeTrip(options, option, how, () => setOpen(false))
     },
-    [options, trip, notifyToast, refreshServer, pathname, router, select],
+    [options, takeTrip],
   )
 
   const cash = state?.cash ?? 0

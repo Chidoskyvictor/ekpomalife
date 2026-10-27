@@ -6,6 +6,7 @@ import { BuySheet } from '@/components/hud/buy-sheet'
 import { ChangeDreamDialog } from '@/components/hud/change-dream-dialog'
 import { DreamCelebration } from '@/components/hud/dream-celebration'
 import { EventDialog } from '@/components/hud/event-dialog'
+import { MapPlaceSheet } from '@/components/hud/map-place-sheet'
 import { MeCard } from '@/components/hud/me-card'
 import { PhoneDialog } from '@/components/hud/phone-dialog'
 import { PlayNav, type PlayTab } from '@/components/hud/play-nav'
@@ -19,6 +20,7 @@ import { useGame } from '@/hooks/use-game'
 import { useLowPerf } from '@/hooks/use-low-perf'
 import { takeNavIntent } from '@/lib/game/nav-intent'
 import { buyUi, enterBuyMode, exitBuyMode, useBuyUi } from '@/lib/game/home-buy-store'
+import { placeFor } from '@/lib/game/place-info'
 import { OPEN_CHAT_EVENT } from '@/lib/game/open-chat'
 import { OPEN_GAMES_EVENT } from '@/lib/game/open-games'
 import { OPEN_SPACES_EVENT, captureSpaceLink, requestOpenSpace, takeStoredSpaceLink } from '@/lib/game/open-spaces'
@@ -59,6 +61,9 @@ export function Hud() {
   const challenges = useIncomingChallenges(!guest && Boolean(state) && hasPhone)
   // A place sheet (club…) is at the bottom: the avatar card sits above it
   const placeSheet = usePlaceSheetActive()
+  // Tapped a place on the map: its sheet (about, ways to get there, Go) is up
+  const mapSheetHidden = pathname !== '/' || phoneOpen || buyOpen
+  const mapSheetOpen = !mapSheetHidden && Boolean(placeFor(selectedId))
   const unread = useMemo(() => {
     if (!hasPhone) return 0
     const feed = state?.feed.filter((entry) => entry.day === state.day).length ?? 0
@@ -188,6 +193,7 @@ export function Hud() {
         <div className={styles.bottomDock}>
           <WelcomeCard />
         </div>
+        <MapPlaceSheet hidden={mapSheetHidden} />
         <DreamCelebration />
         <EventDialog />
         <AdViewer />
@@ -225,7 +231,7 @@ export function Hud() {
       <ToastLayer toast={toast} state={state} />
       <ChallengePopup incoming={challenges.incoming} hidden={phoneOpen} onDone={() => void challenges.reload()} />
 
-      {state && !homeBuy.active ? <MeCard state={state} onOpen={() => setProfileOpen(true)} raised={placeSheet} /> : null}
+      {state && !homeBuy.active && !mapSheetOpen ? <MeCard state={state} onOpen={() => setProfileOpen(true)} raised={placeSheet} /> : null}
 
       {/* Map: travel anywhere on campus (hidden while a place's sheet is up) */}
       {STREET_AND_TRAVEL && state && pathname === '/' && !selectedId && !placeSheet && !phoneOpen && !buyOpen ? (
@@ -249,6 +255,7 @@ export function Hud() {
         </div>
       </div>}
 
+      <MapPlaceSheet hidden={mapSheetHidden} />
       <BuySheet
         open={buyOpen}
         onOpenChange={(open) => {
