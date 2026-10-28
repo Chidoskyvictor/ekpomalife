@@ -357,10 +357,10 @@ const FIRST_ZONES: MapZone[] = [
   // —— Mid plot between town-halls (0.18) and amos-jack (0.28) ——
   // Open spine u≈0.23; buildings on west / east flanks so you can walk through.
   zone('ict-lab', 'ICT Lab', 0.205, 0.18, 'building-a', [10, 8], 0, 4.9, lilac),
-  zone('town-shop-1', 'Shop', 0.245, 0.28, 'building-b', [10, 8], Math.PI, 4.9, sand),
-  zone('town-shop-2', 'Shop', 0.205, 0.4, 'building-c', [10, 8], 0, 4.9, purple),
+  zone('town-shop-1', 'Shop', 0.245, 0.28, 'shop', [10, 8], Math.PI),
+  zone('town-shop-2', 'Shop', 0.205, 0.4, 'shop', [10, 8], 0),
   zone('town-shop-3', 'House', 0.245, 0.52, 'building-d', [10, 8], Math.PI, 4.9, original),
-  zone('town-shop-4', 'Shop', 0.205, 0.64, 'building-e', [10, 8], 0, 4.9, earth),
+  zone('town-shop-4', 'Shop', 0.205, 0.64, 'shop', [10, 8], 0),
   zone('bukka', 'Mama Amina Bukka', 0.245, 0.76, 'building-f', [10, 8], Math.PI, 4.9, sand),
 
   // —— East plot between amos-jack (0.28) and fence (~0.39) ——
@@ -474,34 +474,22 @@ const SOUTH_ZONES: MapZone[] = [
   southZone('billboard-10', 'Billboard 10', 0.3031, 0.3532, 'billboard-pack', [7, 3], { scaleMul: 1.9 }),
   southZone('billboard-11', 'Billboard 11', 0.7943, 0.1101, 'billboard-pack', [7, 3], { scaleMul: 1.9 }),
   southZone('billboard-12', 'Billboard 12', 0.8904, 0.7225, 'billboard1', [7, 3], { rotation: -3.1416, scaleMul: 1.9 }),
-  // Restaurant with parasols out front
-  southZone('wise-gourmet', 'Wise Gourmet', 0.9, 0.14, 'cluster', [12, 9], {
-    parts: [
-      { model: 'building-f', dx: 0, dz: -1.2, tint: sand },
-      { model: 'detail-parasol-a', dx: -3, dz: 4, scale: 2.6, noPad: true },
-      { model: 'detail-parasol-b', dx: 2.6, dz: 4, scale: 2.6, noPad: true },
-    ],
-  }),
+  // Restaurant. Hand-made low-poly GLB (public/models/wise.glb)
+  southZone('wise-gourmet', 'Wise Gourmet', 0.6375, 0.14, 'wise', [12, 9], { rotation: 0 }),
 
   // —— MIDDLE ROW ——
   southZone('park', 'Park', 0.06, 0.58, 'open', [12, 14], { open: 'park' }),
-  southZone('shop-mid-1', 'Shop', 0.16, 0.5, 'building-b', [9, 7], { scale: 4.3, tint: purple }),
-  southZone('shop-mid-2', 'Shop', 0.24, 0.5, 'building-e', [9, 7], { scale: 4.3, tint: earth }),
+  southZone('shop-mid-1', 'Shop', 0.16, 0.5, 'shop', [9, 7]),
+  southZone('shop-mid-2', 'Shop', 0.24, 0.5, 'shop', [9, 7]),
   // Club. Hand-made low-poly GLB (public/models/forbes.glb): white diamond-tile facade, built in Blender
   southZone('forbes', 'Forbes', 0.45, 0.55, 'forbes', [15, 11]),
-  // Tall blue glass towers (Kenney skyscrapers, untinted)
-  southZone('spot-rite', 'Spot Rite', 0.9, 0.52, 'cluster', [22, 10], {
-    parts: [
-      { model: 'building-skyscraper-c', dx: -6.5, dz: 0, scale: 4.8 },
-      { model: 'building-skyscraper-a', dx: 0, dz: 0, scale: 5.6 },
-      { model: 'building-skyscraper-e', dx: 6.5, dz: 0, scale: 4.8 },
-    ],
-  }),
+  // Eatery: one tall blue glass tower (Kenney skyscraper, untinted)
+  southZone('spot-rite', 'Spot Rite', 0.9, 0.52, 'building-skyscraper-a', [10, 10], { scale: 5.6 }),
 
   // —— BOTTOM ROW ——
-  southZone('shop-low-1', 'Shop', 0.06, 0.82, 'building-c', [9, 7], { scale: 4.3, tint: sand }),
-  southZone('shop-low-2', 'Shop', 0.13, 0.82, 'building-d', [9, 7], { scale: 4.3, tint: clay }),
-  southZone('shop-low-3', 'Shop', 0.2, 0.82, 'building-h', [9, 7], { scale: 4.3, tint: original }),
+  southZone('shop-low-1', 'Shop', 0.06, 0.82, 'shop', [9, 7]),
+  southZone('shop-low-2', 'Shop', 0.13, 0.82, 'shop', [9, 7]),
+  southZone('shop-low-3', 'Shop', 0.2, 0.82, 'shop', [9, 7]),
   southZone('anonymous-zone', 'Anonymous Zone', 0.42, 0.8, 'open', [16, 10], { open: 'plot' }),
   southZone('denco', 'Denco', 0.56, 0.8, 'cluster', [20, 9], {
     parts: [
@@ -509,13 +497,7 @@ const SOUTH_ZONES: MapZone[] = [
       { model: 'building-i', dx: 5, dz: 0, tint: original },
     ],
   }),
-  southZone('playchill-climax', 'Playchill Climax', 0.72, 0.66, 'cluster', [26, 9], {
-    parts: [
-      { model: 'building-j', dx: -8.5, dz: 0, tint: purple },
-      { model: 'building-k', dx: 0, dz: 0, tint: lilac },
-      { model: 'building-n', dx: 8.5, dz: 0, tint: original },
-    ],
-  }),
+  southZone('playchill-climax', 'Playchill Climax', 0.72, 0.66, 'building-k', [10, 9], { scale: 4.9, tint: lilac }),
 ]
 
 export const MAP_ZONES: MapZone[] = [...FIRST_ZONES, ...SOUTH_ZONES]

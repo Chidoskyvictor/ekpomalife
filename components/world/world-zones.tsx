@@ -41,6 +41,8 @@ const CUSTOM_GLB: Record<string, string> = {
   sazza: '/models/sazza.glb',
   'above-the-hills': '/models/above-the-hills.glb',
   forbes: '/models/forbes.glb',
+  wise: '/models/wise.glb',
+  shop: '/models/shop.glb',
 }
 /** Parking Lot by Alex Safayan [CC-BY] via Poly Pizza — ~4.1 × 3.9 */
 const PARKING_SIZE = { w: 4.1, d: 3.9 }

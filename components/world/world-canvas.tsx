@@ -14,6 +14,7 @@ import { MapLoadReporter } from './map-load-reporter'
 import { PlayerAvatar } from './player-avatar'
 import { WorldGround } from './world-ground'
 import { WorldRoads } from './world-roads'
+import { WorldHighway } from './world-highway'
 import { WorldScenery } from './world-scenery'
 import { WorldBase } from './world-base'
 import { WorldTrees } from './world-trees'
@@ -276,6 +277,9 @@ export function WorldCanvas() {
         <WorldBase color={ground} />
         <WorldGround />
         <WorldRoads />
+        <Suspense fallback={null}>
+          <WorldHighway />
+        </Suspense>
         <WorldTrees mobile={mobile} />
         <WorldScenery mobile={mobile} night={night} />
         <WorldZones />

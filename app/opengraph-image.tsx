@@ -1,5 +1,6 @@
 import { ImageResponse } from 'next/og'
 import { DEFAULT_DESCRIPTION, SITE_NAME } from '@/lib/seo/site'
+import { LOGO_DATA_URL } from '@/lib/seo/logo-data'
 
 export const alt = `${SITE_NAME} — live your AAU story`
 export const size = { width: 1200, height: 630 }
@@ -21,6 +22,8 @@ export default function OpenGraphImage() {
           fontFamily: 'system-ui, sans-serif',
         }}
       >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={LOGO_DATA_URL} width={120} height={120} alt="" style={{ marginBottom: 28 }} />
         <div
           style={{
             fontSize: 72,
