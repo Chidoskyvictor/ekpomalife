@@ -94,7 +94,7 @@ const SKY: Record<string, {
 }
 
 function mobileDprCap() {
-  return Math.min(2, window.devicePixelRatio || 1)
+  return Math.min(1.25, window.devicePixelRatio || 1)
 }
 
 type PanControls = { target: Vector3; update: () => void }
@@ -186,7 +186,7 @@ export function WorldCanvas() {
     () => window.matchMedia('(max-width: 767px), (pointer: coarse)').matches,
   )
   const [mobileDpr, setMobileDpr] = useState(() =>
-    typeof window !== 'undefined' ? mobileDprCap() : 2,
+    typeof window !== 'undefined' ? mobileDprCap() : 1.25,
   )
 
   useEffect(() => {
@@ -201,15 +201,13 @@ export function WorldCanvas() {
   }, [mobile])
 
   const onMobileDprDecline = useCallback(() => {
-    setMobileDpr((current) => (current > 1.5 ? 1.5 : 1.25))
+    setMobileDpr((current) => Math.min(current, 1))
   }, [])
 
   const onMobileDprIncline = useCallback(() => {
     setMobileDpr((current) => {
       const cap = mobileDprCap()
-      if (current < 1.5) return 1.5
-      if (current < cap) return cap
-      return current
+      return current < cap ? cap : current
     })
   }, [])
 
@@ -238,7 +236,7 @@ export function WorldCanvas() {
         frameloop={driving ? 'never' : 'always'}
         dpr={mobile ? mobileDpr : [1, 1.75]}
         gl={{
-          antialias: true,
+          antialias: !mobile,
           ...(mobile ? {} : { powerPreference: 'high-performance' as const }),
           failIfMajorPerformanceCaveat: false,
           toneMapping: NoToneMapping,

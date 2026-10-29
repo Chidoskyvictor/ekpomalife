@@ -36,14 +36,14 @@ const ADMIN_URL = '/models/admin-block.glb'
 const PARKING_URL = '/models/parkinglot.glb'
 const STADIUM_URL = '/models/football-stadium.glb'
 const HOSTEL_URL = '/models/hostel.glb'
-const AAU_GATE_URL = '/models/aau_gate.glb'
+const AAU_GATE_URL = '/models/aau_gate.glb?v=mo2'
 /** Hand-made GLBs, set on the same cement pad as other buildings — zone `model` → file. */
 const CUSTOM_GLB: Record<string, string> = {
-  sazza: '/models/sazza.glb',
+  sazza: '/models/sazza.glb?v=mo2',
   'above-the-hills': '/models/above-the-hills.glb',
   forbes: '/models/forbes.glb',
   wise: '/models/wise.glb',
-  shop: '/models/shop.glb',
+  shop: '/models/shop.glb?v=mo2',
 }
 /** Parking Lot by Alex Safayan [CC-BY] via Poly Pizza — ~4.1 × 3.9 */
 const PARKING_SIZE = { w: 4.1, d: 3.9 }
@@ -73,28 +73,8 @@ function centerOnGround(scene: Object3D) {
 function fitToPad(size: { x: number; z: number }, fw: number, fd: number, fill = 0.92) {
   return Math.max(0.2, Math.min(fw / size.x, fd / size.z) * fill)
 }
-const SPECIAL_MODELS = new Set([
-  'admin-block',
-  'hostel-block',
-  'pad',
-  'parking-lot',
-  'football-stadium',
-  'aau-gate',
-  'billboard1',
-  'billboard-pack',
-  ...Object.keys(CUSTOM_GLB),
-])
-/** Zone `model` keys that are layouts, not files (second slab). */
-const LAYOUT_KEYS = new Set(['cluster', 'open', 'label'])
-const KENNEY_MODELS = [
-  ...new Set([
-    ...MAP_ZONES.filter((z) => !SPECIAL_MODELS.has(z.model) && !LAYOUT_KEYS.has(z.model)).map((z) => z.model),
-    ...MAP_ZONES.flatMap((z) => z.parts ?? [])
-      .map((part) => part.model)
-      .filter((model) => !SPECIAL_MODELS.has(model)),
-  ]),
-]
-KENNEY_MODELS.forEach((name) => useGLTF.preload(kenneyUrl(name)))
+// Kenney zone models are not preloaded at module load: each loads (and is cached) when its zone
+// mounts, so mobile does not fetch every building up front.
 useGLTF.preload(ADMIN_URL, false, true)
 useGLTF.preload(PARKING_URL)
 useGLTF.preload(STADIUM_URL)
@@ -832,7 +812,7 @@ const BILLBOARDS: Record<string, { url: string; nativeHeight: number; groundY: n
   },
   // One billboard split out of low-poly_billboard_pack.glb; double-faced board angled ~57°
   'billboard-pack': {
-    url: '/models/billboard-pack.glb',
+    url: '/models/billboard-pack.glb?v=mo2',
     nativeHeight: 685,
     groundY: 0,
     turn: 1.0,

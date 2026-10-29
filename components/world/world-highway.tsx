@@ -13,7 +13,7 @@ import { bakeStaticParts, type StaticPart } from './bake-static'
  * The 10 meshes are baked into a few vertex-coloured parts and every piece is an instance of
  * them, so the whole highway costs a handful of draw calls (no shadows).
  */
-const HIGHWAY_URL = '/models/highway.glb'
+const HIGHWAY_URL = '/models/highway.glb?v=mo2'
 const NATIVE_LENGTH = 60
 const NATIVE_WIDTH = 25.2
 /** Tuck the road edges this far under each slab so no blue shows at the sides. */

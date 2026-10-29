@@ -5,8 +5,8 @@ import { Suspense, useMemo } from 'react'
 import { Box3, Vector3, type Object3D } from 'three'
 import { TREE_SPOTS, type TreeSpot } from '@/lib/game/world-layout'
 
-const TREE_URL = '/models/tree.glb'
-const PINE_URL = '/models/pinetree.glb'
+const TREE_URL = '/models/tree.glb?v=mo2'
+const PINE_URL = '/models/pinetree.glb?v=mo2'
 
 useGLTF.preload(TREE_URL)
 useGLTF.preload(PINE_URL)
