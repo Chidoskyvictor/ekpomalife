@@ -89,10 +89,7 @@
 .heroMark {
   width: clamp(52px, 14vw, 64px);
   height: clamp(52px, 14vw, 64px);
-  border-radius: 50%;
-  object-fit: cover;
-  background: #0c1a24;
-  box-shadow: 0 8px 20px rgba(18, 40, 70, 0.16);
+  object-fit: contain;
 }
 
 .heroTitle {
