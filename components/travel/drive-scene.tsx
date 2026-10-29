@@ -46,8 +46,8 @@ export type DriveView = 'chase' | 'side' | 'inside'
 export type DriveMode = 'keke' | 'okada'
 export type DriveRoute = TripRoute
 
-const HIGHWAY_URL = '/models/highway.glb'
-const GATE_URL = '/models/aau_gate.glb'
+const HIGHWAY_URL = '/models/highway.glb?v=mo2'
+const GATE_URL = '/models/aau_gate.glb?v=mo2'
 /** Native length of one highway piece. */
 const TILE = 60
 const TILES = 8
