@@ -7,7 +7,11 @@ import type { TripMode, Uv } from './travel-api'
  * scene (the campus map, or your street) says it's ready. Then it fades and you're there.
  */
 
-export type TripScene = 'map' | 'home'
+/** Where the trip lands: the map, your own room, or the inside of the place you went to. */
+export type TripScene = 'map' | 'home' | 'interior'
+
+/** road: off campus both ends; in / out: crossing the AAU gate; inside: block to block on campus. */
+export type TripRoute = 'road' | 'in' | 'out' | 'inside'
 
 export type Trip = {
   id: number
@@ -26,9 +30,27 @@ export type Trip = {
   ready: boolean
   /** Fading out */
   done: boolean
+  /** The place it's heading to, so its interior can tell it's the right one before the trip ends. */
+  target?: string
+  /** Which road the drive shows: the highway, in through the AAU gate, out through it, or the lane inside campus. */
+  route: TripRoute
+  /** Shown as the looping highway drive (paid rides on devices that can take it) instead of the map card. */
+  drive: boolean
 }
 
 const MIN_MS: Record<TripMode, number> = { trek: 1600, keke: 1200, okada: 900 }
+/** The drive needs long enough to read as a ride; Skip cuts it short. */
+const DRIVE_MS: Record<TripMode, number> = { trek: 1600, keke: 7000, okada: 5500 }
+
+/** Paid rides get the 3D drive, unless the player asked for less motion or the phone is short on memory. */
+export function canDrive(mode: TripMode, route: TripRoute = 'road') {
+  if (mode === 'trek' || typeof window === 'undefined') return false
+  // Okada doesn't ride inside campus: only keke has a lane there
+  if (route === 'inside' && mode === 'okada') return false
+  if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return false
+  const memory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory
+  return memory === undefined || memory >= 3
+}
 /** Give up waiting for the scene this long after the server moved you, and let the player in. */
 export const TRIP_TIMEOUT_MS = 12_000
 
@@ -45,12 +67,16 @@ function patch(next: Partial<Trip>) {
   emit()
 }
 
-export function startTrip(input: Pick<Trip, 'label' | 'mode' | 'from' | 'to' | 'scene'>) {
+export function startTrip(input: Pick<Trip, 'label' | 'mode' | 'from' | 'to' | 'scene' | 'target'> & { route?: TripRoute }) {
+  const route = input.route ?? 'road'
+  const drive = canDrive(input.mode, route)
   trip = {
     ...input,
+    route,
     id: nextId++,
     startedAt: Date.now(),
-    minMs: MIN_MS[input.mode],
+    minMs: drive ? DRIVE_MS[input.mode] : MIN_MS[input.mode],
+    drive,
     moved: false,
     movedAt: 0,
     ready: false,
@@ -67,6 +93,12 @@ export function startTrip(input: Pick<Trip, 'label' | 'mode' | 'from' | 'to' | '
 export function tripMoved(id: number) {
   if (trip?.id !== id) return
   patch({ moved: true, movedAt: Date.now(), ready: trip.scene === 'map' && readyScenes.has('map') })
+}
+
+/** Skip the drive: the trip still waits for the server and the next scene, just not for the timer. */
+export function skipTrip(id: number) {
+  if (trip?.id !== id) return
+  patch({ minMs: 0 })
 }
 
 export function cancelTrip() {

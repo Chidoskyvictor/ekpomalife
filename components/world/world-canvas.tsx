@@ -5,7 +5,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { NoToneMapping, PerspectiveCamera, Vector3 } from 'three'
 import { getPlace, getPlaceByZone } from '@/lib/game/places'
-import { placeFor } from '@/lib/game/place-info'
+import { isComingSoon, placeFor } from '@/lib/game/place-info'
 import { mapPalette as MAP } from '@/lib/game/map-theme'
 import { FIRST_SLAB, LAND_CENTER, MAP_ZONES, WORLD } from '@/lib/game/world-layout'
 import { useGame } from '@/hooks/use-game'
@@ -25,7 +25,7 @@ import { BillboardDebugPanel } from './billboard-debug-panel'
 import { ZoneStickerOverlay, ZoneStickerProjector, ZoneStickerProvider } from './world-zone-stickers'
 import { ZoneDebugProvider } from './zone-debug-context'
 import { useWatClock } from '@/lib/game/wat-clock'
-import { markSceneReady } from '@/lib/game/trip'
+import { markSceneReady, useTrip } from '@/lib/game/trip'
 
 const PITCH = (32 * Math.PI) / 180
 const HEADING = 0
@@ -109,7 +109,7 @@ function CameraRig({ focusId }: { focusId: string | null }) {
   // picture so the building the camera glides to stays in the part you can still see
   useEffect(() => {
     if (!(camera instanceof PerspectiveCamera)) return
-    if (focusId && placeFor(focusId)) {
+    if (focusId && (placeFor(focusId) || isComingSoon(focusId))) {
       const wide = size.width >= 900
       const x = wide ? 190 : 0
       const y = wide ? 0 : Math.round(Math.min(size.height * 0.5, 440) / 2)
@@ -173,6 +173,8 @@ export function WorldCanvas() {
   // Real WAT time of day for everyone (dev: ?time=21:30 previews another hour)
   const { period } = useWatClock()
   const night = period === 'evening' || period === 'night'
+  const trip = useTrip()
+  const driving = Boolean(trip?.drive && !trip.done)
   const { targetPercent, assetsDone, onProgress } = useMapLoadProgress()
   // A trip to a campus place waits for the map to finish loading
   useEffect(() => {
@@ -232,6 +234,8 @@ export function WorldCanvas() {
       <MapLoadOverlay targetPercent={targetPercent} assetsDone={assetsDone} />
       <Canvas
         shadows={!mobile}
+        // The highway drive covers the map: stop drawing it until the drive is over
+        frameloop={driving ? 'never' : 'always'}
         dpr={mobile ? mobileDpr : [1, 1.75]}
         gl={{
           antialias: true,

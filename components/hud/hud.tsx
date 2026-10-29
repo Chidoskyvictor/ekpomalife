@@ -7,6 +7,7 @@ import { ChangeDreamDialog } from '@/components/hud/change-dream-dialog'
 import { DreamCelebration } from '@/components/hud/dream-celebration'
 import { EventDialog } from '@/components/hud/event-dialog'
 import { MapPlaceSheet } from '@/components/hud/map-place-sheet'
+import { MarketHubSheet } from '@/components/hud/market-hub-sheet'
 import { MeCard } from '@/components/hud/me-card'
 import { PhoneDialog } from '@/components/hud/phone-dialog'
 import { PlayNav, type PlayTab } from '@/components/hud/play-nav'
@@ -20,7 +21,8 @@ import { useGame } from '@/hooks/use-game'
 import { useLowPerf } from '@/hooks/use-low-perf'
 import { takeNavIntent } from '@/lib/game/nav-intent'
 import { buyUi, enterBuyMode, exitBuyMode, useBuyUi } from '@/lib/game/home-buy-store'
-import { placeFor } from '@/lib/game/place-info'
+import { isComingSoon, placeFor } from '@/lib/game/place-info'
+import { interiorPlaceId } from '@/lib/game/home-place'
 import { OPEN_CHAT_EVENT } from '@/lib/game/open-chat'
 import { OPEN_GAMES_EVENT } from '@/lib/game/open-games'
 import { OPEN_SPACES_EVENT, captureSpaceLink, requestOpenSpace, takeStoredSpaceLink } from '@/lib/game/open-spaces'
@@ -63,7 +65,7 @@ export function Hud() {
   const placeSheet = usePlaceSheetActive()
   // Tapped a place on the map: its sheet (about, ways to get there, Go) is up
   const mapSheetHidden = pathname !== '/' || phoneOpen || buyOpen
-  const mapSheetOpen = !mapSheetHidden && Boolean(placeFor(selectedId))
+  const mapSheetOpen = !mapSheetHidden && (Boolean(placeFor(selectedId)) || isComingSoon(selectedId))
   const unread = useMemo(() => {
     if (!hasPhone) return 0
     const feed = state?.feed.filter((entry) => entry.day === state.day).length ?? 0
@@ -194,6 +196,7 @@ export function Hud() {
           <WelcomeCard />
         </div>
         <MapPlaceSheet hidden={mapSheetHidden} />
+      <MarketHubSheet hidden={mapSheetHidden} />
         <DreamCelebration />
         <EventDialog />
         <AdViewer />
@@ -221,7 +224,7 @@ export function Hud() {
           <ActionTiles />
         </div>
         {/* Home (My Room): find / join your real hostel — not while visiting someone (/room/[username]) */}
-        {state && pathname === '/room' ? (
+        {state && pathname === '/room' && !interiorPlaceId(state.locationId, state.lodgingId) ? (
           <div className={styles.topWrap}>
             <HostelFinder />
           </div>
@@ -256,6 +259,7 @@ export function Hud() {
       </div>}
 
       <MapPlaceSheet hidden={mapSheetHidden} />
+      <MarketHubSheet hidden={mapSheetHidden} />
       <BuySheet
         open={buyOpen}
         onOpenChange={(open) => {

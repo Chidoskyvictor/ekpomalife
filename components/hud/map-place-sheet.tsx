@@ -6,7 +6,7 @@ import { AuthLinks } from '@/components/hud/auth-links'
 import { useGoTo } from '@/components/travel/use-go'
 import { useGame } from '@/hooks/use-game'
 import { ACTION_LABELS } from '@/lib/game/places'
-import { placeFor, placeInfo, placeLink } from '@/lib/game/place-info'
+import { isComingSoon, placeFor, placeInfo, placeLink } from '@/lib/game/place-info'
 import { fareOf, fetchTravelOptions, type TravelOptions, type TripMode } from '@/lib/game/travel-api'
 import styles from './map-place-sheet.module.css'
 
@@ -58,6 +58,7 @@ export function MapPlaceSheet({ hidden = false }: { hidden?: boolean }) {
     url.searchParams.delete('place')
     window.history.replaceState(null, '', url.pathname + url.search + url.hash)
     if (placeFor(id)) select(placeFor(id)!.id)
+    else if (isComingSoon(id)) select(id)
   }, [booting, select])
 
   const placeId = place?.id ?? null

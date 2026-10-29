@@ -8,6 +8,7 @@ import {
   BoxGeometry,
   CanvasTexture,
   Color,
+  ConeGeometry,
   IcosahedronGeometry,
   MeshStandardMaterial,
   Object3D,
@@ -545,6 +546,8 @@ const OPEN_GROUND: Record<OpenZoneKind, { fill: string; edge: string }> = {
   park: { fill: '#86b866', edge: '#6f9a52' },
   plot: { fill: MAP.earthDust, edge: MAP.earthMud },
   plaza: { fill: MAP.kenneyPad, edge: MAP.kenneyPadEdge },
+  pitch: { fill: '#5aae4c', edge: '#3d7f35' },
+  construction: { fill: MAP.earthDust, edge: MAP.earthMud },
 }
 
 type PropSpot = { x: number; z: number; rot: number }
@@ -559,6 +562,11 @@ function openZoneProps(kind: OpenZoneKind, w: number, d: number) {
     benches.push({ x: 0, z: -d * 0.12, rot: 0 }, { x: 0, z: d * 0.12, rot: Math.PI })
     benches.push({ x: -w * 0.18, z: 0, rot: Math.PI / 2 }, { x: w * 0.18, z: 0, rot: -Math.PI / 2 })
     bushes.push(edge(-0.42, 0), edge(0.42, 0), edge(0, 0.42), edge(-0.2, 0.44), edge(0.2, -0.44))
+  } else if (kind === 'construction') {
+    // The site is drawn by ConstructionSite (barriers, cones, spoil heaps); no benches or shrubs
+  } else if (kind === 'pitch') {
+    // Football pitch: markings and goals are drawn in PitchMarkings; shrubs sit outside the touchlines
+    bushes.push(edge(-0.56, -0.62), edge(0.56, -0.62), edge(-0.56, 0.62), edge(0.56, 0.62))
   } else if (kind === 'plaza') {
     // Paved square: two rows of benches, planters at the corners
     for (const fx of [-0.3, -0.1, 0.1, 0.3]) {
@@ -611,6 +619,121 @@ function PropInstances({
 
 const BUSH_SCALE: [number, number, number] = [1.15, 0.75, 1]
 
+const HAZARD_ORANGE = '#f28c1b'
+const coneGeometry = new ConeGeometry(0.45, 1.1, 8)
+
+/** A fenced building site: striped barrier rails, corner posts, traffic cones and two spoil heaps. */
+function ConstructionSite({ w, d }: { w: number; d: number }) {
+  const hw = w / 2 - 0.6
+  const hd = d / 2 - 0.6
+  const rails: { key: string; x: number; z: number; sx: number; sz: number }[] = []
+  const stripe = 2
+  // Alternating orange / white boards along each side, with a gap in the south side for the gate
+  const side = (key: string, x0: number, z0: number, x1: number, z1: number, gate = false) => {
+    const length = Math.hypot(x1 - x0, z1 - z0)
+    const count = Math.max(1, Math.round(length / stripe))
+    for (let i = 0; i < count; i++) {
+      const t = (i + 0.5) / count
+      if (gate && Math.abs(t - 0.5) < 0.14) continue
+      const horizontal = Math.abs(z1 - z0) < 0.01
+      rails.push({
+        key: key + i,
+        x: x0 + (x1 - x0) * t,
+        z: z0 + (z1 - z0) * t,
+        sx: horizontal ? length / count - 0.1 : 0.18,
+        sz: horizontal ? 0.18 : length / count - 0.1,
+      })
+    }
+  }
+  side('n', -hw, -hd, hw, -hd)
+  side('s', -hw, hd, hw, hd, true)
+  side('w', -hw, -hd, -hw, hd)
+  side('e', hw, -hd, hw, hd)
+  const posts: [number, number][] = [[-hw, -hd], [hw, -hd], [-hw, hd], [hw, hd], [-1.9, hd], [1.9, hd]]
+  const cones: [number, number][] = [[-4.5, hd + 1.2], [4.5, hd + 1.2], [-hw + 1.5, hd - 1.5], [hw - 1.5, hd - 1.5], [0, -hd + 1.5]]
+  return (
+    <group>
+      {rails.map((rail, i) => (
+        <Block
+          key={rail.key}
+          position={[rail.x, 0.95, rail.z]}
+          size={[rail.sx, 0.45, rail.sz]}
+          color={i % 2 === 0 ? HAZARD_ORANGE : '#fff8ec'}
+          shadow={false}
+        />
+      ))}
+      {posts.map(([x, z], i) => (
+        <Block key={'p' + i} position={[x, 0.6, z]} size={[0.28, 1.2, 0.28]} color="#5b5b5b" shadow={false} />
+      ))}
+      {/* Spoil heaps and a stack of blocks inside the fence */}
+      <mesh position={[-w * 0.18, 0.55, -d * 0.12]} scale={[3.2, 1.1, 2.4]} receiveShadow>
+        <icosahedronGeometry args={[1, 0]} />
+        <meshStandardMaterial color="#a07a52" roughness={1} flatShading />
+      </mesh>
+      <mesh position={[w * 0.12, 0.45, d * 0.05]} scale={[2.4, 0.9, 1.8]} receiveShadow>
+        <icosahedronGeometry args={[1, 0]} />
+        <meshStandardMaterial color="#8e6b46" roughness={1} flatShading />
+      </mesh>
+      <Block position={[w * 0.28, 0.35, -d * 0.2]} size={[2.6, 0.7, 1.4]} color="#b9b3a6" shadow={false} />
+      <PropInstances
+        spots={cones.map(([x, z]) => ({ x, z, rot: 0 }))}
+        geometry={coneGeometry}
+        color={HAZARD_ORANGE}
+        y={0.6}
+      />
+    </group>
+  )
+}
+
+const LINE = '#ffffff'
+const LINE_Y = 0.1
+
+/** White touchlines, halfway line, centre circle, penalty boxes and two goals (long side along X). */
+function PitchMarkings({ w, d }: { w: number; d: number }) {
+  const t = 0.14
+  const iw = w - 1.6
+  const id = d - 1.6
+  const box = { depth: Math.min(4, iw * 0.15), width: id * 0.55 }
+  const line = (key: string, x: number, z: number, sx: number, sz: number) => (
+    <Block key={key} position={[x, LINE_Y, z]} size={[sx, 0.02, sz]} color={LINE} shadow={false} />
+  )
+  const goal = (side: 1 | -1) => {
+    const x = side * (iw / 2 + 0.5)
+    const half = 1.7
+    return (
+      <group key={'goal' + side}>
+        <Block position={[x, 0.75, -half]} size={[0.14, 1.5, 0.14]} color={LINE} shadow={false} />
+        <Block position={[x, 0.75, half]} size={[0.14, 1.5, 0.14]} color={LINE} shadow={false} />
+        <Block position={[x, 1.5, 0]} size={[0.14, 0.14, half * 2 + 0.14]} color={LINE} shadow={false} />
+      </group>
+    )
+  }
+  return (
+    <group>
+      {line('top', 0, -id / 2, iw, t)}
+      {line('bottom', 0, id / 2, iw, t)}
+      {line('left', -iw / 2, 0, t, id)}
+      {line('right', iw / 2, 0, t, id)}
+      {line('half', 0, 0, t, id)}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, LINE_Y + 0.005, 0]}>
+        <ringGeometry args={[Math.min(2.6, id * 0.2) - t, Math.min(2.6, id * 0.2), 40]} />
+        <meshBasicMaterial color={LINE} toneMapped={false} />
+      </mesh>
+      {([1, -1] as const).flatMap((side) => {
+        const edgeX = side * iw / 2
+        const innerX = edgeX - side * box.depth
+        return [
+          line('boxIn' + side, innerX, 0, t, box.width),
+          line('boxA' + side, (edgeX + innerX) / 2, -box.width / 2, box.depth, t),
+          line('boxB' + side, (edgeX + innerX) / 2, box.width / 2, box.depth, t),
+        ]
+      })}
+      {goal(1)}
+      {goal(-1)}
+    </group>
+  )
+}
+
 /** Open zone (no building): a ground plot with props — benches + shrubs as two instanced draws. */
 function OpenZone({ zone }: { zone: MapZone }) {
   const kind = zone.open ?? 'plot'
@@ -621,6 +744,8 @@ function OpenZone({ zone }: { zone: MapZone }) {
     <group position={[zone.position[0], 0, zone.position[1]]} rotation={[0, zone.rotation, 0]}>
       <Block position={[0, 0.03, 0]} size={[w + 0.4, 0.05, d + 0.4]} color={ground.edge} shadow={false} />
       <Block position={[0, 0.06, 0]} size={[w, 0.05, d]} color={ground.fill} shadow={false} />
+      {kind === 'pitch' ? <PitchMarkings w={w} d={d} /> : null}
+      {kind === 'construction' ? <ConstructionSite w={w} d={d} /> : null}
       <PropInstances spots={benches} geometry={benchGeometry} color="#8a6a48" y={0.3} />
       <PropInstances spots={bushes} geometry={bushGeometry} color="#5a9a4a" y={0.4} scale={BUSH_SCALE} />
       <ZoneStickerAnchor zoneId={zone.id} label={zone.label} height={0.5} />
@@ -666,7 +791,7 @@ function groundTextTexture(text: string) {
 function LabelZone({ zone }: { zone: MapZone }) {
   const { texture, aspect } = useMemo(() => groundTextTexture(zone.label), [zone.label])
   useEffect(() => () => texture.dispose(), [texture])
-  const h = GROUND_TEXT_HEIGHT * 1.4
+  const h = GROUND_TEXT_HEIGHT * 1.4 * (zone.scale ?? 1)
   return (
     <mesh
       position={[zone.position[0], 0.03, zone.position[1]]}
@@ -919,7 +1044,7 @@ export function WorldZones() {
   return (
     <ZoneStickerRegistry>
       <group>
-        {zones.map((zone) => (
+        {zones.filter((zone) => !zone.hidden).map((zone) => (
           <ZoneRoot key={zone.id} zone={zone} />
         ))}
       </group>

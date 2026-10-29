@@ -1,0 +1,66 @@
+/* The Home tab when you're inside a place that isn't your own home: a stand-in until its interior is modelled */
+
+.stage {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: calc(88px + env(safe-area-inset-top)) 24px calc(150px + env(safe-area-inset-bottom));
+  background: linear-gradient(180deg, #e8eef5 0%, #f7f4ec 100%);
+  text-align: center;
+}
+
+.emoji {
+  font-size: 56px;
+  line-height: 1;
+}
+
+.title {
+  max-width: 100%;
+  margin: 0;
+  overflow: hidden;
+  color: #111;
+  font-size: 22px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.note {
+  margin: 0;
+  max-width: 280px;
+  color: #4b5563;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.action {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 18px;
+  border: 1px solid rgba(17, 24, 39, 0.1);
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+  color: #111;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.action:active {
+  transform: scale(0.96);
+}

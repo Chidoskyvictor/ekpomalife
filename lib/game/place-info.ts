@@ -152,6 +152,33 @@ export const PLACE_INFO: Record<string, PlaceInfo> = {
   },
 }
 
+/** A place on the map that is not open yet: tapping it shows what is coming instead of a way to get there. */
+export type ComingSoon = {
+  title: string
+  /** Smaller line under the title */
+  by: string
+  about: string
+  soon: { emoji: string; text: string }[]
+}
+
+export const COMING_SOON: Record<string, ComingSoon> = {
+  'market-hub': {
+    title: 'Market Hub',
+    by: 'Prodigy Market Hub',
+    about:
+      'Under construction. When it opens you will be able to buy and sell real things with real money, and get what you buy delivered to you for real.',
+    soon: [
+      { emoji: '🛏️', text: 'Bed stands and other hostel furniture' },
+      { emoji: '⚡', text: 'Generators for when NEPA strikes' },
+      { emoji: '📚', text: 'Textbooks, new and second-hand' },
+      { emoji: '💰', text: 'Sell your own stuff to other students' },
+      { emoji: '🚚', text: 'Delivery to you in real life' },
+    ],
+  },
+}
+
+export const isComingSoon = (id: string | null | undefined) => Boolean(id && COMING_SOON[id])
+
 /** The place a map tap or a shared link points at (a place id or its zone id), or null. */
 export function placeFor(id: string | null | undefined): Place | null {
   if (!id) return null

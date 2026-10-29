@@ -4,6 +4,8 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useCallback, useRef } from 'react'
 import { hapticTap } from '@/components/hud/haptic'
 import { useGame } from '@/hooks/use-game'
+import { hasInterior } from '@/lib/game/home-place'
+import { getPlace } from '@/lib/game/places'
 import { newIdempotencyKey } from '@/lib/game/room-api'
 import { travel, type TravelOption, type TravelOptions, type TripMode } from '@/lib/game/travel-api'
 import { cancelTrip, HOME_STREET_EVENT, startTrip, stashHomeStreet, tripMoved, useTrip } from '@/lib/game/trip'
@@ -25,12 +27,25 @@ export function useGoTo() {
       if (trip) return
       hapticTap()
       onStart?.()
+      // Campus is behind the AAU gate: crossing it (either way) shows the gate, staying inside doesn't
+      const fromCampus = getPlace(options.from)?.type === 'campus'
+      const toCampus = option.type === 'campus'
+      // Arriving somewhere you can step inside lands on its interior (the Home tab), not the map
+      const interior = !option.home && hasInterior(option.id)
+      // Already here: nothing to ride, just step inside
+      if (interior && option.hops === 0) {
+        select(null)
+        if (pathname !== '/room') pushNavigation(router, '/room', pathname)
+        return
+      }
       const id = startTrip({
         label: option.home ? 'your house' : option.label,
         mode: option.hops === 0 ? 'trek' : how,
         from: options.fromUv,
         to: option.uv,
-        scene: option.home ? 'home' : 'map',
+        scene: option.home ? 'home' : interior ? 'interior' : 'map',
+        target: option.id,
+        route: fromCampus && toCampus ? 'inside' : toCampus ? 'in' : fromCampus ? 'out' : 'road',
       })
       // One key per intent, reused if the player retries the same ride
       const intent = `${option.id}:${how}`
@@ -54,6 +69,11 @@ export function useGoTo() {
           stashHomeStreet()
           pushNavigation(router, '/room', pathname)
         }
+        return
+      }
+      if (interior) {
+        select(null)
+        if (pathname !== '/room') pushNavigation(router, '/room', pathname)
         return
       }
       select(option.id)

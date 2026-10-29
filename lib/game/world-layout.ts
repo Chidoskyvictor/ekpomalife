@@ -36,13 +36,15 @@ export type MapZone = {
   slab?: 'south'
   /** Several models in one zone (offsets in zone-local units, before zone rotation). */
   parts?: ZonePart[]
+  /** Position only: nothing is drawn and there is no sticker (the place still has a spot for travel and the avatar). */
+  hidden?: boolean
   /** No building: a ground plot with props (still tappable). */
   open?: OpenZoneKind
   /** Ground-text colour for `label` zones (default: soft white). */
   labelColor?: string
 }
 
-export type OpenZoneKind = 'park' | 'plot' | 'plaza'
+export type OpenZoneKind = 'park' | 'plot' | 'plaza' | 'pitch' | 'construction'
 
 /** One model inside a multi-building zone. `model` is a Kenney key or `parking-lot`. */
 export type ZonePart = {
@@ -161,6 +163,25 @@ export const FRONT_SLAB_EXT: Slab = {
   tone: 'land',
 }
 
+/** Water between the hostel slab and the Market Hub slab (the bridge to Ekpoma Market goes here). */
+export const MARKET_SLAB_GAP = 7
+/** World Z of the Market Hub's north edge — it sits level with the campus slab's east side. */
+const MARKET_SLAB_NORTH_Z = -65
+
+/** Empty slab east of the hostels, the same size as the hostel slab — Ekpoma Market land. */
+export const MARKET_SLAB: Slab = {
+  name: 'market-hub',
+  x: FRONT_SLAB_EXT.x + FRONT_SLAB_EXT.w + MARKET_SLAB_GAP,
+  z: MARKET_SLAB_NORTH_Z + FRONT_SLAB_EXT.d / 2,
+  w: FRONT_SLAB_EXT.w,
+  d: FRONT_SLAB_EXT.d,
+  h: SLAB_H,
+  radius: SLAB_R,
+  tone: 'land',
+  // The campus slab's green, a pinch darker
+  color: '#8AA173',
+}
+
 /** East-extension hostel grid (8×5 with 4.5% / 5% margins) — the spacing every hostel slab copies. */
 export const HOSTEL_GRID = {
   marginX: FRONT_SLAB_EXT.w * 0.045,
@@ -194,7 +215,7 @@ export const UKE_SLAB = FRONT_SLAB
 export const OUTSKIRTS_SLAB = FRONT_SLAB
 export const RESIDENTIAL_SLAB = FIRST_SLAB
 
-export const SLABS: Slab[] = [REAR_HOSTEL_SLAB, FIRST_SLAB, FRONT_SLAB, FRONT_SLAB_EXT]
+export const SLABS: Slab[] = [REAR_HOSTEL_SLAB, FIRST_SLAB, FRONT_SLAB, FRONT_SLAB_EXT, MARKET_SLAB]
 
 export const UKE_LATERITE: Rect = {
   x: xFromWest(18),
@@ -258,11 +279,11 @@ export const AAU_GATE_V = 0.8821
 
 export const ROAD_GAPS: RoadGap[] = [
   // Bottom main road — gap in front of the gate for the "AMBROSE ALI UNIVERSITY" ground text
-  roadH('bottom-main-west', 0.04, 0.36, 0.93),
+  // 'bottom-main-west' (v 0.93, u 0.04–0.36) removed
   roadH('bottom-main-east', 0.8, 0.96, 0.93),
   // Town verticals (left of fence)
   roadV('town-halls', 0.18, 0.12, 0.9),
-  roadV('amos-jack', 0.28, 0.12, 0.9),
+  // 'amos-jack' vertical (u 0.28) removed — the lane between the shops and the Cattle Market
   // Annotated red-X road (old admin–cordelia / mid campus vertical) removed —
   // opens the Twin Hall ↔ Engineering strip for the big parking lot.
   // Top campus road into extended area
@@ -278,10 +299,13 @@ const FRONT_TOTAL_W = FRONT_SLAB.w + FRONT_SLAB_GAP + FRONT_SLAB_EXT_W
 const WORLD_NORTH_Z = REAR_HOSTEL_SLAB.z - REAR_HOSTEL_SLAB.d / 2
 const WORLD_SOUTH_Z = FRONT_SLAB.z + FRONT_SLAB.d / 2
 
+const WORLD_WEST = FIRST_SLAB.x - FIRST_SLAB.w / 2
+const WORLD_EAST = Math.max(FIRST_SLAB.x + FIRST_SLAB.w / 2, MARKET_SLAB.x + MARKET_SLAB.w / 2)
+
 export const WORLD: Rect = {
-  x: FIRST_SLAB.x,
+  x: (WORLD_WEST + WORLD_EAST) / 2,
   z: (WORLD_NORTH_Z + WORLD_SOUTH_Z) / 2,
-  w: Math.max(FIRST_W, FRONT_TOTAL_W) + 24,
+  w: Math.max(WORLD_EAST - WORLD_WEST, FRONT_TOTAL_W) + 24,
   d: WORLD_SOUTH_Z - WORLD_NORTH_Z + 48,
 }
 
@@ -342,30 +366,26 @@ const FIRST_ZONES: MapZone[] = [
   // —— COLLEGE OF MEDICINE plot (west of town-halls u=0.18) ——
   // Walk lane down the middle (u≈0.085). West row + east row face the yard.
   // West row (slab edge)
-  zone('animal-house-1', 'Animal House', 0.055, 0.12, 'building-c', [10, 8], 0, 4.9, original),
-  zone('bamssa', 'BAMSSA', 0.055, 0.3, 'building-e', [10, 8], 0, 4.9, clay),
   zone('relaxation-centre', 'Relaxation Centre', 0.055, 0.48, 'building-f', [10, 8], 0, 4.9, sand),
   zone('etf-hall', 'ETF Hall', 0.055, 0.66, 'building-g', [10.5, 8.5], 0, 5, purple),
   // East row (toward town-halls road — still clear of u=0.18)
-  zone('anatomy-secretariat', 'Anatomy Secretariat', 0.115, 0.18, 'building-d', [10, 8], Math.PI, 4.9, earth),
   zone('hall-200', '200 Level Hall', 0.115, 0.36, 'building-i', [10.5, 8.5], Math.PI, 5, plum),
   zone('hall-100', '100 Level Hall', 0.115, 0.54, 'building-h', [10.5, 8.5], Math.PI, 5, original),
-  zone('mls-hall', 'MLS Hall', 0.115, 0.7, 'building-skyscraper-b', [10, 8], Math.PI, 5, lilac),
+  zone('mls-hall', 'MLS Hall', 0.115, 0.7, 'building-c', [10, 8], Math.PI, 4.3, lilac),
   // South head of the yard — faces north into the precinct
   zone('college-of-medicine', 'College of Medicine', 0.085, 0.8, 'building-k', [11.5, 9], Math.PI, 5.1, clay),
 
+  // Name painted on the grass along the south edge of the College of Medicine plot
+  zone('college-of-medicine-name', 'College of Medicine', 0.128, 0.93, 'label', [48, 4], 0, 0.68),
+
   // —— Mid plot between town-halls (0.18) and amos-jack (0.28) ——
   // Open spine u≈0.23; buildings on west / east flanks so you can walk through.
-  zone('ict-lab', 'ICT Lab', 0.205, 0.18, 'building-a', [10, 8], 0, 4.9, lilac),
   zone('town-shop-1', 'Shop', 0.245, 0.28, 'shop', [10, 8], Math.PI),
-  zone('town-shop-2', 'Shop', 0.205, 0.4, 'shop', [10, 8], 0),
-  zone('town-shop-3', 'House', 0.245, 0.52, 'building-d', [10, 8], Math.PI, 4.9, original),
   zone('town-shop-4', 'Shop', 0.205, 0.64, 'shop', [10, 8], 0),
   zone('bukka', 'Mama Amina Bukka', 0.245, 0.76, 'building-f', [10, 8], Math.PI, 4.9, sand),
 
   // —— East plot between amos-jack (0.28) and fence (~0.39) ——
   zone('off-campus-hostels', 'Off-campus Hostels', 0.32, 0.12, 'hostel-block', [11.5, 9], 0, 5.1),
-  zone('animal-house-2', 'Animal House', 0.355, 0.26, 'building-b', [10, 8], Math.PI, 4.9, clay),
   zone('cattle-market', 'Cattle Market', 0.32, 0.42, 'building-j', [11, 8.5], 0, 5, original),
   // Hand-made GLB (public/models/sazza.glb) on a cement pad. Placed in the debug panel at
   // x 0.25, z -67.5, scaleMul 2.75 with the old dirt-lot model; converted for the building-only model.
@@ -410,7 +430,8 @@ const FIRST_ZONES: MapZone[] = [
   zone('shuttle-park', 'Shuttle Park', 0.975, 0.84, 'parking-lot', [16, 14], 0),
 
   // Near gate / campus edge — same height band as faculty blocks
-  zone('keke-park', 'Keke Park', FENCE_U + 0.07, 0.74, 'building-g', [10, 8], 0, 4.9, sand),
+  // Not on the map any more, but okada hustles / quests / travel are anchored here, so keep its spot
+  { ...zone('keke-park', 'Keke Park', FENCE_U + 0.07, 0.74, 'open', [10, 8]), hidden: true },
 
   // —— Billboards (the five marked spots). Ad face turns toward the default camera at rotation 0;
   // tapping one opens the ad viewer. Fine-tune in the zone debug panel.
@@ -497,10 +518,49 @@ const SOUTH_ZONES: MapZone[] = [
       { model: 'building-i', dx: 5, dz: 0, tint: original },
     ],
   }),
-  southZone('playchill-climax', 'Playchill Climax', 0.72, 0.66, 'building-k', [10, 9], { scale: 4.9, tint: lilac }),
+  // Pay-to-play football pitch (open plot with markings and goals)
+  southZone('playchill-climax', 'Playchill Climax', 0.72, 0.66, 'open', [26, 16], { open: 'pitch' }),
 ]
 
-export const MAP_ZONES: MapZone[] = [...FIRST_ZONES, ...SOUTH_ZONES]
+/** Name painted near the south edge of the empty Market Hub slab. */
+const MARKET_HUB_LABEL: MapZone = {
+  id: 'market-hub-name',
+  label: 'Prodigy Market Hub',
+  position: [MARKET_SLAB.x, MARKET_SLAB.z + MARKET_SLAB.d * 0.37],
+  rotation: 0,
+  model: 'label',
+  footprint: [MARKET_SLAB.w * 0.8, 8],
+  slab: 'south',
+  scale: 0.8,
+  labelColor: '#ffffff',
+}
+
+/** The building site in the middle of the slab: tap it (its 🚧 sticker) to see what is coming. */
+const MARKET_HUB_SITE: MapZone = {
+  id: 'market-hub',
+  label: 'Market Hub',
+  position: [MARKET_SLAB.x + 4, MARKET_SLAB.z - MARKET_SLAB.d * 0.12],
+  rotation: 0,
+  model: 'open',
+  footprint: [30, 20],
+  slab: 'south',
+  open: 'construction',
+}
+
+/** Second, shorter name running up the west side of the slab (reads bottom to top). */
+const MARKET_HUB_SIDE_LABEL: MapZone = {
+  id: 'market-hub-side',
+  label: 'Market Hub',
+  position: [MARKET_SLAB.x - MARKET_SLAB.w * 0.41, MARKET_SLAB.z + MARKET_SLAB.d * 0.06],
+  rotation: Math.PI / 2,
+  model: 'label',
+  footprint: [8, 8],
+  slab: 'south',
+  scale: 0.85,
+  labelColor: '#ffffff',
+}
+
+export const MAP_ZONES: MapZone[] = [...FIRST_ZONES, ...SOUTH_ZONES, MARKET_HUB_LABEL, MARKET_HUB_SIDE_LABEL, MARKET_HUB_SITE]
 
 export const MAP_LOCATION_IDS = [
   'aau_campus',

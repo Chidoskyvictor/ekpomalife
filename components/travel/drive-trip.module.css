@@ -1,0 +1,176 @@
+/* The highway drive: a full-screen canvas with a trip card, camera switch and action pills over it */
+
+.drive {
+  position: fixed;
+  inset: 0;
+  /* Same layer as the plain trip card: above boot splashes and sheets, below toasts */
+  z-index: calc(var(--z-phone) + 5);
+  overflow: hidden;
+  background: #bcd3e0;
+  opacity: 1;
+  transition: opacity 0.3s ease;
+  animation: driveIn 0.2s ease-out;
+}
+
+.drive[data-done='true'] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+@keyframes driveIn {
+  from {
+    opacity: 0;
+  }
+}
+
+.canvas {
+  position: absolute;
+  inset: 0;
+}
+
+.top {
+  pointer-events: none;
+  position: absolute;
+  inset: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) auto max(12px, env(safe-area-inset-left));
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.card {
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.title {
+  overflow: hidden;
+  margin: 0;
+  color: #111;
+  font-size: 15px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bar {
+  position: relative;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e5e7eb;
+}
+
+.fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: inherit;
+  background: #22a35a;
+  transition: width 0.2s linear;
+}
+
+.eta {
+  margin: 0;
+  color: #4b5563;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.views {
+  pointer-events: auto;
+  display: inline-flex;
+  align-self: flex-start;
+  padding: 3px;
+  border-radius: 999px;
+  background: rgba(17, 24, 39, 0.55);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.view {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.85);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.view[aria-checked='true'] {
+  background: #fff;
+  color: #111;
+}
+
+.map {
+  position: absolute;
+  right: max(12px, env(safe-area-inset-right));
+  bottom: calc(76px + env(safe-area-inset-bottom));
+  width: min(260px, 60vw);
+  padding: 8px;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+}
+
+.actions {
+  position: absolute;
+  inset: auto max(12px, env(safe-area-inset-right)) calc(16px + env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.action {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 18px;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+  color: #111;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.action:active {
+  transform: scale(0.96);
+}
+
+.action[aria-pressed='true'] {
+  background: #111;
+  color: #fff;
+}
+
+.skip {
+  border-color: transparent;
+  background: #22a35a;
+  color: #fff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drive {
+    animation: none;
+  }
+}

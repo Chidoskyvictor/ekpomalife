@@ -15,10 +15,10 @@ import { PerspectiveCamera, Vector3, type Group, type Object3D } from 'three'
 import { useGame } from '@/hooks/use-game'
 import { useLiveSpaces } from '@/hooks/use-live-spaces'
 import { requestOpenSpace } from '@/lib/game/open-spaces'
-import { placeFor } from '@/lib/game/place-info'
+import { isComingSoon, placeFor } from '@/lib/game/place-info'
 import { PLACES } from '@/lib/game/places'
 import type { SpaceCard } from '@/lib/game/spaces-api'
-import { stickerForZone } from '@/lib/game/zone-stickers'
+import { stickerForZone, stickerImageForZone } from '@/lib/game/zone-stickers'
 import labelStyles from './zone-label.module.css'
 
 /** Perspective shrink like drei `<Html distanceFactor>`, clamped so names stay readable when zoomed out. */
@@ -82,6 +82,7 @@ function StickerButton({ zoneId, label, space }: { zoneId: string; label: string
   const [open, setOpen] = useState(false)
   const { select } = useGame()
   const sticker = stickerForZone(zoneId, label)
+  const image = stickerImageForZone(zoneId)
   return (
     <span className={labelStyles.stickerWrap}>
       <button
@@ -95,10 +96,12 @@ function StickerButton({ zoneId, label, space }: { zoneId: string; label: string
         onFocus={() => setOpen(true)}
         onBlur={() => setOpen(false)}
         onClick={() => {
-          if (placeFor(zoneId)) select(zoneId)
+          if (placeFor(zoneId) || isComingSoon(zoneId)) select(zoneId)
         }}
       >
-        <span className={labelStyles.emoji} aria-hidden="true">{sticker}</span>
+        <span className={labelStyles.emoji} aria-hidden="true">
+          {image ? <img src={image} alt="" width={24} height={24} className={labelStyles.stickerImage} /> : sticker}
+        </span>
         <span className={labelStyles.name}>{label}</span>
       </button>
       {space ? (

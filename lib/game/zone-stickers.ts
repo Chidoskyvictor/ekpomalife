@@ -8,6 +8,7 @@ const BY_ID: Record<string, string> = {
   'magmus-autos': '🔧',
   'above-the-hills-church': '⛪',
   'wise-gourmet': '🍽️',
+  'market-hub': '🚧',
   park: '🌳',
   'shop-mid-1': '🏪',
   'shop-mid-2': '🏪',
@@ -57,6 +58,15 @@ const BY_ID: Record<string, string> = {
   'town-shop-3': '🏡',
   'town-shop-4': '🏪',
   'twin-hall': '🏫',
+}
+
+/** Places whose map sticker is a picture instead of an emoji. */
+const IMAGE_BY_ID: Record<string, string> = {
+  'aau-gate': '/aau-logo.png',
+}
+
+export function stickerImageForZone(id: string) {
+  return IMAGE_BY_ID[id] ?? null
 }
 
 export function stickerForZone(id: string, label: string) {

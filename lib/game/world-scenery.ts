@@ -1,5 +1,5 @@
 import { extSlabHostelSlots, rearHostelSlabSlots } from './hostel-slab-layout'
-import { inRect, MAP_ZONES, mulberry32, ROAD_GAPS, ROAD_W, ROADS, SLABS, TREE_SPOTS, type Rect } from './world-layout'
+import { inRect, MAP_ZONES, MARKET_SLAB, mulberry32, ROAD_GAPS, ROAD_W, ROADS, SLABS, TREE_SPOTS, type Rect } from './world-layout'
 
 /** Palm / bush instance — `s` is a size multiplier, `tint` 0–1 picks a shade. */
 export type SceneryProp = { x: number; z: number; s: number; rot: number; tint: number }
@@ -17,6 +17,8 @@ function obstacles(): Rect[] {
   for (const slot of [...rearHostelSlabSlots(), ...extSlabHostelSlots()]) {
     rects.push({ x: slot.x, z: slot.z, w: slot.cellW, d: slot.cellD })
   }
+  // The Market Hub slab stays empty: keep bushes and lamps off its middle (shore palms still ring it)
+  rects.push({ x: MARKET_SLAB.x, z: MARKET_SLAB.z, w: MARKET_SLAB.w - 12, d: MARKET_SLAB.d - 12 })
   for (const tree of TREE_SPOTS) rects.push({ x: tree.x, z: tree.z, w: 1.6, d: 1.6 })
   return rects
 }
