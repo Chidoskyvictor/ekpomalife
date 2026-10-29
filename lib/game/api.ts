@@ -10,6 +10,8 @@
  * Set API_PROXY_TARGET only for local/LAN (dev proxy target).
  * Do not set NEXT_PUBLIC_API_DIRECT_URL unless you intentionally bypass the proxy.
  */
+const PROD_API = 'https://api.ekpomalife.app'
+
 function isLocalHost(url: string) {
   return /localhost|127\.0\.0\.1|192\.168\.|10\.|172\.(1[6-9]|2\d|3[0-1])\./i.test(url)
 }
@@ -24,6 +26,11 @@ export function apiUrl() {
     // Absolute https API that is not a LAN/dev host → call it directly.
     if (publicApi.startsWith('https://') && !isLocalHost(publicApi)) {
       return publicApi
+    }
+    // Never use the dev-only /api proxy on the live site, even if the
+    // build was made without NEXT_PUBLIC_API_URL.
+    if (process.env.NODE_ENV === 'production' && !isLocalHost(window.location.origin)) {
+      return PROD_API
     }
     return '/api'
   }
