@@ -50,14 +50,14 @@ export const HAIR_CONFIG: Record<BodyId, Partial<Record<HairId, HairFit>>> = {
       paint: true,
     },
     ponytail: {
-      file: '/models/hair/ponytail.glb',
+      file: '/models/hair/ponytail.glb?v=mo2',
       scale: 1,
       offset: [0.005, -0.01, 0],
       rotation: [0, 0, 0],
       paint: true,
     },
     long: {
-      file: '/models/hair/ponytail.glb',
+      file: '/models/hair/ponytail.glb?v=mo2',
       scale: 1,
       offset: [0.005, -0.01, 0],
       rotation: [0, 0, 0],
@@ -106,7 +106,7 @@ export const HAIR_CONFIG: Record<BodyId, Partial<Record<HairId, HairFit>>> = {
       paint: true,
     },
     curls: {
-      file: '/models/hair/curl.glb',
+      file: '/models/hair/curl.glb?v=mo2',
       scale: 1,
       offset: [0, 0.03, 0],
       rotation: [0, 0, 0],

@@ -180,7 +180,7 @@ const HOSTEL: RoomLayout = {
 const CLUB_SAZZA: RoomLayout = {
   id: 'club-sazza',
   label: 'Sazza',
-  glb: '/models/club-sazza.glb',
+  glb: '/models/club-sazza.glb?v=mo2',
   floors: [[-5.62, -7.62, 5.62, 7.62]],
   blocks: [
     [-5.95, -3.05, -3.85, 5.05], // bar + back-bar
