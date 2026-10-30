@@ -19,6 +19,7 @@ import { isComingSoon, placeFor } from '@/lib/game/place-info'
 import { PLACES } from '@/lib/game/places'
 import type { SpaceCard } from '@/lib/game/spaces-api'
 import { stickerForZone, stickerImageForZone } from '@/lib/game/zone-stickers'
+import { useShowMapLabels } from '@/lib/game/map-labels'
 import labelStyles from './zone-label.module.css'
 
 /** Perspective shrink like drei `<Html distanceFactor>`, clamped so names stay readable when zoomed out. */
@@ -204,6 +205,7 @@ export function ZoneStickerOverlay() {
   )
   const anchors = useMemo(() => (store ? [...store.anchors.entries()] : []), [store, version])
   const { isGuest } = useGame()
+  const [showLabels] = useShowMapLabels()
   // Busiest live public room per map zone (a Space's place is a place id; stickers are keyed by zone id)
   const live = useLiveSpaces(!isGuest)
   const byZone = useMemo(() => {
@@ -219,7 +221,10 @@ export function ZoneStickerOverlay() {
 
   return (
     // Own stacking layer: label z-order (0–80) stays inside it, under every HUD panel
-    <div className="pointer-events-none absolute inset-0 isolate z-0 overflow-hidden">
+    <div
+      className="pointer-events-none absolute inset-0 isolate z-0 overflow-hidden"
+      data-labels={showLabels ? 'shown' : 'hidden'}
+    >
       {anchors.map(([id, anchor]) => (
         <div
           key={id}

@@ -27,7 +27,8 @@
 
 .sticker:hover,
 .sticker:focus-visible,
-.sticker[data-open='true'] {
+.sticker[data-open='true'],
+:global([data-labels='shown']) .sticker {
   gap: 6px;
   padding-right: 12px;
   box-shadow: 0 8px 22px rgba(16, 24, 40, 0.18);
@@ -70,10 +71,20 @@
 
 .sticker:hover .name,
 .sticker:focus-visible .name,
-.sticker[data-open='true'] .name {
+.sticker[data-open='true'] .name,
+:global([data-labels='shown']) .name {
   max-width: 14rem;
   opacity: 1;
   transform: translateX(0);
+}
+
+/* Always-on names: keep them compact on small screens */
+@media (max-width: 640px) {
+  :global([data-labels='shown']) .name {
+    max-width: 9rem;
+    font-size: 12px;
+    text-overflow: ellipsis;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
