@@ -263,10 +263,12 @@ type LandmarkProps = {
 
 function QuestArrow({ active }: { active: boolean }) {
   const ref = useRef<Group>(null)
-  useFrame(({ clock }) => {
+  useFrame(({ clock, invalidate }) => {
     if (!ref.current || !active) return
     const reduce =
       typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    // Demand frameloop: keep bobbing only while the arrow is shown
+    if (!reduce) invalidate()
     ref.current.position.y = reduce ? 3.2 : 3.2 + Math.sin(clock.elapsedTime * 4) * 0.35
   })
   if (!active) return null

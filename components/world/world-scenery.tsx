@@ -205,14 +205,17 @@ function makeClouds(count: number): Cloud[] {
 }
 
 /** Puffy low-poly clouds drifting east, wrapping around the world bounds. */
-function Clouds({ count, night }: { count: number; night: boolean }) {
+function Clouds({ count, night, animate }: { count: number; night: boolean; animate: boolean }) {
   const clouds = useMemo(() => makeClouds(count), [count])
   const puff = useMemo(() => new IcosahedronGeometry(1, 1), [])
   const refs = useRef<(Group | null)[]>([])
   const west = WORLD.x - WORLD.w / 2 - 40
   const span = WORLD.w + 80
 
-  useFrame((_, delta) => {
+  // Demand frameloop: desktop keeps drifting (one invalidate per frame), phones hold clouds still
+  useFrame((state, delta) => {
+    if (!animate) return
+    state.invalidate()
     clouds.forEach((cloud, i) => {
       const group = refs.current[i]
       if (!group) return
@@ -258,7 +261,7 @@ export function WorldScenery({ mobile, night }: { mobile: boolean; night: boolea
       <Palms props={palms} shadows={!mobile} />
       <Bushes props={bushes} shadows={!mobile} />
       <Lamps night={night} />
-      <Clouds count={mobile ? 4 : 8} night={night} />
+      <Clouds count={mobile ? 4 : 8} night={night} animate={!mobile} />
     </group>
   )
 }

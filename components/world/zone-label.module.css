@@ -78,13 +78,45 @@
   transform: translateX(0);
 }
 
-/* Always-on names: keep them compact on small screens */
-@media (max-width: 640px) {
+/* Always-on names on phones: bigger, bolder pills (Lagos Life style) */
+@media (max-width: 640px), (pointer: coarse) {
+  :global([data-labels='shown']) .sticker {
+    gap: 7px;
+    padding-right: 14px;
+    border-color: rgba(255, 255, 255, 0.9);
+    background: #fff;
+    box-shadow: 0 6px 18px rgba(16, 24, 40, 0.16), 0 1px 3px rgba(16, 24, 40, 0.1);
+  }
+
+  :global([data-labels='shown']) .emoji {
+    width: 2.45rem;
+    height: 2.45rem;
+    font-size: 1.4rem;
+  }
+
+  :global([data-labels='shown']) .stickerImage {
+    width: 1.8rem;
+    height: 1.8rem;
+  }
+
   :global([data-labels='shown']) .name {
-    max-width: 9rem;
-    font-size: 12px;
+    max-width: 11rem;
+    font-size: 14px;
+    font-weight: 800;
     text-overflow: ellipsis;
   }
+}
+
+/* Overlap culling: a crowded label keeps its sticker, its name tucks away (hover / open still reveal it) */
+:global([data-labels='shown']) .htmlWrap[data-culled='true'] .sticker:not(:hover):not(:focus-visible):not([data-open='true']) {
+  gap: 0;
+  padding-right: 0;
+}
+
+:global([data-labels='shown']) .htmlWrap[data-culled='true'] .sticker:not(:hover):not(:focus-visible):not([data-open='true']) .name {
+  max-width: 0;
+  opacity: 0;
+  transform: translateX(-6px);
 }
 
 @media (prefers-reduced-motion: reduce) {

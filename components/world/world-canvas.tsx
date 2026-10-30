@@ -1,7 +1,7 @@
 'use client'
 
-import { MapControls, PerformanceMonitor } from '@react-three/drei'
-import { Canvas, useFrame, useThree } from '@react-three/fiber'
+import { MapControls, PerformanceMonitor, useProgress } from '@react-three/drei'
+import { Canvas, invalidate as invalidateFrame, useFrame, useThree } from '@react-three/fiber'
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { NoToneMapping, PerspectiveCamera, Vector3 } from 'three'
 import { getPlace, getPlaceByZone } from '@/lib/game/places'
@@ -130,9 +130,17 @@ function CameraRig({ focusId }: { focusId: string | null }) {
     goal.current = zone ? new Vector3(zone.position[0], 0, zone.position[1] + 4) : null
   }, [focusId])
 
+  // Demand frameloop: a new focus starts the glide
+  const invalidate = useThree((state) => state.invalidate)
+  useEffect(() => {
+    invalidate()
+  }, [focusId, invalidate])
+
   useFrame((_, delta) => {
     if (!controls) return
+    let changed = false
     if (goal.current) {
+      changed = true
       const step = Math.min(1, delta * 3)
       const move = goal.current.clone().sub(controls.target).multiplyScalar(step)
       controls.target.add(move)
@@ -150,11 +158,33 @@ function CameraRig({ focusId }: { focusId: string | null }) {
       camera.position.z += z - controls.target.z
       controls.target.x = x
       controls.target.z = z
+      changed = true
     }
-    controls.target.y = 0
-    controls.update()
+    if (controls.target.y !== 0) {
+      controls.target.y = 0
+      changed = true
+    }
+    // Only touch the controls while gliding / clamping, and keep frames coming until it settles
+    if (changed) {
+      controls.update()
+      invalidate()
+    }
   })
 
+  return null
+}
+
+/** Demand frameloop: redraw when models finish loading, the period changes, or labels toggle. */
+function SceneInvalidator({ deps }: { deps: unknown[] }) {
+  const invalidate = useThree((state) => state.invalidate)
+  const { active, progress, loaded } = useProgress()
+  useEffect(() => {
+    invalidate()
+    // Suspense-mounted meshes can land a tick after the loader reports done
+    const id = window.setTimeout(() => invalidate(), 100)
+    return () => window.clearTimeout(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [invalidate, active, progress, loaded, ...deps])
   return null
 }
 
@@ -235,7 +265,7 @@ export function WorldCanvas() {
       <Canvas
         shadows={!mobile}
         // The highway drive covers the map: stop drawing it until the drive is over
-        frameloop={driving ? 'never' : 'always'}
+        frameloop={driving ? 'never' : 'demand'}
         dpr={mobile ? mobileDpr : [1, 1.75]}
         gl={{
           antialias: true,
@@ -260,6 +290,7 @@ export function WorldCanvas() {
           <MobileDprMonitor onDecline={onMobileDprDecline} onIncline={onMobileDprIncline} />
         ) : null}
         <MapLoadReporter onProgress={onProgress} />
+        <SceneInvalidator deps={[period, selectedId, mobile, mobileDpr, driving]} />
         <color attach="background" args={[ground]} />
         <fog attach="fog" args={[ground, 230, 420]} />
         <ambientLight intensity={ambient} />
@@ -304,9 +335,11 @@ export function WorldCanvas() {
           zoomSpeed={0.7}
           rotateSpeed={0.45}
           target={[FIRST_SLAB.x, 0, FIRST_SLAB.z]}
+          // Demand frameloop: every pan / zoom / damping step redraws (and re-projects labels)
+          onChange={() => invalidateFrame()}
         />
         <CameraRig focusId={selectedId} />
-        <ZoneStickerProjector />
+        <ZoneStickerProjector selectedId={selectedId} />
       </Canvas>
       <ZoneStickerOverlay />
     </div>

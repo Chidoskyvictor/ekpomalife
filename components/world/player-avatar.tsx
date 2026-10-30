@@ -1,7 +1,7 @@
 'use client'
 
-import { useFrame } from '@react-three/fiber'
-import { useRef } from 'react'
+import { useFrame, useThree } from '@react-three/fiber'
+import { useEffect, useRef } from 'react'
 import { Vector3, type Group } from 'three'
 import { CharacterFigure } from '@/components/look/character-figure'
 import { getPlace, getPlaceByZone } from '@/lib/game/places'
@@ -32,7 +32,13 @@ export function PlayerAvatar({
   const moving = useRef(false)
   const look = normalizeAppearance(appearance ?? DEFAULT_APPEARANCE)
 
-  useFrame((_, delta) => {
+  const invalidate = useThree((state) => state.invalidate)
+  // Demand frameloop: kick a frame when the destination changes; useFrame keeps going while moving
+  useEffect(() => {
+    invalidate()
+  }, [locationId, invalidate])
+
+  useFrame((state, delta) => {
     const group = ref.current
     if (!group) return
     target.current.set(...avatarSpot(locationId))
@@ -41,6 +47,7 @@ export function PlayerAvatar({
       const step = Math.min(1, delta * 2.2)
       group.position.lerp(target.current, step)
       group.lookAt(target.current.x, group.position.y, target.current.z)
+      state.invalidate()
     }
     // The figure plays its walk cycle while travelling, idles otherwise
     moving.current = distance > 0.3
