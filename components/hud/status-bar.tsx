@@ -2,7 +2,7 @@
 
 import NumberFlow from '@number-flow/react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import { Plus, Volume2, VolumeX } from 'lucide-react'
+import { Plus, Tag, Volume2, VolumeX } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { TextShimmer } from '@/components/arc/text-shimmer/text-shimmer'
 import {
@@ -10,6 +10,7 @@ import {
   moodFromNeeds,
   PERIOD_CLOCK,
 } from '@/lib/game/needs'
+import { useShowMapLabels } from '@/lib/game/map-labels'
 import { isNepaOutage } from '@/lib/game/quests'
 import { useWatClock } from '@/lib/game/wat-clock'
 import type { GameState } from '@/lib/game/types'
@@ -33,6 +34,7 @@ export function StatusBar({
 }) {
   const reduced = useReducedMotion() ?? false
   const [muted, setMuted] = useState(false)
+  const [showLabels, setShowLabels] = useShowMapLabels()
   const prev = useRef(state?.cash ?? 0)
   const [delta, setDelta] = useState<number | null>(null)
 
@@ -123,6 +125,16 @@ export function StatusBar({
         <SiteStats variant="inline" />
 
         <div className={styles.statusRight}>
+          <button
+            type="button"
+            className={styles.iconGhost}
+            aria-label={showLabels ? 'Hide labels' : 'Show labels'}
+            aria-pressed={showLabels}
+            title={showLabels ? 'Hide labels' : 'Show labels'}
+            onClick={() => setShowLabels(!showLabels)}
+          >
+            <Tag size={18} aria-hidden="true" style={showLabels ? undefined : { opacity: 0.45 }} />
+          </button>
           <button
             type="button"
             className={`${styles.iconGhost} ${styles.deskOnly}`}
