@@ -188,6 +188,35 @@ function SceneInvalidator({ deps }: { deps: unknown[] }) {
   return null
 }
 
+/** Demand frameloop safety net: keep drawing while a finger / mouse is on the map and briefly after,
+ *  so pans, pinches and damping can never stall even if a controls change event is missed. */
+function InteractionKeepAlive() {
+  const gl = useThree((state) => state.gl)
+  const invalidate = useThree((state) => state.invalidate)
+  const until = useRef(0)
+  useEffect(() => {
+    const el = gl.domElement
+    const kick = () => {
+      until.current = performance.now() + 1500
+      invalidate()
+    }
+    const events = ['pointerdown', 'pointermove', 'pointerup', 'wheel', 'touchstart', 'touchmove', 'touchend'] as const
+    events.forEach((name) => el.addEventListener(name, kick, { passive: true }))
+    const onVisible = () => document.visibilityState === 'visible' && kick()
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('resize', kick)
+    return () => {
+      events.forEach((name) => el.removeEventListener(name, kick))
+      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('resize', kick)
+    }
+  }, [gl, invalidate])
+  useFrame(() => {
+    if (performance.now() < until.current) invalidate()
+  })
+  return null
+}
+
 function MobileDprMonitor({
   onDecline,
   onIncline,
@@ -289,6 +318,7 @@ export function WorldCanvas() {
         {mobile ? (
           <MobileDprMonitor onDecline={onMobileDprDecline} onIncline={onMobileDprIncline} />
         ) : null}
+        <InteractionKeepAlive />
         <MapLoadReporter onProgress={onProgress} />
         <SceneInvalidator deps={[period, selectedId, mobile, mobileDpr, driving]} />
         <color attach="background" args={[ground]} />
