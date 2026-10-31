@@ -217,6 +217,51 @@ function InteractionKeepAlive() {
   return null
 }
 
+/** Dev aid: add ?fps=1 to the URL (?fps=0 turns it off) to show frames drawn per second.
+ *  With the demand frameloop it reads ~0 when the map is still; watch it while panning. */
+function FpsCounter() {
+  const [on] = useState(() => {
+    const q = new URLSearchParams(window.location.search).get('fps')
+    try {
+      if (q === '1') sessionStorage.setItem('ekp:fps', '1')
+      if (q === '0') sessionStorage.removeItem('ekp:fps')
+      return sessionStorage.getItem('ekp:fps') === '1'
+    } catch {
+      return q === '1'
+    }
+  })
+  const el = useRef<HTMLDivElement | null>(null)
+  const frames = useRef(0)
+  useEffect(() => {
+    if (!on) return
+    const div = document.createElement('div')
+    div.style.cssText =
+      'position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:99999;pointer-events:none;' +
+      'background:rgba(0,0,0,.72);color:#7CFC9A;font:700 13px/1.2 ui-monospace,monospace;padding:4px 8px;border-radius:6px'
+    div.textContent = 'FPS —'
+    document.body.appendChild(div)
+    el.current = div
+    let last = performance.now()
+    const id = window.setInterval(() => {
+      const now = performance.now()
+      const fps = (frames.current * 1000) / (now - last)
+      frames.current = 0
+      last = now
+      div.textContent = `FPS ${fps.toFixed(0)}`
+      div.style.color = fps >= 50 ? '#7CFC9A' : fps >= 30 ? '#FFD45C' : '#FF6B6B'
+    }, 500)
+    return () => {
+      window.clearInterval(id)
+      div.remove()
+      el.current = null
+    }
+  }, [on])
+  useFrame(() => {
+    if (on) frames.current++
+  })
+  return null
+}
+
 function MobileDprMonitor({
   onDecline,
   onIncline,
@@ -319,6 +364,7 @@ export function WorldCanvas() {
           <MobileDprMonitor onDecline={onMobileDprDecline} onIncline={onMobileDprIncline} />
         ) : null}
         <InteractionKeepAlive />
+        <FpsCounter />
         <MapLoadReporter onProgress={onProgress} />
         <SceneInvalidator deps={[period, selectedId, mobile, mobileDpr, driving]} />
         <color attach="background" args={[ground]} />
