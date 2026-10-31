@@ -4,7 +4,6 @@ import { useFrame, useThree } from '@react-three/fiber'
 import {
   createContext,
   useContext,
-  useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -31,8 +30,6 @@ const Z_NEAR = 80
 
 type Anchor = { zoneId: string; label: string; object: Object3D }
 type Painted = { x: number; y: number; scale: number; z: number; shown: boolean }
-type Box = { w: number; h: number }
-type Candidate = { id: string; el: HTMLElement; x: number; y: number; scale: number; dist: number; z: number }
 
 /**
  * One store for every building sticker: anchors register from inside the Canvas, a single DOM
@@ -42,9 +39,6 @@ class StickerStore {
   anchors = new Map<string, Anchor>()
   elements = new Map<string, HTMLElement>()
   painted = new Map<string, Painted>()
-  /** Full (name-visible) pill size per label, measured once, for overlap culling */
-  boxes = new Map<string, Box>()
-  culled = new Map<string, boolean>()
   version = 0
   private listeners = new Set<() => void>()
 
@@ -69,8 +63,6 @@ class StickerStore {
     if (el) this.elements.set(id, el)
     else this.elements.delete(id)
     this.painted.delete(id)
-    this.boxes.delete(id)
-    this.culled.delete(id)
   }
 }
 
@@ -156,40 +148,11 @@ const worldPos = new Vector3()
 const cameraPos = new Vector3()
 const projected = new Vector3()
 
-const CULL_PAD = 3
-const CULL_MS = 150
-
-function overlaps(a: number[], b: number[]) {
-  return a[0] < b[2] && a[2] > b[0] && a[1] < b[3] && a[3] > b[1]
-}
-
 /** Mount inside the Canvas: projects every anchor once per frame, touching the DOM only on change. */
-export function ZoneStickerProjector({ selectedId = null }: { selectedId?: string | null }) {
+export function ZoneStickerProjector() {
   const store = useContext(StickerContext)
   const camera = useThree((state) => state.camera)
   const size = useThree((state) => state.size)
-  const invalidate = useThree((state) => state.invalidate)
-  const [showLabels] = useShowMapLabels()
-  const lastCull = useRef(0)
-  const cullTimer = useRef<number | null>(null)
-  useEffect(
-    () => () => {
-      if (cullTimer.current !== null) window.clearTimeout(cullTimer.current)
-    },
-    [],
-  )
-
-  // Demand frameloop: re-run the projection (and culling) when labels toggle or selection changes
-  useEffect(() => {
-    if (!store) return
-    store.boxes.clear()
-    lastCull.current = 0
-    invalidate()
-    const unsubscribe = store.subscribe(() => invalidate())
-    return () => {
-      unsubscribe()
-    }
-  }, [store, showLabels, selectedId, invalidate])
 
   useFrame(() => {
     if (!store) return
@@ -197,7 +160,6 @@ export function ZoneStickerProjector({ selectedId = null }: { selectedId?: strin
     const tanHalf = camera instanceof PerspectiveCamera ? Math.tan((camera.fov * Math.PI) / 360) : 0
     const near = (camera as PerspectiveCamera).near ?? 0.1
     const far = (camera as PerspectiveCamera).far ?? 1000
-    const visible: Candidate[] = []
 
     for (const [id, anchor] of store.anchors) {
       const el = store.elements.get(id)
@@ -211,7 +173,6 @@ export function ZoneStickerProjector({ selectedId = null }: { selectedId?: strin
       const raw = tanHalf ? DISTANCE_FACTOR / (2 * tanHalf * dist) : 1
       const scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, raw))
       const z = Math.round(Z_NEAR - (Z_NEAR * (dist - near)) / (far - near))
-      if (shown) visible.push({ id, el, x, y, scale, dist, z })
 
       const last = store.painted.get(id)
       if (last && last.shown === shown && !shown) continue
@@ -228,61 +189,6 @@ export function ZoneStickerProjector({ selectedId = null }: { selectedId?: strin
       if (!last || last.z !== z) el.style.zIndex = String(z)
       el.style.transform = `translate3d(${x}px,${y}px,0) scale(${scale})`
       store.painted.set(id, { x, y, scale, z, shown })
-    }
-
-    // Overlap culling of always-on names: highest priority places first, later overlapping ones keep only the sticker
-    if (!showLabels) {
-      for (const [id, culled] of store.culled) {
-        if (!culled) continue
-        store.elements.get(id)?.removeAttribute('data-culled')
-        store.culled.set(id, false)
-      }
-      return
-    }
-    // Positions update every frame; the overlap pass (sort + rect tests + attribute writes) runs at
-    // most every CULL_MS while moving, plus once more after the camera settles.
-    const now = performance.now()
-    const wait = CULL_MS - (now - lastCull.current)
-    if (wait > 0) {
-      if (cullTimer.current === null) {
-        cullTimer.current = window.setTimeout(() => {
-          cullTimer.current = null
-          invalidate()
-        }, wait + 4)
-      }
-      return
-    }
-    lastCull.current = now
-    const cx = size.width / 2
-    const cy = size.height / 2
-    const rank = (c: Candidate) => {
-      const tier = c.id === selectedId ? 0 : placeFor(c.id) ? 1 : 2
-      const centre = Math.hypot(c.x - cx, c.y - cy) / Math.max(1, Math.hypot(cx, cy))
-      return tier * 1e6 + c.dist + centre * 60
-    }
-    visible.sort((a, b) => rank(a) - rank(b))
-    const placed: number[][] = []
-    for (const c of visible) {
-      let box = store.boxes.get(c.id)
-      if (!box) {
-        if (store.culled.get(c.id)) {
-          // Measure with the name showing so rects stay stable between passes
-          c.el.removeAttribute('data-culled')
-          store.culled.set(c.id, false)
-        }
-        box = { w: c.el.offsetWidth, h: c.el.offsetHeight }
-        if (box.w > 0) store.boxes.set(c.id, box)
-      }
-      const w = box.w * c.scale
-      const h = box.h * c.scale
-      const rect = [c.x - w / 2 - CULL_PAD, c.y - h - CULL_PAD, c.x + w / 2 + CULL_PAD, c.y + CULL_PAD]
-      const hit = c.id !== selectedId && placed.some((p) => overlaps(p, rect))
-      if (!hit) placed.push(rect)
-      if (Boolean(store.culled.get(c.id)) !== hit) {
-        if (hit) c.el.setAttribute('data-culled', 'true')
-        else c.el.removeAttribute('data-culled')
-        store.culled.set(c.id, hit)
-      }
     }
   })
 

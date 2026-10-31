@@ -1,7 +1,7 @@
 'use client'
 
-import { MapControls, PerformanceMonitor, useProgress } from '@react-three/drei'
-import { Canvas, invalidate as invalidateFrame, useFrame, useThree } from '@react-three/fiber'
+import { MapControls, PerformanceMonitor } from '@react-three/drei'
+import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { NoToneMapping, PerspectiveCamera, Vector3 } from 'three'
 import { getPlace, getPlaceByZone } from '@/lib/game/places'
@@ -22,7 +22,6 @@ import { ExtSlabHostels } from './ext-slab-hostels'
 import { WorldZones } from './world-zones'
 import { WorldZoneDebugPanel } from './world-zone-debug-panel'
 import { BillboardDebugPanel } from './billboard-debug-panel'
-import { BlockBatchProvider } from './materials'
 import { ZoneStickerOverlay, ZoneStickerProjector, ZoneStickerProvider } from './world-zone-stickers'
 import { ZoneDebugProvider } from './zone-debug-context'
 import { useWatClock } from '@/lib/game/wat-clock'
@@ -131,12 +130,6 @@ function CameraRig({ focusId }: { focusId: string | null }) {
     goal.current = zone ? new Vector3(zone.position[0], 0, zone.position[1] + 4) : null
   }, [focusId])
 
-  // Demand frameloop: a new focus starts the glide
-  const invalidate = useThree((state) => state.invalidate)
-  useEffect(() => {
-    invalidate()
-  }, [focusId, invalidate])
-
   useFrame((_, delta) => {
     if (!controls) return
     if (goal.current) {
@@ -162,49 +155,6 @@ function CameraRig({ focusId }: { focusId: string | null }) {
     controls.update()
   })
 
-  return null
-}
-
-/** Demand frameloop: redraw when models finish loading, the period changes, or labels toggle. */
-function SceneInvalidator({ deps }: { deps: unknown[] }) {
-  const invalidate = useThree((state) => state.invalidate)
-  const { active, progress, loaded } = useProgress()
-  useEffect(() => {
-    invalidate()
-    // Suspense-mounted meshes can land a tick after the loader reports done
-    const id = window.setTimeout(() => invalidate(), 100)
-    return () => window.clearTimeout(id)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [invalidate, active, progress, loaded, ...deps])
-  return null
-}
-
-/** Demand frameloop safety net: keep drawing while a finger / mouse is on the map and briefly after,
- *  so pans, pinches and damping can never stall even if a controls change event is missed. */
-function InteractionKeepAlive() {
-  const gl = useThree((state) => state.gl)
-  const invalidate = useThree((state) => state.invalidate)
-  const until = useRef(0)
-  useEffect(() => {
-    const el = gl.domElement
-    const kick = () => {
-      until.current = performance.now() + 1500
-      invalidate()
-    }
-    const events = ['pointerdown', 'pointermove', 'pointerup', 'wheel', 'touchstart', 'touchmove', 'touchend'] as const
-    events.forEach((name) => el.addEventListener(name, kick, { passive: true }))
-    const onVisible = () => document.visibilityState === 'visible' && kick()
-    document.addEventListener('visibilitychange', onVisible)
-    window.addEventListener('resize', kick)
-    return () => {
-      events.forEach((name) => el.removeEventListener(name, kick))
-      document.removeEventListener('visibilitychange', onVisible)
-      window.removeEventListener('resize', kick)
-    }
-  }, [gl, invalidate])
-  useFrame(() => {
-    if (performance.now() < until.current) invalidate()
-  })
   return null
 }
 
@@ -260,8 +210,6 @@ function MobileDprMonitor({
   onDecline: () => void
   onIncline: () => void
 }) {
-  // Demand frameloop: sparse idle frames read as "low fps" and flip DPR back and forth (each flip
-  // resizes the canvas and redraws). Cap the flip-flops so it settles instead of oscillating.
   return <PerformanceMonitor onDecline={onDecline} onIncline={onIncline} />
 }
 
@@ -356,10 +304,8 @@ export function WorldCanvas() {
         {mobile ? (
           <MobileDprMonitor onDecline={onMobileDprDecline} onIncline={onMobileDprIncline} />
         ) : null}
-        <InteractionKeepAlive />
         <FpsCounter />
         <MapLoadReporter onProgress={onProgress} />
-        <SceneInvalidator deps={[period, selectedId, mobile, mobileDpr, driving]} />
         <color attach="background" args={[ground]} />
         <fog attach="fog" args={[ground, 230, 420]} />
         <ambientLight intensity={ambient} />
@@ -378,7 +324,6 @@ export function WorldCanvas() {
           shadow-intensity={0.28}
         />
         <directionalLight position={[-28, 36, -18]} intensity={fill} color="#F2FBFF" />
-        <BlockBatchProvider>
         <WorldBase color={ground} />
         <WorldGround />
         <WorldRoads />
@@ -394,7 +339,6 @@ export function WorldCanvas() {
         <Suspense fallback={null}>
           {state ? <PlayerAvatar locationId={state.locationId} color={state.avatarColor} appearance={state.appearance} /> : null}
         </Suspense>
-        </BlockBatchProvider>
         <MapControls
           makeDefault
           enableRotate
@@ -406,11 +350,9 @@ export function WorldCanvas() {
           zoomSpeed={0.7}
           rotateSpeed={0.45}
           target={[FIRST_SLAB.x, 0, FIRST_SLAB.z]}
-          // Demand frameloop: every pan / zoom / damping step redraws (and re-projects labels)
-          onChange={() => invalidateFrame()}
         />
         <CameraRig focusId={selectedId} />
-        <ZoneStickerProjector selectedId={selectedId} />
+        <ZoneStickerProjector />
       </Canvas>
       <ZoneStickerOverlay />
     </div>
