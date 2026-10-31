@@ -22,6 +22,7 @@ import { ExtSlabHostels } from './ext-slab-hostels'
 import { WorldZones } from './world-zones'
 import { WorldZoneDebugPanel } from './world-zone-debug-panel'
 import { BillboardDebugPanel } from './billboard-debug-panel'
+import { BlockBatchProvider } from './materials'
 import { ZoneStickerOverlay, ZoneStickerProjector, ZoneStickerProvider } from './world-zone-stickers'
 import { ZoneDebugProvider } from './zone-debug-context'
 import { useWatClock } from '@/lib/game/wat-clock'
@@ -269,7 +270,9 @@ function MobileDprMonitor({
   onDecline: () => void
   onIncline: () => void
 }) {
-  return <PerformanceMonitor onDecline={onDecline} onIncline={onIncline} />
+  // Demand frameloop: sparse idle frames read as "low fps" and flip DPR back and forth (each flip
+  // resizes the canvas and redraws). Cap the flip-flops so it settles instead of oscillating.
+  return <PerformanceMonitor onDecline={onDecline} onIncline={onIncline} flipflops={3} />
 }
 
 export function WorldCanvas() {
@@ -385,6 +388,7 @@ export function WorldCanvas() {
           shadow-intensity={0.28}
         />
         <directionalLight position={[-28, 36, -18]} intensity={fill} color="#F2FBFF" />
+        <BlockBatchProvider>
         <WorldBase color={ground} />
         <WorldGround />
         <WorldRoads />
@@ -400,6 +404,7 @@ export function WorldCanvas() {
         <Suspense fallback={null}>
           {state ? <PlayerAvatar locationId={state.locationId} color={state.avatarColor} appearance={state.appearance} /> : null}
         </Suspense>
+        </BlockBatchProvider>
         <MapControls
           makeDefault
           enableRotate

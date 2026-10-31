@@ -1,7 +1,7 @@
 'use client'
 
 import { useFrame, type ThreeEvent } from '@react-three/fiber'
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import type { Group } from 'three'
 import { LOCATIONS, TYPE_META } from '@/lib/game/content'
 import { isMapLocation } from '@/lib/game/world-layout'
@@ -261,15 +261,34 @@ type LandmarkProps = {
   onSelect: (id: string) => void
 }
 
+const REDUCED_MOTION =
+  typeof window !== 'undefined' ? window.matchMedia('(prefers-reduced-motion: reduce)') : null
+const COARSE_POINTER =
+  typeof window !== 'undefined' ? window.matchMedia('(max-width: 767px), (pointer: coarse)') : null
+/** Phones bob for a few seconds after selection, then the arrow rests so the map can go idle (0 fps). */
+const MOBILE_BOB_MS = 2500
+
 function QuestArrow({ active }: { active: boolean }) {
   const ref = useRef<Group>(null)
+  const startedAt = useRef(0)
+  useEffect(() => {
+    if (active) startedAt.current = performance.now()
+  }, [active])
   useFrame(({ clock, invalidate }) => {
     if (!ref.current || !active) return
-    const reduce =
-      typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const reduce = REDUCED_MOTION?.matches ?? false
+    const settle = (COARSE_POINTER?.matches ?? false) && performance.now() - startedAt.current > MOBILE_BOB_MS
+    if (reduce || settle) {
+      // One last frame to draw the arrow at rest, then nothing
+      if (ref.current.position.y !== 3.2) {
+        ref.current.position.y = 3.2
+        invalidate()
+      }
+      return
+    }
     // Demand frameloop: keep bobbing only while the arrow is shown
-    if (!reduce) invalidate()
-    ref.current.position.y = reduce ? 3.2 : 3.2 + Math.sin(clock.elapsedTime * 4) * 0.35
+    invalidate()
+    ref.current.position.y = 3.2 + Math.sin(clock.elapsedTime * 4) * 0.35
   })
   if (!active) return null
   return (

@@ -157,6 +157,7 @@ const cameraPos = new Vector3()
 const projected = new Vector3()
 
 const CULL_PAD = 3
+const CULL_MS = 150
 
 function overlaps(a: number[], b: number[]) {
   return a[0] < b[2] && a[2] > b[0] && a[1] < b[3] && a[3] > b[1]
@@ -169,11 +170,20 @@ export function ZoneStickerProjector({ selectedId = null }: { selectedId?: strin
   const size = useThree((state) => state.size)
   const invalidate = useThree((state) => state.invalidate)
   const [showLabels] = useShowMapLabels()
+  const lastCull = useRef(0)
+  const cullTimer = useRef<number | null>(null)
+  useEffect(
+    () => () => {
+      if (cullTimer.current !== null) window.clearTimeout(cullTimer.current)
+    },
+    [],
+  )
 
   // Demand frameloop: re-run the projection (and culling) when labels toggle or selection changes
   useEffect(() => {
     if (!store) return
     store.boxes.clear()
+    lastCull.current = 0
     invalidate()
     const unsubscribe = store.subscribe(() => invalidate())
     return () => {
@@ -229,6 +239,20 @@ export function ZoneStickerProjector({ selectedId = null }: { selectedId?: strin
       }
       return
     }
+    // Positions update every frame; the overlap pass (sort + rect tests + attribute writes) runs at
+    // most every CULL_MS while moving, plus once more after the camera settles.
+    const now = performance.now()
+    const wait = CULL_MS - (now - lastCull.current)
+    if (wait > 0) {
+      if (cullTimer.current === null) {
+        cullTimer.current = window.setTimeout(() => {
+          cullTimer.current = null
+          invalidate()
+        }, wait + 4)
+      }
+      return
+    }
+    lastCull.current = now
     const cx = size.width / 2
     const cy = size.height / 2
     const rank = (c: Candidate) => {
