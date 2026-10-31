@@ -139,9 +139,7 @@ function CameraRig({ focusId }: { focusId: string | null }) {
 
   useFrame((_, delta) => {
     if (!controls) return
-    let changed = false
     if (goal.current) {
-      changed = true
       const step = Math.min(1, delta * 3)
       const move = goal.current.clone().sub(controls.target).multiplyScalar(step)
       controls.target.add(move)
@@ -159,17 +157,9 @@ function CameraRig({ focusId }: { focusId: string | null }) {
       camera.position.z += z - controls.target.z
       controls.target.x = x
       controls.target.z = z
-      changed = true
     }
-    if (controls.target.y !== 0) {
-      controls.target.y = 0
-      changed = true
-    }
-    // Only touch the controls while gliding / clamping, and keep frames coming until it settles
-    if (changed) {
-      controls.update()
-      invalidate()
-    }
+    controls.target.y = 0
+    controls.update()
   })
 
   return null
@@ -272,7 +262,7 @@ function MobileDprMonitor({
 }) {
   // Demand frameloop: sparse idle frames read as "low fps" and flip DPR back and forth (each flip
   // resizes the canvas and redraws). Cap the flip-flops so it settles instead of oscillating.
-  return <PerformanceMonitor onDecline={onDecline} onIncline={onIncline} flipflops={3} />
+  return <PerformanceMonitor onDecline={onDecline} onIncline={onIncline} />
 }
 
 export function WorldCanvas() {
@@ -342,7 +332,7 @@ export function WorldCanvas() {
       <Canvas
         shadows={!mobile}
         // The highway drive covers the map: stop drawing it until the drive is over
-        frameloop={driving ? 'never' : 'demand'}
+        frameloop={driving ? 'never' : 'always'}
         dpr={mobile ? mobileDpr : [1, 1.75]}
         gl={{
           antialias: true,
