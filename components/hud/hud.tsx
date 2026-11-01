@@ -3,6 +3,7 @@
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import { BuySheet } from '@/components/hud/buy-sheet'
+import { TopUpSheet } from '@/components/hud/topup-sheet'
 import { ChangeDreamDialog } from '@/components/hud/change-dream-dialog'
 import { DreamCelebration } from '@/components/hud/dream-celebration'
 import { EventDialog } from '@/components/hud/event-dialog'
@@ -48,6 +49,7 @@ export function Hud() {
   const lowPerf = useLowPerf()
   const [phoneOpen, setPhoneOpen] = useState(false)
   const [buyOpen, setBuyOpen] = useState(false)
+  const [topUpOpen, setTopUpOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   // Which profile tab opens: the needs pill and the mood chip go straight to Needs
@@ -138,13 +140,6 @@ export function Hud() {
     }
   }, [state, select])
 
-  const openShop = () => {
-    if (!state) return
-    setTab('buy')
-    setBuyOpen(true)
-    select('town-shop-1')
-  }
-
   const openProfile = (section: 'profile' | 'needs') => {
     setProfileTab(section)
     setProfileOpen(true)
@@ -231,7 +226,7 @@ export function Hud() {
           <StatusBar
             state={state}
             cashLoading={cashLoading}
-            onShop={openShop}
+            onShop={() => setTopUpOpen(true)}
             onRetry={bootError ? retryBoot : undefined}
             onMood={() => openProfile('needs')}
           />
@@ -286,6 +281,7 @@ export function Hud() {
           if (!open && tab === 'buy') setTab('map')
         }}
       />
+      <TopUpSheet open={topUpOpen} onOpenChange={setTopUpOpen} />
       <PhoneDialog
         open={phoneOpen}
         onOpenChange={(open) => {
