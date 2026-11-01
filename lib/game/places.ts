@@ -310,14 +310,6 @@ export const PLACES: Place[] = [
     openHours: null,
   },
   {
-    id: 'parking-ext',
-    label: 'Parking Lot',
-    zoneId: 'parking-ext',
-    type: 'transport',
-    actions: ['hangout'],
-    openHours: null,
-  },
-  {
     id: 'town-shop-4',
     label: 'Shop',
     zoneId: 'town-shop-4',

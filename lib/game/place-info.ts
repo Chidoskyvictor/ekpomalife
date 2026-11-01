@@ -237,13 +237,6 @@ export const PLACE_INFO: Record<string, PlaceInfo> = {
       { emoji: '🤝', text: 'Hang out at the gate' },
     ],
   },
-  'parking-ext': {
-    area: CAMPUS,
-    about: 'Campus parking lot. Cars, kekes and gist.',
-    doing: [
-      { emoji: '🤝', text: 'Hang out' },
-    ],
-  },
   'town-shop-4': {
     area: TOWN,
     about: 'Corner shop. Snacks, drinks and everyday things.',

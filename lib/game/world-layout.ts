@@ -373,7 +373,6 @@ const FIRST_ZONES: MapZone[] = [
   zone('hall-100', '100 Level Hall', 0.1312, 0.3035, 'building-h', [10.5, 8.5], Math.PI, 5, original),
   zone('mls-hall', 'MLS Hall', 0.1008, 0.6232, 'building-c', [10, 8], Math.PI, 4.3, lilac),
   // South head of the yard — faces north into the precinct
-  zone('college-of-medicine', 'College of Medicine', 0.085, 0.8, 'building-k', [11.5, 9], Math.PI, 5.1, clay),
 
   // Name painted on the grass along the south edge of the College of Medicine plot
   zone('college-of-medicine-name', 'College of Medicine', 0.128, 0.93, 'label', [48, 4], 0, 0.68),
@@ -425,7 +424,6 @@ const FIRST_ZONES: MapZone[] = [
   // Story building (not the skyscraper — that mesh moved to ICT)
   zone('engineering', 'Engineering', 0.84, 0.58, 'building-m', [12, 9.5], 0, 3.64, purple),
   // Annotated red square — Twin Hall ↔ Engineering strip, enlarged to fill the lawn
-  zone('parking-ext', 'Parking Lot', 0.72, 0.52, 'parking-lot', [36, 30], 0),
   // Bottom-right: north of bottom-main (v=0.93), east of ext-eng — not sitting in the lane
   zone('shuttle-park', 'Shuttle Park', 0.975, 0.84, 'parking-lot', [16, 14], 0),
 

@@ -268,14 +268,6 @@ export const PLACES: Place[] = [
     openHours: null,
   },
   {
-    id: 'parking-ext',
-    label: 'Parking Lot',
-    zoneId: 'parking-ext',
-    type: 'transport',
-    actions: ['hangout'],
-    openHours: null,
-  },
-  {
     id: 'town-shop-4',
     label: 'Shop',
     zoneId: 'town-shop-4',
@@ -489,7 +481,6 @@ export const PLACE_UV: Record<string, { u: number; v: number }> = {
   'management-science': { u: 0.8582, v: 0.3953 },
   'law-ext': { u: 0.6, v: 0.28 },
   'aau-gate': { u: 0.5803, v: 0.8821 },
-  'parking-ext': { u: 0.72, v: 0.52 },
   'town-shop-4': { u: 0.205, v: 0.64 },
   'cattle-market': { u: 0.32, v: 0.42 },
   'sazza': { u: 0.3596, v: 0.6467 },
