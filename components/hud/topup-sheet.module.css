@@ -1,0 +1,127 @@
+.currency {
+  display: inline-flex;
+  gap: 0.25rem;
+  padding: 0.2rem;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.06);
+  align-self: start;
+}
+
+.currencyBtn {
+  border: 0;
+  border-radius: 999px;
+  padding: 0.35rem 0.8rem;
+  font-weight: 700;
+  font-size: 0.8rem;
+  background: transparent;
+  color: inherit;
+}
+
+.currencyActive {
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+.currencyBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.soon {
+  font-size: 0.65rem;
+  font-weight: 600;
+  margin-left: 0.25rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.pack {
+  position: relative;
+  display: grid;
+  gap: 0.3rem;
+  justify-items: start;
+  padding: 0.85rem;
+  min-height: 44px;
+  border-radius: 1rem;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.7);
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+}
+
+.pack:disabled {
+  cursor: default;
+}
+
+.packBusyOther {
+  opacity: 0.55;
+}
+
+.packHighlight {
+  border: 2px solid #16a34a;
+  background: rgba(22, 163, 74, 0.08);
+}
+
+.emoji {
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
+.name {
+  font-weight: 800;
+}
+
+.money {
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted-foreground, #4b5563);
+}
+
+.price {
+  margin-top: 0.15rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  background: #16a34a;
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.8rem;
+}
+
+.tag {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  background: #facc15;
+  color: #422006;
+  font-size: 0.62rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  border-top-color: #fff;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.note {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--muted-foreground, #6b7280);
+}
