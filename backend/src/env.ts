@@ -66,6 +66,13 @@ const envSchema = z.object({
   /** Comma-separated usernames allowed to use /admin routes (moderation) */
   ADMIN_USERNAMES: z.preprocess((value) => (value == null ? '' : value), z.string()),
   SPACES_DAILY_MINUTES: z.preprocess((value) => (value == null || value === '' ? 160 : value), z.coerce.number().int().min(0)),
+  /** Paystack secret key (sk_test_… / sk_live_…). Unset = top-ups disabled. */
+  PAYSTACK_SECRET_KEY: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
+  /** Public site URL for Paystack callback_url (no trailing slash). */
+  FRONTEND_URL: z.preprocess(
+    (value) => (value == null || value === '' ? (isProd ? 'https://ekpomalife.app' : 'http://localhost:3000') : value),
+    z.string().url(),
+  ),
   PHONE_FREE_FOR_ALL: z.preprocess((value) => value !== 'false' && value !== '0', z.boolean()),
 })
 

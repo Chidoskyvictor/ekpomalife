@@ -29,6 +29,7 @@ import { gamesRoutes } from './routes/games.js'
 import { whotRoutes } from './routes/whot.js'
 import { adminRoutes } from './routes/admin.js'
 import { spacesRoutes } from './routes/spaces.js'
+import { walletRoutes } from './routes/wallet.js'
 
 const app = Fastify({
   logger: true,
@@ -38,7 +39,15 @@ const app = Fastify({
 })
 
 await app.register(helmet, { global: true })
-const allowedOrigins = env.FRONTEND_ORIGIN.split(',').map((value) => value.trim()).filter(Boolean)
+const allowedOrigins = [
+  ...new Set([
+    ...env.FRONTEND_ORIGIN.split(',').map((value) => value.trim()).filter(Boolean),
+    'http://localhost:3000',
+    'https://ekpomalife.app',
+    'https://www.ekpomalife.app',
+    'https://ekpomalife.vercel.app',
+  ]),
+]
 
 await app.register(cors, {
   origin(origin, callback) {
@@ -121,6 +130,9 @@ app.get('/', async () => ({
   spaceCreate: 'POST /spaces',
   spaceJoin: 'POST /spaces/:id/join',
   spaceJoinCode: 'POST /spaces/join-code/:code',
+  walletPacks: 'GET /wallet/packs',
+  walletTopupInit: 'POST /wallet/topup/init',
+  walletTopupVerify: 'GET /wallet/topup/verify/:reference',
 }))
 
 // Never rate limited — uptime monitors must not see 429s.
@@ -156,6 +168,7 @@ await app.register(gamesRoutes)
 await app.register(whotRoutes)
 await app.register(spacesRoutes)
 await app.register(adminRoutes)
+await app.register(walletRoutes)
 
 const shutdown = async () => {
   await app.close()
