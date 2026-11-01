@@ -11,7 +11,7 @@ type Props = {
   trailing?: ReactNode
 } & Omit<InputHTMLAttributes<HTMLInputElement>, 'id'> & { id?: string }
 
-export function LobbyField({ label, icon, error, hint, trailing, id, className, ...props }: Props) {
+export function LobbyField({ label, icon, error, hint, trailing, id, className, 'aria-describedby': describedBy, ...props }: Props) {
   const generated = useId()
   const controlId = id ?? generated
   const errorId = error ? `${controlId}-error` : undefined
@@ -31,7 +31,7 @@ export function LobbyField({ label, icon, error, hint, trailing, id, className, 
           id={controlId}
           className={[styles.input, trailing ? styles.inputPad : '', className].filter(Boolean).join(' ')}
           aria-invalid={invalid}
-          aria-describedby={errorId}
+          aria-describedby={[describedBy, errorId].filter(Boolean).join(' ') || undefined}
         />
         {trailing}
       </div>

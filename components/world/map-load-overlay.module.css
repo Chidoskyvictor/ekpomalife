@@ -16,10 +16,12 @@
   margin: 0;
   padding: 10px 14px;
   border-radius: 999px;
-  background: rgb(15 23 42 / 0.22);
+  position: relative;
+  z-index: 1;
+  background: rgb(15 23 42 / 0.72);
   color: #fff;
   font-family: var(--font-jakarta), 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   letter-spacing: -0.01em;
   text-align: center;

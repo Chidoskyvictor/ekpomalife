@@ -48,7 +48,7 @@ export const PLACE_INFO: Record<string, PlaceInfo> = {
   },
   'students-centre': {
     area: CAMPUS,
-    about: "The Students' Centre. Where the school comes to relax between classes.",
+    about: 'The Student Conference. Where the school comes to relax between classes.',
     doing: [
       { emoji: '🤝', text: 'Hang out with friends' },
       { emoji: '🍲', text: 'Grab something to eat' },

@@ -51,7 +51,8 @@ export default function RootLayout({
       data-theme="light"
       className={`${geist.variable} ${inter.variable} ${fredoka.variable} ${jakarta.variable}`}
     >
-      <body className="font-sans antialiased" style={{ colorScheme: 'light' }}>
+      {/* Extensions (Grammarly…) add attributes to <body> before React hydrates */}
+      <body className="font-sans antialiased" style={{ colorScheme: 'light' }} suppressHydrationWarning>
         {process.env.NODE_ENV === 'development' ? <NoHScrollGuard /> : null}
         {children}
         <TripLayer />

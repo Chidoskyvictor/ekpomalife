@@ -20,6 +20,7 @@ import {
   type Mesh,
 } from 'three'
 import { useGame } from '@/hooks/use-game'
+import { useLowPerf } from '@/hooks/use-low-perf'
 import { drawAdPlaceholder, drawBoardAd, drawBoardImage, openAd, stampBoardNumber } from '@/lib/game/billboard-ad'
 import { adForBoard, boardNumber } from '@/lib/game/billboard-ads'
 import { kenneyUrl } from '@/lib/game/kenney-buildings'
@@ -822,7 +823,7 @@ const BILLBOARDS: Record<string, { url: string; nativeHeight: number; groundY: n
     ],
   },
 }
-Object.values(BILLBOARDS).forEach((b) => useGLTF.preload(b.url))
+// Billboards load when first drawn (never on low-perf / low-data devices), so no preload here
 
 /** World height of a billboard before the zone's scaleMul. */
 const BILLBOARD_HEIGHT = 9
@@ -982,8 +983,10 @@ function ZoneFallback({ zone }: { zone: MapZone }) {
 }
 
 function ZoneMesh({ zone }: { zone: MapZone }) {
+  const lowPerf = useLowPerf()
   if (zone.open) return <OpenZone zone={zone} />
-  if (BILLBOARDS[zone.model]) return <BillboardZone zone={zone} />
+  // Low-perf / low-data: skip billboard GLBs and their ad textures entirely
+  if (BILLBOARDS[zone.model]) return lowPerf ? null : <BillboardZone zone={zone} />
   if (zone.model === 'label') return <LabelZone zone={zone} />
   if (zone.parts) return <ClusterZone zone={zone} />
   if (zone.model === 'aau-gate' || zone.id === 'aau-gate') return <AauGateZone zone={zone} />

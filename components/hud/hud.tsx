@@ -42,7 +42,7 @@ import { openTravel } from '@/lib/game/trip'
 import { STREET_AND_TRAVEL } from '@/lib/flags'
 
 export function Hud() {
-  const { isGuest, state, booting, bootError, retryBoot, select, selectedId, toast, logOut } =
+  const { isGuest, state, booting, bootError, retryBoot, select, selectedId, toast, logOut, notifyToast } =
     useGame()
   const guest = isGuest
   const lowPerf = useLowPerf()
@@ -50,6 +50,8 @@ export function Hud() {
   const [buyOpen, setBuyOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
+  // Which profile tab opens: the needs pill and the mood chip go straight to Needs
+  const [profileTab, setProfileTab] = useState<'profile' | 'needs'>('profile')
   const [dreamOpen, setDreamOpen] = useState(false)
   const [tab, setTab] = useState<PlayTab>('map')
   // Inside your own home the Buy tab is Buy mode (furniture); everywhere else it is the town shop
@@ -143,18 +145,37 @@ export function Hud() {
     select('town-shop-1')
   }
 
+  const openProfile = (section: 'profile' | 'needs') => {
+    setProfileTab(section)
+    setProfileOpen(true)
+  }
+
   const onTab = (next: PlayTab) => {
     if (next !== 'buy') exitBuyMode()
-    if (next === 'buy' && pathname === '/room' && buyUi().available) {
-      setBuyOpen(false)
-      setPhoneOpen(false)
-      setTab('buy')
-      enterBuyMode()
+    // Buy is furniture for your own room, so it only works inside it
+    if (next === 'buy') {
+      if (pathname === '/room' && buyUi().available) {
+        setBuyOpen(false)
+        setPhoneOpen(false)
+        setTab('buy')
+        enterBuyMode()
+        return
+      }
+      if (pathname === '/room') {
+        // On /room but outside (street) or the room is still loading
+        notifyToast('Go inside your room to buy furniture', false)
+        return
+      }
+      notifyToast('Go to your room to buy furniture', false, { label: 'Go to my room', href: '/room' })
       return
     }
-    // Buy / Phone need the game loaded. Don't select them early — re-tapping a selected
-    // tab doesn't fire again, so the phone would never open.
-    if (!state && (next === 'buy' || next === 'phone')) return
+    // Phone opens straight away; it shows a loading screen until the game state arrives
+    if (next === 'phone' && !state) {
+      setTab('phone')
+      setBuyOpen(false)
+      setPhoneOpen(true)
+      return
+    }
     setTab(next)
     if (next === 'home') {
       setBuyOpen(false)
@@ -170,11 +191,6 @@ export function Hud() {
       return
     }
     if (!state) return
-    if (next === 'buy') {
-      setBuyOpen(true)
-      setPhoneOpen(false)
-      return
-    }
     if (next === 'phone') {
       select(null)
       setBuyOpen(false)
@@ -217,6 +233,7 @@ export function Hud() {
             cashLoading={cashLoading}
             onShop={openShop}
             onRetry={bootError ? retryBoot : undefined}
+            onMood={() => openProfile('needs')}
           />
         </div>
         {/* What you're doing and what's next (Sims-style tiles): fills up, ✕ cancels */}
@@ -234,7 +251,9 @@ export function Hud() {
       <ToastLayer toast={toast} state={state} />
       <ChallengePopup incoming={challenges.incoming} hidden={phoneOpen} onDone={() => void challenges.reload()} />
 
-      {state && !homeBuy.active && !mapSheetOpen ? <MeCard state={state} onOpen={() => setProfileOpen(true)} raised={placeSheet} /> : null}
+      {state && !homeBuy.active && !mapSheetOpen ? (
+        <MeCard state={state} onOpen={() => openProfile('profile')} onNeeds={() => openProfile('needs')} raised={placeSheet} />
+      ) : null}
 
       {/* Map: travel anywhere on campus (hidden while a place's sheet is up) */}
       {STREET_AND_TRAVEL && state && pathname === '/' && !selectedId && !placeSheet && !phoneOpen && !buyOpen ? (
@@ -279,6 +298,7 @@ export function Hud() {
         <ProfileSheet
           open={profileOpen}
           onOpenChange={setProfileOpen}
+          initialTab={profileTab}
           state={state}
           onChangeDream={() => setDreamOpen(true)}
           onOpenSettings={() => {

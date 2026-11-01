@@ -80,7 +80,7 @@ export const HAIR_CONFIG: Record<BodyId, Partial<Record<HairId, HairFit>>> = {
       paint: true,
     },
     locs: {
-      file: '/models/hair/dread.glb',
+      file: '/models/hair/male-braids.glb',
       scale: 0.89,
       offset: [0, 0.035, 0.015],
       rotation: [(-25 * Math.PI) / 180, 0, 0],

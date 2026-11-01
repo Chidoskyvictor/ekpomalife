@@ -1,11 +1,14 @@
 'use client'
 
 import { Component, type ErrorInfo, type ReactNode } from 'react'
+import { CampusPoster } from './campus-poster'
+import styles from './campus-poster.module.css'
 
 type Props = { children: ReactNode }
 
 /**
- * Catches R3F / drei failures so one bad mesh does not hard-reload the whole app in dev.
+ * Catches R3F / drei failures (a GLB that failed to download, a bad mesh) so one
+ * bad asset does not take down the whole app. Shows the campus poster with a retry.
  */
 export class WorldCanvasBoundary extends Component<
   Props,
@@ -23,10 +26,22 @@ export class WorldCanvasBoundary extends Component<
 
   render() {
     if (this.state.error) {
+      const offline = typeof navigator !== 'undefined' && !navigator.onLine
       return (
-        <div className="absolute inset-0 grid place-items-center app-wash p-6 text-center">
-          <p className="text-sm text-[#122846]">Map could not load. Refresh once — if it keeps failing, check the console.</p>
-        </div>
+        <CampusPoster>
+          <div className={styles.card} role="alert">
+            <p className={styles.title}>{offline ? 'You’re offline' : 'Map didn’t load'}</p>
+            <p className={styles.body}>
+              {offline
+                ? 'The map needs data to download. Turn on data or Wi-Fi, then retry.'
+                : 'Part of the map failed to download, often from a weak signal. Retry to try again.'}
+            </p>
+            {/* A full reload clears the failed downloads from the loader cache */}
+            <button type="button" className={styles.button} onClick={() => window.location.reload()}>
+              Retry
+            </button>
+          </div>
+        </CampusPoster>
       )
     }
     return this.props.children

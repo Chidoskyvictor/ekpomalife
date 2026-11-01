@@ -21,7 +21,7 @@
 .errorText {
   margin: 14px 16px;
   color: #8e8e93;
-  font-size: 13px;
+  font-size: 14px;
   text-align: center;
 }
 
@@ -79,7 +79,7 @@
   border-radius: 999px;
   background: #ff3b30;
   color: #fff;
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 800;
   line-height: 13px;
   text-align: center;
@@ -244,7 +244,7 @@
 .emptyCopy {
   margin: 0;
   color: #8e8e93;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.4;
 }
 
@@ -315,7 +315,7 @@
 .peerName {
   max-width: 100%;
   overflow: hidden;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -476,7 +476,7 @@
 
 .notifBody {
   color: #3c3c43;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.35;
 }
 
@@ -511,7 +511,7 @@
   max-width: 85%;
   margin: 6px 0;
   color: #8e8e93;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   text-align: center;
 }
@@ -560,7 +560,7 @@
   background: transparent;
   color: #8e8e93;
   font: inherit;
-  font-size: 11px;
+  font-size: 12px;
   cursor: pointer;
 }
 
@@ -597,7 +597,7 @@
 
 .menuTime {
   color: #8e8e93;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .report {
@@ -671,7 +671,7 @@
   align-self: flex-end;
   margin-right: 42px;
   color: #8e8e93;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .sendError {
@@ -839,7 +839,7 @@
   flex-direction: column;
   gap: 1px;
   color: #3c3c43;
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .cardText strong {
@@ -892,7 +892,7 @@
 .sheetHint {
   margin: 0;
   color: #8e8e93;
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .amountField {
@@ -993,7 +993,7 @@
   background: #0f766e;
   color: #fff;
   font: inherit;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   cursor: pointer;
 }

@@ -495,7 +495,7 @@ export const BUILDINGS: Record<string, BuildingDef> = {
   },
   'students-centre': {
     id: 'students-centre',
-    label: "Students' Centre",
+    label: 'Student Conference',
     emoji: '🎒',
     kind: 'leisure',
     openHours: { open: 9, close: 21 },

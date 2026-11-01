@@ -21,7 +21,7 @@ export function StatsPanel({ state }: { state: GameState }) {
         const value = state[key]
         return (
           <div key={key} className="flex flex-col gap-1">
-            <div className="flex items-center justify-between gap-1 text-[11px] font-semibold">
+            <div className="flex items-center justify-between gap-1 text-xs font-semibold">
               <span className="flex items-center gap-1 text-muted-foreground">
                 <Icon className="size-3" aria-hidden="true" />
                 {label}

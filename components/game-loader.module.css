@@ -27,3 +27,89 @@
   letter-spacing: 0.02em;
   line-height: 1;
 }
+
+/* —— AuthGate skeleton (same layout as the game screen) —— */
+.loading:has(.skelTop) {
+  position: relative;
+  overflow: hidden;
+}
+
+.skelTop {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 12px);
+  left: 16px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.skelLogo {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+}
+
+.skelBar {
+  display: block;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgb(18 40 70 / 0.08) 0%, rgb(18 40 70 / 0.16) 50%, rgb(18 40 70 / 0.08) 100%);
+  background-size: 200% 100%;
+  animation: skelShimmer 1.4s ease-in-out infinite;
+}
+
+.skelGrow {
+  flex: 1;
+  height: 36px;
+  max-width: 420px;
+}
+
+.skelPill {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  margin-left: auto;
+}
+
+.skelCard {
+  position: absolute;
+  left: 50%;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 20px);
+  display: grid;
+  gap: 10px;
+  box-sizing: border-box;
+  width: min(380px, calc(100vw - 32px));
+  padding: 18px 16px;
+  border-radius: 20px;
+  background: rgb(255 255 255 / 0.85);
+  box-shadow: 0 8px 24px rgb(15 23 42 / 0.08);
+  transform: translateX(-50%);
+}
+
+.skelLineShort {
+  justify-self: center;
+  height: 14px;
+  width: 55%;
+}
+
+.skelButton {
+  height: 52px;
+  width: 100%;
+  border-radius: 16px;
+}
+
+@keyframes skelShimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skelBar {
+    animation: none;
+  }
+}

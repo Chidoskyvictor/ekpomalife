@@ -59,9 +59,9 @@ export function PlayTopBar({ onShop }: { onShop: () => void }) {
       <div className={styles.meta}>
         <span className={styles.chip}>
           {clock.sky === 'moon' ? (
-            <img src="/emoji/crescent-moon.png" alt="" width={16} height={16} className={styles.sticker} />
+            <img src="/emoji/crescent-moon.png" alt="Night" width={16} height={16} className={styles.sticker} />
           ) : (
-            <span aria-hidden="true">☀️</span>
+            <span role="img" aria-label="Daytime">☀️</span>
           )}
           <strong>
             {calendarLabel(state.day)}

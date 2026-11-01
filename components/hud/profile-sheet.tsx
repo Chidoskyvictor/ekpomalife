@@ -91,14 +91,20 @@ export function ProfileSheet({
   state,
   onChangeDream,
   onOpenSettings,
+  initialTab = 'profile',
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   state: GameState
   onChangeDream: () => void
   onOpenSettings?: () => void
+  /** Tab shown each time the sheet opens (the needs pill and mood chip open on Needs). */
+  initialTab?: Tab
 }) {
-  const [tab, setTab] = useState<Tab>('profile')
+  const [tab, setTab] = useState<Tab>(initialTab)
+  useEffect(() => {
+    if (open) setTab(initialTab)
+  }, [open, initialTab])
   const { changeLook } = useGame()
   // While editing, the 3D stage previews this draft instead of the saved look
   const [lookDraft, setLookDraft] = useState<Appearance | null>(null)

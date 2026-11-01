@@ -263,7 +263,13 @@ export function PhoneShell({
               <h2 id={titleId} className="sr-only">
                 Phone
               </h2>
-              {deviceState && !lacksPhone ? (
+              {!state ? (
+                // Tapped before the game state arrived: open now, fill in when it lands
+                <div className={styles.deadScreen} role="status" aria-live="polite">
+                  <span className={styles.phoneSpinner} aria-hidden="true" />
+                  <p className={styles.deadTitle}>Loading your phone…</p>
+                </div>
+              ) : deviceState && !lacksPhone ? (
                 <>
                   <div className={styles.wallpaper}>
                     <WallpaperSkyline wallpaper={deviceState.wallpaper} night={night} />
@@ -362,9 +368,6 @@ export function PhoneShell({
               ) : (
                 <div className={styles.deadScreen}>
                   <p className={styles.deadTitle}>You don&apos;t have a phone yet</p>
-                  <button type="button" className={styles.ghostPill} onClick={close}>
-                    Close
-                  </button>
                 </div>
               )}
             </div>

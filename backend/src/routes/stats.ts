@@ -2,7 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import { pool } from '../db.js'
 import { countPlayersWithSetupComplete } from '../game/setup-status.js'
 
-type Stats = { players: number; online: number; visits: number }
+type Stats = { players: number; online: number; today: number; visits: number }
 
 let cached: { stats: Stats; at: number } | null = null
 const CACHE_MS = 30_000
@@ -19,14 +19,29 @@ async function countOnline(): Promise<number> {
   return result.rows[0]?.count ?? 0
 }
 
+/** Distinct players with a session active since midnight in Ekpoma (Africa/Lagos). */
+async function countToday(): Promise<number> {
+  const result = await pool.query<{ count: number }>(
+    `SELECT COUNT(DISTINCT user_id)::int AS count
+     FROM sessions
+     WHERE last_seen_at >= (date_trunc('day', NOW() AT TIME ZONE 'Africa/Lagos') AT TIME ZONE 'Africa/Lagos')`,
+  )
+  return result.rows[0]?.count ?? 0
+}
+
 async function readVisits(): Promise<number> {
   const result = await pool.query<{ value: string }>(`SELECT value FROM site_counters WHERE id = 'visits'`)
   return Number(result.rows[0]?.value ?? 0)
 }
 
 async function loadStats(): Promise<Stats> {
-  const [players, online, visits] = await Promise.all([countPlayersWithSetupComplete(), countOnline(), readVisits()])
-  return { players, online, visits }
+  const [players, online, today, visits] = await Promise.all([
+    countPlayersWithSetupComplete(),
+    countOnline(),
+    countToday(),
+    readVisits(),
+  ])
+  return { players, online, today, visits }
 }
 
 export async function statsRoutes(app: FastifyInstance) {

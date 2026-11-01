@@ -24,6 +24,7 @@ export function StatusBar({
   cashLoading,
   onShop,
   onRetry,
+  onMood,
 }: {
   /** Null while waiting on GET /game/state — chrome still paints. */
   state: GameState | null
@@ -31,12 +32,19 @@ export function StatusBar({
   cashLoading?: boolean
   onShop: () => void
   onRetry?: () => void
+  /** Tapping the mood chip ("Sad") opens the Needs sheet. */
+  onMood?: () => void
 }) {
   const reduced = useReducedMotion() ?? false
   const [muted, setMuted] = useState(false)
   const [showLabels, setShowLabels] = useShowMapLabels()
   const prev = useRef(state?.cash ?? 0)
   const [delta, setDelta] = useState<number | null>(null)
+  // The ±₦ float sits outside the scrolling bar (which clips it), placed over the money chip
+  const stackRef = useRef<HTMLDivElement>(null)
+  const chipRef = useRef<HTMLDivElement>(null)
+  const [deltaPos, setDeltaPos] = useState<{ left: number; top: number; above: boolean } | null>(null)
+  const autoRetried = useRef(false)
 
   // Real WAT time, ticking on the device (dev: ?time=21:30 previews another hour)
   const wat = useWatClock()
@@ -71,9 +79,32 @@ export function StatusBar({
     prev.current = state.cash
     if (!change) return
     setDelta(change)
+    const stack = stackRef.current?.getBoundingClientRect()
+    const chip = chipRef.current?.getBoundingClientRect()
+    if (stack && chip) {
+      // Above the chip when there is room on screen, else just under it; never over the digits
+      const above = chip.top >= 22
+      setDeltaPos({
+        left: chip.left - stack.left + chip.width / 2,
+        top: (above ? chip.top - 4 : chip.bottom + 4) - stack.top,
+        above,
+      })
+    }
     const timer = window.setTimeout(() => setDelta(null), 1600)
     return () => window.clearTimeout(timer)
   }, [state])
+
+  // Balance failed: retry once on its own after 3s (the Retry button stays for more tries)
+  const loadFailed = Boolean(onRetry) && !cashLoading && !state
+  useEffect(() => {
+    if (state) autoRetried.current = false
+    if (!loadFailed || autoRetried.current || !onRetry) return
+    const timer = window.setTimeout(() => {
+      autoRetried.current = true
+      onRetry()
+    }, 3000)
+    return () => window.clearTimeout(timer)
+  }, [loadFailed, onRetry, state])
 
   const toggleMute = () => {
     setMuted((current) => {
@@ -94,13 +125,13 @@ export function StatusBar({
   }
 
   return (
-    <div className={styles.statusStack}>
+    <div className={styles.statusStack} ref={stackRef}>
       <header className={styles.statusBar} aria-label="Status">
         <span className={styles.statusItem}>
           {clock.sky === 'moon' ? (
-            <img src="/emoji/crescent-moon.png" alt="" width={16} height={16} className={styles.sticker} />
+            <img src="/emoji/crescent-moon.png" alt="Night" width={16} height={16} className={styles.sticker} />
           ) : (
-            <img src="/emoji/sunglasses.png" alt="" width={16} height={16} className={styles.sticker} />
+            <img src="/emoji/sunglasses.png" alt="Daytime" width={16} height={16} className={styles.sticker} />
           )}
           <strong>
             {cal.label}
@@ -115,12 +146,23 @@ export function StatusBar({
 
         <span className={styles.statusDivider} aria-hidden="true" />
 
-        <span
-          className={`${styles.statusItem} ${moodClass}`}
-          aria-label={mood ? `Mood ${mood.label}` : 'Mood loading'}
-        >
-          {mood ? mood.label : '—'}
-        </span>
+        {mood && onMood ? (
+          <button
+            type="button"
+            className={`${styles.statusItem} ${styles.moodBtn} ${moodClass}`}
+            aria-label={`Mood ${mood.label}. Open needs`}
+            onClick={onMood}
+          >
+            {mood.label}
+          </button>
+        ) : (
+          <span
+            className={`${styles.statusItem} ${moodClass}`}
+            aria-label={mood ? `Mood ${mood.label}` : 'Mood loading'}
+          >
+            {mood ? mood.label : '—'}
+          </span>
+        )}
 
         <SiteStats variant="inline" />
 
@@ -144,11 +186,11 @@ export function StatusBar({
             {muted ? <VolumeX size={18} aria-hidden="true" /> : <Volume2 size={18} aria-hidden="true" />}
           </button>
 
-          <div className={styles.moneyChip}>
+          <div className={styles.moneyChip} ref={chipRef}>
             <span className={styles.moneyWrap}>
-              {onRetry && !cashLoading && !state ? (
+              {loadFailed ? (
                 <button type="button" className={styles.cashRetry} onClick={onRetry}>
-                  Retry
+                  Couldn&apos;t load ₦ · Retry
                 </button>
               ) : waitingOnCash ? (
                 <span aria-label={state ? 'Confirming balance' : 'Loading balance'}>
@@ -166,20 +208,6 @@ export function StatusBar({
                     className={styles.cashAmount}
                     style={{ fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}
                   />
-                  <AnimatePresence>
-                    {delta !== null ? (
-                      <motion.span
-                        key={`${delta}-${state.cash}`}
-                        className={`${styles.cashDelta} ${delta > 0 ? styles.cashUp : styles.cashDown}`}
-                        initial={reduced ? { opacity: 0 } : { opacity: 0, y: 6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={reduced ? { opacity: 0 } : { opacity: 0, y: -10 }}
-                        transition={reduced ? { duration: 0 } : spring}
-                      >
-                        {delta > 0 ? '+' : '−'}₦{Math.abs(delta).toLocaleString()}
-                      </motion.span>
-                    ) : null}
-                  </AnimatePresence>
                 </>
               ) : null}
             </span>
@@ -190,6 +218,26 @@ export function StatusBar({
           </div>
         </div>
       </header>
+
+      <AnimatePresence>
+        {delta !== null && state && deltaPos ? (
+          <motion.span
+            key={`${delta}-${state.cash}`}
+            className={`${styles.cashDelta} ${delta > 0 ? styles.cashUp : styles.cashDown}`}
+            style={{
+              left: deltaPos.left,
+              top: deltaPos.top,
+              translate: deltaPos.above ? '-50% -100%' : '-50% 0',
+            }}
+            initial={reduced ? { opacity: 0 } : { opacity: 0, y: deltaPos.above ? 6 : -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={reduced ? { opacity: 0 } : { opacity: 0, y: deltaPos.above ? -10 : 10 }}
+            transition={reduced ? { duration: 0 } : spring}
+          >
+            {delta > 0 ? '+' : '−'}₦{Math.abs(delta).toLocaleString()}
+          </motion.span>
+        ) : null}
+      </AnimatePresence>
 
       <SiteStats variant="dock" />
     </div>

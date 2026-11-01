@@ -160,7 +160,7 @@
   min-width: 0;
   flex-direction: column;
   gap: 2px;
-  font-size: 13px;
+  font-size: 14px;
   color: #6e6e73;
 }
 
@@ -221,7 +221,7 @@
   flex-direction: column;
   gap: 1px;
   color: #6e6e73;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .feelingText strong {

@@ -8,12 +8,14 @@ export type PlayerStats = {
   players: number | null
   /** Logged-in players active in the last few minutes. */
   online: number | null
+  /** Players active since midnight (Lagos time). Null while unknown or on an older API without it. */
+  today: number | null
   /** Total site visits. */
   visits: number | null
 }
 
 type StatsResponse =
-  | { ok: true; players: number; online: number; visits: number }
+  | { ok: true; players: number; online: number; today?: number; visits: number }
   | { ok: false; error?: string }
 
 const REFRESH_MS = 60_000
@@ -34,7 +36,7 @@ async function recordVisit() {
   }
 }
 
-const EMPTY: PlayerStats = { players: null, online: null, visits: null }
+const EMPTY: PlayerStats = { players: null, online: null, today: null, visits: null }
 
 export function usePlayerStats(): PlayerStats {
   const [stats, setStats] = useState<PlayerStats>(EMPTY)
@@ -51,7 +53,12 @@ export function usePlayerStats(): PlayerStats {
           setStats(EMPTY)
           return
         }
-        setStats({ players: data.players ?? 0, online: data.online ?? 0, visits: data.visits ?? 0 })
+        setStats({
+          players: data.players ?? 0,
+          online: data.online ?? 0,
+          today: typeof data.today === 'number' ? data.today : null,
+          visits: data.visits ?? 0,
+        })
       } catch {
         if (!cancelled) setStats(EMPTY)
       }

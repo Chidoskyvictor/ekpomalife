@@ -6,7 +6,7 @@
 
 .sectionTitle {
   margin: 0;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -160,7 +160,7 @@
   inset: 0;
   display: grid;
   place-items: center;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 700;
 }
 

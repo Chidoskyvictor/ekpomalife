@@ -48,7 +48,7 @@ function SheetHeader({ place, onClose, subtitle }: { place: Place; onClose: () =
         {TYPE_EMOJI[place.type]}
       </span>
       <div className="min-w-0 flex-1">
-        <p className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">{subtitle}</p>
+        <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">{subtitle}</p>
         <h2 className="truncate text-lg font-bold leading-tight">{place.label}</h2>
       </div>
       <button

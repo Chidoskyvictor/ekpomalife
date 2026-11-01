@@ -102,7 +102,7 @@ export const PLACES: Place[] = [
   },
   {
     id: 'students-centre',
-    label: "Students' Centre",
+    label: 'Student Conference',
     zoneId: 'students-centre',
     type: 'leisure',
     actions: ['hangout', 'eat'],

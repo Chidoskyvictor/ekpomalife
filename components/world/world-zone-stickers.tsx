@@ -188,6 +188,8 @@ export function ZoneStickerProjector() {
       if (!last || last.shown !== shown) el.style.display = shown ? 'block' : 'none'
       if (!last || last.z !== z) el.style.zIndex = String(z)
       el.style.transform = `translate3d(${x}px,${y}px,0) scale(${scale})`
+      // The CSS tap area divides by this so it stays 44 screen px at any zoom
+      if (!last || Math.abs(last.scale - scale) >= 0.002) el.style.setProperty('--label-scale', scale.toFixed(3))
       store.painted.set(id, { x, y, scale, z, shown })
     }
   })

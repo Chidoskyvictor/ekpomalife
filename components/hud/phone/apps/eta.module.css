@@ -79,7 +79,7 @@
 
 .fine {
   margin: 0 4px;
-  font-size: 11px;
+  font-size: 12px;
   text-align: left;
 }
 
@@ -168,7 +168,7 @@
   border-radius: 6px;
   background: #ececf0;
   color: #6e6e73;
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.06em;
 }
@@ -279,7 +279,7 @@
 .countLow {
   margin-right: auto;
   color: #8e8e93;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .countLow {
@@ -355,7 +355,7 @@
 .section {
   margin: 6px 4px 0;
   color: #8e8e93;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -399,7 +399,7 @@
 .bio {
   margin: 4px 0 0;
   color: #3c3c43;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.4;
 }
 
@@ -407,7 +407,7 @@
 .npcNote {
   margin: 2px 0 6px;
   color: #6e6e73;
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .counts strong {
@@ -443,6 +443,6 @@
 
 .voiceStats {
   color: #6e6e73;
-  font-size: 11px;
+  font-size: 12px;
   white-space: nowrap;
 }

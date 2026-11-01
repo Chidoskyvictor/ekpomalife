@@ -45,6 +45,51 @@
   color: #475569;
 }
 
+/* Shown until the room canvas has drawn its first frame */
+.roomLoading {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 14px;
+  pointer-events: none;
+}
+
+/* A soft isometric floor tile, the shape the room is about to fill */
+.roomSkeleton {
+  width: min(56vw, 240px);
+  aspect-ratio: 1;
+  border-radius: 18px;
+  background: linear-gradient(110deg, rgb(148 163 184 / 0.18) 30%, rgb(148 163 184 / 0.32) 50%, rgb(148 163 184 / 0.18) 70%);
+  background-size: 220% 100%;
+  transform: rotateX(55deg) rotateZ(45deg);
+  animation: roomShimmer 1.4s ease-in-out infinite;
+}
+
+.roomLoadingText {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #475569;
+}
+
+@keyframes roomShimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .roomSkeleton {
+    animation: none;
+  }
+}
+
 .missingModel code {
   font-size: 13px;
 }
@@ -278,7 +323,7 @@
   border-radius: 999px;
   background: rgba(61, 154, 214, 0.12);
   color: #1d4f7a;
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   font-weight: 600;
 }
 

@@ -17,7 +17,9 @@ import { applyDreamReward, createInitialState, resetDreamProgress, resolveEvent 
 import type { TraitId } from '@/lib/game/traits'
 import type { ActionId, EventChoice, GameEvent, GameState, TimePeriod, TravelMode } from '@/lib/game/types'
 
-export type Toast = { id: number; text: string; ok: boolean }
+/** Optional button on a toast, e.g. "Go to my room" → /room. */
+export type ToastAction = { label: string; href: string }
+export type Toast = { id: number; text: string; ok: boolean; action?: ToastAction }
 
 type GameContextValue = {
   /** Logged-out visitor on / — map only, no authenticated game API. */
@@ -48,7 +50,7 @@ type GameContextValue = {
   retryBoot: () => void
   /** Apply cash/needs/time from a server (or economy) response — never invent numbers. */
   applyServerState: (server: ServerGameState) => void
-  notifyToast: (text: string, ok?: boolean) => void
+  notifyToast: (text: string, ok?: boolean, action?: ToastAction) => void
 }
 
 const GameContext = createContext<GameContextValue | null>(null)
@@ -362,7 +364,8 @@ export function GameProvider({
 
   useEffect(() => {
     if (!toast) return
-    const timer = window.setTimeout(() => setToast(null), 3200)
+    // A toast with a button stays up longer so there is time to tap it
+    const timer = window.setTimeout(() => setToast(null), toast.action ? 5000 : 3200)
     return () => window.clearTimeout(timer)
   }, [toast])
 
@@ -498,7 +501,8 @@ export function GameProvider({
       refreshServer,
       retryBoot,
       applyServerState: mergeServer,
-      notifyToast: (text: string, ok = true) => notify(text, ok),
+      notifyToast: (text: string, ok = true, action?: ToastAction) =>
+        setToast({ id: Date.now(), text, ok, action }),
     }),
     [
       isGuest,

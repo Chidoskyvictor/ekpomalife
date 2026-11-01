@@ -1,0 +1,95 @@
+.poster {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+/* Card for tap-to-load, offline and WebGL messages. Sits mid-screen, clear of the HUD bars. */
+.card {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  box-sizing: border-box;
+  width: min(320px, calc(100vw - 32px));
+  padding: 18px 16px;
+  border-radius: 18px;
+  background: rgb(255 255 255 / 0.95);
+  color: #122846;
+  text-align: center;
+  box-shadow: 0 10px 30px rgb(15 23 42 / 0.18);
+}
+
+.title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.body {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: #3b4a5e;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: 999px;
+  background: #2b7fff;
+  color: #fff;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.button:focus-visible {
+  outline: 3px solid #122846;
+  outline-offset: 2px;
+}
+
+/* Offline pill: under the top HUD bar, centred, never covering the joystick or phone button */
+.offline {
+  position: fixed;
+  left: 50%;
+  top: calc(env(safe-area-inset-top, 0px) + 76px);
+  z-index: calc(var(--z-hud, 50) + 5);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-sizing: border-box;
+  max-width: calc(100vw - 32px);
+  padding: 4px 4px 4px 14px;
+  border-radius: 999px;
+  background: rgb(18 40 70 / 0.94);
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transform: translateX(-50%);
+  box-shadow: 0 6px 18px rgb(15 23 42 / 0.25);
+}
+
+.offlineText {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.offline .button {
+  min-height: 44px;
+  padding: 0 14px;
+  background: #fff;
+  color: #122846;
+  font-size: 0.875rem;
+}

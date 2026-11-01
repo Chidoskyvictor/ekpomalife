@@ -366,12 +366,12 @@ const FIRST_ZONES: MapZone[] = [
   // —— COLLEGE OF MEDICINE plot (west of town-halls u=0.18) ——
   // Walk lane down the middle (u≈0.085). West row + east row face the yard.
   // West row (slab edge)
-  zone('relaxation-centre', 'Relaxation Centre', 0.055, 0.48, 'building-f', [10, 8], 0, 4.9, sand),
-  zone('etf-hall', 'ETF Hall', 0.055, 0.66, 'building-g', [10.5, 8.5], 0, 5, purple),
+  zone('relaxation-centre', 'Relaxation Centre', 0.0459, 0.2681, 'building-f', [10, 8], 0, 4.9, sand),
+  zone('etf-hall', 'ETF Hall', 0.055, 0.4942, 'building-g', [10.5, 8.5], 0, 5, purple),
   // East row (toward town-halls road — still clear of u=0.18)
-  zone('hall-200', '200 Level Hall', 0.115, 0.36, 'building-i', [10.5, 8.5], Math.PI, 5, plum),
-  zone('hall-100', '100 Level Hall', 0.115, 0.54, 'building-h', [10.5, 8.5], Math.PI, 5, original),
-  zone('mls-hall', 'MLS Hall', 0.115, 0.7, 'building-c', [10, 8], Math.PI, 4.3, lilac),
+  zone('hall-200', '200 Level Hall', 0.115, 0.1358, 'building-i', [10.5, 8.5], Math.PI, 4.5, plum),
+  zone('hall-100', '100 Level Hall', 0.1312, 0.3035, 'building-h', [10.5, 8.5], Math.PI, 5, original),
+  zone('mls-hall', 'MLS Hall', 0.1008, 0.6232, 'building-c', [10, 8], Math.PI, 4.3, lilac),
   // South head of the yard — faces north into the precinct
   zone('college-of-medicine', 'College of Medicine', 0.085, 0.8, 'building-k', [11.5, 9], Math.PI, 5.1, clay),
 
@@ -392,7 +392,7 @@ const FIRST_ZONES: MapZone[] = [
   zone('sazza', 'Sazza', 0.3596, 0.6467, 'sazza', [10, 8], 0, undefined, undefined, { modelY: 0.12, scaleMul: 2.007 }),
 
   // —— GATE —— main entrance (bottom-main road approaches from v≈0.93)
-  zone('aau-gate', 'AAU School Gate', AAU_GATE_U, AAU_GATE_V, 'aau-gate', [22, 6], 0, 4.65, undefined, {
+  zone('aau-gate', 'AAU School Gate', AAU_GATE_U, AAU_GATE_V, 'aau-gate', [22, 6], 0, 4.185, undefined, {
     scaleMul: 1,
   }),
 
@@ -402,28 +402,28 @@ const FIRST_ZONES: MapZone[] = [
   zone('sports-complex', 'Sports Complex', FENCE_U + 0.08, 0.4584, 'football-stadium', [15, 12], 0),
 
   // Main column (north→south): ICT → Education → Mass Comm → Admin
-  zone('ict-exams', 'ICT', FENCE_U + 0.14, 0.26, 'building-skyscraper-d', [11, 10], 0, 5, lilac),
-  zone('education', 'Education', FENCE_U + 0.14, 0.38, 'building-i', [10, 8], 0, 4.9, earth),
+  zone('ict-exams', 'ICT', 0.4766, 0.0713, 'building-skyscraper-d', [11, 10], 0, 2.5, lilac),
+  zone('education', 'Education', 0.506, 0.3032, 'building-i', [10, 8], 0, 3.675, earth),
   // Shifted east + north so it is not sitting on the Admin Block
-  zone('mass-comm', 'Mass Comm', FENCE_U + 0.2, 0.46, 'building-j', [10.5, 8.5], 0, 5, plum),
+  zone('mass-comm', 'Mass Comm', 0.5574, 0.46, 'building-j', [10.5, 8.5], 0, 3.25, plum),
   // Large pad under the whole L; courtyard parking is nested in AdminZone (not a separate pad)
-  zone('admin-block', 'Admin Block', FENCE_U + 0.14, 0.72, 'admin-block', [20, 17], Math.PI / 2, 3.4),
+  zone('admin-block', 'Admin Block', 0.4847, 0.6739, 'admin-block', [20, 17], Math.PI / 2, 2.55),
 
   // Faculty row just BELOW campus-top (v=0.14): Physical → Social → Life (toward ext-eng)
-  zone('physical-science', 'Physical Science', FENCE_U + 0.3, 0.24, 'building-h', [10, 8], 0, 4.9, original),
-  zone('social-science', 'Social Science', 0.76, 0.21, 'building-g', [10, 8], 0, 4.9, sand),
+  zone('physical-science', 'Physical Science', 0.6605, 0.0742, 'building-h', [10, 8], 0, 4.9, original),
+  zone('social-science', 'Social Science', 0.76, 0.0779, 'building-g', [10, 8], 0, 4.9, sand),
   zone('life-science', 'Life Science', 0.835, 0.21, 'building-f', [10, 8], 0, 4.9, original),
-  zone('law-campus', 'Law', FENCE_U + 0.3, 0.38, 'building-l', [10, 8], 0, 5, original),
-  zone('students-centre', "Students' Centre", 0.7289, 0.4859, 'building-k', [10.5, 8.5], -1.5816, 5.75, lilac),
+  zone('law-campus', 'Law', 0.5647, 0.0713, 'building-l', [10, 8], 0, 3.75, original),
+  zone('students-centre', 'Student Conference', 0.7289, 0.4859, 'building-k', [10.5, 8.5], -1.5816, 5.75, lilac),
   zone('cordelia-hall', 'Cordelia Agbebaku Hall', 0.6929, 0.743, 'building-m', [11.5, 8.5], -0.0016, 5.1, clay),
-  zone('twin-hall', 'Twin Hall', 0.8056, 0.7623, 'building-n', [11.5, 8.5], -0.0092, 5.355, purple),
+  zone('twin-hall', 'Twin Hall', 0.8076, 0.7777, 'building-n', [11.5, 8.5], -0.0092, 3.749, purple),
 
   // School hostels removed from the map (gameplay places kept in places.ts for lodging).
   zone('law-ext', 'Law', 0.6, 0.28, 'building-l', [10.5, 8.5], 0, 5.1, sand),
   // Pulled west off ext-eng (u=0.92) into the campus lawn
-  zone('management-science', 'Management Science', 0.84, 0.34, 'building-m', [11.5, 9], 0, 5.2, original),
+  zone('management-science', 'Management Science', 0.8582, 0.3953, 'building-m', [11.5, 9], 0, 4.16, original),
   // Story building (not the skyscraper — that mesh moved to ICT)
-  zone('engineering', 'Engineering', 0.84, 0.58, 'building-m', [12, 9.5], 0, 5.2, purple),
+  zone('engineering', 'Engineering', 0.84, 0.58, 'building-m', [12, 9.5], 0, 3.64, purple),
   // Annotated red square — Twin Hall ↔ Engineering strip, enlarged to fill the lawn
   zone('parking-ext', 'Parking Lot', 0.72, 0.52, 'parking-lot', [36, 30], 0),
   // Bottom-right: north of bottom-main (v=0.93), east of ext-eng — not sitting in the lane

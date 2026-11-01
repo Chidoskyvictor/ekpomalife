@@ -8,17 +8,20 @@ export function AuthLinks({
   size = 'default',
   signupFirst = false,
   variant = 'flat',
+  signupLabel = 'Sign up',
 }: {
   className?: string
   size?: 'default' | 'lg'
   signupFirst?: boolean
   variant?: 'flat' | 'lobby'
+  /** Text on the lobby sign-up button. */
+  signupLabel?: string
 }) {
   if (variant === 'lobby') {
     return (
       <div className={cn(styles.lobbyRow, size === 'default' && styles.compact, className)}>
         <Link href="/signup" className={cn(styles.play, styles.lobbySignup)}>
-          Sign up
+          {signupLabel}
           <Play className={styles.playSticker} fill="currentColor" aria-hidden="true" />
         </Link>
         <Link href="/login" className={styles.lobbyLogin}>

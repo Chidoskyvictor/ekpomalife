@@ -101,6 +101,15 @@ export function RoomScreen() {
   // Stepping outside stops whatever you were doing in there
   const leaveInside = useCallback(() => control.stop?.(), [control])
   const scene = useHomeScene(own, leaveInside)
+  // "Loading your room…" stays up until the room's first frame has actually drawn
+  const sceneKey = `${layout.id}-${scene.visit}-${scene.outside ? 'out' : 'in'}`
+  const [drawnKey, setDrawnKey] = useState<string | null>(null)
+  const sceneOnReady = scene.onReady
+  const onSceneReady = useCallback(() => {
+    setDrawnKey(sceneKey)
+    sceneOnReady()
+  }, [sceneKey, sceneOnReady])
+  const roomLoading = !scene.outside && modelReady !== 'missing' && drawnKey !== sceneKey
 
   // The nav's Buy tab opens Buy mode while you are inside your own home (and only then)
   // (as soon as the home is known: waiting for the furniture list made an early tap open the town shop)
@@ -162,7 +171,7 @@ export function RoomScreen() {
             control={control}
             spawn={scene.spawnAtDoor ? layout.start : undefined}
             visit={scene.visit}
-            onReady={scene.onReady}
+            onReady={onSceneReady}
             street={
               scene.outside
                 ? {
@@ -186,10 +195,11 @@ export function RoomScreen() {
             Add <code>{layout.glb.replace('/models/', '')}</code> to <code>public/models/</code> to see your room here.
           </p>
         ) : null}
-        {modelReady === 'checking' && !scene.outside ? (
-          <p className={styles.missingModel} role="status" aria-live="polite">
-            Loading room…
-          </p>
+        {roomLoading ? (
+          <div className={styles.roomLoading} role="status" aria-live="polite">
+            <span className={styles.roomSkeleton} aria-hidden="true" />
+            <p className={styles.roomLoadingText}>Loading your room…</p>
+          </div>
         ) : null}
         </div>
         {STREET_AND_TRAVEL && own && state && !buy.active ? (

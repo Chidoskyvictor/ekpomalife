@@ -154,3 +154,11 @@
     }
   }
 }
+
+/* Low-perf / low-data mode (set by hooks/use-low-perf.ts): no backdrop blur anywhere */
+html[data-low-perf] *,
+html[data-low-perf] *::before,
+html[data-low-perf] *::after {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}

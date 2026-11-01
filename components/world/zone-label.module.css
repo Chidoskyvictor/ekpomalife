@@ -172,3 +172,22 @@
     animation: none;
   }
 }
+
+/* Invisible tap area, at least 44×44 on screen, centred on every label; the pill looks the same.
+   The pill no longer clips its children (the name clips itself), so this can reach past it. */
+.sticker {
+  position: relative;
+  overflow: visible;
+}
+
+.sticker::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  /* --label-scale is the pin's current shrink (set by world-zone-stickers.tsx) */
+  width: max(100%, calc(46px / var(--label-scale, 1)));
+  height: max(100%, calc(46px / var(--label-scale, 1)));
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+}

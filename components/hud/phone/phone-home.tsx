@@ -54,6 +54,8 @@ export function PhoneHome({
 
   return (
     <div className={styles.home}>
+      {/* Everything but the dock scrolls; the dock sits below it, so it never covers an app */}
+      <div className={styles.homeScroll}>
       <p className={styles.clock} aria-label={clock?.label}>
         {clock?.label?.replace(/\s?(AM|PM)$/i, '') ?? '--:--'}
       </p>
@@ -103,7 +105,7 @@ export function PhoneHome({
       ) : null}
 
       <AppGrid phone={phone} onOpen={onOpenApp} />
-      <div style={{ height: 12 }} />
+      </div>
       <AppGrid phone={phone} onOpen={onOpenApp} dock />
     </div>
   )

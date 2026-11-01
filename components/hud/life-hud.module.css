@@ -256,11 +256,19 @@
   opacity: 1;
 }
 
+.statusStack {
+  position: relative;
+}
+
+/* ±₦ float: placed by status-bar.tsx over (or under) the money chip, outside the scrolling bar.
+   Uses `translate`, not `transform`, because the motion y animation owns `transform`. */
 .cashDelta {
   position: absolute;
-  left: 50%;
-  top: -2px;
-  transform: translate(-50%, -100%);
+  z-index: 2;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
   font-size: 12px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
@@ -291,12 +299,18 @@
 
 .cashRetry {
   pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-block: -4px;
   border: 0;
   background: transparent;
-  padding: 0;
+  padding: 0 4px;
   color: #e11d48;
   font: inherit;
+  font-size: 13px;
   font-weight: 600;
+  white-space: nowrap;
   cursor: pointer;
   text-decoration: underline;
   text-underline-offset: 2px;
@@ -322,6 +336,30 @@
   box-shadow: 0 4px 0 color-mix(in oklab, var(--primary) 62%, black);
   cursor: pointer;
   flex: none;
+  position: relative;
+}
+
+/* 44×44 tap area around the 32px button, without changing how it looks */
+.plusBtn::before {
+  content: '';
+  position: absolute;
+  inset: -6px;
+}
+
+/* Mood chip ("Sad") is a button that opens Needs; same look as the other status items */
+.moodBtn {
+  pointer-events: auto;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  margin-block: -8px;
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 .plusBtn:active {
@@ -452,7 +490,7 @@
   border-radius: 999px;
   background: #ff3b30;
   color: #fff;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 600;
   font-feature-settings: 'tnum' 1;
   display: grid;
@@ -604,8 +642,31 @@
   font-size: 14px;
 }
 
+/* Avatar button + needs pill side by side (the pill is its own button) */
+.meRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Button reset for the needs pill; its glass look stays in .needChip */
+button.needChip {
+  pointer-events: auto;
+  min-height: 44px;
+  color: #111;
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.needName {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 .needMore {
-  color: #8e8e93;
+  /* #6e6e73: 4.6:1 on the white pill (AA at 12px) */
+  color: #6e6e73;
   font-size: 12px;
   font-weight: 600;
 }
@@ -797,7 +858,7 @@
   border-radius: 999px;
   background: #ff3b30;
   color: #fff;
-  font-size: 0.625rem;
+  font-size: 0.75rem;
   font-weight: 600;
   font-feature-settings: 'tnum' 1;
   display: grid;
@@ -936,7 +997,7 @@
 .settingsHint {
   margin: 0;
   padding: 4px 4px 12px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 400;
   color: #6e6e73;
 }
@@ -954,6 +1015,34 @@
   font-size: 13px;
   line-height: 1.4;
   font-weight: 600;
+}
+
+.toast > span {
+  min-width: 0;
+}
+
+/* Toast with a button ("Go to my room"): tappable, text and button on one row */
+.toastWithAction {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-block: 4px;
+  padding-right: 4px;
+}
+
+.toastAction {
+  flex: none;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font: inherit;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
 }
 
 .toastOk {
@@ -1013,7 +1102,7 @@
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
     backdrop-filter: blur(20px) saturate(180%);
     -webkit-backdrop-filter: blur(20px) saturate(180%);
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
     letter-spacing: -0.01em;
@@ -1022,7 +1111,7 @@
   }
 
   .playersDock .statusMuted {
-    font-size: 11px;
+    font-size: 12px;
   }
 
   .playersDock .liveDot {

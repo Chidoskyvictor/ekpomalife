@@ -5,7 +5,6 @@ import { Canvas, useThree } from '@react-three/fiber'
 import { Suspense, useEffect, useLayoutEffect, useMemo, type ReactNode } from 'react'
 import { Box3, Vector3, type Material, type Mesh, type Object3D } from 'three'
 import { applyGlbTextureAnisotropy } from '@/components/world/glb-textures'
-import { useLowPerf } from '@/hooks/use-low-perf'
 import { shadeOf } from '@/lib/game/house-paint'
 import type { Appearance } from '@/lib/game/look'
 import { paintOf, releasePaint } from '@/lib/game/paint-material'
@@ -185,20 +184,19 @@ function SceneReady({ onReady }: { onReady?: () => void }) {
  * meshes disposed); the home's GLB stays cached so going back in is instant.
  */
 export function HomeCanvas({ street, onReady, visit = 0, ...props }: CanvasProps) {
-  const lowPerf = useLowPerf()
   const cam = scaledRoomCamera(props.layout.cameraScale, props.layout.view)
   const { turn, active: buying } = useBuyUi()
 
   return (
     <Canvas
-      dpr={lowPerf ? [1, 1.35] : [1, 1.85]}
+      dpr={[1, 1.85]}
       camera={{
         position: cam.position,
         fov: cam.fov,
         near: 0.05,
         far: 120,
       }}
-      gl={{ antialias: !lowPerf, powerPreference: 'high-performance', alpha: true }}
+      gl={{ antialias: true, powerPreference: 'high-performance', alpha: true }}
       style={{ width: '100%', height: '100%', touchAction: 'none' }}
       onCreated={({ gl }) => {
         // See-through: the page's own background (--app-wash) shows behind the house

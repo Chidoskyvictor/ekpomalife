@@ -36,7 +36,7 @@
 
 /* Phone + the Close pill that floats above it (outside the frame). */
 .device {
-  --close-h: 40px;
+  --close-h: 44px;
   --close-gap: 10px;
   display: flex;
   flex-direction: column;
@@ -265,8 +265,16 @@
   display: flex;
   flex: 1;
   flex-direction: column;
+  gap: 12px;
   min-height: 0;
   padding: 8px 16px 12px;
+}
+
+.homeScroll {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
@@ -442,7 +450,7 @@
 }
 
 .appLabel {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   text-align: center;
   line-height: 1.2;
@@ -459,7 +467,7 @@
   border-radius: 999px;
   background: #ef4444;
   color: #fff;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
   display: grid;
   place-items: center;
@@ -474,7 +482,7 @@
   border-radius: 999px;
   background: #ef4444;
   color: #fff;
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.04em;
   display: grid;
@@ -493,6 +501,8 @@
 }
 
 .dock {
+  /* Outside the scrolling area, so it is always fully visible */
+  flex: none;
   margin-top: auto;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -588,6 +598,28 @@
   text-align: center;
   padding: 24px;
   background: #050505;
+}
+
+/* Small ring spinner for "Loading your phone…" */
+.phoneSpinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid rgba(255, 255, 255, 0.2);
+  border-top-color: #fff;
+  border-radius: 999px;
+  animation: phoneSpin 0.9s linear infinite;
+}
+
+@keyframes phoneSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .phoneSpinner {
+    animation: none;
+  }
 }
 
 .deadTitle {
@@ -857,7 +889,7 @@
 .liveMeta {
   overflow: hidden;
   color: #6e6e73;
-  font-size: 11px;
+  font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }

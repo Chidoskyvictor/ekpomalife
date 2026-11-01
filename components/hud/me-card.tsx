@@ -24,10 +24,22 @@ const NEEDS_GRID: NeedId[] = ['hunger', 'energy', 'fun', 'social', 'hygiene', 's
 
 /**
  * Bottom-left HUD card: the player's avatar + their needs. Tap → profile.
- * Phones show the avatar and just the need that wants attention most ("⚡ 24% +1");
- * wider screens show all six bars. `raised` lifts it above a place sheet (club…).
+ * Phones show the avatar and a pill with the need that wants attention most
+ * ("Hunger 0% · +2 low"); tapping that pill opens the Needs tab.
+ * Wider screens show all six bars. `raised` lifts it above a place sheet (club…).
  */
-export function MeCard({ state, onOpen, raised = false }: { state: GameState; onOpen: () => void; raised?: boolean }) {
+export function MeCard({
+  state,
+  onOpen,
+  onNeeds,
+  raised = false,
+}: {
+  state: GameState
+  onOpen: () => void
+  /** Opens the profile on its Needs tab. */
+  onNeeds: () => void
+  raised?: boolean
+}) {
   const well = wellbeingScore(state)
   const tone = needTone(well)
   const critical = criticalNeed(state)
@@ -39,7 +51,7 @@ export function MeCard({ state, onOpen, raised = false }: { state: GameState; on
   const alsoLow = sorted.slice(1).filter((n) => needTone(n.value) !== 'good').length
 
   return (
-    <div className={`${styles.meDock} ${raised ? styles.meDockRaised : ''}`}>
+    <div className={`${styles.meDock} ${styles.meRow} ${raised ? styles.meDockRaised : ''}`}>
       <button
         type="button"
         className={styles.meCard}
@@ -66,8 +78,8 @@ export function MeCard({ state, onOpen, raised = false }: { state: GameState; on
             />
           </span>
           {critical ? (
-            <span className={styles.critBadge} aria-hidden="true">
-              <img src={NEED_META[critical].emoji} alt="" width={14} height={14} />
+            <span className={styles.critBadge}>
+              <img src={NEED_META[critical].emoji} alt={`${NEED_META[critical].label} is critical`} width={14} height={14} />
             </span>
           ) : null}
         </span>
@@ -82,13 +94,28 @@ export function MeCard({ state, onOpen, raised = false }: { state: GameState; on
             </span>
           ))}
         </span>
+      </button>
 
-        {/* Phones: only the need that matters most right now */}
-        <span className={styles.needChip} aria-label={`${NEED_META[lowest.id].label} ${lowest.value}%${alsoLow ? `, ${alsoLow} more low` : ''}`}>
-          <img src={NEED_META[lowest.id].emoji} alt="" width={16} height={16} className={styles.needIcon} />
-          <strong style={{ color: TONE[needTone(lowest.value)] }}>{lowest.value}%</strong>
-          {alsoLow ? <span className={styles.needMore}>+{alsoLow}</span> : null}
-        </span>
+      {/* Phones: only the need that matters most right now; tap → Needs */}
+      <button
+        type="button"
+        className={styles.needChip}
+        onClick={() => {
+          hapticTap()
+          onNeeds()
+        }}
+        aria-label={`${NEED_META[lowest.id].label} ${lowest.value}%${
+          alsoLow ? `, ${alsoLow} more ${alsoLow === 1 ? 'need' : 'needs'} low` : ''
+        }. Open needs`}
+      >
+        <img src={NEED_META[lowest.id].emoji} alt="" width={16} height={16} className={styles.needIcon} />
+        <span className={styles.needName}>{NEED_META[lowest.id].label}</span>
+        <strong style={{ color: TONE[needTone(lowest.value)] }}>{lowest.value}%</strong>
+        {alsoLow ? (
+          <span className={styles.needMore} aria-hidden="true">
+            +{alsoLow} low
+          </span>
+        ) : null}
       </button>
     </div>
   )

@@ -18,7 +18,7 @@ import {
   type Object3D,
 } from 'three'
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js'
-import { HAIR_CONFIG, hairFitFor, type HairFit } from '@/lib/game/hair-config'
+import { hairFitFor, type HairFit } from '@/lib/game/hair-config'
 import { meshoptDecoder } from '@/lib/game/meshopt'
 import {
   CHARACTER_GLB,
@@ -708,18 +708,7 @@ export function CharacterFigure({
   /** Overrides walk/idle with a specific clip (sit on a chair, bucket bath…). */
   pose?: RefObject<FigurePose | null>
 }) {
-  useEffect(() => {
-    void meshoptDecoder.then((decoder) => {
-      const styles = HAIR_CONFIG[appearance.body]
-      for (const style of Object.values(styles)) {
-        if (style?.file) {
-          useGLTF.preload(style.file, true, false, (loader) => {
-            loader.setMeshoptDecoder(decoder)
-          })
-        }
-      }
-    })
-  }, [appearance.body])
+  // Hair and body GLBs load on demand (only the style in use), never the whole set
 
   if (imported) {
     return <ImportedFigure url={CHARACTER_GLB[appearance.body]} appearance={appearance} hairTune={hairTune} moving={moving} pose={pose} />
@@ -727,5 +716,3 @@ export function CharacterFigure({
   return <ModularFigure appearance={appearance} />
 }
 
-useGLTF.preload(CHARACTER_GLB.man)
-useGLTF.preload(CHARACTER_GLB.woman)

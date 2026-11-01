@@ -4,15 +4,19 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import styles from './map-load-overlay.module.css'
 
 /**
- * White “Loading map · N%” over the blue ground while assets boot.
+ * “Loading map · N%” while assets boot.
  * Percent eases toward the real LoadingManager value so it counts on screen.
+ * Fades out as soon as the canvas has drawn a frame with everything loaded.
  */
 export function MapLoadOverlay({
   targetPercent,
   assetsDone,
+  drawn = false,
 }: {
   targetPercent: number
   assetsDone: boolean
+  /** The first frame with all assets has been drawn: hide right away (no count-up to 100). */
+  drawn?: boolean
 }) {
   const [shown, setShown] = useState(0)
   const [visible, setVisible] = useState(true)
@@ -40,11 +44,11 @@ export function MapLoadOverlay({
   }, [visible])
 
   useEffect(() => {
-    if (!assetsDone || shown < 100) return
+    if (!drawn && (!assetsDone || shown < 100)) return
     setVisible(false)
     const hide = window.setTimeout(() => setGone(true), 380)
     return () => window.clearTimeout(hide)
-  }, [assetsDone, shown])
+  }, [assetsDone, shown, drawn])
 
   // Hard failsafe so a stuck loader never covers the map forever.
   useEffect(() => {

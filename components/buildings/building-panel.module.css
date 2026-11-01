@@ -110,7 +110,7 @@
   min-height: 22px;
   padding: 0 8px;
   border-radius: 999px;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.01em;
 }
@@ -157,7 +157,7 @@
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.65);
   border: 1px solid rgba(255, 255, 255, 0.5);
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   color: #64748b;
 }
 
@@ -227,7 +227,7 @@
   min-height: 24px;
   padding: 0 8px;
   border-radius: 999px;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 600;
   background: rgba(61, 154, 214, 0.12);
   color: #1d4f7a;

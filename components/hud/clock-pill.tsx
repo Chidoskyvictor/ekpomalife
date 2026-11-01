@@ -21,9 +21,9 @@ export function ClockPill({ state }: { state: GameState }) {
     >
       <div className={styles.clockRow}>
         {clock.sky === 'moon' ? (
-          <img src="/emoji/crescent-moon.png" alt="" width={16} height={16} className={styles.sticker} />
+          <img src="/emoji/crescent-moon.png" alt="Night" width={16} height={16} className={styles.sticker} />
         ) : (
-          <img src="/emoji/fire.png" alt="" width={16} height={16} className={styles.sticker} />
+          <img src="/emoji/fire.png" alt="Daytime" width={16} height={16} className={styles.sticker} />
         )}
         <strong>
           {cal.label}

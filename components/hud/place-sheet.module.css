@@ -150,7 +150,7 @@
   border-radius: 999px;
   background: #ef4444;
   color: #fff;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
   line-height: 18px;
 }
@@ -183,7 +183,7 @@
 
 .blockHead small {
   color: #8e8e93;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
 }
 
@@ -295,7 +295,7 @@
   border-radius: 999px;
   background: #f2f2f7;
   color: #3c3c43;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
 }
 
@@ -316,7 +316,7 @@
 
 .note {
   color: #8e8e93;
-  font-size: 11px;
+  font-size: 14px;
 }
 
 .tags {
@@ -330,7 +330,7 @@
 .tag {
   padding: 3px 8px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
 }
 
@@ -406,7 +406,7 @@
 .handleName {
   overflow: hidden;
   max-width: 64px;
-  font-size: 11px;
+  font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -419,6 +419,6 @@
   border-radius: 999px;
   background: #fff4c7;
   color: #8a5a00;
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 800;
 }

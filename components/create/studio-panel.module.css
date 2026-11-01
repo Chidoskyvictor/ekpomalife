@@ -103,7 +103,7 @@
   margin: 0;
   flex-shrink: 0;
   color: #6b7280;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 400;
 }
 
@@ -384,7 +384,7 @@
 .blurb {
   margin: 0;
   color: #6b7280;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 400;
   line-height: 1.45;
   text-wrap: pretty;

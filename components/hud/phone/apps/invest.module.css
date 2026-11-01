@@ -33,7 +33,7 @@
 
 .heroLabel {
   margin: 0;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -50,7 +50,7 @@
 
 .heroSub {
   margin: 0;
-  font-size: 13px;
+  font-size: 14px;
   opacity: 0.9;
 }
 
@@ -69,7 +69,7 @@
   padding: 6px 4px;
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.16);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .stat strong {
@@ -92,7 +92,7 @@
 
 .heroFoot {
   margin: 2px 0 0;
-  font-size: 11px;
+  font-size: 12px;
   opacity: 0.8;
 }
 
@@ -134,7 +134,7 @@
   padding: 1px 5px;
   border-radius: 999px;
   background: rgba(0, 0, 0, 0.08);
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
 }
@@ -148,7 +148,7 @@
   margin: 0;
   padding: 8px 12px;
   border-radius: 12px;
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .okNote {
@@ -164,7 +164,7 @@
 .section {
   margin: 8px 4px 0;
   color: #8e8e93;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -173,7 +173,7 @@
 .fine {
   margin: 0 4px;
   color: #8e8e93;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 /* —— Rows —— */
@@ -204,7 +204,7 @@
   flex-direction: column;
   gap: 3px;
   color: #3c3c43;
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.35;
 }
 
@@ -241,7 +241,7 @@
 .tags em {
   padding: 2px 7px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .tagUp {
@@ -371,7 +371,7 @@
 .coinRow em {
   padding: 2px 7px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: 12px;
   font-style: normal;
   font-weight: 700;
 }
@@ -386,7 +386,7 @@
 
 .hype {
   color: #8e8e93;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
 }
 
@@ -405,7 +405,7 @@
   flex-direction: column;
   gap: 3px;
   color: #6e6e73;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
 }
 

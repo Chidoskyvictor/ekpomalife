@@ -37,7 +37,7 @@ const idemStore = new Map<string, { status: number; body: IdemBody }>()
 const PROMOS: PhonePromo[] = [
   {
     id: 'freshers-night',
-    title: "Freshers' Night at Students' Centre",
+    title: "Freshers' Night at Student Conference",
     subtitle: 'Fri 8PM — come vibe',
     cta: 'See details',
     emoji: '🎉',

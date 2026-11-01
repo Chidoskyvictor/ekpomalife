@@ -21,6 +21,8 @@ export function NoHScrollGuard() {
       const scrollWidth = Math.max(document.documentElement.scrollWidth, document.body.scrollWidth)
       // clientWidth excludes scrollbar; Chrome reports spurious overflow with innerWidth.
       const viewportWidth = document.documentElement.clientWidth
+      // A minimised / hidden window reports ~1px wide: not a real layout, skip it
+      if (viewportWidth < 240) return
       if (!hasHorizontalOverflow(scrollWidth, viewportWidth)) return
       const message = `[no-hscroll] ${pathname} overflow: scrollWidth=${scrollWidth} > clientWidth=${viewportWidth}`
       console.error(message)

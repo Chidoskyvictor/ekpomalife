@@ -5,12 +5,20 @@ import type { ReactNode } from 'react'
 import styles from './auth.module.css'
 
 export function LobbyCheckbox({
+  id,
   checked,
   onChange,
+  onBlur,
+  invalid,
+  describedBy,
   children,
 }: {
+  id?: string
   checked: boolean
   onChange: (next: boolean) => void
+  onBlur?: () => void
+  invalid?: boolean
+  describedBy?: string
   children: ReactNode
 }) {
   const reduce = useReducedMotion() ?? false
@@ -18,10 +26,14 @@ export function LobbyCheckbox({
   return (
     <label className={styles.checkRow}>
       <input
+        id={id}
         type="checkbox"
         className={styles.checkNative}
         checked={checked}
         onChange={(event) => onChange(event.target.checked)}
+        onBlur={onBlur}
+        aria-invalid={invalid || undefined}
+        aria-describedby={describedBy}
       />
       <motion.span
         className={styles.checkBox}
