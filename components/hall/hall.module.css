@@ -1,0 +1,25 @@
+/* Lecture hall: the 3D room fills the screen, daylight sky behind it */
+.root {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, #cfe6f5 0%, #e9f1f6 60%, #d9dfe3 100%);
+}
+
+.stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: #6e6e73;
+  font-size: 14px;
+}

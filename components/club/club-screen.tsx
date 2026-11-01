@@ -29,6 +29,7 @@ import type { PlayerMove } from '@/components/room/room-player'
 import { ClubFx } from './club-fx'
 import { ClubPeers } from './club-peers'
 import { ClubPeople } from './club-people'
+import { ClubShoutouts } from './club-shoutouts'
 import { SprayRain } from './spray-rain'
 import styles from './club.module.css'
 
@@ -108,6 +109,12 @@ export function ClubScreen({ venueId }: { venueId: string }) {
   // Live crowd: the others in your group, and money sprays
   const live = useClubLive(venueId, inside, state?.username)
   const { sendState } = live
+  // Names in your group right now, for the DJ's welcome shout-outs (roster bumps on join/leave)
+  const peerNames = useMemo(
+    () => [...live.peers.current.values()].map((p) => p.username),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- live.roster is the change signal for the peers ref
+    [live.roster],
+  )
   const onPlayerMove = useCallback(
     (m: PlayerMove) => sendState({ x: m.x, y: m.y, z: m.z, h: m.h, pose: m.pose, moving: m.moving }),
     [sendState],
@@ -363,6 +370,15 @@ export function ClubScreen({ venueId }: { venueId: string }) {
         />
       ) : null}
       {inside ? <SprayRain sprays={live.sprays} lastGot={live.lastGot} onPick={live.pick} /> : null}
+      {inside ? (
+        <ClubShoutouts
+          clubName={view?.venue.name ?? ''}
+          me={state?.username}
+          sprays={live.sprays}
+          topUsername={view ? (top?.username ?? null) : undefined}
+          peerNames={peerNames}
+        />
+      ) : null}
 
       {!view && !error ? <p className={styles.status}>Loading club…</p> : null}
       {!view && error ? <p className={styles.status}>{error}</p> : null}

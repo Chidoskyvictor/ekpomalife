@@ -35,6 +35,8 @@ export type VenueItem = {
 
 export type Venue = {
   id: string
+  /** 'hall' = a lecture hall: free to walk in, no buying or spraying, open by day. */
+  kind?: 'club' | 'hall'
   name: string
   open: number
   close: number
@@ -64,6 +66,32 @@ export const VENUES: Record<string, Venue> = {
       { id: 'ace', kind: 'bottle', name: 'Bottle of Ace', emoji: '🥂', price: 500_000, minutes: 20, needs: { fun: 20, social: 25 }, vipOnly: true },
     ],
   },
+}
+
+/*
+ * Lecture halls and faculties share one 3D hall. As venues they're free, open 7 AM to 9 PM,
+ * and put students into the same crowd groups as the club so each player sees a manageable
+ * class (up to GROUP_SIZE) walking in and taking seats.
+ */
+const HALLS: [string, string][] = [
+  ['hall-100', '100 Level Hall'],
+  ['hall-200', '200 Level Hall'],
+  ['etf-hall', 'ETF Hall'],
+  ['mls-hall', 'MLS Hall'],
+  ['twin-hall', 'Twin Hall'],
+  ['cordelia-hall', 'Cordelia Agbebaku Hall'],
+  ['education', 'Education'],
+  ['mass-comm', 'Mass Comm'],
+  ['law-campus', 'Law'],
+  ['law-ext', 'Law (extension)'],
+  ['physical-science', 'Physical Science'],
+  ['social-science', 'Social Science'],
+  ['life-science', 'Life Science'],
+  ['management-science', 'Management Science'],
+  ['engineering', 'Engineering'],
+]
+for (const [id, name] of HALLS) {
+  VENUES[id] = { id, kind: 'hall', name, open: 7, close: 21, entry: 0, capacity: 1000, items: [] }
 }
 
 export const GROUP_SIZE = 18
@@ -217,7 +245,10 @@ export async function enterVenue(userId: string, venueId: string, key: string) {
         if ((await insideCount(venueId, night)) >= venue.capacity) {
           return bad(409, 'FULL', `${venue.name} is packed right now. Try again in a bit.`)
         }
-        const paid = await applyCash(client, characterId, -venue.entry, `${venueId}:entry`, 'purchase')
+        // Free venues (lecture halls) skip the money step entirely
+        const paid = venue.entry > 0
+          ? await applyCash(client, characterId, -venue.entry, `${venueId}:entry`, 'purchase')
+          : { ok: true as const, cash: undefined }
         if (!paid.ok) {
           return bad(400, 'INSUFFICIENT_FUNDS', `Entry is ₦${venue.entry.toLocaleString()}. Your wallet can't cover it yet.`)
         }
@@ -236,6 +267,7 @@ export async function enterVenue(userId: string, venueId: string, key: string) {
 /** Dance, buy a drink, take the VIP lounge or pop a bottle. */
 export async function buyAtVenue(userId: string, venueId: string, itemId: string, key: string) {
   const venue = VENUES[venueId]
+  if (venue?.kind === 'hall') return { ok: false as const, error: 'Not in a lecture hall.', code: 400 }
   const item = venue?.items.find((i) => i.id === itemId)
   if (!venue || !item) return { ok: false as const, error: 'Not on the menu.', code: 404 }
   const night = nightKey()
@@ -298,6 +330,7 @@ export function splitSpray(amount: number): SprayNote[] {
 /** Spray money on your crowd group: paid up front, then it rains for everyone to pick. */
 export async function sprayAtVenue(userId: string, venueId: string, amount: number, key: string) {
   const venue = VENUES[venueId]
+  if (venue?.kind === 'hall') return { ok: false as const, error: 'Not in a lecture hall.', code: 400 }
   if (!venue) return { ok: false as const, error: 'No such club.', code: 404 }
   if (!SPRAY_AMOUNTS.includes(amount)) return { ok: false as const, error: 'Pick an amount to spray.', code: 400 }
   const inSpace = await liveSpaceMoneyBlock([userId])

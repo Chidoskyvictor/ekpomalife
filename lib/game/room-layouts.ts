@@ -2,6 +2,7 @@ import type { RoomView } from './room-camera'
 import type { FurnitureId } from './room-furniture'
 import type { LodgingId } from './room-types'
 import ROOM_SHIFTS from './room-shifts.json'
+import hallSeats from './hall-seats.json'
 
 /*
  * The three homes the room screen can show. All numbers are in each GLB's own
@@ -11,13 +12,13 @@ import ROOM_SHIFTS from './room-shifts.json'
  * using room-shifts.json (where the build moved each piece of furniture).
  */
 
-export type RoomLayoutId = 'single-room' | 'selfcon' | 'one-bedroom' | 'hostel' | 'club-sazza' | 'street'
+export type RoomLayoutId = 'single-room' | 'selfcon' | 'one-bedroom' | 'hostel' | 'club-sazza' | 'lecture-hall' | 'street'
 
 /** [minX, minZ, maxX, maxZ] */
 export type Rect = [number, number, number, number]
 
 /** A built-in piece of furniture, or one the player bought and placed (`placed:<placement id>`). */
-export type SpotKey = FurnitureId | `placed:${string}`
+export type SpotKey = FurnitureId | `placed:${string}` | `seat:${string}`
 
 export type FurnitureSpot = {
   /** Where the character stands before using it */
@@ -328,7 +329,7 @@ function grow(small: SmallLayout, { k, shifts }: Grown): RoomLayout {
   }
 }
 
-export const ROOM_LAYOUTS: Record<Exclude<RoomLayoutId, 'street'>, RoomLayout> = {
+export const ROOM_LAYOUTS: Record<Exclude<RoomLayoutId, 'street' | 'lecture-hall'>, RoomLayout> = {
   'single-room': SINGLE_ROOM,
   selfcon: grow(SELFCON_SMALL, ROOM_SHIFTS.selfcon),
   'one-bedroom': grow(ONE_BEDROOM_SMALL, ROOM_SHIFTS['one-bedroom']),
@@ -338,6 +339,47 @@ export const ROOM_LAYOUTS: Record<Exclude<RoomLayoutId, 'street'>, RoomLayout> =
 
 /** The 3D scene for a club, by venue id. */
 export const CLUB_LAYOUTS: Record<string, RoomLayout> = { sazza: CLUB_SAZZA }
+
+/** One chair in the lecture hall (blender/build-lecture-hall.py → hall-seats.json). */
+export type HallSeat = { id: string; x: number; z: number; row: number; heading: number }
+export const HALL_SEATS: HallSeat[] = hallSeats.seats
+export const seatKey = (id: string): SpotKey => `seat:${id}`
+
+/**
+ * The shared lecture hall (every hall and class uses it, painted per hall). Podium at the
+ * back (−z), curved rows of red chairs facing it, open front (+z) toward the camera. Chairs don't
+ * block walking; you sit by walking to one (spot `seat:<id>`).
+ */
+export const LECTURE_HALL: RoomLayout = {
+  id: 'lecture-hall',
+  label: 'Lecture hall',
+  glb: '/models/lecture-hall.glb?v=2',
+  floors: [
+    [-4.85, -7.1, 4.85, 7.1], // narrow back half
+    [-6.6, 3.0, 6.6, 7.1], // wider front
+  ],
+  blocks: [
+    [-3.7, -7.5, 3.7, -5.1], // podium
+  ],
+  start: [0, 6.4],
+  spots: Object.fromEntries(
+    HALL_SEATS.map((s) => [
+      seatKey(s.id),
+      // Curved rows: each chair is turned by its own heading (0 = facing the podium at −z).
+      // Approach from behind the chair, sit facing where the chair faces.
+      {
+        approach: [s.x + Math.sin(s.heading) * 0.62, s.z + Math.cos(s.heading) * 0.62],
+        at: [s.x + Math.sin(s.heading) * 0.04, -0.26, s.z + Math.cos(s.heading) * 0.04],
+        heading: s.heading,
+      } satisfies FurnitureSpot,
+    ]),
+  ),
+  tapBoxes: {},
+  host: { position: [0, 0, 0], rotation: 0 },
+  view: 'corner',
+  cameraScale: 2.2,
+  speed: 2.6,
+}
 
 /** Which home each lodging gets (chosen at sign-up; the hostel is the campus dorm). */
 export function layoutForLodging(lodgingId: LodgingId | string | null | undefined): RoomLayout {

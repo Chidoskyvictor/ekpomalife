@@ -4,7 +4,8 @@
   pointer-events: none;
   position: absolute;
   inset: 0;
-  z-index: calc(var(--z-hud) + 2);
+  /* In front of the club sheet and HUD (the shout-out text sits just above, click-through) */
+  z-index: calc(var(--z-drawer) - 2);
   overflow: hidden;
 }
 

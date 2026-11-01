@@ -1,0 +1,30 @@
+/**
+ * Lecture halls and faculties. They all use one 3D hall (public/models/lecture-hall.glb);
+ * each has its own wall colour, the same for every player (unlike hostels, which are per player).
+ * Ids match the map zones / places and the backend venues (backend/src/game/venues.ts HALLS).
+ */
+export type Hall = { id: string; name: string; color: string }
+
+export const HALLS: Record<string, Hall> = Object.fromEntries(
+  (
+    [
+      ['hall-100', '100 Level Hall', '#2f7d6b'],
+      ['hall-200', '200 Level Hall', '#3d6fb3'],
+      ['etf-hall', 'ETF Hall', '#7b4bb3'],
+      ['mls-hall', 'MLS Hall', '#c0603a'],
+      ['twin-hall', 'Twin Hall', '#b58a1b'],
+      ['cordelia-hall', 'Cordelia Agbebaku Hall', '#a3263f'],
+      ['education', 'Education', '#2e8b57'],
+      ['mass-comm', 'Mass Comm', '#d2691e'],
+      ['law-campus', 'Law', '#34495e'],
+      ['law-ext', 'Law (extension)', '#5d6d7e'],
+      ['physical-science', 'Physical Science', '#1f6b8f'],
+      ['social-science', 'Social Science', '#8e44ad'],
+      ['life-science', 'Life Science', '#3c8d2f'],
+      ['management-science', 'Management Science', '#2c3e70'],
+      ['engineering', 'Engineering', '#c27c0e'],
+    ] as const
+  ).map(([id, name, color]) => [id, { id, name, color }]),
+)
+
+export const hallFor = (id: string | null | undefined): Hall | null => (id ? (HALLS[id] ?? null) : null)

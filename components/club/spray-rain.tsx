@@ -47,18 +47,11 @@ export function SprayRain({
   // Finished sprays drop out by the clock too (background tabs run their timers late)
   const live = sprays.filter((s) => s.endsAt > Date.now())
   const placed = live.map((s) => ({ spray: s, notes: layout(s) }))
-  const banner = live[live.length - 1]
 
   if (!live.length && !pops.length) return null
 
   return (
     <div className={styles.layer} aria-live="polite">
-      {banner ? (
-        <div className={styles.banner}>
-          💸 {banner.mine ? 'You' : `@${banner.byUsername}`} sprayed ₦{banner.amount.toLocaleString()}
-          {banner.mine ? '' : ' · tap to grab!'}
-        </div>
-      ) : null}
       {placed.map(({ spray, notes }) =>
         notes.map((n) => {
           const key = `${spray.id}:${n.note}`

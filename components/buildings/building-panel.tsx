@@ -3,7 +3,7 @@
 import confetti from 'canvas-confetti'
 import { X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type MutableRefObject } from 'react'
 import { Drawer } from 'vaul'
 import { QuizFlow } from '@/components/buildings/quiz-flow'
 import { JobsPanel } from '@/components/hud/jobs-panel'
@@ -207,9 +207,23 @@ function Header({
   )
 }
 
-export function BuildingPanel() {
+/** Runs one of a building's actions (with its quiz / fees / results / ceremony screens). */
+export type BuildingActionRunner = (action: BuildingActionDef) => void
+
+/**
+ * The interior panel. Normally a sheet listing the building's actions for the selected place.
+ * With `headless`, the list isn't shown: a host screen (the lecture hall) shows the actions as
+ * its own cards and calls `runRef.current(action)`; the quiz, fees, results and ceremony
+ * screens still open from here.
+ */
+export function BuildingPanel({
+  headless,
+}: {
+  headless?: { buildingId: string; runRef: MutableRefObject<BuildingActionRunner | null> }
+} = {}) {
   const mobile = useIsMobile()
-  const { state, selectedId, select, act, travelTo, serverVersion, notifyToast } = useGame()
+  const { state, selectedId: pickedId, select, act, travelTo, serverVersion, notifyToast } = useGame()
+  const selectedId = headless ? headless.buildingId : pickedId
   const router = useRouter()
   const [busy, setBusy] = useState(false)
   const [quiz, setQuiz] = useState<{
@@ -304,6 +318,8 @@ export function BuildingPanel() {
     void runWithConfetti(action)
   }
 
+  if (headless) headless.runRef.current = onAction
+
   if (!building || !open) return null
 
   const header = (
@@ -334,7 +350,7 @@ export function BuildingPanel() {
 
   return (
     <>
-      {mobile ? (
+      {headless ? null : mobile ? (
         <Drawer.Root
           open={open}
           onOpenChange={(next) => {

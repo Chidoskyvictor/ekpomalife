@@ -150,6 +150,247 @@ export const PLACE_INFO: Record<string, PlaceInfo> = {
     about: 'The Law campus. Thick books, loud arguments and very sharp shoes.',
     doing: [{ emoji: '📚', text: 'Study with the law students' }],
   },
+  'etf-hall': {
+    area: CAMPUS,
+    about: 'ETF Hall. Big lectures, fans spinning, and a seat is a prize.',
+    doing: [
+      { emoji: '📚', text: 'Attend lectures' },
+      { emoji: '🤝', text: 'Hang out outside' },
+    ],
+  },
+  'hall-200': {
+    area: CAMPUS,
+    about: '200 Level Hall. Second-year lectures and last-minute reading.',
+    doing: [
+      { emoji: '📚', text: 'Attend lectures' },
+      { emoji: '🤝', text: 'Hang out outside' },
+    ],
+  },
+  'hall-100': {
+    area: CAMPUS,
+    about: '100 Level Hall. Where every fresher learns the ropes.',
+    doing: [
+      { emoji: '📚', text: 'Attend lectures' },
+      { emoji: '🤝', text: 'Hang out outside' },
+    ],
+  },
+  'mls-hall': {
+    area: CAMPUS,
+    about: 'MLS Hall. Lab coats, long notes, longer lectures.',
+    doing: [
+      { emoji: '📚', text: 'Attend lectures' },
+      { emoji: '🤝', text: 'Hang out outside' },
+    ],
+  },
+  'twin-hall': {
+    area: CAMPUS,
+    about: 'Twin Hall. Two halls side by side, always one exam away.',
+    doing: [
+      { emoji: '📚', text: 'Attend lectures' },
+      { emoji: '🤝', text: 'Hang out outside' },
+    ],
+  },
+  'physical-science': {
+    area: CAMPUS,
+    about: 'Faculty of Physical Sciences. Formulas on every board.',
+    doing: [
+      { emoji: '📚', text: 'Study' },
+      { emoji: '🤝', text: 'Hang out' },
+    ],
+  },
+  'social-science': {
+    area: CAMPUS,
+    about: 'Faculty of Social Sciences. Debates in every corridor.',
+    doing: [
+      { emoji: '📚', text: 'Study' },
+      { emoji: '🤝', text: 'Hang out' },
+    ],
+  },
+  'life-science': {
+    area: CAMPUS,
+    about: 'Faculty of Life Sciences. Specimens, practicals and lab reports.',
+    doing: [
+      { emoji: '📚', text: 'Study' },
+      { emoji: '🤝', text: 'Hang out' },
+    ],
+  },
+  'management-science': {
+    area: CAMPUS,
+    about: 'Faculty of Management Sciences. Future CEOs in training.',
+    doing: [
+      { emoji: '📚', text: 'Study' },
+      { emoji: '🤝', text: 'Hang out' },
+    ],
+  },
+  'law-ext': {
+    area: CAMPUS,
+    about: 'Law extension. Quiet reading and case briefs.',
+    doing: [
+      { emoji: '📚', text: 'Study' },
+      { emoji: '🤝', text: 'Hang out' },
+    ],
+  },
+  'aau-gate': {
+    area: CAMPUS,
+    about: 'The AAU main gate. Everyone passes through here.',
+    doing: [
+      { emoji: '🤝', text: 'Hang out at the gate' },
+    ],
+  },
+  'parking-ext': {
+    area: CAMPUS,
+    about: 'Campus parking lot. Cars, kekes and gist.',
+    doing: [
+      { emoji: '🤝', text: 'Hang out' },
+    ],
+  },
+  'town-shop-4': {
+    area: TOWN,
+    about: 'Corner shop. Snacks, drinks and everyday things.',
+    doing: [
+      { emoji: '🛒', text: 'Buy snacks and drinks' },
+    ],
+  },
+  'cattle-market': {
+    area: TOWN,
+    about: 'Ekpoma cattle market. Loud, busy and full of deals.',
+    doing: [
+      { emoji: '🤝', text: 'Walk the market' },
+    ],
+  },
+  'sazza': {
+    area: TOWN,
+    about: 'Sazza nightclub. Music, lights and the biggest nights in Ekpoma.',
+    doing: [
+      { emoji: '🪩', text: 'Club night: dance, drinks, VIP' },
+      { emoji: '🎟️', text: 'Entry ₦5,000' },
+    ],
+  },
+  'market-square': {
+    area: TOWN,
+    about: 'Ekpoma market square. Traders, noise and good prices.',
+    doing: [
+      { emoji: '🛒', text: 'Shop for food and things' },
+      { emoji: '🤝', text: 'Hang out' },
+    ],
+  },
+  'dubious': {
+    area: TOWN,
+    about: 'Dubious. A popular open spot in town.',
+    doing: [
+      { emoji: '🤝', text: 'Hang out' },
+    ],
+  },
+  'innovation-hub': {
+    area: TOWN,
+    about: 'Innovation Hub. Laptops, Wi-Fi and big ideas.',
+    doing: [
+      { emoji: '💻', text: 'Work and study' },
+      { emoji: '🤝', text: 'Meet people' },
+    ],
+  },
+  'magmus-autos': {
+    area: TOWN,
+    about: 'Magmus Autos. Mechanic workshop and car yard.',
+    doing: [
+      { emoji: '🔧', text: 'See the mechanics' },
+      { emoji: '🤝', text: 'Hang out' },
+    ],
+  },
+  'above-the-hills-church': {
+    area: TOWN,
+    about: 'Above the Hills Church. Sunday service and midweek fellowship.',
+    doing: [
+      { emoji: '⛪', text: 'Attend service' },
+      { emoji: '🤝', text: 'Meet people' },
+    ],
+  },
+  'wise-gourmet': {
+    area: TOWN,
+    about: 'Wise Gourmet restaurant. Proper plates, proper prices.',
+    doing: [
+      { emoji: '🍽️', text: 'Eat a proper meal' },
+    ],
+  },
+  'park': {
+    area: TOWN,
+    about: 'The park. Shade, benches and a breather.',
+    doing: [
+      { emoji: '🌳', text: 'Relax' },
+      { emoji: '🤝', text: 'Hang out' },
+    ],
+  },
+  'shop-mid-1': {
+    area: TOWN,
+    about: 'Corner shop. Snacks, drinks and everyday things.',
+    doing: [
+      { emoji: '🛒', text: 'Buy snacks and drinks' },
+    ],
+  },
+  'shop-mid-2': {
+    area: TOWN,
+    about: 'Corner shop. Snacks, drinks and everyday things.',
+    doing: [
+      { emoji: '🛒', text: 'Buy snacks and drinks' },
+    ],
+  },
+  'forbes': {
+    area: TOWN,
+    about: 'Forbes nightclub. Lights, music and a long night out.',
+    doing: [
+      { emoji: '🪩', text: 'Club night' },
+    ],
+  },
+  'spot-rite': {
+    area: TOWN,
+    about: 'Spot Rite. Burgers, shawarma and quick bites.',
+    doing: [
+      { emoji: '🍔', text: 'Grab a quick bite' },
+    ],
+  },
+  'shop-low-1': {
+    area: TOWN,
+    about: 'Corner shop. Snacks, drinks and everyday things.',
+    doing: [
+      { emoji: '🛒', text: 'Buy snacks and drinks' },
+    ],
+  },
+  'shop-low-2': {
+    area: TOWN,
+    about: 'Corner shop. Snacks, drinks and everyday things.',
+    doing: [
+      { emoji: '🛒', text: 'Buy snacks and drinks' },
+    ],
+  },
+  'shop-low-3': {
+    area: TOWN,
+    about: 'Corner shop. Snacks, drinks and everyday things.',
+    doing: [
+      { emoji: '🛒', text: 'Buy snacks and drinks' },
+    ],
+  },
+  'anonymous-zone': {
+    area: TOWN,
+    about: 'Anonymous Zone. An open plot where nobody asks questions.',
+    doing: [
+      { emoji: '🤝', text: 'Hang out' },
+    ],
+  },
+  'denco': {
+    area: TOWN,
+    about: 'Denco. A busy spot on the south side of town.',
+    doing: [
+      { emoji: '🤝', text: 'Hang out' },
+    ],
+  },
+  'playchill-climax': {
+    area: TOWN,
+    about: 'Playchill Climax. Pay-to-play football pitch.',
+    doing: [
+      { emoji: '⚽', text: 'Play football' },
+      { emoji: '🤝', text: 'Hang out' },
+    ],
+  },
 }
 
 /** A place on the map that is not open yet: tapping it shows what is coming instead of a way to get there. */
