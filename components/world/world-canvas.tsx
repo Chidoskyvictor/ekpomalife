@@ -203,17 +203,6 @@ function FpsCounter() {
   return null
 }
 
-/** Fires once on the first frame drawn after every map asset has loaded. */
-function FirstDraw({ ready, onDrawn }: { ready: boolean; onDrawn: () => void }) {
-  const fired = useRef(false)
-  useFrame(() => {
-    if (!ready || fired.current) return
-    fired.current = true
-    onDrawn()
-  })
-  return null
-}
-
 function MobileDprMonitor({
   onDecline,
   onIncline,
@@ -232,8 +221,6 @@ export function WorldCanvas() {
   const trip = useTrip()
   const driving = Boolean(trip?.drive && !trip.done)
   const { targetPercent, assetsDone, onProgress } = useMapLoadProgress()
-  const [drawn, setDrawn] = useState(false)
-  const onDrawn = useCallback(() => setDrawn(true), [])
   // A trip to a campus place waits for the map to finish loading
   useEffect(() => {
     if (!assetsDone) return
@@ -289,7 +276,7 @@ export function WorldCanvas() {
     >
       <WorldZoneDebugPanel />
       <BillboardDebugPanel />
-      <MapLoadOverlay targetPercent={targetPercent} assetsDone={assetsDone} drawn={drawn} />
+      <MapLoadOverlay targetPercent={targetPercent} assetsDone={assetsDone} />
       <Canvas
         shadows={!mobile}
         // The highway drive covers the map: stop drawing it until the drive is over
@@ -318,7 +305,6 @@ export function WorldCanvas() {
           <MobileDprMonitor onDecline={onMobileDprDecline} onIncline={onMobileDprIncline} />
         ) : null}
         <FpsCounter />
-        <FirstDraw ready={assetsDone} onDrawn={onDrawn} />
         <MapLoadReporter onProgress={onProgress} />
         <color attach="background" args={[ground]} />
         <fog attach="fog" args={[ground, 230, 420]} />

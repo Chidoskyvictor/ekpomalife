@@ -89,6 +89,15 @@
   }
 }
 
+/* Desktop: bottom sheet centred left-to-right, same size as the map place sheet */
+@media (min-width: 900px) {
+  .contentDesktopCard {
+    width: min(680px, calc(100vw - 48px));
+    max-height: min(58dvh, 560px);
+    margin-inline: auto;
+  }
+}
+
 @media (max-width: 639px) {
   .content {
     /* snap feel via max-height; vaul handles drag */

@@ -1,5 +1,5 @@
 /* Place sheet on the map: header and Go button stay put, the middle scrolls. Phones: bottom sheet.
-   Wide screens: a card on the right. */
+   Desktop: a wide bottom sheet centred on screen. */
 
 .sheet {
   pointer-events: auto;
@@ -29,19 +29,19 @@
   }
 }
 
+/* Desktop: a wide bottom sheet, centred left-to-right, rising from where the nav bar sits.
+   Height is capped so the map stays visible; extra options scroll inside. */
 @media (min-width: 900px) {
   .sheet {
-    inset-inline: auto 12px;
-    bottom: 12px;
-    width: 380px;
-    max-height: calc(100dvh - 96px);
-    padding-bottom: 12px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.7);
-    border-radius: 24px;
-  }
-
-  .handle {
-    display: none;
+    left: 50%;
+    right: auto;
+    bottom: 0;
+    width: min(680px, calc(100vw - 48px));
+    max-height: min(58dvh, 560px);
+    margin-left: calc(min(680px, calc(100vw - 48px)) / -2);
+    padding: 6px 24px calc(14px + env(safe-area-inset-bottom));
+    border-bottom: 0;
+    border-radius: 24px 24px 0 0;
   }
 }
 

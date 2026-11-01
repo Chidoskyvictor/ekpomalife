@@ -24,7 +24,7 @@ export function TodaySheet({
   const items = todayInEkpomaFor(state, { rent, currentJobId, jobPlaceId })
 
   return (
-    <HudDrawer
+    <HudDrawer fit
       open={open}
       onOpenChange={onOpenChange}
       title="Today in Ekpoma"

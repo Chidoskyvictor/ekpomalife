@@ -67,6 +67,11 @@
   background: rgba(22, 163, 74, 0.08);
 }
 
+/* Best value: first, spanning both columns so it is the first thing people see */
+.packFeatured {
+  grid-column: 1 / -1;
+}
+
 .emoji {
   font-size: 1.6rem;
   line-height: 1;

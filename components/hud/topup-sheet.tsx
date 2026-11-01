@@ -142,7 +142,15 @@ export function TopUpSheet({ open, onOpenChange }: { open: boolean; onOpenChange
   }
 
   return (
-    <HudDrawer open={open} onOpenChange={onOpenChange} title="Top up wallet" description="Buy game money with Naira.">
+    <HudDrawer
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Top up wallet"
+      description="Buy game money with Naira."
+      // #half-sheet fix: open to full content height, no half-way snap stop
+      fit
+      desktopCard
+    >
       <div className={economy.section}>
         <div className={styles.currency} role="group" aria-label="Currency">
           <button type="button" className={`${styles.currencyBtn} ${styles.currencyActive}`} aria-pressed="true">
@@ -160,7 +168,8 @@ export function TopUpSheet({ open, onOpenChange }: { open: boolean; onOpenChange
           </>
         ) : (
           <div className={styles.grid}>
-            {packs.map((pack) => {
+            {/* Best value (highlighted) pack first and full width, right under the currency toggle */}
+            {[...packs.filter((p) => p.highlight), ...packs.filter((p) => !p.highlight)].map((pack) => {
               const busy = busyId === pack.id
               return (
                 <button
@@ -168,7 +177,7 @@ export function TopUpSheet({ open, onOpenChange }: { open: boolean; onOpenChange
                   type="button"
                   className={[
                     styles.pack,
-                    pack.highlight ? styles.packHighlight : '',
+                    pack.highlight ? `${styles.packHighlight} ${styles.packFeatured}` : '',
                     busyId && !busy ? styles.packBusyOther : '',
                   ].join(' ')}
                   disabled={busyId !== null}

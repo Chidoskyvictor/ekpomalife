@@ -11,7 +11,6 @@ import {
   PERIOD_CLOCK,
 } from '@/lib/game/needs'
 import { useShowMapLabels } from '@/lib/game/map-labels'
-import { isNepaOutage } from '@/lib/game/quests'
 import { useWatClock } from '@/lib/game/wat-clock'
 import type { GameState } from '@/lib/game/types'
 import styles from './life-hud.module.css'
@@ -53,7 +52,6 @@ export function StatusBar({
   const cal = calendarForDay(state?.day ?? 1)
   const timeLabel = wat.timeLabel
   const mood = state ? moodFromNeeds(state) : null
-  const nepa = state ? isNepaOutage(state) : false
   const moodClass = !mood
     ? ''
     : mood.tone === 'good'
@@ -137,11 +135,6 @@ export function StatusBar({
             {cal.label}
             <span className={styles.statusMuted}> · {timeLabel}</span>
           </strong>
-          {nepa ? (
-            <span className={styles.nepaChip}>
-              <span aria-hidden="true">⚡</span> Power cut
-            </span>
-          ) : null}
         </span>
 
         <span className={styles.statusDivider} aria-hidden="true" />

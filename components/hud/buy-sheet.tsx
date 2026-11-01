@@ -40,7 +40,7 @@ export function BuySheet({
   }, [open, placeId, loadShop, loadInventory])
 
   return (
-    <HudDrawer
+    <HudDrawer fit
       open={open}
       onOpenChange={onOpenChange}
       title={place?.label ?? 'Campus shop'}

@@ -71,7 +71,7 @@ export function ClubPeople({
   }
 
   return (
-    <HudDrawer
+    <HudDrawer fit
       open={open}
       onOpenChange={onOpenChange}
       title={picked ? `@${picked.username}` : `${total.toLocaleString()} inside`}

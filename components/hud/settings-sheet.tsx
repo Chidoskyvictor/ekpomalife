@@ -40,7 +40,7 @@ export function SettingsSheet({
   }
 
   return (
-    <HudDrawer open={open} onOpenChange={onOpenChange} title="More" description="Settings and account.">
+    <HudDrawer fit open={open} onOpenChange={onOpenChange} title="More" description="Settings and account.">
       <div className={styles.settingsBody}>
         <button type="button" className={styles.settingsAction} onClick={toggleMute}>
           <span>Sound</span>

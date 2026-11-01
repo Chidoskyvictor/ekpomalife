@@ -70,7 +70,7 @@ export function TravelControl() {
 
   return (
     <>
-      <HudDrawer
+      <HudDrawer fit
         open={open}
         onOpenChange={setOpen}
         title="Where to?"

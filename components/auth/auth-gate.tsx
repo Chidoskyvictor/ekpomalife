@@ -67,32 +67,16 @@ export function AuthGate({ mode, children }: { mode: AuthGateMode; children: Rea
   }
 
   if (!ready) {
-    return <GateSkeleton />
+    return (
+      <div className={styles.loading} data-theme="light" aria-busy="true" aria-live="polite">
+        <h1 className={styles.mark}>
+          <TextShimmer>Ekpoma Life</TextShimmer>
+        </h1>
+      </div>
+    )
   }
 
   return <AuthGateProvider me={me}>{children}</AuthGateProvider>
-}
-
-/** Branded skeleton in the shape of the game screen (top bar, map, bottom card) while /auth/me decides. */
-function GateSkeleton() {
-  return (
-    <div className={styles.loading} data-theme="light" aria-busy="true" aria-live="polite">
-      <span className="sr-only">Loading Ekpoma Life…</span>
-      <div className={styles.skelTop} aria-hidden="true">
-        {/* Logo sits on its own, never inside a box */}
-        <img src="/logo.png" alt="" width={36} height={36} className={styles.skelLogo} />
-        <span className={`${styles.skelBar} ${styles.skelGrow}`} />
-        <span className={`${styles.skelBar} ${styles.skelPill}`} />
-      </div>
-      <h1 className={styles.mark} aria-hidden="true">
-        <TextShimmer>Ekpoma Life</TextShimmer>
-      </h1>
-      <div className={styles.skelCard} aria-hidden="true">
-        <span className={`${styles.skelBar} ${styles.skelLineShort}`} />
-        <span className={`${styles.skelBar} ${styles.skelButton}`} />
-      </div>
-    </div>
-  )
 }
 
 /** After login/signup: persist username then hard-nav via getPostAuthRoute. */

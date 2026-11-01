@@ -15,49 +15,6 @@ export type QuestPill = {
   rentPay?: boolean
 }
 
-const CITY_EVENTS = [
-  {
-    id: 'mama-put',
-    emoji: '/emoji/pot-of-food.png',
-    title: 'Free food at the food stall',
-    hint: 'By order of the VC',
-    locationId: 'roadside_bukka',
-    hours: 2,
-    minutes: 16,
-  },
-  {
-    id: 'exam-week',
-    emoji: '/emoji/books.png',
-    title: 'Exam week',
-    hint: 'Study XP x2',
-    locationId: 'aau_library',
-    hours: 5,
-    minutes: 40,
-  },
-  {
-    id: 'sug-vote',
-    emoji: '/emoji/ballot-box.png',
-    title: 'SUG elections open',
-    hint: 'Campus celeb points await',
-    locationId: 'aau_campus',
-    hours: 1,
-    minutes: 5,
-  },
-] as const
-
-export function cityEventFor(state: GameState): QuestPill {
-  const event = CITY_EVENTS[(state.day - 1) % CITY_EVENTS.length]!
-  return {
-    id: `event-${event.id}`,
-    kind: 'event',
-    emoji: event.emoji,
-    title: `${event.title} · ${event.hint}`,
-    hint: `Ends in ${event.hours}h ${event.minutes}m`,
-    locationId: event.locationId,
-    endsIn: `${event.hours}h ${event.minutes}m`,
-  }
-}
-
 export function taskPillsFor(state: GameState): QuestPill[] {
   const cal = calendarForDay(state.day)
   const pills: QuestPill[] = []
@@ -135,13 +92,11 @@ export function urgentNeedPill(state: GameState): QuestPill {
   }
 }
 
-/** Max 3 pills: event + up to 2 tasks, or event + 1 task + daily. */
+/** Max 3 pills: up to 2 tasks + daily. (No placeholder city events.) */
 export function questStackFor(state: GameState): QuestPill[] {
-  const event = cityEventFor(state)
   const tasks = taskPillsFor(state)
   const daily = dailyOkadaPill(state)
-  const stack = [event, ...tasks.slice(0, 1), daily]
-  return stack.slice(0, 3)
+  return [...tasks.slice(0, 2), daily].slice(0, 3)
 }
 
 export function rentPill(rent: RentInfo | null | undefined): QuestPill | null {
@@ -275,7 +230,7 @@ export function todayInEkpomaFor(
     jobPlaceId?: string | null
   },
 ): QuestPill[] {
-  return [cityEventFor(state), dailyOkadaPill(state), ...upNextQueueFor(state, extras)]
+  return [dailyOkadaPill(state), ...upNextQueueFor(state, extras)]
 }
 
 export function todayBellCount(
@@ -286,13 +241,7 @@ export function todayBellCount(
     jobPlaceId?: string | null
   },
 ) {
-  return 1 + 1 + upNextQueueFor(state, extras).length
-}
-
-/** Deterministic NEPA outage windows for a day/period. */
-export function isNepaOutage(state: GameState) {
-  const seed = state.day * 17 + PERIOD_CLOCK[state.period].hour
-  return seed % 5 === 0 && (state.period === 'evening' || state.period === 'night')
+  return 1 + upNextQueueFor(state, extras).length
 }
 
 export type ContextAction = {
