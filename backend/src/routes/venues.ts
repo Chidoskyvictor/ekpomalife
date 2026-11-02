@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { getSessionUser } from '../auth/current-user.js'
 import { isUuidV4, readIdempotencyKey } from '../game/idempotency.js'
 import { joinLive } from '../game/club-live.js'
-import { buyAtVenue, enterVenue, getVenue, liveTicket, sprayAtVenue, venueHeartbeat, venuePeople } from '../game/venues.js'
+import { buyAtVenue, enterVenue, getVenue, liveTicket, socialAtVenue, sprayAtVenue, venueHeartbeat, venuePeople } from '../game/venues.js'
 
 const notLoggedIn = (reply: FastifyReply) => reply.code(401).send({ ok: false, error: 'Log in to play.' })
 
@@ -28,6 +28,10 @@ function send(reply: FastifyReply, result: Result) {
 const venueParams = z.object({ id: z.string().min(1).max(40) })
 const buySchema = z.object({ itemId: z.string().min(1).max(40) })
 const spraySchema = z.object({ amount: z.number().int().positive() })
+const socialSchema = z.object({
+  kind: z.enum(['hello', 'gist', 'joke', 'compliment']),
+  target: z.string().min(1).max(80),
+})
 const wsQuery = z.object({ ticket: z.string().min(10).max(80).optional() })
 const peopleQuery = z.object({ offset: z.coerce.number().int().min(0).max(10_000).optional() })
 const rate = { config: { rateLimit: { max: 30, timeWindow: '1 minute' } } }
@@ -58,6 +62,17 @@ export async function venueRoutes(app: FastifyInstance) {
     const parsed = buySchema.safeParse(request.body)
     if (!parsed.success) return reply.code(400).send({ ok: false, error: 'Pick something from the menu.' })
     return send(reply, await buyAtVenue(user.id, id, parsed.data.itemId, key))
+  })
+
+  app.post('/venues/:id/social', rate, async (request, reply) => {
+    const user = await getSessionUser(request)
+    if (!user) return notLoggedIn(reply)
+    const key = idemKey(request, reply)
+    if (!key) return
+    const { id } = venueParams.parse(request.params)
+    const parsed = socialSchema.safeParse(request.body)
+    if (!parsed.success) return reply.code(400).send({ ok: false, error: 'Pick something to do.' })
+    return send(reply, await socialAtVenue(user.id, id, parsed.data.kind, parsed.data.target, key))
   })
 
   app.post('/venues/:id/spray', rate, async (request, reply) => {

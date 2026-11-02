@@ -9,7 +9,7 @@ import { normalizeAppearance, type Appearance } from '@/lib/game/look'
 import type { Peer } from '@/lib/game/club-live'
 
 /** One other player: glides to their latest position and plays their pose, with a name tag. */
-function PeerFigure({ peer }: { peer: Peer }) {
+function PeerFigure({ peer, bubble, onTap }: { peer: Peer; bubble?: string; onTap?: (peer: Peer) => void }) {
   const body = useRef<Group>(null)
   const moving = useRef(false)
   const pose = useRef<FigurePose | null>(null)
@@ -41,11 +41,24 @@ function PeerFigure({ peer }: { peer: Peer }) {
   return (
     <group ref={body} visible={false}>
       <CharacterFigure appearance={normalizeAppearance(peer.appearance as Partial<Appearance>)} moving={moving} pose={pose} />
+      {onTap ? (
+        // See-through capsule over the body takes the tap (opens their card)
+        <mesh
+          position={[0, 0.95, 0]}
+          onClick={(e) => {
+            e.stopPropagation()
+            onTap(peer)
+          }}
+        >
+          <capsuleGeometry args={[0.32, 1.2, 4, 8]} />
+          <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+        </mesh>
+      ) : null}
       <Html position={[0, 2.15, 0]} center distanceFactor={9} zIndexRange={[10, 0]} style={{ pointerEvents: 'none' }}>
         <span
           style={{
             display: 'inline-block',
-            maxWidth: 120,
+            maxWidth: bubble ? 200 : 120,
             overflow: 'hidden',
             padding: '2px 8px',
             borderRadius: 999,
@@ -57,7 +70,7 @@ function PeerFigure({ peer }: { peer: Peer }) {
             whiteSpace: 'nowrap',
           }}
         >
-          @{peer.username}
+          {bubble ?? `@${peer.username}`}
         </span>
       </Html>
     </group>
@@ -65,12 +78,23 @@ function PeerFigure({ peer }: { peer: Peer }) {
 }
 
 /** Everyone else in your crowd group. `roster` changes when people join or leave. */
-export function ClubPeers({ peers, roster }: { peers: MutableRefObject<Map<string, Peer>>; roster: number }) {
+export function ClubPeers({
+  peers,
+  roster,
+  bubbles,
+  onTap,
+}: {
+  peers: MutableRefObject<Map<string, Peer>>
+  roster: number
+  /** Reactions / lines over people's heads, by userId (shown in place of their name for a moment). */
+  bubbles?: Record<string, string>
+  onTap?: (peer: Peer) => void
+}) {
   void roster
   return (
     <>
       {[...peers.current.values()].map((peer) => (
-        <PeerFigure key={peer.userId} peer={peer} />
+        <PeerFigure key={peer.userId} peer={peer} bubble={bubbles?.[peer.userId]} onTap={onTap} />
       ))}
     </>
   )

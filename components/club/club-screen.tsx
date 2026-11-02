@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Object3D } from 'three'
+import { PlaceReactions, PlaceTalkCard, usePlaceSocial } from '@/components/hud/interior/place-social'
 import { PlaceAction, PlaceActions, PlacePeople, PlaceSheet, PlaceSpots, type PlaceTag } from '@/components/hud/place-sheet'
 import type { RoomPlayerControl } from '@/components/room/room-player'
 import { useGame } from '@/hooks/use-game'
@@ -108,6 +109,7 @@ export function ClubScreen({ venueId }: { venueId: string }) {
   const inside = !!view?.me.paid
   // Live crowd: the others in your group, and money sprays
   const live = useClubLive(venueId, inside, state?.username)
+  const social = usePlaceSocial(venueId, live)
   const { sendState } = live
   // Names in your group right now, for the DJ's welcome shout-outs (roster bumps on join/leave)
   const peerNames = useMemo(
@@ -225,10 +227,15 @@ export function ClubScreen({ venueId }: { venueId: string }) {
     (root: Object3D) => (
       <>
         <ClubFx root={root} clubName={view?.venue.name ?? ''} top={view?.top ?? []} />
-        <ClubPeers peers={live.peers} roster={live.roster} />
+        <ClubPeers
+          peers={live.peers}
+          roster={live.roster}
+          bubbles={social.bubbles}
+          onTap={(peer) => social.setTalk({ kind: 'player', player: { userId: peer.userId, username: peer.username } })}
+        />
       </>
     ),
-    [view?.venue.name, view?.top, live.peers, live.roster],
+    [view?.venue.name, view?.top, live.peers, live.roster, social],
   )
 
   if (!layout) return <div className={styles.status}>This club isn't open yet.</div>
@@ -266,7 +273,8 @@ export function ClubScreen({ venueId }: { venueId: string }) {
         />
       </div>
 
-      {view ? (
+      {social.talk && view ? <PlaceTalkCard social={social} placeName={view.venue.name} tone="night" /> : null}
+      {view && !social.talk ? (
         <PlaceSheet
           tone="night"
           icon="🪩"
@@ -291,6 +299,7 @@ export function ClubScreen({ venueId }: { venueId: string }) {
         >
           {inside ? (
             <>
+              <PlaceReactions onReact={social.react} />
               <PlaceSpots spots={SPOTS} value={spot} onChange={setSpot} hint="Tap one to see what's there" />
               <PlaceActions>
                 {spot === 'floor' && dance ? card(dance) : null}
@@ -326,8 +335,8 @@ export function ClubScreen({ venueId }: { venueId: string }) {
                 count={view.inside}
                 people={faces.map((p) => ({ id: p.userId, username: p.username, mark: p.vip ? 'VIP' : undefined }))}
                 onPick={(id) => {
-                  setPicked(faces.find((p) => p.userId === id) ?? null)
-                  setPeopleOpen(true)
+                  const person = faces.find((p) => p.userId === id)
+                  if (person) social.setTalk({ kind: 'player', player: { userId: person.userId, username: person.username } })
                 }}
                 onMore={() => {
                   setPicked(null)

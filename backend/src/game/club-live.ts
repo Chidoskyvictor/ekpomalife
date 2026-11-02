@@ -43,6 +43,8 @@ type Member = {
  * accepted, so there's no free text to moderate. The app holds the wording (lib/game/quick-lines.ts).
  */
 export const QUICK_LINES = new Set(['hi', 'how-far', 'food-sweet', 'join-me', 'treat-me', 'later', 'lol', 'thanks'])
+/** Reactions everyone in the group sees over your head (sent with to: '*'). */
+export const REACTIONS = new Set(['wave', 'laugh', 'dance', 'abeg', 'hiss'])
 
 type Ticket = PlayerInfo & { venueId: string; night: number; group: number; expires: number }
 
@@ -167,7 +169,8 @@ export function joinLive(socket: WebSocket, token: string | undefined) {
     } else if (msg.t === 'say') {
       const line = typeof msg.line === 'string' ? msg.line : ''
       const to = typeof msg.to === 'string' ? msg.to : ''
-      if (!QUICK_LINES.has(line) || !rooms.get(key)?.has(to) || to === me.info.userId) return
+      const toAll = to === '*'
+      if (toAll ? !REACTIONS.has(line) : !QUICK_LINES.has(line) || !rooms.get(key)?.has(to) || to === me.info.userId) return
       // At most 3 lines every 5 seconds
       const now = Date.now()
       me.says = me.says.filter((t) => now - t < 5000)
@@ -186,6 +189,16 @@ export function joinLive(socket: WebSocket, token: string | undefined) {
     if (!current.size) rooms.delete(key)
     broadcast(key, { t: 'leave', userId: me.info.userId })
   })
+}
+
+/** Someone in the group said hello / gisted / cracked a joke at another player. */
+export function announceSocial(
+  venueId: string,
+  night: number,
+  group: number,
+  social: { from: string; to: string; kind: string; landed: boolean },
+) {
+  broadcast(roomKey(venueId, night, group), { t: 'social', ...social })
 }
 
 /* —— Money spray —— */

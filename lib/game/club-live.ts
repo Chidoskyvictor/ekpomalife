@@ -46,6 +46,7 @@ type Incoming =
   | { t: 'missed'; sprayId: string; note: number }
   | { t: 'error'; error: string }
   | { t: 'say'; from: string; to: string; line: string }
+  | { t: 'social'; from: string; to: string; kind: string; landed: boolean }
 
 /** A quick line someone in your group sent (to you or to someone else). */
 export type Said = { id: number; from: string; to: string; line: string; at: number }
@@ -113,8 +114,10 @@ export function useClubLive(venueId: string, enabled: boolean, myUsername?: stri
         } else if (msg.t === 'state') {
           const peer = peers.current.get(msg.userId)
           if (peer) peer.state = { x: msg.x, y: msg.y ?? 0, z: msg.z, h: msg.h, pose: msg.pose, moving: msg.moving }
-        } else if (msg.t === 'say') {
-          const entry = { id: Math.random(), from: msg.from, to: msg.to, line: msg.line, at: Date.now() }
+        } else if (msg.t === 'say' || msg.t === 'social') {
+          // A social action arrives as a line "social:<kind>:<landed>"
+          const line = msg.t === 'say' ? msg.line : `social:${msg.kind}:${msg.landed ? 1 : 0}`
+          const entry = { id: Math.random(), from: msg.from, to: msg.to, line, at: Date.now() }
           setSaid((list) => [...list.slice(-11), entry])
         } else if (msg.t === 'spray') {
           const { t: _t, ...spray } = msg

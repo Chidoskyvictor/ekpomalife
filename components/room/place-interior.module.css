@@ -8,7 +8,7 @@
   align-items: center;
   justify-content: center;
   gap: 10px;
-  padding: calc(88px + env(safe-area-inset-top)) 24px calc(150px + env(safe-area-inset-bottom));
+  padding: calc(88px + env(safe-area-inset-top)) 24px calc(45dvh + env(safe-area-inset-bottom));
   background: linear-gradient(180deg, #e8eef5 0%, #f7f4ec 100%);
   text-align: center;
 }
@@ -63,4 +63,55 @@
 
 .action:active {
   transform: scale(0.96);
+}
+
+/* Shared place sheet content for stand-in places */
+.bubble {
+  margin: 0;
+  padding: 6px 12px;
+  border-radius: 14px;
+  background: #2f6bf0;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.doing {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.doing li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.05);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.blockTitle {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.note {
+  margin: 0;
+  color: #4b5563;
+  font-size: 13px;
+  font-weight: 600;
 }

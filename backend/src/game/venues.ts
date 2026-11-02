@@ -1,11 +1,12 @@
 import type { PoolClient } from 'pg'
 import { pool } from '../db.js'
 import { createId } from '../ids.js'
-import { announceSpray, createLiveTicket, type SprayNote } from './club-live.js'
+import { announceSocial, announceSpray, createLiveTicket, type SprayNote } from './club-live.js'
 import { requireEconomySetup, tickAndWeekly } from './economy.js'
 import { applyCash, asMoney, parseNeeds } from './game-state.js'
 import { withIdempotency } from './idempotency.js'
 import { applyNeedDelta, type Needs } from './needs.js'
+import { PLACES } from './places.js'
 import { liveSpaceMoneyBlock } from './spaces-money.js'
 import { clockFromGameTime } from './time.js'
 
@@ -104,6 +105,18 @@ for (const [id, name] of HALLS) {
  * tables can actually talk to each other; the 6th player starts group 2, and so on.
  */
 VENUES['wise-gourmet'] = { id: 'wise-gourmet', kind: 'hall', name: 'Wise Gourmet', open: 8, close: 22, entry: 0, capacity: 1000, groupSize: 5, items: [] }
+
+/*
+ * Every other public place (Bukka, shops, Market, Clinic, Park…) is a free walk-in venue too, so
+ * the place sheet can show who's there and players can tap each other. Homes and hostel rooms
+ * are private, so they're left out.
+ */
+const PRIVATE_PLACES = new Set(['home'])
+for (const place of PLACES) {
+  if (VENUES[place.id] || PRIVATE_PLACES.has(place.id) || place.type === 'hostel') continue
+  const hours = place.openHours ?? { open: 0, close: 24 }
+  VENUES[place.id] = { id: place.id, kind: 'hall', name: place.label, open: hours.open, close: hours.close, entry: 0, capacity: 1000, items: [] }
+}
 
 export const GROUP_SIZE = 18
 export const groupSizeOf = (venueId: string) => VENUES[venueId]?.groupSize ?? GROUP_SIZE
@@ -341,6 +354,68 @@ export async function buyAtVenue(userId: string, venueId: string, itemId: string
       },
     }),
   )
+}
+
+/*
+ * Social actions with someone where you are (an NPC or a player in your group), like Lagos Life:
+ * Say Hello, Gist, Crack Joke (can flop), Compliment. Small need gains, a cooldown per person so
+ * they can't be farmed, and the other player sees it live.
+ */
+export const SOCIAL_KINDS = {
+  hello: { needs: { social: 4 } as Partial<Needs>, chance: 1 },
+  gist: { needs: { fun: 4, social: 5 } as Partial<Needs>, chance: 1 },
+  joke: { needs: { fun: 7, social: 4 } as Partial<Needs>, chance: 0.7 },
+  compliment: { needs: { fun: 3, social: 6 } as Partial<Needs>, chance: 1 },
+} as const
+export type SocialKind = keyof typeof SOCIAL_KINDS
+
+const SOCIAL_COOLDOWN_MS = 45_000
+const socialSeen = new Map<string, number>()
+
+export async function socialAtVenue(userId: string, venueId: string, kind: SocialKind, target: string, key: string) {
+  const venue = VENUES[venueId]
+  const def = SOCIAL_KINDS[kind]
+  if (!venue || !def) return { ok: false as const, error: 'Not here.', code: 404 }
+  const cooldownKey = `${userId}:${venueId}:${target}:${kind}`
+  const last = socialSeen.get(cooldownKey) ?? 0
+  if (Date.now() - last < SOCIAL_COOLDOWN_MS) {
+    return { ok: false as const, error: 'Give them a moment before you do that again.', code: 429 }
+  }
+  const night = nightKey()
+  let announce: (() => void) | null = null
+  const result = await withPlayer(userId, async ({ client, characterId, needs }) =>
+    withIdempotency(client, {
+      userId,
+      characterId,
+      key,
+      route: `venue:${venueId}:social`,
+      body: { venueId, kind, target },
+      run: async () => {
+        const visit = await visitOf(client, characterId, venueId, night)
+        if (!visit) return bad(403, 'NOT_INSIDE', `Go inside ${venue.name} first.`)
+        const landed = Math.random() < def.chance
+        // A flopped joke still costs a little pride
+        const delta: Partial<Needs> = landed ? def.needs : { social: -2 }
+        const nextNeeds = applyNeedDelta(needs, delta)
+        await client.query(`UPDATE game_state SET needs = $2::jsonb, updated_at = NOW() WHERE character_id = $1`, [
+          characterId,
+          JSON.stringify(nextNeeds),
+        ])
+        if (!target.startsWith('npc:')) {
+          const group = visit.group_no
+          announce = () => announceSocial(venueId, night, group, { from: userId, to: target, kind, landed })
+        }
+        return { status: 200, body: { ok: true, landed, needs: nextNeeds } }
+      },
+    }),
+  )
+  if (result && 'status' in result && result.status === 200) {
+    socialSeen.set(cooldownKey, Date.now())
+    if (socialSeen.size > 50_000) socialSeen.clear()
+    // `announce` is assigned inside the transaction callback
+    ;(announce as (() => void) | null)?.()
+  }
+  return result
 }
 
 /** Amounts a player can spray (₦). */

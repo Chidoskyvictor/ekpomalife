@@ -336,3 +336,34 @@
     animation: none;
   }
 }
+
+/* Trek: a small pill under the top bar; the map stays visible and usable */
+.trekPill {
+  pointer-events: none;
+  position: fixed;
+  top: calc(76px + env(safe-area-inset-top));
+  left: 50%;
+  z-index: calc(var(--z-phone) + 5);
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 6px 18px rgba(17, 24, 39, 0.14);
+  color: #374151;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  transition: opacity 0.3s ease;
+  animation: trekPillIn 0.25s ease-out;
+}
+
+.trekPill[data-done='true'] {
+  opacity: 0;
+}
+
+@keyframes trekPillIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -6px);
+  }
+}

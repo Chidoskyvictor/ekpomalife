@@ -3,7 +3,7 @@
 import { Html, OrbitControls, useGLTF } from '@react-three/drei'
 import { Canvas, useFrame, type ThreeEvent } from '@react-three/fiber'
 import { Suspense, use, useMemo, useRef, useState } from 'react'
-import { Box3, CanvasTexture, SRGBColorSpace, type Group } from 'three'
+import { Box3, CanvasTexture, SRGBColorSpace, Vector3, type Bone, type Group, type Object3D } from 'three'
 import { CharacterFigure, type FigurePose } from '@/components/look/character-figure'
 import { normalizeAppearance, type Appearance } from '@/lib/game/look'
 import { meshoptDecoder } from '@/lib/game/meshopt'
@@ -29,29 +29,50 @@ export const SELLERS: (WiseNpc & { x: number })[] = [
   { id: 'seller-3', name: 'Blessing', role: 'seller', x: 1.55, line: 'Try our chapman, e cold well well 🍹', look: { body: 'woman', hair: 'braids', skin: '#9B5B33', topColor: '#14B8A6', bottomColor: '#111827' } },
 ]
 
-const CUSTOMERS: (WiseNpc & { at: [number, number]; heading: number; bubble: string })[] = [
-  { id: 'cust-1', name: 'Tunde', role: 'customer', at: [-1.55, 2.2], heading: Math.PI, bubble: '1 shawarma abeg 🌯', line: 'Their shawarma na the best for Ekpoma.', look: { body: 'man', hair: 'lowcut', skin: '#5C3317', topColor: '#2F6BF0', bottomColor: '#111827' } },
-  { id: 'cust-2', name: 'Ada', role: 'customer', at: [1.55, 2.2], heading: Math.PI, bubble: 'Chicken and chips 🍗', line: 'I just finished lectures, I dey hungry die 😩', look: { body: 'woman', hair: 'bun', skin: '#3E2414', topColor: '#8B5CF6', bottomColor: '#111827' } },
+/** Walk-in customers: a new one keeps arriving at windows 1 and 3, orders, gets a bag and leaves. */
+const CUSTOMER_POOL: (WiseNpc & { bubble: string })[] = [
+  { id: 'cust-tunde', name: 'Tunde', role: 'customer', bubble: '1 shawarma abeg 🌯', line: 'Their shawarma na the best for Ekpoma.', look: { body: 'man', hair: 'lowcut', skin: '#5C3317', topColor: '#2F6BF0', bottomColor: '#111827' } },
+  { id: 'cust-ada', name: 'Ada', role: 'customer', bubble: 'Chicken and chips 🍗', line: 'I just finished lectures, I dey hungry die 😩', look: { body: 'woman', hair: 'bun', skin: '#3E2414', topColor: '#8B5CF6', bottomColor: '#111827' } },
+  { id: 'cust-femi', name: 'Femi', role: 'customer', bubble: 'Burger and Chapman 🍔', line: 'Make I quick chop before my next class.', look: { body: 'man', hair: 'afro', skin: '#7A4A2A', topColor: '#EF4444', bottomColor: '#1F2937' } },
+  { id: 'cust-amaka', name: 'Amaka', role: 'customer', bubble: 'Small chops for two 🥟', line: 'My friends dey wait for me for hostel 😅', look: { body: 'woman', hair: 'braids', skin: '#6B3F28', topColor: '#F59E0B', bottomColor: '#374151' } },
+  { id: 'cust-ike', name: 'Ike', role: 'customer', bubble: 'Jollof and chicken 🍛', line: 'Wise jollof no get competition.', look: { body: 'man', hair: 'lowcut', skin: '#A56C3A', topColor: '#10B981', bottomColor: '#111827' } },
+  { id: 'cust-joy', name: 'Joy', role: 'customer', bubble: 'Ice cream abeg 🍦', line: 'Na this heat make me come 🥵', look: { body: 'woman', hair: 'afro', skin: '#8D4E2A', topColor: '#EC4899', bottomColor: '#1F2937' } },
+  { id: 'cust-segun', name: 'Segun', role: 'customer', bubble: '2 shawarma, extra sausage 🌭', line: 'Exam don finish, na enjoyment remain!', look: { body: 'man', hair: 'afro', skin: '#3E2414', topColor: '#F97316', bottomColor: '#374151' } },
+  { id: 'cust-ngozi', name: 'Ngozi', role: 'customer', bubble: 'Chapman, cold one 🍹', line: 'I dey wait for my guy, he say he dey come.', look: { body: 'woman', hair: 'bun', skin: '#9B5B33', topColor: '#0EA5E9', bottomColor: '#111827' } },
 ]
+/** The two windows customers queue at (the middle one stays free for players). */
+const CUSTOMER_WINDOWS = [-1.55, 1.55]
 
-const DINERS: { at: [number, number]; turn: number; npcs: [WiseNpc, WiseNpc] }[] = [
+/** Tables out front. Only the first has people eating; the rest are free for players. */
+const TABLES: { at: [number, number]; turn: number; diners?: [WiseNpc, WiseNpc] }[] = [
   {
-    at: [-1.7, 4.9],
+    at: [-2.1, 5.2],
     turn: Math.PI / 2,
-    npcs: [
+    diners: [
       { id: 'diner-1', name: 'Chioma', role: 'diner', line: 'Come join us! This jollof is too sweet 😋', look: { body: 'woman', hair: 'braids', skin: '#8D4E2A', topColor: '#E02060', bottomColor: '#1F2937' } },
       { id: 'diner-2', name: 'Kelvin', role: 'diner', line: 'Na here I dey chop every Friday.', look: { body: 'man', hair: 'lowcut', skin: '#A56C3A', topColor: '#FFC531', bottomColor: '#1F2937' } },
     ],
   },
-  {
-    at: [1.8, 5.3],
-    turn: Math.PI / 2 + 0.3,
-    npcs: [
-      { id: 'diner-3', name: 'Zainab', role: 'diner', line: 'You be fresher? Welcome to AAU 🎓', look: { body: 'woman', hair: 'afro', skin: '#6B3F28', topColor: '#3DCB5A', bottomColor: '#374151' } },
-      { id: 'diner-4', name: 'Osas', role: 'diner', line: 'Abeg who get charger? 😅', look: { body: 'man', hair: 'lowcut', skin: '#5C3317', topColor: '#0EA5E9', bottomColor: '#111827' } },
-    ],
-  },
+  { at: [2.0, 5.4], turn: Math.PI / 2 + 0.3 },
+  { at: [-0.1, 7.6], turn: Math.PI / 2 - 0.2 },
 ]
+
+const STOOL_OFF = 0.62
+/** A seated figure's hips sit 0.84 above its origin and 0.1 above the seat. */
+const SIT_Y = STOOL_SEAT + 0.1 - 0.84
+
+export type WiseSeat = { id: string; table: number; at: [number, number]; heading: number }
+
+/** Every free stool (tables without diners), with which way you face when sitting. */
+export const SEATS: WiseSeat[] = TABLES.flatMap((t, ti) => {
+  if (t.diners) return []
+  const sx = Math.sin(t.turn) * STOOL_OFF
+  const sz = Math.cos(t.turn) * STOOL_OFF
+  return [
+    { id: `t${ti}-a`, table: ti, at: [t.at[0] + sx, t.at[1] + sz] as [number, number], heading: t.turn + Math.PI },
+    { id: `t${ti}-b`, table: ti, at: [t.at[0] - sx, t.at[1] - sz] as [number, number], heading: t.turn },
+  ]
+})
 
 /** Where real players stand: you first, then up to 4 others (group of 5). */
 const PLAYER_SPOTS: { at: [number, number]; heading: number }[] = [
@@ -68,7 +89,7 @@ export const nearestWindow = (x: number) =>
 
 /** Where you stand to order at a window: at the counter, or behind the customer already there. */
 export function orderSpot(windowX: number): [number, number] {
-  const taken = CUSTOMERS.some((c) => Math.abs(c.at[0] - windowX) < 0.4)
+  const taken = CUSTOMER_WINDOWS.some((x) => Math.abs(x - windowX) < 0.4)
   return [windowX, taken ? 2.95 : 2.2]
 }
 
@@ -173,8 +194,12 @@ function Bubble({ text, y = 2.15, tone = 'light' }: { text: string; y?: number; 
 function NameTag({ text, me }: { text: string; me?: boolean }) {
   return (
     <Html position={[0, 1.95, 0]} center distanceFactor={9} zIndexRange={[10, 0]} style={{ pointerEvents: 'none' }}>
-      <div style={{ padding: '2px 8px', borderRadius: 10, background: me ? '#2F6BF0' : 'rgba(17,24,39,.75)', color: '#fff', font: '700 12px system-ui, sans-serif', whiteSpace: 'nowrap' }}>
-        {text}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+        {/* green dot = a real player (NPCs have none), like Lagos Life */}
+        {me ? null : <span style={{ width: 10, height: 10, borderRadius: 10, background: '#22C55E', boxShadow: '0 0 0 2px #fff' }} />}
+        <div style={{ padding: '2px 8px', borderRadius: 10, background: me ? '#2F6BF0' : 'rgba(17,24,39,.75)', color: '#fff', font: '700 12px system-ui, sans-serif', whiteSpace: 'nowrap' }}>
+          {text}
+        </div>
       </div>
     </Html>
   )
@@ -235,6 +260,7 @@ function Walker({
   start,
   startHeading,
   target,
+  sitHeading,
   onArrive,
   children,
 }: {
@@ -242,6 +268,8 @@ function Walker({
   start: [number, number]
   startHeading: number
   target: [number, number] | null
+  /** Sit down facing this way once you get to `target` (a stool). */
+  sitHeading?: number | null
   onArrive?: () => void
   children?: React.ReactNode
 }) {
@@ -259,6 +287,9 @@ function Walker({
     const dist = Math.hypot(dx, dz)
     const step = Math.min(dist, 1.8 * Math.min(dt, 0.05))
     if (dist > 0.03) {
+      // Stand up first if you were sitting
+      g.position.y = 0
+      pose.current = null
       g.position.x += (dx / dist) * step
       g.position.z += (dz / dist) * step
       g.rotation.y = Math.atan2(dx, dz)
@@ -267,7 +298,10 @@ function Walker({
     } else {
       moving.current = false
       // Face the window once you're there (or your usual way back at your spot)
-      g.rotation.y = target ? Math.PI : startHeading
+      const sitting = target != null && sitHeading != null
+      g.rotation.y = sitting ? sitHeading : target ? Math.PI : startHeading
+      g.position.y = sitting ? SIT_Y : 0
+      pose.current = sitting ? 'sit' : null
       const key = target ? `${tx},${tz}` : null
       if (key && arrivedFor.current !== key) {
         arrivedFor.current = key
@@ -303,9 +337,9 @@ function Plate({ position }: { position: [number, number, number] }) {
 }
 
 /** VIP standalone bar stool: chrome pole, round padded seat, foot ring. */
-function Stool({ position }: { position: [number, number, number] }) {
+function Stool({ position, onTap }: { position: [number, number, number]; onTap?: () => void }) {
   return (
-    <group position={position}>
+    <group position={position} onClick={onTap ? tap(onTap) : undefined} {...(onTap ? pointer : {})}>
       <mesh position={[0, STOOL_SEAT, 0]}>
         <cylinderGeometry args={[0.22, 0.2, 0.09, 24]} />
         <meshStandardMaterial color="#1A1A1A" roughness={0.45} />
@@ -327,7 +361,7 @@ function Stool({ position }: { position: [number, number, number] }) {
 }
 
 /** High round table with a plate and a drink. */
-function HighTable({ position }: { position: [number, number, number] }) {
+function HighTable({ position, food = true }: { position: [number, number, number]; food?: boolean }) {
   return (
     <group position={position}>
       <mesh position={[0, 1.08, 0]}>
@@ -342,11 +376,15 @@ function HighTable({ position }: { position: [number, number, number] }) {
         <cylinderGeometry args={[0.28, 0.3, 0.04, 24]} />
         <meshStandardMaterial {...CHROME} />
       </mesh>
-      <Plate position={[-0.15, 1.12, 0.05]} />
-      <mesh position={[0.2, 1.22, -0.12]}>
-        <cylinderGeometry args={[0.045, 0.04, 0.2, 12]} />
-        <meshStandardMaterial color="#C0392B" />
-      </mesh>
+      {food ? (
+        <>
+          <Plate position={[-0.15, 1.12, 0.05]} />
+          <mesh position={[0.2, 1.22, -0.12]}>
+            <cylinderGeometry args={[0.045, 0.04, 0.2, 12]} />
+            <meshStandardMaterial color="#C0392B" />
+          </mesh>
+        </>
+      ) : null}
     </group>
   )
 }
@@ -394,7 +432,9 @@ export function WiseScene({
   onNpc,
   onPlayer,
   meTarget = null,
+  meSit = null,
   onArrive,
+  onSeat,
 }: {
   /** You first, then the others in your group. */
   players: WisePlayer[]
@@ -405,10 +445,11 @@ export function WiseScene({
   onPlayer: (player: WisePlayer) => void
   /** Where you're walking to (a window), or null to stay at your spot. */
   meTarget?: [number, number] | null
+  /** Sit facing this way at meTarget (a stool). */
+  meSit?: number | null
   onArrive?: () => void
+  onSeat?: (seat: WiseSeat) => void
 }) {
-  // Customers' "ordering" bubbles come and go so it looks like they're talking to the seller
-  const [orderTick, setOrderTick] = useState(0)
   return (
     <Canvas
       dpr={[1, 1.85]}
@@ -416,7 +457,6 @@ export function WiseScene({
       gl={{ antialias: true, powerPreference: 'high-performance' }}
       style={{ width: '100%', height: '100%', touchAction: 'none' }}
     >
-      <OrderClock onTick={() => setOrderTick((n) => n + 1)} />
       <color attach="background" args={['#F4C99A']} />
       <fog attach="fog" args={['#F4C99A', 20, 48]} />
       <ambientLight intensity={0.75} color="#FFE9CC" />
@@ -429,31 +469,31 @@ export function WiseScene({
         <pointLight position={[0, 1.7, 0.6]} color="#FFB45C" intensity={14} distance={6} />
         <pointLight position={[0, 1.6, 2.3]} color="#FFC77A" intensity={5} distance={5} />
         <Sellers onSeller={onNpc} />
-        {/* customers at the window, ordering */}
-        {CUSTOMERS.map((c, i) => (
-          <Figure key={c.id} look={c.look} pose="idle" position={[c.at[0], 0, c.at[1]]} heading={c.heading} sway={0.12} onTap={() => onNpc(c)}>
-            {bubbles[c.id] ? <Bubble text={bubbles[c.id]!} /> : (orderTick + i) % 3 !== 2 ? <Bubble text={c.bubble} /> : null}
-          </Figure>
+        {/* walk-in customers: arrive, order, get a bag, leave; then the next one */}
+        {CUSTOMER_WINDOWS.map((wx, slot) => (
+          <CustomerLoop key={slot} slot={slot} windowX={wx} bubbles={bubbles} onNpc={onNpc} />
         ))}
-        {/* VIP tables out front, two people eating at each */}
-        {DINERS.map(({ at, turn, npcs }, t) => {
+        {/* tables out front: the first has people eating, the rest are free to sit at */}
+        {TABLES.map(({ at, turn, diners }, t) => {
           const [x, z] = at
-          const off = 0.62
-          const sx = Math.sin(turn) * off
-          const sz = Math.cos(turn) * off
-          // A seated figure's hips sit 0.84 above its origin and 0.1 above the seat
-          const y = STOOL_SEAT + 0.1 - 0.84
+          const sx = Math.sin(turn) * STOOL_OFF
+          const sz = Math.cos(turn) * STOOL_OFF
+          const seats = SEATS.filter((seat) => seat.table === t)
           return (
             <group key={t}>
-              <HighTable position={[x, 0, z]} />
-              <Stool position={[x + sx, 0, z + sz]} />
-              <Stool position={[x - sx, 0, z - sz]} />
-              <Figure look={npcs[0].look} pose="sit" position={[x + sx, y, z + sz]} heading={turn + Math.PI} onTap={() => onNpc(npcs[0])}>
-                {bubbles[npcs[0].id] ? <Bubble text={bubbles[npcs[0].id]!} y={2.3} /> : null}
-              </Figure>
-              <Figure look={npcs[1].look} pose="sit" position={[x - sx, y, z - sz]} heading={turn} onTap={() => onNpc(npcs[1])}>
-                {bubbles[npcs[1].id] ? <Bubble text={bubbles[npcs[1].id]!} y={2.3} /> : null}
-              </Figure>
+              <HighTable position={[x, 0, z]} food={!!diners} />
+              <Stool position={[x + sx, 0, z + sz]} onTap={seats[0] && onSeat ? () => onSeat(seats[0]!) : undefined} />
+              <Stool position={[x - sx, 0, z - sz]} onTap={seats[1] && onSeat ? () => onSeat(seats[1]!) : undefined} />
+              {diners ? (
+                <>
+                  <Figure look={diners[0].look} pose="sit" position={[x + sx, SIT_Y, z + sz]} heading={turn + Math.PI} onTap={() => onNpc(diners[0])}>
+                    {bubbles[diners[0].id] ? <Bubble text={bubbles[diners[0].id]!} y={2.3} /> : null}
+                  </Figure>
+                  <Figure look={diners[1].look} pose="sit" position={[x - sx, SIT_Y, z - sz]} heading={turn} onTap={() => onNpc(diners[1])}>
+                    {bubbles[diners[1].id] ? <Bubble text={bubbles[diners[1].id]!} y={2.3} /> : null}
+                  </Figure>
+                </>
+              ) : null}
             </group>
           )
         })}
@@ -462,7 +502,7 @@ export function WiseScene({
           const spot = PLAYER_SPOTS[i]!
           if (p.me) {
             return (
-              <Walker key={p.userId} look={p.appearance as Partial<Appearance>} start={spot.at} startHeading={spot.heading} target={meTarget} onArrive={onArrive}>
+              <Walker key={p.userId} look={p.appearance as Partial<Appearance>} start={spot.at} startHeading={spot.heading} target={meTarget} sitHeading={meSit} onArrive={onArrive}>
                 {bubbles.me ? <Bubble text={bubbles.me} tone="me" /> : <NameTag text="You" me />}
               </Walker>
             )
@@ -498,14 +538,133 @@ export function WiseScene({
   )
 }
 
-/** Ticks every ~2.5 s inside the render loop (stops with the canvas). */
-function OrderClock({ onTick }: { onTick: () => void }) {
-  const last = useRef(0)
-  useFrame(({ clock }) => {
-    if (clock.elapsedTime - last.current > 2.5) {
-      last.current = clock.elapsedTime
-      onTick()
+const HAND_BONE = /^hand[._]?r$|righthand$|hand_r$/i
+const tmp = new Vector3()
+
+/**
+ * A takeaway bag that hangs from the figure's right hand bone (so it swings with the walk),
+ * found once inside `owner` and followed every frame.
+ */
+function HeldBag({ owner }: { owner: React.RefObject<Group | null> }) {
+  const bag = useRef<Group>(null)
+  const hand = useRef<Object3D | null>(null)
+  useFrame(() => {
+    const root = owner.current
+    const g = bag.current
+    if (!root || !g) return
+    if (!hand.current) {
+      root.traverse((o) => {
+        if (!hand.current && (o as Bone).isBone && HAND_BONE.test(o.name.replace(/\s+/g, ''))) hand.current = o
+      })
+      if (!hand.current) return
+    }
+    hand.current.getWorldPosition(tmp)
+    root.worldToLocal(tmp)
+    g.position.copy(tmp)
+    g.visible = true
+  })
+  return (
+    <group ref={bag} visible={false}>
+      {/* handle loop in the hand, bag hanging below it */}
+      <mesh position={[0, -0.05, 0]}>
+        <torusGeometry args={[0.05, 0.012, 6, 12]} />
+        <meshStandardMaterial color="#7F1D1D" />
+      </mesh>
+      <mesh position={[0, -0.2, 0]}>
+        <boxGeometry args={[0.2, 0.22, 0.12]} />
+        <meshStandardMaterial color="#B91C1C" />
+      </mesh>
+      <mesh position={[0, -0.2, 0.061]}>
+        <planeGeometry args={[0.14, 0.06]} />
+        <meshBasicMaterial color="#FFC531" />
+      </mesh>
+    </group>
+  )
+}
+
+type LoopPhase = 'in' | 'order' | 'served' | 'out'
+
+/**
+ * One walk-in customer slot: walks in from the side, orders at the window (bubble), gets a bag
+ * ("Thank you!"), walks out, and the next customer from the pool comes in with a new look.
+ */
+function CustomerLoop({
+  slot,
+  windowX,
+  bubbles,
+  onNpc,
+}: {
+  slot: number
+  windowX: number
+  bubbles: Record<string, string>
+  onNpc: (npc: WiseNpc) => void
+}) {
+  // Each slot walks through the pool from its own starting point so the two never match
+  const [turn, setTurn] = useState(slot * 3)
+  const npc = CUSTOMER_POOL[turn % CUSTOMER_POOL.length]!
+  const [phase, setPhase] = useState<LoopPhase>(slot === 0 ? 'order' : 'in')
+  const root = useRef<Group>(null)
+  const moving = useRef(false)
+  const since = useRef<number | null>(null)
+  const side = windowX < 0 ? -1 : 1
+  const enter: [number, number] = [side * 10, 6 + slot]
+  const exit: [number, number] = [side * 10, 8.5 - slot]
+  const spot: [number, number] = [windowX, 2.2]
+  const appearance = useMemo(() => normalizeAppearance(npc.look), [npc])
+  // The first customer starts at the window so the scene never opens empty
+  const start = slot === 0 ? spot : enter
+
+  useFrame(({ clock }, dt) => {
+    const g = root.current
+    if (!g) return
+    if (since.current === null) since.current = clock.elapsedTime
+    const goal = phase === 'in' ? spot : phase === 'out' ? exit : null
+    if (goal) {
+      const dx = goal[0] - g.position.x
+      const dz = goal[1] - g.position.z
+      const dist = Math.hypot(dx, dz)
+      if (dist > 0.04) {
+        const step = Math.min(dist, 1.5 * Math.min(dt, 0.05))
+        g.position.x += (dx / dist) * step
+        g.position.z += (dz / dist) * step
+        g.rotation.y = Math.atan2(dx, dz)
+        moving.current = true
+        return
+      }
+      moving.current = false
+      if (phase === 'in') {
+        since.current = clock.elapsedTime
+        setPhase('order')
+      } else {
+        // Out of sight: the next customer walks in
+        g.position.set(enter[0], 0, enter[1])
+        setTurn((n) => n + 1)
+        setPhase('in')
+      }
+      return
+    }
+    moving.current = false
+    g.rotation.y = Math.PI
+    const waited = clock.elapsedTime - since.current
+    if (phase === 'order' && waited > 6 + slot * 1.5) {
+      since.current = clock.elapsedTime
+      setPhase('served')
+    } else if (phase === 'served' && waited > 2.2) {
+      setPhase('out')
     }
   })
-  return null
+
+  const bubble = bubbles[npc.id] ?? (phase === 'order' ? npc.bubble : phase === 'served' ? 'Thank you! 🛍️' : null)
+  return (
+    <group ref={root} position={[start[0], 0, start[1]]}>
+      <CharacterFigure appearance={appearance} moving={moving} />
+      {/* takeaway bag once served, hanging from the right hand */}
+      {phase === 'served' || phase === 'out' ? <HeldBag owner={root} /> : null}
+      <mesh position={[0, 0.95, 0]} onClick={tap(() => onNpc(npc))} {...pointer}>
+        <capsuleGeometry args={[0.32, 1.2, 4, 8]} />
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+      </mesh>
+      {bubble ? <Bubble text={bubble} /> : null}
+    </group>
+  )
 }

@@ -69,6 +69,13 @@ export function sprayMoney(id: string, amount: number) {
   }>(`/venues/${encodeURIComponent(id)}/spray`, { amount }, idem())
 }
 
+export type SocialKind = 'hello' | 'gist' | 'joke' | 'compliment'
+
+/** Say Hello / Gist / Crack Joke / Compliment someone here (NPC target: "npc:<id>"). */
+export function socialAtVenue(id: string, kind: SocialKind, target: string) {
+  return apiPost<{ ok: true; landed: boolean }>(`/venues/${encodeURIComponent(id)}/social`, { kind, target }, idem())
+}
+
 export function venueHeartbeat(id: string) {
   return apiPost<{ ok: true }>(`/venues/${encodeURIComponent(id)}/heartbeat`, {})
 }

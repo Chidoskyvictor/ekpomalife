@@ -26,13 +26,13 @@ function MapTrip({ trip }: { trip: Trip }) {
 }
 
 /**
- * Walking: no card, just a quick soft fade into the place with its name, then the scene shows
- * through as it fades back out.
+ * Walking: no card and nothing covering the map, just a small "On the way to …" pill at the top
+ * (like Lagos Life) until the place is ready.
  */
 function TrekFade({ trip }: { trip: Trip }) {
   return (
-    <div className={styles.trekFade} data-done={trip.done} role="status" aria-live="polite">
-      <span className={styles.trekChip}>🚶 {trip.label}</span>
+    <div className={styles.trekPill} data-done={trip.done} role="status" aria-live="polite">
+      🚶 On the way to {trip.label}…
     </div>
   )
 }

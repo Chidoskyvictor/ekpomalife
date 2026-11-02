@@ -1,25 +1,25 @@
 'use client'
 
-import { Map as MapIcon, UtensilsCrossed, X } from 'lucide-react'
+import { Map as MapIcon, UtensilsCrossed } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { PlaceAction, PlaceActions, PlaceSheet, type PlaceTag } from '@/components/hud/place-sheet'
+import { useEffect, useMemo, useState } from 'react'
+import { ClubPeople } from '@/components/club/club-people'
+import { PlaceReactions, PlaceTalkCard, usePlaceSocial } from '@/components/hud/interior/place-social'
+import { usePlacePresence } from '@/components/hud/interior/use-place-presence'
+import { PlaceAction, PlaceActions, PlacePeople, PlaceSheet, PlaceSpots, type PlaceTag } from '@/components/hud/place-sheet'
 import { useEconomy } from '@/hooks/use-economy'
 import { useGame } from '@/hooks/use-game'
-import { useClubLive } from '@/lib/game/club-live'
 import type { ShopItem } from '@/lib/game/economy-api'
-import { QUICK_LINES, quickLineText } from '@/lib/game/quick-lines'
 import { markSceneReady, useTrip } from '@/lib/game/trip'
-import { enterVenue, fetchVenue, leaveVenue, venueHeartbeat, type VenueView } from '@/lib/game/venues-api'
 import { pushNavigation } from '@/lib/navigation/safe-nav'
-import { nearestWindow, orderSpot, SELLERS, type WiseNpc, type WisePlayer } from './wise-scene'
+import { nearestWindow, orderSpot, SEATS, SELLERS, type WiseNpc, type WisePlayer, type WiseSeat } from './wise-scene'
 import styles from './wise-interior.module.css'
 
 const WiseScene = dynamic(() => import('./wise-scene').then((m) => m.WiseScene), { ssr: false })
 
 const PLACE_ID = 'wise-gourmet'
-const BUBBLE_MS = 4000
+const PLACE_NAME = 'Wise Gourmet'
 
 const NEED_LABEL: Record<string, string> = { hunger: 'Food', fun: 'Fun', social: 'Social', energy: 'Energy' }
 
@@ -30,36 +30,48 @@ function tagsFor(item: ShopItem): PlaceTag[] {
     .map(([k]) => ({ text: `+${NEED_LABEL[k] ?? k}`, tone: 'good' as const }))
 }
 
-/** What an NPC says back to each quick line. */
-const NPC_REPLY: Record<string, string> = {
-  hi: 'Hi dear! 😊',
-  'how-far': 'I dey o, how body? 😄',
-  'food-sweet': 'Na Wise na! Always sweet 😋',
-  'join-me': 'Ehen? Make I finish this one first 😅',
-  'treat-me': 'Hahaha, you wan finish my money? 😂',
-  lol: '😂😂😂',
-  thanks: "You're welcome 🙏",
-  later: 'Later! ✌️',
+/** The line under the name in the sheet header; changes every few seconds like Lagos Life. */
+const STATUS = [
+  '🔥 Shawarma fresh off the grill',
+  '🍗 Chicken and chips going fast',
+  '🎶 Afrobeats on the speaker',
+  '🍹 Chapman cold, cold',
+  '🪑 Tables open out front',
+]
+
+const ROLE: Record<WiseNpc['role'], string> = {
+  seller: 'Selling at the window',
+  customer: 'Ordering at the window',
+  diner: 'Eating at the tables',
 }
 
-type Talk = { kind: 'npc'; npc: WiseNpc } | { kind: 'player'; player: WisePlayer }
+/** Places you can walk to from the sheet ("Spots here"). */
+const TABLE_IDS = [...new Set(SEATS.map((seat) => seat.table))]
+const SPOTS: { id: string; emoji: string; label: string; window?: number; table?: number }[] = [
+  ...SELLERS.map((s, i) => ({ id: s.id, emoji: '🪟', label: `Window ${i + 1}`, window: s.x })),
+  ...TABLE_IDS.map((table, i) => ({ id: `table-${table}`, emoji: '🪑', label: `Table ${i + 1}`, table })),
+]
+
+type Walk = { to: [number, number]; seller?: WiseNpc; sit?: number }
 
 /**
- * Wise Gourmet: the 3D kiosk with sellers at the windows, customers, diners and the other
- * players in your group of 5 (live, like Sazza). Tap the window or a seller to open the menu
- * (ordering buys and eats in one go); tap anyone else to talk with quick lines.
+ * Wise Gourmet on the shared interior sheet: the 3D kiosk (sellers, walk-in customers, diners,
+ * your group of 5), a rotating status line, reactions, spots to walk to, everyone here, and the
+ * shared talk card. Tap a window or a seller to walk up and order; tap a stool to sit.
  */
 export function WiseInterior() {
   const router = useRouter()
   const { state, select, notifyToast } = useGame()
   const { shopItems, shopPlaceId, loadShop, buy, useItem, busy } = useEconomy()
+  const presence = usePlacePresence(PLACE_ID)
+  const { live } = presence
+  const social = usePlaceSocial(PLACE_ID, live)
+  const [expanded, setExpanded] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [peopleOpen, setPeopleOpen] = useState(false)
   const [ordering, setOrdering] = useState<string | null>(null)
-  const [talk, setTalk] = useState<Talk | null>(null)
-  /** The window you're walking to (a seller), so the menu opens when you get there. */
-  const [walkTo, setWalkTo] = useState<{ seller: WiseNpc; spot: [number, number] } | null>(null)
-  const [bubbles, setBubbles] = useState<Record<string, string>>({})
-  const bubbleTimers = useRef<Record<string, number>>({})
+  const [walk, setWalk] = useState<Walk | null>(null)
+  const [statusIdx, setStatusIdx] = useState(0)
   const cash = state?.cash ?? 0
 
   // The trip that brought you here waits for this scene
@@ -75,74 +87,18 @@ export function WiseInterior() {
     void loadShop(PLACE_ID)
   }, [loadShop])
 
-  // —— Your group of 5 (backend venue 'wise-gourmet', same crowd groups as Sazza) ——
-  const [view, setView] = useState<VenueView | null>(null)
-  const load = useCallback(async () => {
-    const res = await fetchVenue(PLACE_ID)
-    if (res.ok) setView(res)
-    return res
+  useEffect(() => {
+    const id = window.setInterval(() => setStatusIdx((i) => (i + 1) % STATUS.length), 5000)
+    return () => window.clearInterval(id)
   }, [])
-  useEffect(() => {
-    let stop = false
-    void (async () => {
-      const res = await load()
-      if (stop || !res.ok || res.me.paid || !res.venue.open) return
-      const entered = await enterVenue(PLACE_ID)
-      if (!stop && entered.ok) void load()
-    })()
-    return () => {
-      stop = true
-    }
-  }, [load])
-  const inside = !!view?.me.paid
-  const live = useClubLive(PLACE_ID, inside, state?.username)
-  useEffect(() => {
-    if (!inside) return
-    const id = window.setInterval(() => void venueHeartbeat(PLACE_ID), 30_000)
-    return () => {
-      window.clearInterval(id)
-      void leaveVenue(PLACE_ID)
-    }
-  }, [inside])
 
+  // Your group of 5, physically in the scene
   const players = useMemo<WisePlayer[]>(() => {
     void live.roster
     const others = [...live.peers.current.values()].map((p) => ({ userId: p.userId, username: p.username, appearance: p.appearance }))
     const me: WisePlayer[] = state ? [{ userId: 'me', username: state.username ?? 'You', appearance: state.appearance, me: true }] : []
     return [...me, ...others]
   }, [live.roster, live.peers, state])
-
-  const showBubble = useCallback((who: string, text: string) => {
-    window.clearTimeout(bubbleTimers.current[who])
-    setBubbles((b) => ({ ...b, [who]: text }))
-    bubbleTimers.current[who] = window.setTimeout(() => {
-      setBubbles((b) => {
-        const next = { ...b }
-        delete next[who]
-        return next
-      })
-    }, BUBBLE_MS)
-  }, [])
-  useEffect(() => {
-    const timers = bubbleTimers.current
-    return () => Object.values(timers).forEach((t) => window.clearTimeout(t))
-  }, [])
-
-  // Lines from the others in the group: a bubble over the sender, and a toast when it's for you
-  const seen = useRef(0)
-  useEffect(() => {
-    for (const s of live.said) {
-      if (s.at <= seen.current) continue
-      seen.current = s.at
-      const text = quickLineText(s.line)
-      const from = live.peers.current.get(s.from)
-      // Lines I sent come back too; I already show those over my own head
-      if (!text || !from) continue
-      showBubble(s.from, text)
-      // Peers never include me, so a line to someone not in the list is to me
-      if (!live.peers.current.has(s.to)) notifyToast(`${from.username}: ${text}`, true)
-    }
-  }, [live.said, live.peers, showBubble, notifyToast])
 
   // The server falls back to the corner shop's list when a place has no menu yet: only show ours
   const menu = shopPlaceId === PLACE_ID ? shopItems.filter((item) => item.category === 'food') : []
@@ -159,7 +115,7 @@ export function WiseInterior() {
       const ate = await useItem(item.id)
       if (ate) {
         notifyToast(`${item.emoji} ${item.name}: enjoy!`, true)
-        showBubble('me', `${item.emoji} Yum!`)
+        social.showBubble('me', `${item.emoji} Yum!`)
       }
     } finally {
       setOrdering(null)
@@ -172,121 +128,124 @@ export function WiseInterior() {
   }
 
   const openMenu = () => {
-    setTalk(null)
+    social.setTalk(null)
     setMenuOpen(true)
+    setExpanded(true)
   }
 
   /** Walk up to a window; the seller greets you and the menu opens when you arrive. */
   const goToWindow = (windowX: number) => {
     const seller = nearestWindow(windowX)
-    setTalk(null)
+    social.setTalk(null)
     setMenuOpen(false)
-    setWalkTo({ seller, spot: orderSpot(seller.x) })
+    setWalk({ to: orderSpot(seller.x), seller })
+  }
+
+  /** Walk to a free stool and sit down. */
+  const sitAt = (seat: WiseSeat) => {
+    social.setTalk(null)
+    setMenuOpen(false)
+    setExpanded(false)
+    setWalk({ to: seat.at, sit: seat.heading })
+  }
+
+  const goToSpot = (id: string) => {
+    const spot = SPOTS.find((s) => s.id === id)
+    if (!spot) return
+    if (spot.window !== undefined) return goToWindow(spot.window)
+    const seat = SEATS.find((x) => x.table === spot.table)
+    if (seat) sitAt(seat)
   }
 
   const onArrive = () => {
-    if (!walkTo) return
-    showBubble(walkTo.seller.id, walkTo.seller.line)
+    if (!walk?.seller) return
+    social.showBubble(walk.seller.id, walk.seller.line)
     openMenu()
   }
 
   const onNpc = (npc: WiseNpc) => {
     // Sellers take your order
-    if (npc.role === 'seller') {
-      goToWindow(SELLERS.find((s) => s.id === npc.id)?.x ?? 0)
-      return
-    }
+    if (npc.role === 'seller') return goToWindow(SELLERS.find((s) => s.id === npc.id)?.x ?? 0)
     setMenuOpen(false)
-    showBubble(npc.id, npc.line)
-    setTalk({ kind: 'npc', npc })
+    social.talkToNpc({ id: npc.id, name: npc.name, role: ROLE[npc.role], line: npc.line })
   }
 
   const onPlayer = (player: WisePlayer) => {
+    if (player.me) return
     setMenuOpen(false)
-    setTalk({ kind: 'player', player })
+    social.setTalk({ kind: 'player', player })
   }
 
-  const sendLine = (lineId: string) => {
-    if (!talk) return
-    const text = quickLineText(lineId)
-    if (!text) return
-    showBubble('me', text)
-    if (talk.kind === 'player') {
-      live.say(talk.player.userId, lineId)
-    } else {
-      const npcId = talk.npc.id
-      window.setTimeout(() => showBubble(npcId, NPC_REPLY[lineId] ?? '😊'), 900)
-    }
+  const pickPerson = (userId: string) => {
+    const person = presence.others.find((p) => p.userId === userId)
+    if (person) onPlayer({ userId: person.userId, username: person.username, appearance: person.appearance })
   }
-
-  const groupCount = players.length
 
   return (
     <div className="absolute inset-0">
       <WiseScene
         players={players}
-        bubbles={bubbles}
+        bubbles={social.bubbles}
         onWindow={goToWindow}
         onNpc={onNpc}
         onPlayer={onPlayer}
-        meTarget={walkTo?.spot ?? null}
+        meTarget={walk?.to ?? null}
+        meSit={walk?.sit ?? null}
         onArrive={onArrive}
+        onSeat={sitAt}
       />
 
-      {talk ? (
-        <div className={styles.talk} role="dialog" aria-label={`Talk to ${talk.kind === 'npc' ? talk.npc.name : talk.player.username}`}>
-          <div className={styles.talkHead}>
-            <span className={styles.avatar} aria-hidden="true">
-              {talk.kind === 'npc' ? '🙂' : '🧑🏾'}
-            </span>
-            <div className={styles.talkText}>
-              <strong>{talk.kind === 'npc' ? talk.npc.name : talk.player.username}</strong>
-              <span>{talk.kind === 'npc' ? talk.npc.line : 'In your group here at Wise'}</span>
-            </div>
-            <button type="button" className={styles.close} aria-label="Close" onClick={() => setTalk(null)}>
-              <X size={16} aria-hidden="true" />
-            </button>
-          </div>
-          <div className={styles.lines}>
-            {QUICK_LINES.map((line) => (
-              <button key={line.id} type="button" className={styles.line} onClick={() => sendLine(line.id)}>
-                {line.text}
-              </button>
-            ))}
-          </div>
-        </div>
+      {social.talk ? (
+        <PlaceTalkCard social={social} placeName={PLACE_NAME} />
       ) : (
         <PlaceSheet
           icon="🍽️"
-          title="Wise Gourmet"
-          subtitle={menuOpen ? 'What will you have?' : `Tap the window to order · ${groupCount} here`}
+          title={PLACE_NAME}
+          subtitle={menuOpen ? 'What will you have?' : STATUS[statusIdx]}
           buttons={[
-            { icon: <UtensilsCrossed size={18} />, label: 'Order', onClick: () => setMenuOpen((o) => !o) },
+            { icon: <UtensilsCrossed size={18} />, label: 'Order', onClick: () => (menuOpen ? setMenuOpen(false) : openMenu()) },
             { icon: <MapIcon size={18} />, label: 'Map', onClick: leave },
           ]}
-          expanded={menuOpen}
-          onExpandedChange={setMenuOpen}
+          expanded={expanded}
+          onExpandedChange={(open) => {
+            setExpanded(open)
+            if (!open) setMenuOpen(false)
+          }}
         >
-          <PlaceActions>
-            {menu.length === 0 ? (
-              <p className={styles.note}>The menu is loading…</p>
-            ) : (
-              menu.map((item) => (
-                <PlaceAction
-                  key={item.id}
-                  emoji={item.emoji}
-                  title={`Buy ${item.name.toLowerCase()}`}
-                  price={`₦${item.price.toLocaleString()}`}
-                  tags={tagsFor(item)}
-                  note={cash < item.price ? 'Not enough cash' : undefined}
-                  disabled={busy || ordering !== null || cash < item.price}
-                  onClick={() => void order(item)}
-                />
-              ))
-            )}
-          </PlaceActions>
+          {menuOpen ? (
+            <PlaceActions>
+              {menu.length === 0 ? (
+                <p className={styles.note}>The menu is loading…</p>
+              ) : (
+                menu.map((item) => (
+                  <PlaceAction
+                    key={item.id}
+                    emoji={item.emoji}
+                    title={`Buy ${item.name.toLowerCase()}`}
+                    price={`₦${item.price.toLocaleString()}`}
+                    tags={tagsFor(item)}
+                    note={cash < item.price ? 'Not enough cash' : undefined}
+                    disabled={busy || ordering !== null || cash < item.price}
+                    onClick={() => void order(item)}
+                  />
+                ))
+              )}
+            </PlaceActions>
+          ) : (
+            <>
+              <PlaceReactions onReact={social.react} />
+              <PlaceSpots hint="Tap one to walk there" spots={SPOTS} value={null} onChange={goToSpot} />
+              <PlacePeople
+                count={presence.insideCount}
+                people={presence.others.slice(0, 6).map((p) => ({ id: p.userId, username: p.username }))}
+                onPick={pickPerson}
+                onMore={() => setPeopleOpen(true)}
+              />
+            </>
+          )}
         </PlaceSheet>
       )}
+      <ClubPeople venueId={PLACE_ID} open={peopleOpen} onOpenChange={setPeopleOpen} />
     </div>
   )
 }

@@ -1,0 +1,233 @@
+/* Shared interior social layer: reactions row and the talk card (same glass card as the place sheet) */
+
+.reactions {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+
+.reaction {
+  display: flex;
+  min-height: 52px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border: 0;
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.06);
+  color: inherit;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.reaction span {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.reaction:active {
+  transform: scale(0.96);
+}
+
+.card {
+  pointer-events: auto;
+  position: absolute;
+  left: 50%;
+  bottom: calc(88px + env(safe-area-inset-bottom));
+  z-index: calc(var(--z-hud) + 3);
+  display: flex;
+  width: min(560px, calc(100% - 16px));
+  max-height: min(70dvh, 560px);
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  color: #111;
+  transform: translateX(-50%);
+  animation: rise 180ms ease-out;
+}
+
+@media (max-width: 639px) {
+  .card {
+    bottom: calc(76px + env(safe-area-inset-bottom));
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 12px);
+  }
+}
+
+.night {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(17, 17, 27, 0.92);
+  color: #fff;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.avatar {
+  display: grid;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(47, 107, 240, 0.1);
+  font-size: 22px;
+}
+
+.text {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.text strong {
+  overflow: hidden;
+  font-size: 16px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.text span {
+  overflow: hidden;
+  opacity: 0.7;
+  font-size: 13px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.close {
+  display: grid;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(127, 127, 127, 0.14);
+  color: inherit;
+  cursor: pointer;
+}
+
+.quote {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.05);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.night .quote,
+.night .socials,
+.night .reaction {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.chat {
+  display: flex;
+  min-height: 46px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 14px;
+  background: #16834a;
+  color: #fff;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.socials {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 16px;
+  background: rgba(15, 23, 42, 0.05);
+  list-style: none;
+}
+
+.socials li + li {
+  border-top: 1px solid rgba(127, 127, 127, 0.15);
+}
+
+.social {
+  display: flex;
+  width: 100%;
+  min-height: 52px;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.social:disabled {
+  opacity: 0.6;
+}
+
+.socialEmoji {
+  display: grid;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  font-size: 17px;
+}
+
+.socialText {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.socialText strong {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.socialText small {
+  opacity: 0.65;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.chev {
+  flex: none;
+  opacity: 0.45;
+}

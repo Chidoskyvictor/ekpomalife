@@ -9,16 +9,16 @@ import { BuildingPanel, type BuildingActionRunner } from '@/components/buildings
 import { ClubPeers } from '@/components/club/club-peers'
 import { ClubPeople } from '@/components/club/club-people'
 import { JobsPanel } from '@/components/hud/jobs-panel'
-import { PlaceAction, PlaceActions, PlaceSheet, type PlaceTag } from '@/components/hud/place-sheet'
+import { BuildingActionCards } from '@/components/hud/interior/building-actions'
+import { PlaceReactions, PlaceTalkCard, usePlaceSocial } from '@/components/hud/interior/place-social'
+import { usePlacePresence } from '@/components/hud/interior/use-place-presence'
+import { PlaceAction, PlaceActions, PlacePeople, PlaceSheet } from '@/components/hud/place-sheet'
 import type { PlayerMove, RoomPlayerControl } from '@/components/room/room-player'
 import { useGame } from '@/hooks/use-game'
 import { endActivity, startActivity } from '@/lib/game/activity'
-import { BUILDINGS, isBuildingOpen, type BuildingActionDef } from '@/lib/game/buildings'
-import { emptyCampus } from '@/lib/game/campus'
-import { useClubLive } from '@/lib/game/club-live'
+import { BUILDINGS, type BuildingActionDef } from '@/lib/game/buildings'
 import { hallFor, officeFor } from '@/lib/game/halls'
 import { HALL_SEATS, LECTURE_HALL, OFFICE, seatKey, type HallSeat, type RoomLayout } from '@/lib/game/room-layouts'
-import { enterVenue, fetchVenue, leaveVenue, venueHeartbeat, type VenueView } from '@/lib/game/venues-api'
 import { pushNavigation } from '@/lib/navigation/safe-nav'
 import styles from './hall.module.css'
 
@@ -31,19 +31,6 @@ const HomeCanvas = dynamic(() => import('@/components/room/home-canvas').then((m
 const SIT_SECONDS = 600
 /** Activities that seat you while they run (game minutes ÷ 10 = real seconds × 6). */
 const SEATED = new Set(['attend-lecture', 'night-class'])
-
-/** An activity's chips → the card's big line and its tags. */
-function cardInfo(action: BuildingActionDef): { price: string; tags: PlaceTag[] } {
-  let price = 'Free'
-  const tags: PlaceTag[] = []
-  for (const chip of action.chips) {
-    if (chip.kind === 'cash') price = `₦${Math.abs(chip.amount).toLocaleString()}`
-    if (chip.kind === 'time') tags.push({ text: `${chip.minutes} min`, tone: 'info' })
-    if (chip.kind === 'energy') tags.push({ text: `${chip.amount > 0 ? '+' : '−'}${Math.abs(chip.amount)} energy`, tone: chip.amount > 0 ? 'good' : 'bad' })
-    if (chip.kind === 'reward') tags.push({ text: chip.text, tone: 'good' })
-  }
-  return { price, tags }
-}
 
 type Space = { name: string; paint?: string; layout: RoomLayout; seats: HallSeat[]; icon: string; office: boolean }
 
@@ -69,33 +56,14 @@ export function HallScreen({ hallId }: { hallId: string }) {
   const hall = spaceFor(hallId)
   const seats = hall?.seats ?? []
   const control = useMemo<RoomPlayerControl>(() => ({}), [])
-  const [view, setView] = useState<VenueView | null>(null)
   const [expanded, setExpanded] = useState(true)
   const [peopleOpen, setPeopleOpen] = useState(false)
   const me = useRef<{ x: number; z: number }>({ x: hall?.layout.start[0] ?? 0, z: hall?.layout.start[1] ?? 0 })
 
-  const load = useCallback(async () => {
-    const res = await fetchVenue(hallId)
-    if (res.ok) setView(res)
-    return res
-  }, [hallId])
-
-  // Walk straight in: halls are free, so enter as soon as the hall answers (and it's open)
-  useEffect(() => {
-    let stop = false
-    void (async () => {
-      const res = await load()
-      if (stop || !res.ok || res.me.paid || !res.venue.open) return
-      const entered = await enterVenue(hallId)
-      if (!stop && entered.ok) void load()
-    })()
-    return () => {
-      stop = true
-    }
-  }, [hallId, load])
-
-  const inside = !!view?.me.paid
-  const live = useClubLive(hallId, inside, state?.username)
+  // Walk straight in (halls are free), stay counted, join your group's live room
+  const presence = usePlacePresence(hallId)
+  const { view, inside, live } = presence
+  const social = usePlaceSocial(hallId, live)
   const { sendState } = live
   const onPlayerMove = useCallback(
     (m: PlayerMove) => {
@@ -105,24 +73,16 @@ export function HallScreen({ hallId }: { hallId: string }) {
     [sendState],
   )
 
-  // Heartbeat while inside (keeps your seat in the group); leave on the way out
-  useEffect(() => {
-    if (!inside) return
-    const first = window.setTimeout(() => void venueHeartbeat(hallId).then(() => load()), 800)
-    const id = window.setInterval(() => {
-      void venueHeartbeat(hallId)
-      void load()
-    }, 30_000)
-    return () => {
-      window.clearTimeout(first)
-      window.clearInterval(id)
-      void leaveVenue(hallId)
-    }
-  }, [inside, hallId, load])
-
   const effects = useCallback(
-    (_root: Object3D) => <ClubPeers peers={live.peers} roster={live.roster} />,
-    [live.peers, live.roster],
+    (_root: Object3D) => (
+      <ClubPeers
+        peers={live.peers}
+        roster={live.roster}
+        bubbles={social.bubbles}
+        onTap={(peer) => social.setTalk({ kind: 'player', player: { userId: peer.userId, username: peer.username } })}
+      />
+    ),
+    [live.peers, live.roster, social],
   )
 
   /** Nearest chair to you that nobody in your group is sitting on (or standing at). */
@@ -164,17 +124,7 @@ export function HallScreen({ hallId }: { hallId: string }) {
 
   if (!hall) return null
 
-  // Activity cards: same rules as the old pop-up (here, open, and each action's own lock)
-  const gameTime = state?.gameTime ?? 10 * 60
-  const gameHour = Math.floor((((gameTime % 1440) + 1440) % 1440) / 60)
-  const campus = state?.campus ?? emptyCampus(100)
   const isHere = state?.locationId === hallId
-  const openInfo = building ? isBuildingOpen(building, gameTime) : { open: true }
-  const closedNote = building?.openHours && !openInfo.open ? `Opens at ${building.openHours.open % 12 || 12}${building.openHours.open < 12 ? 'am' : 'pm'}` : null
-  const lockOf = (action: BuildingActionDef) =>
-    !isHere
-      ? 'Come here first'
-      : closedNote ?? action.lock?.({ campus, gameHour, traits: state?.traits ?? [], placeId: hallId }) ?? null
   const run = (action: BuildingActionDef) => {
     setExpanded(false)
     runAction.current?.(action)
@@ -185,7 +135,7 @@ export function HallScreen({ hallId }: { hallId: string }) {
     }
   }
 
-  const count = view?.inside ?? 0
+  const count = presence.insideCount
   const subtitle = !view
     ? 'Loading…'
     : !view.venue.open
@@ -205,6 +155,8 @@ export function HallScreen({ hallId }: { hallId: string }) {
         />
       </div>
 
+      {social.talk ? <PlaceTalkCard social={social} placeName={hall.name} /> : null}
+      {social.talk ? null : (
       <PlaceSheet
         icon={hall.icon}
         title={hall.name}
@@ -218,34 +170,38 @@ export function HallScreen({ hallId }: { hallId: string }) {
         expanded={expanded}
         onExpandedChange={setExpanded}
       >
-        <PlaceActions>
-          {hall.office ? null : (
+        {inside ? <PlaceReactions onReact={social.react} /> : null}
+        {building ? (
+          <BuildingActionCards
+            building={building}
+            placeId={hallId}
+            onRun={run}
+            before={hall.office ? null : <PlaceAction emoji="🪑" title="Take a seat" price="Free" disabled={!inside} onClick={() => sit()} />}
+          />
+        ) : hall.office ? null : (
+          <PlaceActions>
             <PlaceAction emoji="🪑" title="Take a seat" price="Free" disabled={!inside} onClick={() => sit()} />
-          )}
-          {(building?.actions ?? []).map((action) => {
-            const { price, tags } = cardInfo(action)
-            const locked = lockOf(action)
-            return (
-              <PlaceAction
-                key={action.id}
-                emoji={action.emoji}
-                title={action.title}
-                price={price}
-                tags={tags}
-                note={locked ?? undefined}
-                disabled={Boolean(locked)}
-                onClick={() => run(action)}
-              />
-            )
-          })}
-        </PlaceActions>
+          </PlaceActions>
+        )}
         {!inside && view && !view.venue.open ? (
           <p className={styles.note}>
             <BookOpen size={14} aria-hidden="true" /> {hall.office ? `The office is closed. Open ${view.venue.hours}.` : `The hall is locked. Classes run ${view.venue.hours}.`}
           </p>
         ) : null}
         {isHere && building?.showJobs ? <JobsPanel placeId={hallId} /> : null}
+        {inside ? (
+          <PlacePeople
+            count={count}
+            people={presence.others.slice(0, 6).map((p) => ({ id: p.userId, username: p.username }))}
+            onPick={(id) => {
+              const person = presence.others.find((p) => p.userId === id)
+              if (person) social.setTalk({ kind: 'player', player: { userId: person.userId, username: person.username } })
+            }}
+            onMore={() => setPeopleOpen(true)}
+          />
+        ) : null}
       </PlaceSheet>
+      )}
 
       {/* Runs the cards' actions (and their quiz / results screens); its own list stays hidden */}
       {building ? <BuildingPanel headless={{ buildingId: hallId, runRef: runAction }} /> : null}

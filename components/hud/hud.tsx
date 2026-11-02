@@ -276,6 +276,7 @@ export function Hud() {
               value={tab}
               onValueChange={onTab}
               badges={{ phone: unread }}
+              compact={placeSheet}
             />
           </div>
         </div>
