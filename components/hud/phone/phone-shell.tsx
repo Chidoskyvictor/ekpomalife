@@ -34,6 +34,7 @@ import { useLiveSpaces } from '@/hooks/use-live-spaces'
 import { OPEN_SPACES_EVENT, hasPendingSpace, requestOpenSpace } from '@/lib/game/open-spaces'
 import { SettingsApp } from './apps/settings-app'
 import { ProfileApp } from './apps/profile-app'
+import { ProdigyApp } from './apps/prodigy-app'
 import { InvestApp } from './apps/invest-app'
 import { EtaApp } from './apps/eta-app'
 import { GamesApp } from './apps/games-app'
@@ -278,7 +279,7 @@ export function PhoneShell({
                   <div className={styles.content}>
                     <PhoneStatusBar clock={phoneClock} phone={deviceState} onApp={Boolean(appId)} />
                     {appId ? (
-                      <AppFrame appId={appId} offline={offline} onHome={goHome} bare={appId === 'messages' || appId === 'games' || appId === 'spaces'}>
+                      <AppFrame appId={appId} offline={offline} onHome={goHome} bare={appId === 'messages' || appId === 'games' || appId === 'spaces' || appId === 'prodigy'}>
                         {appId === 'jobs' ? <JobsApp /> : null}
                         {appId === 'bank' ? <BankApp /> : null}
                         {appId === 'gist' ? <GistApp /> : null}
@@ -316,6 +317,7 @@ export function PhoneShell({
                         ) : null}
                         {appId === 'profile' ? <ProfileApp /> : null}
                         {appId === 'invest' ? <InvestApp /> : null}
+                        {appId === 'prodigy' ? <ProdigyApp onHome={goHome} /> : null}
                         {appId === 'eta' ? <EtaApp /> : null}
                         {appId === 'games' ? <GamesApp onHome={goHome} /> : null}
                         {appId === 'spaces' ? (

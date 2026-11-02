@@ -48,6 +48,7 @@ export type PhoneAppId =
   | 'games'
   | 'spaces'
   | 'settings'
+  | 'prodigy'
 
 export type WallpaperId = 'aau-dusk' | 'ekpoma-night' | 'harmattan' | 'green-white'
 
@@ -113,6 +114,7 @@ export const PHONE_APP_IDS = [
   'games',
   'spaces',
   'settings',
+  'prodigy',
 ] as const satisfies readonly PhoneAppId[]
 
 export const WALLPAPER_IDS = [

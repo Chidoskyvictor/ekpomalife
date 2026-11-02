@@ -1,4 +1,7 @@
 import { apiGet, apiPost, useMocks } from '@/lib/api/client'
+
+/** The server refuses money actions without a one-time key (stops a double tap charging twice). */
+const idem = () => ({ 'Idempotency-Key': crypto.randomUUID() })
 import { friendlyApiMessage, type ApiFail } from '@/lib/api/errors'
 import type { ServerGameState } from './game-api'
 import * as mock from './economy-mock'
@@ -140,12 +143,12 @@ export async function fetchJobs(placeId?: string | null): Promise<OkJobs | Econo
 
 export async function applyForJob(jobId: string): Promise<OkApply | EconomyFail> {
   if (useMocks()) return mock.mockApply(jobId)
-  return apiPost<OkApply>('/jobs/apply', { jobId })
+  return apiPost<OkApply>('/jobs/apply', { jobId }, idem())
 }
 
 export async function workShift(): Promise<OkShift | EconomyFail> {
   if (useMocks()) return mock.mockShift()
-  return apiPost<OkShift>('/jobs/shift')
+  return apiPost<OkShift>('/jobs/shift', {}, idem())
 }
 
 export async function fetchShop(placeId: string): Promise<OkShop | EconomyFail> {
@@ -155,7 +158,7 @@ export async function fetchShop(placeId: string): Promise<OkShop | EconomyFail> 
 
 export async function buyShopItem(itemId: string, qty: number): Promise<OkBuy | EconomyFail> {
   if (useMocks()) return mock.mockBuy(itemId, qty)
-  return apiPost<OkBuy>('/shop/buy', { itemId, qty })
+  return apiPost<OkBuy>('/shop/buy', { itemId, qty }, idem())
 }
 
 export async function fetchInventory(): Promise<OkInventory | EconomyFail> {
@@ -165,7 +168,7 @@ export async function fetchInventory(): Promise<OkInventory | EconomyFail> {
 
 export async function useInventoryItem(itemId: string): Promise<OkUse | EconomyFail> {
   if (useMocks()) return mock.mockUseItem(itemId)
-  return apiPost<OkUse>('/inventory/use', { itemId })
+  return apiPost<OkUse>('/inventory/use', { itemId }, idem())
 }
 
 export async function fetchRent(): Promise<OkRent | EconomyFail> {
@@ -175,7 +178,7 @@ export async function fetchRent(): Promise<OkRent | EconomyFail> {
 
 export async function payRent(): Promise<OkPayRent | EconomyFail> {
   if (useMocks()) return mock.mockPayRent()
-  return apiPost<OkPayRent>('/rent/pay')
+  return apiPost<OkPayRent>('/rent/pay', {}, idem())
 }
 
 export async function fetchLedger(
@@ -201,7 +204,7 @@ export async function fetchHustles(): Promise<OkHustles | EconomyFail> {
 
 export async function runHustle(hustleId: string): Promise<OkHustleRun | EconomyFail> {
   if (useMocks()) return mock.mockRunHustle(hustleId)
-  return apiPost<OkHustleRun>('/hustles/run', { hustleId })
+  return apiPost<OkHustleRun>('/hustles/run', { hustleId }, idem())
 }
 
 export function friendlyEconomyError(fail: string | EconomyFail) {

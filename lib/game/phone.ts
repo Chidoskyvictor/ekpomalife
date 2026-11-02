@@ -17,6 +17,7 @@ export type PhoneAppId =
   | 'games'
   | 'spaces'
   | 'settings'
+  | 'prodigy'
 
 export type WallpaperId = 'aau-dusk' | 'ekpoma-night' | 'harmattan' | 'green-white'
 
@@ -89,13 +90,27 @@ export type PhoneAppMeta = {
   emoji: string
   status: 'live' | 'soon'
   tint: string
+  /** A logo image instead of the emoji (partner apps). */
+  image?: string
+  /** Full name on the app's own screen when the icon label is shorter. */
+  fullName?: string
 }
 
+/** Home-screen order: apps with real content first (Messages, Jobs, Invest, Bank, Prodigy), then the rest. */
 export const PHONE_APPS: PhoneAppMeta[] = [
-  { id: 'jobs', label: 'Jobs', emoji: '💼', status: 'live', tint: '#3d9ad6' },
-  { id: 'bank', label: 'Bank', emoji: '🏦', status: 'live', tint: '#16a34a' },
-  { id: 'invest', label: 'Invest', emoji: '📈', status: 'live', tint: '#0f766e' },
   { id: 'messages', label: 'Messages', emoji: '💬', status: 'live', tint: '#6366f1' },
+  { id: 'jobs', label: 'Jobs', emoji: '💼', status: 'live', tint: '#3d9ad6' },
+  { id: 'invest', label: 'Invest', emoji: '📈', status: 'live', tint: '#0f766e' },
+  { id: 'bank', label: 'Bank', emoji: '🏦', status: 'live', tint: '#16a34a' },
+  {
+    id: 'prodigy',
+    label: 'Prodigy',
+    fullName: 'Prodigy Enterprises Omnium Ltd',
+    emoji: '♾️',
+    status: 'live',
+    tint: '#ffffff',
+    image: '/apps/prodigy-logo.png',
+  },
   { id: 'eta', label: 'ẹta', emoji: '🗣️', status: 'live', tint: '#5b3fd1' },
   { id: 'gist', label: 'Campus News', emoji: '📰', status: 'live', tint: '#ea580c' },
   { id: 'market', label: 'Market', emoji: '🛍️', status: 'live', tint: '#db2777' },
@@ -103,11 +118,11 @@ export const PHONE_APPS: PhoneAppMeta[] = [
   { id: 'map', label: 'Map', emoji: '🗺️', status: 'live', tint: '#0d9488' },
   { id: 'calendar', label: 'Calendar', emoji: '📅', status: 'live', tint: '#2563eb' },
   { id: 'profile', label: 'Profile', emoji: '👤', status: 'live', tint: '#0ea5e9' },
-  { id: 'portal', label: 'Results', emoji: '🎓', status: 'soon', tint: '#7c3aed' },
-  { id: 'music', label: 'Music', emoji: '🎧', status: 'soon', tint: '#e11d48' },
   { id: 'games', label: 'Games', emoji: '🎮', status: 'live', tint: '#0891b2' },
   { id: 'spaces', label: 'Spaces', emoji: '🎙️', status: 'live', tint: '#7c3aed' },
   { id: 'settings', label: 'Settings', emoji: '⚙️', status: 'live', tint: '#64748b' },
+  { id: 'portal', label: 'Results', emoji: '🎓', status: 'soon', tint: '#7c3aed' },
+  { id: 'music', label: 'Music', emoji: '🎧', status: 'soon', tint: '#e11d48' },
 ]
 
 export const PHONE_DOCK: PhoneAppId[] = ['messages', 'bank', 'map', 'ride']
@@ -132,6 +147,7 @@ export const WALLPAPERS: Record<WallpaperId, { label: string; css: string }> = {
 }
 
 export const COMING_SOON_COPY: Record<PhoneAppId, string> = {
+  prodigy: '',
   jobs: '',
   bank: '',
   messages: 'Messages are coming soon — your friends are not on the Ekpoma network yet.',

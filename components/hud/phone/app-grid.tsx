@@ -9,6 +9,7 @@ function AppIcon({
   label,
   emoji,
   tint,
+  image,
   unread,
   isNew,
   soon,
@@ -19,6 +20,7 @@ function AppIcon({
   label: string
   emoji: string
   tint: string
+  image?: string
   unread: number
   isNew: boolean
   soon: boolean
@@ -40,9 +42,18 @@ function AppIcon({
       <motion.span
         layoutId={inDock ? undefined : `app-${id}`}
         className={styles.appIcon}
-        style={{ background: `linear-gradient(145deg, ${tint}, color-mix(in srgb, ${tint} 70%, #000))` }}
+        style={
+          image
+            ? { background: '#fff', overflow: 'hidden' }
+            : { background: `linear-gradient(145deg, ${tint}, color-mix(in srgb, ${tint} 70%, #000))` }
+        }
       >
-        <span aria-hidden="true">{emoji}</span>
+        {image ? (
+          // eslint-disable-next-line @next/next/no-img-element -- tiny static logo, no optimisation needed
+          <img src={image} alt="" aria-hidden="true" width={52} height={52} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+        ) : (
+          <span aria-hidden="true">{emoji}</span>
+        )}
         {unread > 0 ? (
           <span className={styles.badge} aria-hidden="true">
             {unread > 9 ? '9+' : unread}
@@ -81,6 +92,7 @@ export function AppGrid({
             label={app.label}
             emoji={app.emoji}
             tint={app.tint}
+            image={app.image}
             unread={phone.unread[app.id] ?? 0}
             isNew={phone.newApps.includes(app.id)}
             soon={app.status === 'soon'}
