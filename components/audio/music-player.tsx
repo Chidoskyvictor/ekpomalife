@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { MUSIC_TRACKS, SOUND_EVENT, soundMuted, useMusicSettings } from '@/lib/audio/music'
+import { MUSIC_TRACKS, musicSignedIn, SOUND_EVENT, soundMuted, useMusicSettings } from '@/lib/audio/music'
 import { useTrip } from '@/lib/game/trip'
 
 /** Music drops to this share of its volume during a ride, so the horn and the road come through. */
@@ -21,7 +21,7 @@ export function MusicPlayer() {
   const unlocked = useRef(false)
 
   const wanted = useRef<() => boolean>(() => false)
-  wanted.current = () => settings.on && settings.volume > 0 && !soundMuted() && missing.current.size < MUSIC_TRACKS.length
+  wanted.current = () => musicSignedIn() && settings.on && settings.volume > 0 && !soundMuted() && missing.current.size < MUSIC_TRACKS.length
 
   // One <audio> for the whole visit; skips files that aren't there and moves to the next song
   useEffect(() => {

@@ -24,7 +24,6 @@ import { WorldZoneDebugPanel } from './world-zone-debug-panel'
 import { BillboardDebugPanel } from './billboard-debug-panel'
 import { ZoneStickerOverlay, ZoneStickerProjector, ZoneStickerProvider } from './world-zone-stickers'
 import { ZoneDebugProvider } from './zone-debug-context'
-import { useWatClock } from '@/lib/game/wat-clock'
 import { markSceneReady, useTrip } from '@/lib/game/trip'
 
 const PITCH = (32 * Math.PI) / 180
@@ -215,9 +214,9 @@ function MobileDprMonitor({
 
 export function WorldCanvas() {
   const { state, selectedId, select } = useGame()
-  // Real WAT time of day for everyone (dev: ?time=21:30 previews another hour)
-  const { period } = useWatClock()
-  const night = period === 'evening' || period === 'night'
+  // The map always shows daylight, whatever the real time is
+  const period = 'afternoon' as const
+  const night = false
   const trip = useTrip()
   const driving = Boolean(trip?.drive && !trip.done)
   const { targetPercent, assetsDone, onProgress } = useMapLoadProgress()

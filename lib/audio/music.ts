@@ -61,6 +61,15 @@ function subscribe(fn: () => void) {
   return () => window.removeEventListener(SOUND_EVENT, fn)
 }
 
+/** Music only plays for signed-in players: the game sets this once it knows who you are. */
+let signedIn = false
+export function setMusicSignedIn(value: boolean) {
+  if (signedIn === value) return
+  signedIn = value
+  window.dispatchEvent(new Event(SOUND_EVENT))
+}
+export const musicSignedIn = () => signedIn
+
 export function useMusicSettings(): MusicSettings {
   return useSyncExternalStore(subscribe, read, () => DEFAULTS)
 }

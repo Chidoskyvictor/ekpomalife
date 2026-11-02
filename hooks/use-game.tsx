@@ -15,6 +15,7 @@ import { type Appearance } from '@/lib/game/look'
 import type { GameActionId } from '@/lib/game/places'
 import { applyDreamReward, createInitialState, resetDreamProgress, resolveEvent } from '@/lib/game/rules'
 import type { TraitId } from '@/lib/game/traits'
+import { setMusicSignedIn } from '@/lib/audio/music'
 import type { ActionId, EventChoice, GameEvent, GameState, TimePeriod, TravelMode } from '@/lib/game/types'
 
 /** Optional button on a toast, e.g. "Go to my room" → /room. */
@@ -525,6 +526,12 @@ export function GameProvider({
       notify,
     ],
   )
+
+  // Background music is for signed-in players only (guests on the welcome map hear nothing)
+  const signedIn = !isGuest && Boolean(state)
+  useEffect(() => {
+    setMusicSignedIn(signedIn)
+  }, [signedIn])
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>
 }
