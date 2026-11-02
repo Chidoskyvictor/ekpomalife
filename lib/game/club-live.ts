@@ -45,6 +45,10 @@ type Incoming =
   | { t: 'got'; sprayId: string; note: number; value: number; cash: number }
   | { t: 'missed'; sprayId: string; note: number }
   | { t: 'error'; error: string }
+  | { t: 'say'; from: string; to: string; line: string }
+
+/** A quick line someone in your group sent (to you or to someone else). */
+export type Said = { id: number; from: string; to: string; line: string; at: number }
 
 /** ws(s)://<api>/ws/club. A local API address is swapped for this page's host so phones on the same Wi-Fi work. */
 function socketUrl(ticket: string) {
@@ -63,6 +67,7 @@ export function useClubLive(venueId: string, enabled: boolean, myUsername?: stri
   const [sprays, setSprays] = useState<Spray[]>([])
   const [lastGot, setLastGot] = useState<{ value: number; at: number } | null>(null)
   const [connected, setConnected] = useState(false)
+  const [said, setSaid] = useState<Said[]>([])
   const socket = useRef<WebSocket | null>(null)
   const lastSent = useRef<{ at: number; key: string }>({ at: 0, key: '' })
 
@@ -108,6 +113,9 @@ export function useClubLive(venueId: string, enabled: boolean, myUsername?: stri
         } else if (msg.t === 'state') {
           const peer = peers.current.get(msg.userId)
           if (peer) peer.state = { x: msg.x, y: msg.y ?? 0, z: msg.z, h: msg.h, pose: msg.pose, moving: msg.moving }
+        } else if (msg.t === 'say') {
+          const entry = { id: Math.random(), from: msg.from, to: msg.to, line: msg.line, at: Date.now() }
+          setSaid((list) => [...list.slice(-11), entry])
         } else if (msg.t === 'spray') {
           const { t: _t, ...spray } = msg
           setSprays((list) =>
@@ -170,5 +178,11 @@ export function useClubLive(venueId: string, enabled: boolean, myUsername?: stri
     setSprays((list) => (list.some((s) => s.id === spray.id) ? list : [...list, { ...spray, gone: new Set(), mine: true }]))
   }, [])
 
-  return { peers, roster, sprays, lastGot, connected, sendState, pick, addOwnSpray }
+  /** Send a quick line to someone in my group (they and the rest of the group see it). */
+  const say = useCallback((to: string, line: string) => {
+    const ws = socket.current
+    if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ t: 'say', to, line }))
+  }, [])
+
+  return { peers, roster, sprays, lastGot, connected, sendState, pick, addOwnSpray, said, say }
 }

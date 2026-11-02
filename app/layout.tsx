@@ -1,3 +1,4 @@
+import { PlayShell } from '@/components/play-shell'
 import type { Viewport } from 'next'
 import { Fredoka, Geist, Inter, Plus_Jakarta_Sans } from 'next/font/google'
 import { NoHScrollGuard } from '@/components/dev/no-hscroll-guard'
@@ -55,7 +56,7 @@ export default function RootLayout({
       {/* Extensions (Grammarly…) add attributes to <body> before React hydrates */}
       <body className="font-sans antialiased" style={{ colorScheme: 'light' }} suppressHydrationWarning>
         {process.env.NODE_ENV === 'development' ? <NoHScrollGuard /> : null}
-        {children}
+        <PlayShell>{children}</PlayShell>
         <TripLayer />
         <MusicPlayer />
         <RateLimitToast />

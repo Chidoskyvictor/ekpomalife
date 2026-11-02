@@ -35,7 +35,14 @@ type Member = {
   state: PlayerState | null
   lastState: number
   picks: number[]
+  says: number[]
 }
+
+/**
+ * Quick lines players can send each other (tap someone, pick a line). Only these ids are
+ * accepted, so there's no free text to moderate. The app holds the wording (lib/game/quick-lines.ts).
+ */
+export const QUICK_LINES = new Set(['hi', 'how-far', 'food-sweet', 'join-me', 'treat-me', 'later', 'lol', 'thanks'])
 
 type Ticket = PlayerInfo & { venueId: string; night: number; group: number; expires: number }
 
@@ -132,7 +139,7 @@ export function joinLive(socket: WebSocket, token: string | undefined) {
   // Same player on a second tab/phone: the newer connection wins
   room.get(ticket.userId)?.socket.close(4002, 'replaced')
   const { venueId: _v, night: _n, group: _g, expires: _e, ...info } = ticket
-  const me: Member = { socket, info, state: null, lastState: 0, picks: [] }
+  const me: Member = { socket, info, state: null, lastState: 0, picks: [], says: [] }
   room.set(ticket.userId, me)
 
   send(socket, {
@@ -157,6 +164,16 @@ export function joinLive(socket: WebSocket, token: string | undefined) {
       me.lastState = now
       me.state = state
       broadcast(key, { t: 'state', userId: me.info.userId, ...state }, me.info.userId)
+    } else if (msg.t === 'say') {
+      const line = typeof msg.line === 'string' ? msg.line : ''
+      const to = typeof msg.to === 'string' ? msg.to : ''
+      if (!QUICK_LINES.has(line) || !rooms.get(key)?.has(to) || to === me.info.userId) return
+      // At most 3 lines every 5 seconds
+      const now = Date.now()
+      me.says = me.says.filter((t) => now - t < 5000)
+      if (me.says.length >= 3) return
+      me.says.push(now)
+      broadcast(key, { t: 'say', from: me.info.userId, to, line })
     } else if (msg.t === 'pick') {
       void pickNote(key, me, msg)
     }

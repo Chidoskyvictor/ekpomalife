@@ -310,9 +310,11 @@ export const PLACE_INFO: Record<string, PlaceInfo> = {
   },
   'wise-gourmet': {
     area: TOWN,
-    about: 'Wise Gourmet restaurant. Proper plates, proper prices.',
+    about: 'Wise Gourmet. Order at the window, eat at the VIP tables out front.',
     doing: [
-      { emoji: '🍽️', text: 'Eat a proper meal' },
+      { emoji: '🌯', text: 'Buy shawarma' },
+      { emoji: '🍗', text: 'Buy chicken and chips' },
+      { emoji: '🍹', text: 'Chapman and ice cream' },
     ],
   },
   'park': {

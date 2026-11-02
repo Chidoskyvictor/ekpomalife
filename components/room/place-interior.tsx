@@ -11,6 +11,7 @@ import { getPlace } from '@/lib/game/places'
 import { markSceneReady, useTrip } from '@/lib/game/trip'
 import { pushNavigation } from '@/lib/navigation/safe-nav'
 import styles from './place-interior.module.css'
+import { WiseInterior } from './wise-interior'
 
 const EMOJI: Record<string, string> = {
   campus: '🎓',
@@ -31,6 +32,7 @@ const EMOJI: Record<string, string> = {
 export function PlaceInterior({ placeId }: { placeId: string }) {
   // Lecture halls and faculties have a real 3D hall with classmates in it
   if (hallFor(placeId) || officeFor(placeId)) return <HallInterior placeId={placeId} />
+  if (placeId === 'wise-gourmet') return <WiseInterior />
   return <StandInInterior placeId={placeId} />
 }
 

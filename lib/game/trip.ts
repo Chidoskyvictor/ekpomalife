@@ -41,7 +41,7 @@ export type Trip = {
   appearance?: Appearance
 }
 
-const MIN_MS: Record<TripMode, number> = { trek: 1600, keke: 1200, okada: 900 }
+const MIN_MS: Record<TripMode, number> = { trek: 700, keke: 1200, okada: 900 }
 /** The drive needs long enough to read as a ride; Skip cuts it short. */
 const DRIVE_MS: Record<TripMode, number> = { trek: 1600, keke: 7000, okada: 5500 }
 

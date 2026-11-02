@@ -26,9 +26,22 @@ function MapTrip({ trip }: { trip: Trip }) {
 }
 
 /**
- * "On the way to …". Paid rides get the looping highway drive; walking gets the campus map with
- * your route and a progress pill. Both hold at 90% until the next scene is ready.
+ * Walking: no card, just a quick soft fade into the place with its name, then the scene shows
+ * through as it fades back out.
+ */
+function TrekFade({ trip }: { trip: Trip }) {
+  return (
+    <div className={styles.trekFade} data-done={trip.done} role="status" aria-live="polite">
+      <span className={styles.trekChip}>🚶 {trip.label}</span>
+    </div>
+  )
+}
+
+/**
+ * "On the way to …". Paid rides get the looping highway drive; walking is a short fade (TrekFade); a
+ * ride on a phone that can't take the drive gets the campus map with a progress pill. Both hold at 90% until the next scene is ready.
  */
 export function TripScreen({ trip }: { trip: Trip }) {
-  return trip.drive ? <DriveTrip trip={trip} /> : <MapTrip trip={trip} />
+  if (trip.drive) return <DriveTrip trip={trip} />
+  return trip.mode === 'trek' ? <TrekFade trip={trip} /> : <MapTrip trip={trip} />
 }

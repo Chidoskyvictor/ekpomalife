@@ -42,6 +42,8 @@ export type Venue = {
   close: number
   entry: number
   capacity: number
+  /** Players per crowd group (each group only sees itself). Defaults to GROUP_SIZE. */
+  groupSize?: number
   items: VenueItem[]
 }
 
@@ -97,7 +99,14 @@ for (const [id, name] of HALLS) {
   VENUES[id] = { id, kind: 'hall', name, open: 7, close: 21, entry: 0, capacity: 1000, items: [] }
 }
 
+/*
+ * Wise Gourmet: free walk-in food spot. Small groups of 5 so the people at the window and the
+ * tables can actually talk to each other; the 6th player starts group 2, and so on.
+ */
+VENUES['wise-gourmet'] = { id: 'wise-gourmet', kind: 'hall', name: 'Wise Gourmet', open: 8, close: 22, entry: 0, capacity: 1000, groupSize: 5, items: [] }
+
 export const GROUP_SIZE = 18
+export const groupSizeOf = (venueId: string) => VENUES[venueId]?.groupSize ?? GROUP_SIZE
 const INSIDE_SECONDS = 90
 /** One club night = one game day of real time (24 game hours at 10 game minutes per real minute). */
 const NIGHT_MS = (24 * 60 * 60_000) / 10
@@ -177,6 +186,16 @@ async function topSpenders(venueId: string, night: number) {
   return found.rows.map((r) => ({ username: r.username, displayName: r.display_name, spent: Number(r.spent) }))
 }
 
+/** Was this player seen inside in the last INSIDE_SECONDS (so they still hold their group spot)? */
+async function stillInside(client: PoolClient, characterId: string, venueId: string, night: number) {
+  const found = await client.query(
+    `SELECT 1 FROM venue_visits
+     WHERE character_id = $1 AND venue_id = $2 AND night_key = $3 AND last_seen_at > NOW() - make_interval(secs => $4)`,
+    [characterId, venueId, night, INSIDE_SECONDS],
+  )
+  return (found.rowCount ?? 0) > 0
+}
+
 /** Lowest-numbered crowd group that still has room among people inside right now. */
 async function pickGroup(client: PoolClient, venueId: string, night: number) {
   const groups = await client.query<{ group_no: number; n: string }>(
@@ -186,7 +205,8 @@ async function pickGroup(client: PoolClient, venueId: string, night: number) {
     [venueId, night, INSIDE_SECONDS],
   )
   const used = new Map(groups.rows.map((g) => [g.group_no, Number(g.n)]))
-  for (let g = 1; ; g++) if ((used.get(g) ?? 0) < GROUP_SIZE) return g
+  const size = groupSizeOf(venueId)
+  for (let g = 1; ; g++) if ((used.get(g) ?? 0) < size) return g
 }
 
 export async function getVenue(userId: string, venueId: string) {
@@ -239,11 +259,16 @@ export async function enterVenue(userId: string, venueId: string, key: string) {
         await client.query(`SELECT pg_advisory_xact_lock(hashtext($1))`, [`venue:${venueId}:${night}`])
         const visit = await visitOf(client, characterId, venueId, night)
         if (visit) {
+          // Small-group venues: someone who left may come back to a full group, so seat them again
+          let group = visit.group_no
+          if (venue.groupSize && !(await stillInside(client, characterId, venueId, night))) {
+            group = await pickGroup(client, venueId, night)
+          }
           await client.query(
-            `UPDATE venue_visits SET last_seen_at = NOW() WHERE character_id = $1 AND venue_id = $2 AND night_key = $3`,
-            [characterId, venueId, night],
+            `UPDATE venue_visits SET last_seen_at = NOW(), group_no = $4 WHERE character_id = $1 AND venue_id = $2 AND night_key = $3`,
+            [characterId, venueId, night, group],
           )
-          return { status: 200, body: { ok: true, message: `Welcome back to ${venue.name}.`, group: visit.group_no } }
+          return { status: 200, body: { ok: true, message: `Welcome back to ${venue.name}.`, group } }
         }
         if ((await insideCount(venueId, night)) >= venue.capacity) {
           return bad(409, 'FULL', `${venue.name} is packed right now. Try again in a bit.`)

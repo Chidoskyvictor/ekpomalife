@@ -8,7 +8,8 @@
   bottom: 0;
   z-index: calc(var(--z-hud) + 4);
   display: flex;
-  max-height: min(62dvh, 560px);
+  /* Opens to fit everything (only scrolls if it would reach the top bar) */
+  max-height: calc(100dvh - 96px - env(safe-area-inset-top));
   flex-direction: column;
   padding: 6px max(16px, env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
   border: 1px solid rgba(255, 255, 255, 0.7);
@@ -37,7 +38,7 @@
     right: auto;
     bottom: 0;
     width: min(680px, calc(100vw - 48px));
-    max-height: min(58dvh, 560px);
+    max-height: min(calc(100dvh - 96px), 760px);
     margin-left: calc(min(680px, calc(100vw - 48px)) / -2);
     padding: 6px 24px calc(14px + env(safe-area-inset-bottom));
     border-bottom: 0;
