@@ -66,7 +66,7 @@ export function DriveTrip({ trip }: { trip: Trip }) {
   return (
     <div className={styles.drive} data-done={trip.done} role="status" aria-live="polite">
       <div className={styles.canvas} aria-hidden="true">
-        <DriveCanvas mode={mode} view={view} route={trip.route} plannedMs={plannedMs} />
+        <DriveCanvas mode={mode} view={view} route={trip.route} plannedMs={plannedMs} appearance={trip.appearance} />
       </div>
 
       <div className={styles.top}>

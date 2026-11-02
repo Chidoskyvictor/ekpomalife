@@ -298,6 +298,25 @@ export function mockGameAction(input: {
         traits.includes('social-butterfly') ? 'Butterfly mode. Everybody know you.' : 'Chill complete.',
       )
     }
+    case 'fees-receipt': {
+      bumpTime(10)
+      if (campus.feesPaid <= 0) return fail('No fees paid yet. Pay first, then print your receipt.')
+      const balance = feesBalance(campus)
+      return snapshot(
+        `Receipt printed: ₦${campus.feesPaid.toLocaleString()} paid${balance > 0 ? `, ₦${balance.toLocaleString()} balance` : ', fees cleared'}.`,
+      )
+    }
+    case 'change-course': {
+      const err = spend(2_000)
+      if (err) return fail(err)
+      bumpTime(45)
+      return snapshot('Change of course form submitted. Check back for approval.')
+    }
+    case 'see-vc': {
+      bumpTime(30)
+      bumpNeed('social', 4)
+      return snapshot('The VC heard you out. "Face your books," he said.')
+    }
     case 'meet-hod': {
       bumpTime(15)
       bumpNeed('social', 5)

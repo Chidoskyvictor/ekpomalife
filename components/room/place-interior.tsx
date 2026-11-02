@@ -6,7 +6,7 @@ import { BuildingPanel } from '@/components/buildings/building-panel'
 import { HallScreen } from '@/components/hall/hall-screen'
 import { useGame } from '@/hooks/use-game'
 import { BUILDINGS } from '@/lib/game/buildings'
-import { hallFor } from '@/lib/game/halls'
+import { hallFor, officeFor } from '@/lib/game/halls'
 import { getPlace } from '@/lib/game/places'
 import { markSceneReady, useTrip } from '@/lib/game/trip'
 import { pushNavigation } from '@/lib/navigation/safe-nav'
@@ -30,11 +30,11 @@ const EMOJI: Record<string, string> = {
  */
 export function PlaceInterior({ placeId }: { placeId: string }) {
   // Lecture halls and faculties have a real 3D hall with classmates in it
-  if (hallFor(placeId)) return <HallInterior placeId={placeId} />
+  if (hallFor(placeId) || officeFor(placeId)) return <HallInterior placeId={placeId} />
   return <StandInInterior placeId={placeId} />
 }
 
-/** The 3D lecture hall; still tells the trip screen when it's up. */
+/** The 3D lecture hall or office; still tells the trip screen when it's up. */
 function HallInterior({ placeId }: { placeId: string }) {
   const trip = useTrip()
   const wrongPlace = trip?.scene === 'interior' && trip.target !== placeId

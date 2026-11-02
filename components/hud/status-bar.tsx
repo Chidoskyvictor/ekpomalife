@@ -1,5 +1,6 @@
 'use client'
 
+import { SOUND_EVENT } from '@/lib/audio/music'
 import NumberFlow from '@number-flow/react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { Plus, Tag, Volume2, VolumeX } from 'lucide-react'
@@ -112,6 +113,7 @@ export function StatusBar({
       } catch {
         /* ignore */
       }
+      window.dispatchEvent(new Event(SOUND_EVENT))
       return next
     })
   }

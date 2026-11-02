@@ -20,6 +20,7 @@ const BY_ID: Record<string, string> = {
   'anonymous-zone': '🕶️',
   denco: '🏢',
   'playchill-climax': '⚽',
+  home: '🏠',
   'animal-house-1': '🐄',
   'animal-house-2': '🐐',
   'anatomy-secretariat': '🫀',

@@ -16,7 +16,7 @@ import { pushNavigation } from '@/lib/navigation/safe-nav'
  * fare), then lands you there. Shared by "Where to?" and the place sheet on the map.
  */
 export function useGoTo() {
-  const { select, refreshServer, notifyToast } = useGame()
+  const { state, select, refreshServer, notifyToast } = useGame()
   const router = useRouter()
   const pathname = usePathname()
   const trip = useTrip()
@@ -46,6 +46,7 @@ export function useGoTo() {
         scene: option.home ? 'home' : interior ? 'interior' : 'map',
         target: option.id,
         route: fromCampus && toCampus ? 'inside' : toCampus ? 'in' : fromCampus ? 'out' : 'road',
+        appearance: state?.appearance,
       })
       // One key per intent, reused if the player retries the same ride
       const intent = `${option.id}:${how}`
@@ -79,7 +80,7 @@ export function useGoTo() {
       select(option.id)
       if (pathname !== '/') pushNavigation(router, '/', pathname)
     },
-    [trip, notifyToast, refreshServer, pathname, router, select],
+    [trip, notifyToast, refreshServer, pathname, router, select, state?.appearance],
   )
 
   return { go, travelling: Boolean(trip) }

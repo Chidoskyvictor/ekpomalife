@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { setMusic, SOUND_EVENT, useMusicSettings } from '@/lib/audio/music'
 import { ASSET_CREDITS, formatCredit } from '@/lib/game/asset-credits'
 import { hapticTap } from './haptic'
 import { HudDrawer } from './hud-drawer'
@@ -16,6 +17,7 @@ export function SettingsSheet({
   onLogOut: () => void
 }) {
   const [muted, setMuted] = useState(false)
+  const music = useMusicSettings()
 
   useEffect(() => {
     if (!open) return
@@ -35,6 +37,7 @@ export function SettingsSheet({
       } catch {
         /* ignore */
       }
+      window.dispatchEvent(new Event(SOUND_EVENT))
       return next
     })
   }
@@ -46,6 +49,32 @@ export function SettingsSheet({
           <span>Sound</span>
           <span className={styles.secondary}>{muted ? 'Off' : 'On'}</span>
         </button>
+        <button
+          type="button"
+          className={styles.settingsAction}
+          onClick={() => {
+            hapticTap()
+            setMusic({ on: !music.on })
+          }}
+        >
+          <span>Music</span>
+          <span className={styles.secondary}>{music.on && !muted ? 'On' : 'Off'}</span>
+        </button>
+        {music.on && !muted ? (
+          <label className={styles.settingsHint} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span>Volume</span>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={5}
+              value={Math.round(music.volume * 100)}
+              onChange={(event) => setMusic({ volume: Number(event.target.value) / 100 })}
+              aria-label="Music volume"
+              style={{ flex: 1, minHeight: 44, accentColor: '#2f7cf6' }}
+            />
+          </label>
+        ) : null}
         <div>
           <p className={styles.settingsAction} style={{ cursor: 'default' }}>
             Help

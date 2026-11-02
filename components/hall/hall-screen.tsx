@@ -8,6 +8,7 @@ import type { Object3D } from 'three'
 import { BuildingPanel, type BuildingActionRunner } from '@/components/buildings/building-panel'
 import { ClubPeers } from '@/components/club/club-peers'
 import { ClubPeople } from '@/components/club/club-people'
+import { JobsPanel } from '@/components/hud/jobs-panel'
 import { PlaceAction, PlaceActions, PlaceSheet, type PlaceTag } from '@/components/hud/place-sheet'
 import type { PlayerMove, RoomPlayerControl } from '@/components/room/room-player'
 import { useGame } from '@/hooks/use-game'
@@ -15,8 +16,8 @@ import { endActivity, startActivity } from '@/lib/game/activity'
 import { BUILDINGS, isBuildingOpen, type BuildingActionDef } from '@/lib/game/buildings'
 import { emptyCampus } from '@/lib/game/campus'
 import { useClubLive } from '@/lib/game/club-live'
-import { hallFor } from '@/lib/game/halls'
-import { HALL_SEATS, LECTURE_HALL, seatKey } from '@/lib/game/room-layouts'
+import { hallFor, officeFor } from '@/lib/game/halls'
+import { HALL_SEATS, LECTURE_HALL, OFFICE, seatKey, type HallSeat, type RoomLayout } from '@/lib/game/room-layouts'
 import { enterVenue, fetchVenue, leaveVenue, venueHeartbeat, type VenueView } from '@/lib/game/venues-api'
 import { pushNavigation } from '@/lib/navigation/safe-nav'
 import styles from './hall.module.css'
@@ -44,8 +45,19 @@ function cardInfo(action: BuildingActionDef): { price: string; tags: PlaceTag[] 
   return { price, tags }
 }
 
+type Space = { name: string; paint?: string; layout: RoomLayout; seats: HallSeat[]; icon: string; office: boolean }
+
+/** The 3D room for a place: the shared lecture hall, or the shared office (Admin Block keeps its navy). */
+function spaceFor(id: string): Space | null {
+  const hall = hallFor(id)
+  if (hall) return { name: hall.name, paint: hall.color, layout: LECTURE_HALL, seats: HALL_SEATS, icon: '🎓', office: false }
+  const office = officeFor(id)
+  if (office) return { name: office.name, paint: office.color ?? undefined, layout: OFFICE, seats: [], icon: '🏛️', office: true }
+  return null
+}
+
 /**
- * A lecture hall or faculty. Every hall uses the same 3D room painted in its own colour.
+ * A lecture hall, faculty or office. Every hall uses the same 3D room painted in its own colour.
  * Walking in is free; you join a crowd group (like the club) so you see the classmates in
  * your group walk in and take seats. "Take a seat" walks you to the nearest free chair.
  */
@@ -54,12 +66,13 @@ export function HallScreen({ hallId }: { hallId: string }) {
   const { state, select, notifyToast } = useGame()
   const building = BUILDINGS[hallId] ?? null
   const runAction = useRef<BuildingActionRunner | null>(null)
-  const hall = hallFor(hallId)
+  const hall = spaceFor(hallId)
+  const seats = hall?.seats ?? []
   const control = useMemo<RoomPlayerControl>(() => ({}), [])
   const [view, setView] = useState<VenueView | null>(null)
   const [expanded, setExpanded] = useState(true)
   const [peopleOpen, setPeopleOpen] = useState(false)
-  const me = useRef<{ x: number; z: number }>({ x: LECTURE_HALL.start[0], z: LECTURE_HALL.start[1] })
+  const me = useRef<{ x: number; z: number }>({ x: hall?.layout.start[0] ?? 0, z: hall?.layout.start[1] ?? 0 })
 
   const load = useCallback(async () => {
     const res = await fetchVenue(hallId)
@@ -119,7 +132,7 @@ export function HallScreen({ hallId }: { hallId: string }) {
       .filter((s): s is NonNullable<typeof s> => Boolean(s))
     const near = (x: number, z: number) => taken.some((t) => Math.hypot(t.x - x, t.z - z) < 0.5)
     const { x, z } = me.current
-    return [...HALL_SEATS]
+    return [...seats]
       .filter((s) => !near(s.x, s.z))
       .sort((a, b) => Math.hypot(a.x - x, a.z - z) - Math.hypot(b.x - x, b.z - z))[0]
   }
@@ -127,7 +140,7 @@ export function HallScreen({ hallId }: { hallId: string }) {
   const sit = (what: { emoji: string; title: string; seconds: number } = { emoji: '🪑', title: 'Seated', seconds: SIT_SECONDS }) => {
     const seat = freeSeat()
     if (!seat) {
-      notifyToast('Every seat is taken. Stand at the back for now.', false)
+      notifyToast(hall?.office ? 'Every seat is taken.' : 'Every seat is taken. Stand at the back for now.', false)
       return
     }
     setExpanded(false)
@@ -136,7 +149,7 @@ export function HallScreen({ hallId }: { hallId: string }) {
       { style: 'sit', seconds: what.seconds },
       {
         onStart: () =>
-          startActivity({ emoji: what.emoji, title: `${what.title} · row ${seat.row}`, seconds: what.seconds, onCancel: () => control.stop?.() }),
+          startActivity({ emoji: what.emoji, title: `${what.title} · ${seat.label ?? `row ${seat.row}`}`, seconds: what.seconds, onCancel: () => control.stop?.() }),
         onDone: endActivity,
         onAbort: endActivity,
       },
@@ -165,7 +178,7 @@ export function HallScreen({ hallId }: { hallId: string }) {
   const run = (action: BuildingActionDef) => {
     setExpanded(false)
     runAction.current?.(action)
-    if (SEATED.has(action.id)) {
+    if (SEATED.has(action.id) && !hall.office) {
       const minutes = action.chips.find((c) => c.kind === 'time')
       const seconds = minutes && minutes.kind === 'time' ? Math.max(20, Math.round(minutes.minutes * 6)) : SIT_SECONDS
       sit({ emoji: action.emoji, title: action.title, seconds })
@@ -177,14 +190,14 @@ export function HallScreen({ hallId }: { hallId: string }) {
     ? 'Loading…'
     : !view.venue.open
       ? `Closed · open ${view.venue.hours}`
-      : `${count.toLocaleString()} in class · ${view.venue.hours}`
+      : `${count.toLocaleString()} ${hall.office ? 'inside' : 'in class'} · ${view.venue.hours}`
 
   return (
-    <div className={styles.root} aria-label={hall.name}>
+    <div className={hall.office ? `${styles.root} ${styles.office}` : styles.root} aria-label={hall.name}>
       <div className={styles.stage}>
         <HomeCanvas
-          layout={LECTURE_HALL}
-          paint={hall.color}
+          layout={hall.layout}
+          paint={hall.paint}
           appearance={state?.appearance}
           control={control}
           effects={effects}
@@ -193,7 +206,7 @@ export function HallScreen({ hallId }: { hallId: string }) {
       </div>
 
       <PlaceSheet
-        icon="🎓"
+        icon={hall.icon}
         title={hall.name}
         subtitle={subtitle}
         buttons={[
@@ -206,7 +219,9 @@ export function HallScreen({ hallId }: { hallId: string }) {
         onExpandedChange={setExpanded}
       >
         <PlaceActions>
-          <PlaceAction emoji="🪑" title="Take a seat" price="Free" disabled={!inside} onClick={() => sit()} />
+          {hall.office ? null : (
+            <PlaceAction emoji="🪑" title="Take a seat" price="Free" disabled={!inside} onClick={() => sit()} />
+          )}
           {(building?.actions ?? []).map((action) => {
             const { price, tags } = cardInfo(action)
             const locked = lockOf(action)
@@ -226,9 +241,10 @@ export function HallScreen({ hallId }: { hallId: string }) {
         </PlaceActions>
         {!inside && view && !view.venue.open ? (
           <p className={styles.note}>
-            <BookOpen size={14} aria-hidden="true" /> The hall is locked. Classes run {view.venue.hours}.
+            <BookOpen size={14} aria-hidden="true" /> {hall.office ? `The office is closed. Open ${view.venue.hours}.` : `The hall is locked. Classes run ${view.venue.hours}.`}
           </p>
         ) : null}
+        {isHere && building?.showJobs ? <JobsPanel placeId={hallId} /> : null}
       </PlaceSheet>
 
       {/* Runs the cards' actions (and their quiz / results screens); its own list stays hidden */}

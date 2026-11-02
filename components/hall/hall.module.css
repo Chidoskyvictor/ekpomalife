@@ -23,3 +23,8 @@
   color: #6e6e73;
   font-size: 14px;
 }
+
+/* Office: night-blue backdrop like the office scene */
+.office {
+  background: linear-gradient(180deg, #0b1226 0%, #101a33 60%, #141a28 100%);
+}

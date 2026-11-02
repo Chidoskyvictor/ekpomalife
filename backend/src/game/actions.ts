@@ -162,6 +162,6 @@ export function actionForNeed(need: keyof Needs): { actionId: GameActionId; plac
     case 'social':
       return { actionId: 'hangout', placeHint: 'students-centre' }
     case 'study':
-      return { actionId: 'study', placeHint: 'admin-block' }
+      return { actionId: 'study', placeHint: 'education' }
   }
 }

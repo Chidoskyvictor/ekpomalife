@@ -105,6 +105,9 @@ const SERVER_ACTIONS = new Set<string>([
   'sports-train',
   'centre-hangout',
   'meet-hod',
+  'change-course',
+  'see-vc',
+  'fees-receipt',
   'faculty-notices',
   'shuttle-travel',
 ])

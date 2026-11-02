@@ -3,6 +3,7 @@ import type { FurnitureId } from './room-furniture'
 import type { LodgingId } from './room-types'
 import ROOM_SHIFTS from './room-shifts.json'
 import hallSeats from './hall-seats.json'
+import officeData from './office-data.json'
 
 /*
  * The three homes the room screen can show. All numbers are in each GLB's own
@@ -12,7 +13,7 @@ import hallSeats from './hall-seats.json'
  * using room-shifts.json (where the build moved each piece of furniture).
  */
 
-export type RoomLayoutId = 'single-room' | 'selfcon' | 'one-bedroom' | 'hostel' | 'club-sazza' | 'lecture-hall' | 'street'
+export type RoomLayoutId = 'single-room' | 'selfcon' | 'one-bedroom' | 'hostel' | 'club-sazza' | 'lecture-hall' | 'office' | 'street'
 
 /** [minX, minZ, maxX, maxZ] */
 export type Rect = [number, number, number, number]
@@ -329,7 +330,7 @@ function grow(small: SmallLayout, { k, shifts }: Grown): RoomLayout {
   }
 }
 
-export const ROOM_LAYOUTS: Record<Exclude<RoomLayoutId, 'street' | 'lecture-hall'>, RoomLayout> = {
+export const ROOM_LAYOUTS: Record<Exclude<RoomLayoutId, 'street' | 'lecture-hall' | 'office'>, RoomLayout> = {
   'single-room': SINGLE_ROOM,
   selfcon: grow(SELFCON_SMALL, ROOM_SHIFTS.selfcon),
   'one-bedroom': grow(ONE_BEDROOM_SMALL, ROOM_SHIFTS['one-bedroom']),
@@ -341,7 +342,7 @@ export const ROOM_LAYOUTS: Record<Exclude<RoomLayoutId, 'street' | 'lecture-hall
 export const CLUB_LAYOUTS: Record<string, RoomLayout> = { sazza: CLUB_SAZZA }
 
 /** One chair in the lecture hall (blender/build-lecture-hall.py → hall-seats.json). */
-export type HallSeat = { id: string; x: number; z: number; row: number; heading: number }
+export type HallSeat = { id: string; x: number; z: number; row: number; heading: number; front?: boolean; label?: string }
 export const HALL_SEATS: HallSeat[] = hallSeats.seats
 export const seatKey = (id: string): SpotKey => `seat:${id}`
 
@@ -379,6 +380,26 @@ export const LECTURE_HALL: RoomLayout = {
   view: 'corner',
   cameraScale: 2.2,
   speed: 2.6,
+}
+
+/**
+ * The shared office (Admin Block, and offices like BAMSSA): wood floor, dark left wall with the
+ * door, glass wall at the back (−z), desk pods, a lounge, a meeting table and a kitchen counter.
+ * Unpainted it keeps the original navy walls; other offices paint 'Wall.001' / 'Wall'.
+ */
+export const OFFICE: RoomLayout = {
+  id: 'office',
+  label: 'Office',
+  glb: '/models/office.glb?v=1',
+  floors: [[-5.75, -4.3, 5.85, 4.35]],
+  blocks: officeData.blocks as [number, number, number, number][],
+  start: [3.2, 3.4],
+  spots: {}, // offices have no sitting; the chairs are just furniture
+  tapBoxes: {},
+  host: { position: [0, 0, 0], rotation: 0 },
+  view: 'corner',
+  cameraScale: 1.75,
+  speed: 2.4,
 }
 
 /** Which home each lodging gets (chosen at sign-up; the hostel is the campus dorm). */

@@ -250,6 +250,15 @@ export function Hud() {
         <MeCard state={state} onOpen={() => openProfile('profile')} onNeeds={() => openProfile('needs')} raised={placeSheet} />
       ) : null}
 
+      {/* Map: your house — flies the camera there and opens its sheet (address + how to get there) */}
+      {state?.lodgingId && pathname === '/' && !selectedId && !placeSheet && !phoneOpen && !buyOpen ? (
+        <div className={travelStyles.corner}>
+          <button type="button" className={travelStyles.cornerBtn} onClick={() => select('home')} aria-label="Show my home on the map">
+            🏠 Home
+          </button>
+        </div>
+      ) : null}
+
       {/* Map: travel anywhere on campus (hidden while a place's sheet is up) */}
       {STREET_AND_TRAVEL && state && pathname === '/' && !selectedId && !placeSheet && !phoneOpen && !buyOpen ? (
         <div className={travelStyles.corner}>

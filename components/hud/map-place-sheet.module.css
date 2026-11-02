@@ -319,3 +319,14 @@
     animation: none;
   }
 }
+
+/* Your house: the address line under the about text */
+.address {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 12px;
+  color: #3a3a3c;
+  font-size: 15px;
+  font-weight: 600;
+}

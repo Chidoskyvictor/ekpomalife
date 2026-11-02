@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react'
+import type { Appearance } from './look'
 import type { TripMode, Uv } from './travel-api'
 
 /*
@@ -36,6 +37,8 @@ export type Trip = {
   route: TripRoute
   /** Shown as the looping highway drive (paid rides on devices that can take it) instead of the map card. */
   drive: boolean
+  /** The rider's look, so their own avatar sits in the keke / on the okada. */
+  appearance?: Appearance
 }
 
 const MIN_MS: Record<TripMode, number> = { trek: 1600, keke: 1200, okada: 900 }
@@ -67,7 +70,7 @@ function patch(next: Partial<Trip>) {
   emit()
 }
 
-export function startTrip(input: Pick<Trip, 'label' | 'mode' | 'from' | 'to' | 'scene' | 'target'> & { route?: TripRoute }) {
+export function startTrip(input: Pick<Trip, 'label' | 'mode' | 'from' | 'to' | 'scene' | 'target' | 'appearance'> & { route?: TripRoute }) {
   const route = input.route ?? 'road'
   const drive = canDrive(input.mode, route)
   trip = {

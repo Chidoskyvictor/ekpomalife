@@ -417,6 +417,34 @@ function AauGateZone({ zone }: { zone: MapZone }) {
   )
 }
 
+/**
+ * Your house: the blue-roof hostel house (same model as the residential slab) on a pad. Drawn as a
+ * plain copy (not baked), only for signed-in players who have a home.
+ */
+function HomeHouseZone({ zone }: { zone: MapZone }) {
+  const gl = useThree((state) => state.gl)
+  const { scene } = useGLTF(HOSTEL_URL)
+  useLayoutEffect(() => {
+    applyGlbTextureAnisotropy(scene, gl)
+  }, [scene, gl])
+  const house = useMemo(() => {
+    const root = scene.clone(true)
+    centerOnGround(root)
+    return root
+  }, [scene])
+  const [fw, fd] = zone.footprint
+  const meshSize = useMemo(() => saneSize(house), [house])
+  const scale = fitToPad(meshSize, fw, fd, 0.88)
+  const labelH = roofStickerY(house, scale)
+  return (
+    <group position={[zone.position[0], 0, zone.position[1]]} rotation={[0, zone.rotation, 0]}>
+      <Pad w={fw} d={fd} />
+      <primitive object={house} position={[0, 0.14, 0]} scale={scale} />
+      <ZoneStickerAnchor zoneId={zone.id} label={zone.label} height={labelH} />
+    </group>
+  )
+}
+
 function HostelZone({ zone }: { zone: MapZone }) {
   const { modelY, scaleMul } = useZoneExtras()
   const gl = useThree((state) => state.gl)
@@ -993,6 +1021,7 @@ function ZoneMesh({ zone }: { zone: MapZone }) {
   const customUrl = CUSTOM_GLB[zone.model]
   if (customUrl) return <CustomGlbZone zone={zone} url={customUrl} />
   if (zone.model === 'admin-block' || zone.id === 'admin-block') return <AdminZone zone={zone} />
+  if (zone.id === 'home') return <HomeHouseZone zone={zone} />
   if (zone.model === 'hostel-block') return <HostelZone zone={zone} />
   if (zone.model === 'parking-lot') return <ParkingZone zone={zone} />
   if (zone.model === 'football-stadium') return <StadiumZone zone={zone} />
@@ -1023,7 +1052,10 @@ function ZoneRoot({ zone }: { zone: MapZone }) {
 }
 
 export function WorldZones() {
-  const zones = useMemo(() => MAP_ZONES, [])
+  const { state, isGuest } = useGame()
+  // Your house only shows to signed-in players who have one (never on the guest / welcome map)
+  const hasHome = !isGuest && Boolean(state?.lodgingId)
+  const zones = useMemo(() => MAP_ZONES.filter((zone) => !zone.homeOnly || hasHome), [hasHome])
   return (
     <ZoneStickerRegistry>
       <group>

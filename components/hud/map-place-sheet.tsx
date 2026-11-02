@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { AuthLinks } from '@/components/hud/auth-links'
 import { useGoTo } from '@/components/travel/use-go'
 import { useGame } from '@/hooks/use-game'
+import { homeAddress } from '@/lib/game/home-place'
 import { ACTION_LABELS } from '@/lib/game/places'
 import { isComingSoon, placeFor, placeInfo, placeLink } from '@/lib/game/place-info'
 import { fareOf, fetchTravelOptions, type TravelOptions, type TripMode } from '@/lib/game/travel-api'
@@ -122,18 +123,21 @@ export function MapPlaceSheet({ hidden = false }: { hidden?: boolean }) {
   }
 
   const minutes = (id: TripMode) => (option ? option.minutes[id] : null)
+  // Your own house: show your address, no share link, and "Go home"
+  const isHome = place.id === 'home'
+  const home = isHome ? homeAddress(state?.lodgingId) : null
 
   return (
     <section className={styles.sheet} aria-label={`${place.label} details`}>
       <div className={styles.handle} aria-hidden="true" />
       <header className={styles.head}>
         <span className={styles.icon} aria-hidden="true">
-          {TYPE_EMOJI[place.type] ?? '📍'}
+          {isHome ? '🏠' : (TYPE_EMOJI[place.type] ?? '📍')}
         </span>
         <div className={styles.titles}>
           <h2>{place.label}</h2>
           <p>
-            {info?.area ?? 'Ekpoma'}
+            {home ? `${home.kind} · ${home.address}` : (info?.area ?? 'Ekpoma')}
             {hours ? (
               <span className={`${styles.pill} ${open ? styles.pillOpen : ''}`}>
                 {open ? 'Open' : `Opens ${formatHour(hours.open)}`}
@@ -148,12 +152,19 @@ export function MapPlaceSheet({ hidden = false }: { hidden?: boolean }) {
 
       <div className={styles.body} ref={body}>
         {info ? <p className={styles.about}>{info.about}</p> : null}
-        <button type="button" className={styles.share} onClick={() => void share()}>
-          <Link2 size={16} aria-hidden="true" />
-          Share a link to {place.label}
-        </button>
+        {home ? (
+          <p className={styles.address}>
+            <span aria-hidden="true">📍</span> {home.address}
+          </p>
+        ) : (
+          <button type="button" className={styles.share} onClick={() => void share()}>
+            <Link2 size={16} aria-hidden="true" />
+            Share a link to {place.label}
+          </button>
+        )}
 
-        {here && place.actions.length > 0 ? (
+        {/* Your house: just the address and how to get there */}
+        {isHome ? null : here && place.actions.length > 0 ? (
           <>
             <h3 className={styles.sub}>You are here · what you can do</h3>
             <div className={styles.todo}>
@@ -228,7 +239,7 @@ export function MapPlaceSheet({ hidden = false }: { hidden?: boolean }) {
             disabled={!options || !option || travelling || short}
             onClick={() => options && option && void go(options, option, mode, () => select(null))}
           >
-            {short ? `Need ${naira(fare)}` : `Go · ${fare ? naira(fare) : 'Free'}`}
+            {short ? `Need ${naira(fare)}` : `${isHome ? 'Go home' : 'Go'} · ${fare ? naira(fare) : 'Free'}`}
           </button>
         </footer>
       ) : null}

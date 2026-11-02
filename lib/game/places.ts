@@ -33,6 +33,9 @@ export type GameActionId =
   | 'sports-train'
   | 'centre-hangout'
   | 'meet-hod'
+  | 'change-course'
+  | 'see-vc'
+  | 'fees-receipt'
   | 'faculty-notices'
   | 'shuttle-travel'
 
@@ -69,11 +72,20 @@ export const ACTION_LABELS: Partial<Record<GameActionId, { label: string; hint: 
 
 export const PLACES: Place[] = [
   {
+    id: 'home',
+    label: 'My Home',
+    zoneId: 'home',
+    type: 'hostel',
+    actions: ['sleep', 'shower', 'study'],
+    openHours: null,
+  },
+  {
     id: 'admin-block',
     label: 'Admin Block',
     zoneId: 'admin-block',
     type: 'campus',
-    actions: ['study', 'hangout', 'work-placeholder'],
+    // Admin work only (fees, course change, see the VC…): no studying or hanging out here
+    actions: ['work-placeholder'],
     openHours: { open: 8, close: 17 },
   },
   {

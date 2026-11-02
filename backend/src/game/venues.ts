@@ -89,6 +89,9 @@ const HALLS: [string, string][] = [
   ['life-science', 'Life Science'],
   ['management-science', 'Management Science'],
   ['engineering', 'Engineering'],
+  // Offices (same free walk-in crowd as the halls)
+  ['admin-block', 'Admin Block'],
+  ['innovation-hub', 'Innovation Hub'],
 ]
 for (const [id, name] of HALLS) {
   VENUES[id] = { id, kind: 'hall', name, open: 7, close: 21, entry: 0, capacity: 1000, items: [] }

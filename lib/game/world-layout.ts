@@ -42,6 +42,8 @@ export type MapZone = {
   open?: OpenZoneKind
   /** Ground-text colour for `label` zones (default: soft white). */
   labelColor?: string
+  /** Only drawn for signed-in players who have a home (the player's own house). */
+  homeOnly?: boolean
 }
 
 export type OpenZoneKind = 'park' | 'plot' | 'plaza' | 'pitch' | 'construction'
@@ -492,7 +494,7 @@ const SOUTH_ZONES: MapZone[] = [
   southZone('billboard-9', 'Billboard 9', 0.5236, 0.1633, 'billboard1', [7, 3], { rotation: -3.1416, scaleMul: 1.9 }),
   southZone('billboard-10', 'Billboard 10', 0.3031, 0.3532, 'billboard-pack', [7, 3], { scaleMul: 1.9 }),
   southZone('billboard-11', 'Billboard 11', 0.7943, 0.1101, 'billboard-pack', [7, 3], { scaleMul: 1.9 }),
-  southZone('billboard-12', 'Billboard 12', 0.8904, 0.7225, 'billboard1', [7, 3], { rotation: -3.1416, scaleMul: 1.9 }),
+  southZone('billboard-12', 'Billboard 12', 0.77, 0.9, 'billboard1', [7, 3], { rotation: -3.1416, scaleMul: 1.9 }),
   // Restaurant. Hand-made low-poly GLB (public/models/wise.glb)
   southZone('wise-gourmet', 'Wise Gourmet', 0.6375, 0.14, 'wise', [12, 9], { rotation: 0 }),
 
@@ -518,6 +520,8 @@ const SOUTH_ZONES: MapZone[] = [
   }),
   // Pay-to-play football pitch (open plot with markings and goals)
   southZone('playchill-climax', 'Playchill Climax', 0.72, 0.66, 'open', [26, 16], { open: 'pitch' }),
+  // Your house (the plot below Spot Rite): only signed-in players with a home see it (WorldZones hides it otherwise)
+  { ...southZone('home', 'My Home', 0.88, 0.72, 'hostel-block', [11.5, 9], { scale: 5.1, rotation: 0 }), homeOnly: true },
 ]
 
 /** Name painted near the south edge of the empty Market Hub slab. */

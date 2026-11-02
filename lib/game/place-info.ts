@@ -16,12 +16,22 @@ const CAMPUS = 'AAU Campus'
 const TOWN = 'Ekpoma town'
 
 export const PLACE_INFO: Record<string, PlaceInfo> = {
+  home: {
+    area: TOWN,
+    about: 'Your house. Your room is inside, just how you left it.',
+    doing: [
+      { emoji: '😴', text: 'Sleep' },
+      { emoji: '🚿', text: 'Shower' },
+      { emoji: '📚', text: 'Study in peace' },
+    ],
+  },
   'admin-block': {
     area: CAMPUS,
     about: 'The seat of the school. Fees, forms and every "go and come back tomorrow" start here.',
     doing: [
-      { emoji: '📚', text: 'Study in the quiet corridor' },
-      { emoji: '🤝', text: 'Hang out with other students' },
+      { emoji: '🧾', text: 'Pay fees and print your receipt' },
+      { emoji: '🔁', text: 'Change your course' },
+      { emoji: '🎩', text: 'See the VC' },
       { emoji: '💼', text: 'Pick up a side hustle' },
     ],
   },

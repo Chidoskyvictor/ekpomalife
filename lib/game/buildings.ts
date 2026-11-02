@@ -184,6 +184,33 @@ export const BUILDINGS: Record<string, BuildingDef> = {
         lock: ({ campus }) => (feesBalance(campus) <= 0 ? 'Fees already cleared. Nice!' : null),
       },
       {
+        id: 'fees-receipt',
+        emoji: '🧾',
+        title: 'Print fees receipt',
+        subtitle: 'Proof of what you have paid this session.',
+        chips: [{ kind: 'time', minutes: 10 }],
+        buttonLabel: 'Print',
+      },
+      {
+        id: 'change-course',
+        emoji: '🔁',
+        title: 'Change of course',
+        subtitle: 'Fill the form to move to another department.',
+        chips: [
+          { kind: 'time', minutes: 45 },
+          { kind: 'cash', amount: -2_000 },
+        ],
+        buttonLabel: 'Apply',
+      },
+      {
+        id: 'see-vc',
+        emoji: '🎩',
+        title: 'See the VC',
+        subtitle: 'Book a few minutes with the Vice-Chancellor.',
+        chips: [{ kind: 'time', minutes: 30 }],
+        buttonLabel: 'Go in',
+      },
+      {
         id: 'course-registration',
         emoji: '📋',
         title: 'Course registration',

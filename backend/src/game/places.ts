@@ -27,11 +27,20 @@ export type Place = {
  */
 export const PLACES: Place[] = [
   {
+    id: 'home',
+    label: 'My Home',
+    zoneId: 'home',
+    type: 'hostel',
+    actions: ['sleep', 'shower', 'study'],
+    openHours: null,
+  },
+  {
     id: 'admin-block',
     label: 'Admin Block',
     zoneId: 'admin-block',
     type: 'campus',
-    actions: ['study', 'hangout', 'work-placeholder'],
+    // Admin work only (fees, course change, see the VC…): no studying or hanging out here
+    actions: ['work-placeholder'],
     openHours: { open: 8, close: 17 },
   },
   {
@@ -501,6 +510,8 @@ export const PLACE_UV: Record<string, { u: number; v: number }> = {
   'anonymous-zone': { u: 0.3, v: 1.7891 },
   'denco': { u: 0.4, v: 1.7891 },
   'playchill-climax': { u: 0.5143, v: 1.6796 },
+  // Your house, below Spot Rite (south slab u 0.88, v 0.72)
+  home: { u: 0.6286, v: 1.7266 },
 }
 
 /** Zone-distance units between two places (min 1 when distinct). */
@@ -514,10 +525,7 @@ export function hopDistance(fromPlaceId: string, toPlaceId: string): number | nu
 }
 
 /** Lodging start → place id. */
-export function startPlaceForLodging(lodgingId: string | null | undefined): string {
-  if (lodgingId === 'hostel-poultry') return 'school-hostels-1'
-  if (lodgingId === 'single-poultry') return 'off-campus-hostels'
-  if (lodgingId === 'selfcon-g2') return 'college-of-medicine'
-  if (lodgingId === 'onebed-ojo') return 'off-campus-hostels'
-  return 'admin-block'
+export function startPlaceForLodging(_lodgingId: string | null | undefined): string {
+  // Every player's home is their own house on the map ('home'); the lodging decides the room inside
+  return 'home'
 }

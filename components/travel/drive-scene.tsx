@@ -29,6 +29,8 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import type { TripRoute } from '@/lib/game/trip'
 import { mulberry32 } from '@/lib/game/world-layout'
 import { bakeStaticParts, type StaticPart } from '@/components/world/bake-static'
+import { CharacterFigure, type FigurePose } from '@/components/look/character-figure'
+import { normalizeAppearance, type Appearance } from '@/lib/game/look'
 
 /*
  * The looping highway drive. highway.glb (60 long, two carriageways split by a median wall) is
@@ -617,10 +619,77 @@ type Car = {
   color: Color
 }
 
-/** Cars and danfos in the lanes, as two shared instanced meshes (bodies and cabins). */
+const CAR_URL = '/models/npc-car.glb?v=1'
+
+/** Copy a (possibly quantized) attribute into plain floats so meshes can be merged and moved. */
+function floatAttribute(attr: BufferGeometry['attributes'][string]) {
+  const out = new Float32Array(attr.count * attr.itemSize)
+  for (let i = 0; i < attr.count; i++) {
+    out[i * attr.itemSize] = attr.getX(i)
+    if (attr.itemSize > 1) out[i * attr.itemSize + 1] = attr.getY(i)
+    if (attr.itemSize > 2) out[i * attr.itemSize + 2] = attr.getZ(i)
+    if (attr.itemSize > 3) out[i * attr.itemSize + 3] = attr.getW(i)
+  }
+  return new Float32BufferAttribute(out, attr.itemSize)
+}
+
+const colorKey = (r: number, g: number, b: number) => `${r.toFixed(2)},${g.toFixed(2)},${b.toFixed(2)}`
+
+/**
+ * npc-car.glb as one geometry (front at +z, wheels on the ground) with its body paint turned white,
+ * so each car's instance colour repaints the body while glass, tyres and trim stay dark.
+ */
+function useCarGeometry() {
+  const { scene } = useGLTF(CAR_URL)
+  return useMemo(() => {
+    scene.updateMatrixWorld(true)
+    const parts: BufferGeometry[] = []
+    scene.traverse((object) => {
+      const mesh = object as Mesh
+      if (!mesh.isMesh) return
+      const g = mesh.geometry.clone()
+      for (const name of Object.keys(g.attributes)) {
+        if (name === 'position' || name === 'normal' || name === 'color') g.setAttribute(name, floatAttribute(g.getAttribute(name)))
+        else g.deleteAttribute(name)
+      }
+      g.applyMatrix4(mesh.matrixWorld)
+      parts.push(g.index ? g.toNonIndexed() : g)
+    })
+    const merged = mergeGeometries(parts)!
+    parts.forEach((g) => g.dispose())
+    // The most common coloured (not grey) vertex colour is the body paint: make it white for tinting
+    const colors = merged.getAttribute('color')
+    if (colors) {
+      const counts = new Map<string, number>()
+      for (let i = 0; i < colors.count; i++) {
+        const r = colors.getX(i)
+        const g = colors.getY(i)
+        const b = colors.getZ(i)
+        if (Math.max(r, g, b) - Math.min(r, g, b) < 0.08) continue // greys: glass, tyres, trim
+        const key = colorKey(r, g, b)
+        counts.set(key, (counts.get(key) ?? 0) + 1)
+      }
+      const paint = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0]
+      if (paint) {
+        for (let i = 0; i < colors.count; i++) {
+          if (colorKey(colors.getX(i), colors.getY(i), colors.getZ(i)) === paint) colors.setXYZ(i, 1, 1, 1)
+        }
+      }
+    }
+    return merged
+  }, [scene])
+}
+
+/**
+ * Cars (npc-car.glb, each its own colour) and danfos (yellow blocks until a bus model lands) in the
+ * lanes, drawn as shared instanced meshes.
+ */
 function Traffic({ plan, rate }: { plan: Plan; rate: Offset }) {
+  const cars = useRef<InstancedMesh>(null)
   const bodies = useRef<InstancedMesh>(null)
   const cabins = useRef<InstancedMesh>(null)
+  const carGeometry = useCarGeometry()
+  const carMat = useMemo(() => new MeshLambertMaterial({ vertexColors: true }), [])
   const geometry = useMemo(() => new BoxGeometry(1, 1, 1), [])
   const bodyMat = useMemo(() => new MeshLambertMaterial(), [])
   const cabinMat = useMemo(() => new MeshLambertMaterial({ color: '#2c353b' }), [])
@@ -648,24 +717,43 @@ function Traffic({ plan, rate }: { plan: Plan; rate: Offset }) {
     }
     return out
   }, [plan])
+  const carList = useMemo(() => list.filter((car) => car.color !== DANFO), [list])
+  const danfoList = useMemo(() => list.filter((car) => car.color === DANFO), [list])
 
   useFrame((_, delta) => {
     const dt = Math.min(delta, 0.05)
-    const body = bodies.current
-    const cabin = cabins.current
-    if (!body || !cabin) return
     list.forEach((car, i) => {
       car.z += (rate.current - car.ws) * dt
       // Gone past the camera: come back in far ahead; pulled far ahead of a stopped us: come back behind
       if (car.z > 40) car.z -= 280 + (i % 5) * 9
       else if (car.z < -300) car.z += 330
+    })
+    const carMesh = cars.current
+    if (carMesh) {
+      carList.forEach((car, i) => {
+        dummy.position.set(car.x, 0.1, car.z)
+        // The model's front is +z: our way (−z) turns it round, oncoming keeps it
+        dummy.rotation.set(0, car.ws > 0 ? Math.PI : 0, 0)
+        dummy.scale.setScalar(1)
+        dummy.updateMatrix()
+        carMesh.setMatrixAt(i, dummy.matrix)
+        carMesh.setColorAt(i, car.color)
+      })
+      carMesh.instanceMatrix.needsUpdate = true
+      if (carMesh.instanceColor) carMesh.instanceColor.needsUpdate = true
+    }
+    const body = bodies.current
+    const cabin = cabins.current
+    if (!body || !cabin) return
+    danfoList.forEach((car, i) => {
+      dummy.rotation.set(0, 0, 0)
       dummy.position.set(car.x, car.h / 2 + 0.1, car.z)
       dummy.scale.set(car.w, car.h * 0.6, car.l)
       dummy.updateMatrix()
       body.setMatrixAt(i, dummy.matrix)
       body.setColorAt(i, car.color)
       dummy.position.set(car.x, car.h * 0.6 + 0.1 + car.h * 0.2, car.z - car.l * 0.05)
-      dummy.scale.set(car.w * 0.9, car.h * 0.4, car.l * (car.h > 2 ? 0.92 : 0.5))
+      dummy.scale.set(car.w * 0.9, car.h * 0.4, car.l * 0.92)
       dummy.updateMatrix()
       cabin.setMatrixAt(i, dummy.matrix)
     })
@@ -679,14 +767,21 @@ function Traffic({ plan, rate }: { plan: Plan; rate: Offset }) {
       geometry.dispose()
       bodyMat.dispose()
       cabinMat.dispose()
+      carMat.dispose()
+      carGeometry.dispose()
     },
-    [geometry, bodyMat, cabinMat],
+    [geometry, bodyMat, cabinMat, carMat, carGeometry],
   )
 
   return (
     <>
-      <instancedMesh ref={bodies} args={[geometry, bodyMat, list.length]} frustumCulled={false} />
-      <instancedMesh ref={cabins} args={[geometry, cabinMat, list.length]} frustumCulled={false} />
+      {carList.length ? <instancedMesh ref={cars} args={[carGeometry, carMat, carList.length]} frustumCulled={false} /> : null}
+      {danfoList.length ? (
+        <>
+          <instancedMesh ref={bodies} args={[geometry, bodyMat, danfoList.length]} frustumCulled={false} />
+          <instancedMesh ref={cabins} args={[geometry, cabinMat, danfoList.length]} frustumCulled={false} />
+        </>
+      ) : null}
     </>
   )
 }
@@ -792,11 +887,53 @@ function Walkers({ rate, campus }: { rate: Offset; campus: boolean }) {
   )
 }
 
+const KEKE_URL = '/models/keke.glb?v=1'
+/** keke.glb: front at +x, wheels 0.11 above its origin. Turned to face −z and set on the road. */
+const KEKE_FIT = { rotation: Math.PI / 2, y: -0.11 }
+/** In the sit clip the hip joint is this far above the figure's origin, and this far above the seat. */
+const SIT_HIPS = 0.84
+const HIP_OVER_SEAT = 0.1
 /**
- * Your ride. Stand-in blocks for now: to use a real model, load it with useGLTF here (one file per
- * mode), set it at the origin facing -z, and drop the blocks.
+ * Seat tops and seat centres, relative to the vehicle (x across, y up, z along; −z is ahead).
+ * Keke numbers are measured off keke.glb: rear bench top 0.75, floor 0.42, driver seat 0.88.
  */
-function PlayerVehicle({ mode, pose }: { mode: DriveMode; pose: Pose }) {
+const SEATS = {
+  kekePassenger: { x: 0, y: 0.75, z: 0.95 },
+  kekeDriver: { x: 0, y: 0.88, z: -0.45 },
+  okadaRider: { x: 0, y: 1.0, z: 0 },
+  okadaPassenger: { x: 0, y: 1.0, z: 0.55 },
+}
+/** The keke driver / okada man: the same figures as players, in a plain look. */
+const DRIVER_LOOK = normalizeAppearance({ body: 'man', skin: '#5C3317', topColor: '#2f5d8a', bottomColor: '#2a2a2a' })
+
+/** Someone sitting on a seat (you as your own avatar), playing the sit clip. */
+function Seated({ appearance, at }: { appearance: Appearance; at: { x: number; y: number; z: number } }) {
+  const pose = useRef<FigurePose | null>('sit')
+  return (
+    // The figure faces +z on its own; turn it to face the road ahead (−z)
+    <group position={[at.x, at.y + HIP_OVER_SEAT - SIT_HIPS, at.z]} rotation={[0, Math.PI, 0]}>
+      <Suspense fallback={null}>
+        <CharacterFigure appearance={appearance} pose={pose} />
+      </Suspense>
+    </group>
+  )
+}
+
+function KekeModel() {
+  const { scene } = useGLTF(KEKE_URL)
+  const keke = useMemo(() => scene.clone(true), [scene])
+  return (
+    <group rotation={[0, KEKE_FIT.rotation, 0]} position={[0, KEKE_FIT.y, 0]}>
+      <primitive object={keke} />
+    </group>
+  )
+}
+
+/**
+ * Your ride: the keke (keke.glb) with you in the back seat and a driver up front, or the okada
+ * (stand-in bike until its model lands) with you behind the rider. You are your own avatar.
+ */
+function PlayerVehicle({ mode, pose, appearance }: { mode: DriveMode; pose: Pose; appearance: Appearance }) {
   const ref = useRef<Group>(null)
   useFrame(({ clock }) => {
     const t = clock.elapsedTime
@@ -812,24 +949,11 @@ function PlayerVehicle({ mode, pose }: { mode: DriveMode; pose: Pose }) {
     <group ref={ref} position={[LANE.mine, 0, 0]}>
       {mode === 'keke' ? (
         <>
-          <mesh position={[0, 0.85, 0.3]}>
-            <boxGeometry args={[1.5, 1.2, 2.4]} />
-            <meshLambertMaterial color="#f2c230" />
-          </mesh>
-          <mesh position={[0, 1.6, 0.3]}>
-            <boxGeometry args={[1.55, 0.14, 2.5]} />
-            <meshLambertMaterial color="#222" />
-          </mesh>
-          <mesh position={[0, 0.7, -1.2]}>
-            <boxGeometry args={[0.5, 0.9, 0.9]} />
-            <meshLambertMaterial color="#f2c230" />
-          </mesh>
-          {[-0.75, 0.75].map((x) => (
-            <mesh key={x} position={[x, 0.32, 1.1]} rotation={[0, 0, Math.PI / 2]}>
-              <cylinderGeometry args={[0.32, 0.32, 0.2, 10]} />
-              <meshLambertMaterial color="#1a1a1a" />
-            </mesh>
-          ))}
+          <Suspense fallback={null}>
+            <KekeModel />
+          </Suspense>
+          <Seated appearance={DRIVER_LOOK} at={SEATS.kekeDriver} />
+          <Seated appearance={appearance} at={SEATS.kekePassenger} />
         </>
       ) : (
         <>
@@ -837,20 +961,14 @@ function PlayerVehicle({ mode, pose }: { mode: DriveMode; pose: Pose }) {
             <boxGeometry args={[0.45, 0.7, 1.9]} />
             <meshLambertMaterial color="#2d3a46" />
           </mesh>
-          <mesh position={[0, 1.4, 0.1]}>
-            <boxGeometry args={[0.5, 0.9, 0.45]} />
-            <meshLambertMaterial color="#d95f3b" />
-          </mesh>
-          <mesh position={[0, 2.05, 0.1]}>
-            <sphereGeometry args={[0.24, 8, 6]} />
-            <meshLambertMaterial color="#8a5a3b" />
-          </mesh>
           {[-0.85, 0.85].map((z) => (
             <mesh key={z} position={[0, 0.32, z]} rotation={[0, 0, Math.PI / 2]}>
               <cylinderGeometry args={[0.32, 0.32, 0.16, 10]} />
               <meshLambertMaterial color="#111" />
             </mesh>
           ))}
+          <Seated appearance={DRIVER_LOOK} at={SEATS.okadaRider} />
+          <Seated appearance={appearance} at={SEATS.okadaPassenger} />
         </>
       )}
     </group>
@@ -980,9 +1098,12 @@ type DriveProps = {
   view: DriveView
   route: DriveRoute
   plannedMs: number
+  /** The rider's own look (a default look when the trip doesn't carry one). */
+  appearance?: Appearance
 }
 
-function World({ mode, view, route, plannedMs }: DriveProps) {
+function World({ mode, view, route, plannedMs, appearance }: DriveProps) {
+  const rider = useMemo(() => normalizeAppearance(appearance), [appearance])
   const plan = useMemo(() => makePlan(mode, route, plannedMs), [mode, route, plannedMs])
   const campus = plan.kind === 'campus'
   const hasGate = plan.kind === 'in' || plan.kind === 'out' || plan.kind === 'stop'
@@ -1029,9 +1150,13 @@ function World({ mode, view, route, plannedMs }: DriveProps) {
         </>
       ) : null}
       <Roadside offset={offset} edge={campus ? CAMPUS_EDGE : ROAD_EDGE} campus={campus} gateLocal={gateLocal} />
-      {campus ? null : <Traffic plan={plan} rate={rate} />}
+      {campus ? null : (
+        <Suspense fallback={null}>
+          <Traffic plan={plan} rate={rate} />
+        </Suspense>
+      )}
       <Walkers rate={rate} campus={campus} />
-      <PlayerVehicle mode={mode} pose={pose} />
+      <PlayerVehicle mode={mode} pose={pose} appearance={rider} />
       <CameraRig mode={mode} view={view} gateZ={gateZ} pose={pose} glance={plan.kind === 'in' || plan.kind === 'stop'} narrow={campus} />
     </>
   )

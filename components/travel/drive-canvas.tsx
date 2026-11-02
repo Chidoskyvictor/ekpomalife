@@ -1,18 +1,30 @@
 'use client'
 
 import { Canvas } from '@react-three/fiber'
+import type { Appearance } from '@/lib/game/look'
 import { DriveScene, type DriveMode, type DriveRoute, type DriveView } from './drive-scene'
 
-/** The drive's own small WebGL canvas: no shadows, no antialiasing, capped resolution. */
-export function DriveCanvas({ mode, view, route, plannedMs }: { mode: DriveMode; view: DriveView; route: DriveRoute; plannedMs: number }) {
-  const coarse = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches
+/** The drive's own small WebGL canvas (full device resolution and antialiasing, like the rest of the game). */
+export function DriveCanvas({
+  mode,
+  view,
+  route,
+  plannedMs,
+  appearance,
+}: {
+  mode: DriveMode
+  view: DriveView
+  route: DriveRoute
+  plannedMs: number
+  appearance?: Appearance
+}) {
   return (
     <Canvas
-      dpr={coarse ? 1 : [1, 1.5]}
-      gl={{ antialias: false, powerPreference: 'low-power', failIfMajorPerformanceCaveat: false }}
+      dpr={typeof window !== 'undefined' ? window.devicePixelRatio : 1}
+      gl={{ antialias: true, powerPreference: 'high-performance', failIfMajorPerformanceCaveat: false }}
       camera={{ position: [5.6, 3.1, 8], fov: 58, near: 0.5, far: 320 }}
     >
-      <DriveScene mode={mode} view={view} route={route} plannedMs={plannedMs} />
+      <DriveScene mode={mode} view={view} route={route} plannedMs={plannedMs} appearance={appearance} />
     </Canvas>
   )
 }

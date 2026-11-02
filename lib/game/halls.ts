@@ -28,3 +28,17 @@ export const HALLS: Record<string, Hall> = Object.fromEntries(
 )
 
 export const hallFor = (id: string | null | undefined): Hall | null => (id ? (HALLS[id] ?? null) : null)
+
+/**
+ * Offices (public/models/office.glb). `color: null` keeps the model's original navy walls
+ * (the Admin Block); any other office gets its own wall colour. Add BAMSSA here (and to the
+ * backend HALLS list in backend/src/game/venues.ts) once it has a place on the map.
+ */
+export type Office = { id: string; name: string; color: string | null }
+
+export const OFFICES: Record<string, Office> = {
+  'admin-block': { id: 'admin-block', name: 'Admin Block', color: null },
+  'innovation-hub': { id: 'innovation-hub', name: 'Innovation Hub', color: '#1f6b8f' },
+}
+
+export const officeFor = (id: string | null | undefined): Office | null => (id ? (OFFICES[id] ?? null) : null)

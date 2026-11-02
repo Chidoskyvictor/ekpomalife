@@ -44,7 +44,7 @@ describe('action validation', () => {
   it('rejects when place is closed', () => {
     const result = canPerform({
       actionId: 'study',
-      locationId: 'admin-block',
+      locationId: 'education',
       cash: 50_000,
       gameTime: 23 * 60,
     })
