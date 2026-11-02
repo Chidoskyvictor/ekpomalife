@@ -1,3 +1,11 @@
+# Static files (Workers Assets) skip the Worker, so next.config headers() don't reach them.
+# Pages get the full set, including CSP, from next.config.mjs.
+/*
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+
 /_next/static/*
   Cache-Control: public, max-age=31536000, immutable
 
