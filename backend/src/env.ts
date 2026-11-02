@@ -9,6 +9,7 @@ config({ path: resolve(import.meta.dirname, '../.env') })
 
 const emptyToUndefined = (value: unknown) => (value == null || value === '' ? undefined : value)
 const isProd = process.env.NODE_ENV === 'production'
+export const DEV_RESET_CODE_PEPPER = 'ekpoma-dev-reset-pepper'
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).optional().default('development'),
@@ -45,7 +46,7 @@ const envSchema = z.object({
     z.string().min(3),
   ),
   RESET_CODE_PEPPER: z.preprocess(
-    (value) => (value == null || value === '' ? 'ekpoma-dev-reset-pepper' : value),
+    (value) => (value == null || value === '' ? DEV_RESET_CODE_PEPPER : value),
     z.string().min(8),
   ),
   /** Phase 4 room visits. Off by default — GET /room/:username only for self. */
@@ -80,4 +81,8 @@ export const env = envSchema.parse(process.env)
 
 if (env.NODE_ENV === 'production' && !env.SESSION_SECRET) {
   throw new Error('SESSION_SECRET is required when NODE_ENV=production (openssl rand -hex 32)')
+}
+
+if (env.NODE_ENV === 'production' && env.RESET_CODE_PEPPER === DEV_RESET_CODE_PEPPER) {
+  throw new Error('RESET_CODE_PEPPER must be set to a secret value when NODE_ENV=production (openssl rand -hex 32)')
 }

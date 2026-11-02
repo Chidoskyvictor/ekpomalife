@@ -19,7 +19,7 @@ describe('sessionCookieOptions', () => {
     expect('domain' in opts).toBe(false)
   })
 
-  it('locks production cookies to .ekpomalife.app over HTTPS', () => {
+  it('uses host-only Secure cookies in production', () => {
     process.env.NODE_ENV = 'production'
     const opts = sessionCookieOptions(new Date('2030-01-01T00:00:00.000Z'))
     expect(opts).toMatchObject({
@@ -27,7 +27,26 @@ describe('sessionCookieOptions', () => {
       sameSite: 'lax',
       path: '/',
       secure: true,
-      domain: '.ekpomalife.app',
     })
+    expect('domain' in opts).toBe(false)
+  })
+
+  it('also clears the legacy .ekpomalife.app cookie when logging in', async () => {
+    process.env.NODE_ENV = 'production'
+    const { default: Fastify } = await import('fastify')
+    const { default: cookie } = await import('@fastify/cookie')
+    const { setSessionCookie } = await import('./session.js')
+    const app = Fastify()
+    await app.register(cookie)
+    app.get('/', async (_req, reply) => {
+      setSessionCookie(reply, 'tok', new Date('2030-01-01T00:00:00.000Z'))
+      return 'ok'
+    })
+    const res = await app.inject('/')
+    const cookies = ([] as string[]).concat(res.headers['set-cookie'] ?? [])
+    expect(cookies).toHaveLength(2)
+    expect(cookies.some((c) => /Domain=\.?ekpomalife\.app/i.test(c) && /Expires=Thu, 01 Jan 1970/i.test(c))).toBe(true)
+    expect(cookies.some((c) => c.startsWith('el_session=tok') && !/Domain=/i.test(c))).toBe(true)
+    await app.close()
   })
 })

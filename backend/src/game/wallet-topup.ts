@@ -84,7 +84,9 @@ export async function initTopup(user: { id: string; username: string }, packId: 
 }
 
 /**
- * Idempotent credit: only the call that flips pending → success adds game money.
+ * Idempotent credit: only the call that flips pending/failed → success adds game money.
+ * 'failed' is included so a payment Paystack confirms after we gave up on it
+ * (e.g. the player came back to an abandoned checkout) is still credited.
  * Returns the row when this call credited it, null otherwise.
  */
 export async function creditTopup(reference: string, paidKobo: number) {
@@ -93,13 +95,24 @@ export async function creditTopup(reference: string, paidKobo: number) {
     await client.query('BEGIN')
     const flipped = await client.query<TopupRow>(
       `UPDATE wallet_topups SET status = 'success', paid_at = NOW()
-       WHERE reference = $1 AND status = 'pending' AND amount_kobo = $2
+       WHERE reference = $1 AND status IN ('pending', 'failed') AND amount_kobo = $2
        RETURNING *`,
       [reference, paidKobo],
     )
     const row = flipped.rows[0]
     if (!row) {
       await client.query('ROLLBACK')
+      const existing = await pool.query<Pick<TopupRow, 'status' | 'amount_kobo'>>(
+        `SELECT status, amount_kobo FROM wallet_topups WHERE reference = $1`,
+        [reference],
+      )
+      const found = existing.rows[0]
+      if (!found) console.warn(`[topup] credit for unknown reference ${reference} (paid ${paidKobo} kobo)`)
+      else if (found.status !== 'success' && Number(found.amount_kobo) !== paidKobo) {
+        console.warn(
+          `[topup] amount mismatch for ${reference}: expected ${found.amount_kobo} kobo, paid ${paidKobo} kobo — not credited`,
+        )
+      }
       return null
     }
     const character = await client.query<{ id: string; cash: string | number; lodging_id: string | null }>(
@@ -135,24 +148,29 @@ export async function verifyTopup(userId: string, reference: string) {
     naira: Number(row.amount_kobo) / 100,
     game_money: Number(row.game_money),
   })
-  if (row.status !== 'pending') return view(row.status, false)
+  // 'failed' rows are re-checked too: Paystack may confirm a payment after we marked it failed.
+  if (row.status === 'success') return view(row.status, false)
   if (!paystackConfigured()) return { ok: false as const, error: 'Top-ups are not available yet.', code: 503 }
 
   const result = await paystack<PaystackVerifyData>(`/transaction/verify/${encodeURIComponent(reference)}`)
   const data = result.data
   if (!result.status || !data) return view('pending', false)
   if (data.status === 'success') {
-    if (Number(data.amount) !== Number(row.amount_kobo) || (data.currency && data.currency !== 'NGN')) {
+    if (Number(data.amount) !== Number(row.amount_kobo) || data.currency !== 'NGN') {
+      console.warn(
+        `[topup] verify mismatch for ${reference}: expected ${row.amount_kobo} kobo NGN, got ${data.amount} ${data.currency ?? '(no currency)'}`,
+      )
       return { ok: false as const, error: 'Payment amount mismatch. Contact support.', code: 409 }
     }
     const credited = await creditTopup(reference, Number(data.amount))
     return view('success', Boolean(credited))
   }
-  if (data.status === 'failed' || data.status === 'abandoned' || data.status === 'reversed') {
+  // 'abandoned' just means the checkout was left open/closed — the player can still pay, so keep it pending.
+  if (data.status === 'failed' || data.status === 'reversed') {
     await pool.query(`UPDATE wallet_topups SET status = 'failed' WHERE reference = $1 AND status = 'pending'`, [reference])
     return view('failed', false)
   }
-  return view('pending', false)
+  return view(row.status, false)
 }
 
 export function validPaystackSignature(rawBody: Buffer, signature: string | undefined) {
@@ -165,6 +183,11 @@ export function validPaystackSignature(rawBody: Buffer, signature: string | unde
 
 export async function handlePaystackEvent(event: { event?: string; data?: PaystackVerifyData }) {
   if (event.event !== 'charge.success' || !event.data?.reference) return null
-  if (event.data.currency && event.data.currency !== 'NGN') return null
+  if (event.data.status !== 'success' || event.data.currency !== 'NGN') {
+    console.warn(
+      `[topup] ignored charge.success for ${event.data.reference}: status=${event.data.status ?? '(none)'} currency=${event.data.currency ?? '(none)'}`,
+    )
+    return null
+  }
   return creditTopup(event.data.reference, Number(event.data.amount))
 }

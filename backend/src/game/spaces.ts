@@ -323,14 +323,7 @@ export async function joinSpace(userId: string, spaceId: string, opts: { viaCode
       await createRoom(cfg, spaceId, space.max_listeners + 1).catch((error) => log('CreateRoom', error))
     }
     const endsBy = space.started_at!.getTime() + space.cap_minutes * 60_000
-    const token = joinToken(cfg, {
-      spaceId,
-      userId,
-      name: name.rows[0]?.username ?? 'player',
-      canPublish: canPublish(role),
-      ttlSeconds: (endsBy - now.getTime()) / 1000 + 60,
-      metadata: JSON.stringify({ role }),
-    })
+    const token = spaceToken(cfg, spaceId, userId, name.rows[0]?.username ?? 'player', role, endsBy, now)
     return {
       ok: true as const,
       spaceId,
@@ -346,6 +339,55 @@ export async function joinSpace(userId: string, spaceId: string, opts: { viaCode
   } finally {
     client.release()
   }
+}
+
+/** Join tokens are short-lived so a removed player can't reconnect with an old one; /token re-issues them. */
+export const SPACE_TOKEN_MAX_SECONDS = 10 * 60
+
+function spaceToken(
+  cfg: NonNullable<ReturnType<typeof liveKitConfig>>,
+  spaceId: string,
+  userId: string,
+  name: string,
+  role: SpaceRole,
+  endsBy: number,
+  now: Date,
+) {
+  return joinToken(cfg, {
+    spaceId,
+    userId,
+    name,
+    canPublish: canPublish(role),
+    ttlSeconds: Math.min(SPACE_TOKEN_MAX_SECONDS, (endsBy - now.getTime()) / 1000 + 60),
+    metadata: JSON.stringify({ role }),
+  })
+}
+
+/** Fresh token for someone already in a live Space. Re-checks bans, so a removed player gets nothing. */
+export async function refreshSpaceToken(userId: string, spaceId: string) {
+  const cfg = liveKitConfig()
+  if (!cfg) return fail(503, 'SPACES_OFF', 'Spaces aren’t switched on yet.')
+  const space = await loadSpace(spaceId)
+  if (!space) return fail(404, 'NOT_FOUND', 'That Space doesn’t exist.')
+  if (space.status !== 'live' || !space.started_at) return fail(410, 'ENDED', 'This Space isn’t live.')
+  if (await isBanned(spaceId, userId)) return fail(403, 'BANNED', 'The host removed you from this Space.')
+  const me = await presentMember(spaceId, userId)
+  if (!me) return fail(403, 'NOT_IN_SPACE', 'Join the Space first.')
+  const name = await pool.query<{ username: string }>(`SELECT username FROM users WHERE id = $1`, [userId])
+  const now = new Date()
+  const endsBy = space.started_at.getTime() + space.cap_minutes * 60_000
+  return {
+    ok: true as const,
+    spaceId,
+    role: me.role,
+    livekit: { url: cfg.url, token: spaceToken(cfg, spaceId, userId, name.rows[0]?.username ?? 'player', me.role, endsBy, now) },
+    endsBy: new Date(endsBy).toISOString(),
+  }
+}
+
+async function isBanned(spaceId: string, userId: string) {
+  const found = await pool.query(`SELECT 1 FROM space_bans WHERE space_id = $1 AND user_id = $2`, [spaceId, userId])
+  return Boolean(found.rowCount)
 }
 
 async function rollback(client: PoolClient, result: SpacesFail): Promise<SpacesFail> {
@@ -550,6 +592,15 @@ export async function handleLiveKitEvent(event: WebhookEvent) {
     return
   }
   const identity = event.participant?.identity
+  if (event.event === 'participant_joined' && identity) {
+    // Someone banned after their token was issued: kick them as soon as they connect
+    if (await isBanned(spaceId, identity)) {
+      const cfg = liveKitConfig()
+      if (cfg) await removeParticipant(cfg, spaceId, identity).catch((error) => log('RemoveParticipant', error))
+      await closeSessions(pool, 'space_id = $1 AND user_id = $2', [spaceId, identity])
+    }
+    return
+  }
   if (event.event === 'participant_left' && identity) {
     const space = await loadSpace(spaceId)
     if (!space || space.status !== 'live') return

@@ -65,9 +65,8 @@ await app.register(cookie)
 await app.register(websocket)
 await registerRateLimit(app)
 
-app.get('/', async () => ({
-  ok: true,
-  name: 'Ekpoma Life API',
+// Route map is a dev convenience only — production doesn't advertise its endpoints.
+const ROUTE_MAP = {
   health: '/health',
   signup: 'POST /auth/signup',
   login: 'POST /auth/login',
@@ -133,7 +132,10 @@ app.get('/', async () => ({
   walletPacks: 'GET /wallet/packs',
   walletTopupInit: 'POST /wallet/topup/init',
   walletTopupVerify: 'GET /wallet/topup/verify/:reference',
-}))
+}
+app.get('/', async () =>
+  env.NODE_ENV === 'production' ? { ok: true, name: 'Ekpoma Life API' } : { ok: true, name: 'Ekpoma Life API', ...ROUTE_MAP },
+)
 
 // Never rate limited — uptime monitors must not see 429s.
 app.get('/health', { config: { rateLimit: false } }, async (request, reply) => {

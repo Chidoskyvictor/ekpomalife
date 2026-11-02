@@ -10,6 +10,8 @@ const isProd = env.NODE_ENV === 'production'
 export const USER_LIMIT = 300
 export const IP_LIMIT = 120
 export const AUTH_LIMIT = 10
+/** Signup / forgot / reset: rarer than login, so a tighter per-IP cap. */
+export const AUTH_STRICT_LIMIT = 5
 
 const DEV_LIMIT = 2000
 const DEV_ALLOWLIST = ['127.0.0.1', '::1']
@@ -76,6 +78,9 @@ export const authIpRateLimit = {
   timeWindow: '1 minute',
   keyGenerator: ipKey,
 }
+
+/** Route config for signup / forgot / reset: 5/min per IP. */
+export const authStrictIpRateLimit = { ...authIpRateLimit, max: AUTH_STRICT_LIMIT }
 
 /**
  * preHandler adding a second strict bucket per account identifier (email or username) on top of the

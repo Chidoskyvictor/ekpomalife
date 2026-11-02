@@ -11,6 +11,7 @@ import {
   handleLiveKitEvent,
   joinByCode,
   joinSpace,
+  refreshSpaceToken,
   leaveSpace,
   listComments,
   listSpaces,
@@ -115,6 +116,14 @@ export async function spacesRoutes(app: FastifyInstance) {
     const id = idParam.safeParse(request.params)
     if (!id.success) return reply.code(400).send({ ok: false, code: 'BAD_ID', error: 'Bad Space.' })
     return send(reply, await joinSpace(user.id, id.data.id, { viaCode: false }))
+  })
+
+  app.post('/spaces/:id/token', rate(20), async (request, reply) => {
+    const user = await getSessionUser(request)
+    if (!user) return notLoggedIn(reply)
+    const id = idParam.safeParse(request.params)
+    if (!id.success) return reply.code(400).send({ ok: false, code: 'BAD_ID', error: 'Bad Space.' })
+    return send(reply, await refreshSpaceToken(user.id, id.data.id))
   })
 
   app.post('/spaces/:id/leave', rate(30), async (request, reply) => {

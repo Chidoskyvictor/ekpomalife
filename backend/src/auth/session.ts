@@ -5,7 +5,12 @@ import { createId } from '../ids.js'
 
 export const SESSION_COOKIE = 'el_session'
 const SESSION_DAYS = 30
-const PROD_COOKIE_DOMAIN = '.ekpomalife.app'
+/**
+ * Old sessions were set on this domain (shared with every subdomain). New cookies are host-only on the
+ * API host — the frontend never reads el_session, and ekpomalife.app → api.ekpomalife.app is same-site,
+ * so Lax still sends it. We keep clearing the old domain cookie so stale copies go away.
+ */
+const LEGACY_COOKIE_DOMAIN = '.ekpomalife.app'
 
 export function createSessionToken() {
   return randomBytes(32).toString('base64url')
@@ -39,21 +44,21 @@ export function sessionCookieOptions(expiresAt: Date) {
     path: '/',
     secure: isProd,
     expires: expiresAt,
-    ...(isProd ? { domain: PROD_COOKIE_DOMAIN } : {}),
   }
 }
 
+function clearLegacyDomainCookie(reply: FastifyReply) {
+  if (process.env.NODE_ENV !== 'production') return
+  reply.clearCookie(SESSION_COOKIE, { path: '/', httpOnly: true, sameSite: 'lax', secure: true, domain: LEGACY_COOKIE_DOMAIN })
+}
+
 export function setSessionCookie(reply: FastifyReply, token: string, expiresAt: Date) {
+  clearLegacyDomainCookie(reply)
   reply.setCookie(SESSION_COOKIE, token, sessionCookieOptions(expiresAt))
 }
 
 export function clearSessionCookie(reply: FastifyReply) {
   const isProd = process.env.NODE_ENV === 'production'
-  reply.clearCookie(SESSION_COOKIE, {
-    path: '/',
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: isProd,
-    ...(isProd ? { domain: PROD_COOKIE_DOMAIN } : {}),
-  })
+  clearLegacyDomainCookie(reply)
+  reply.clearCookie(SESSION_COOKIE, { path: '/', httpOnly: true, sameSite: 'lax', secure: isProd })
 }
