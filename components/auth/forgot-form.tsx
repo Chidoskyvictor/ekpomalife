@@ -34,7 +34,6 @@ export function ForgotForm({ onShake }: { onShake: () => void }) {
   const [confirm, setConfirm] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [noAccount, setNoAccount] = useState(false)
   const [busy, setBusy] = useState(false)
   const [resendIn, setResendIn] = useState(0)
 
@@ -49,12 +48,10 @@ export function ForgotForm({ onShake }: { onShake: () => void }) {
   const sendCode = async () => {
     setBusy(true)
     setError(null)
-    setNoAccount(false)
     const result = await requestPasswordReset(email)
     setBusy(false)
     if (!result.ok) {
       setError(result.error)
-      setNoAccount(result.code === 'NO_ACCOUNT')
       onShake()
       return false
     }
@@ -179,7 +176,7 @@ export function ForgotForm({ onShake }: { onShake: () => void }) {
       <form onSubmit={onCode} noValidate className={styles.form}>
         <p className={styles.stepLead}>Enter the code</p>
         <p className={styles.stepCopy}>
-          We sent a 6-digit code to <strong>{maskEmail(email.trim().toLowerCase())}</strong>.
+          If an account uses <strong>{maskEmail(email.trim().toLowerCase())}</strong>, we sent it a 6-digit code.
         </p>
         <OtpInput
           label="Verification code"
@@ -216,6 +213,13 @@ export function ForgotForm({ onShake }: { onShake: () => void }) {
             Change email
           </button>
         </p>
+        <p className={styles.stepCopy}>
+          No code? Check the email you typed, or{' '}
+          <Link href="/signup" className={styles.textLink}>
+            sign up
+          </Link>
+          .
+        </p>
       </form>
     )
   }
@@ -232,23 +236,14 @@ export function ForgotForm({ onShake }: { onShake: () => void }) {
         value={email}
         onChange={(event) => {
           setEmail(event.target.value)
-          setNoAccount(false)
           setError(null)
         }}
         autoComplete="email"
         inputMode="email"
         required
         placeholder="you@example.com"
-        error={noAccount ? undefined : error}
+        error={error}
       />
-      {noAccount && error ? (
-        <div className={styles.fieldError} role="alert">
-          <p className={styles.stepCopy}>{error}</p>
-          <Link href="/signup" className={styles.textLink}>
-            Create an account
-          </Link>
-        </div>
-      ) : null}
       <LobbyButton type="submit" loading={busy} disabled={!email.includes('@')}>
         Send code ▶
       </LobbyButton>
