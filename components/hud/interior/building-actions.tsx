@@ -1,23 +1,28 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { PlaceAction, PlaceActions, type PlaceTag } from '@/components/hud/place-sheet'
 import { useGame } from '@/hooks/use-game'
 import { isBuildingOpen, type BuildingActionDef, type BuildingDef } from '@/lib/game/buildings'
+import { actionSeconds } from '@/lib/game/action-seconds'
 import { emptyCampus } from '@/lib/game/campus'
-import { isSchoolCard, schoolCardLock, schoolCardPrice, useSchool } from '@/lib/game/school-api'
+import { feesLock, isSchoolCard, schoolCardLock, schoolCardPrice, useSchool } from '@/lib/game/school-api'
+import { FEES_PLACE } from '@/lib/game/school-rules'
+import { pushNavigation } from '@/lib/navigation/safe-nav'
 
 /** An activity's chips → the card's big line and its tags. */
-export function cardInfo(action: BuildingActionDef): { price: string; tags: PlaceTag[] } {
+export function cardInfo(action: BuildingActionDef): { price: string; tags: PlaceTag[]; seconds?: number } {
   let price = 'Free'
   const tags: PlaceTag[] = []
+  let seconds: number | undefined
   for (const chip of action.chips) {
     if (chip.kind === 'cash') price = `₦${Math.abs(chip.amount).toLocaleString()}`
-    if (chip.kind === 'time') tags.push({ text: `${chip.minutes} min`, tone: 'info' })
+    if (chip.kind === 'time') seconds = actionSeconds(chip.minutes)
     if (chip.kind === 'energy') tags.push({ text: `${chip.amount > 0 ? '+' : '−'}${Math.abs(chip.amount)} energy`, tone: chip.amount > 0 ? 'good' : 'bad' })
     if (chip.kind === 'reward') tags.push({ text: chip.text, tone: 'good' })
   }
-  return { price, tags }
+  return { price, tags, seconds }
 }
 
 /**
@@ -37,8 +42,16 @@ export function BuildingActionCards({
   /** Extra cards first (e.g. the hall's "Take a seat"). */
   before?: React.ReactNode
 }) {
-  const { state, isGuest } = useGame()
+  const { state, isGuest, select, notifyToast } = useGame()
+  const router = useRouter()
   const { school } = useSchool(!isGuest)
+  // Fees not paid: lecture / exam cards stay tappable and send you to the Admin Block to pay
+  const unpaid = school ? feesLock(school.record) : null
+  const goPay = () => {
+    notifyToast(unpaid ?? 'Pay your school fees at the Admin Block.', false)
+    select(FEES_PLACE)
+    pushNavigation(router, '/')
+  }
   // Re-check school locks every second (class cooldown countdown, hours)
   const hasSchool = building.actions.some((action) => isSchoolCard(action.id))
   const [, setTick] = useState(0)
@@ -70,16 +83,18 @@ export function BuildingActionCards({
         const price = fee != null ? `₦${fee.toLocaleString()}` : info.price
         const tags = info.tags
         const locked = lockOf(action)
+        const payFirst = Boolean(locked && unpaid && locked === unpaid && (action.id === 'attend-lecture' || action.id === 'write-exam'))
         return (
           <PlaceAction
             key={action.id}
             emoji={action.emoji}
             title={action.title}
             price={price}
+            seconds={info.seconds}
             tags={tags}
-            note={locked ?? undefined}
-            disabled={Boolean(locked)}
-            onClick={() => onRun(action)}
+            note={payFirst ? `${locked} Tap to go there.` : (locked ?? undefined)}
+            disabled={Boolean(locked) && !payFirst}
+            onClick={() => (payFirst ? goPay() : onRun(action))}
           />
         )
       })}

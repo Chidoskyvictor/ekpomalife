@@ -1,3 +1,4 @@
+import { actionSeconds } from './action-seconds'
 import { feesBalance, feesCleared, type CampusState } from './campus'
 import type { GameActionId } from './places'
 import type { TraitId } from './traits'
@@ -921,7 +922,7 @@ export function chipLabel(chip: ActionChip): string {
     case 'energy':
       return chip.amount >= 0 ? `+${chip.amount} energy` : `${chip.amount} energy`
     case 'time':
-      return `${chip.minutes} min`
+      return `${actionSeconds(chip.minutes)}s`
     case 'reward':
       return chip.text
   }

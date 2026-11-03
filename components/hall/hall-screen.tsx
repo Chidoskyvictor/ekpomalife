@@ -1,5 +1,6 @@
 'use client'
 
+import { actionSeconds } from '@/lib/game/action-seconds'
 import { BookOpen, Map as MapIcon, Users } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
@@ -28,7 +29,7 @@ const HomeCanvas = dynamic(() => import('@/components/room/home-canvas').then((m
 })
 
 /** How long you stay seated before standing up on your own (tap the busy pill to stand sooner). */
-const SIT_SECONDS = 600
+const SIT_SECONDS = 45
 /** Activities that seat you while they run (game minutes ÷ 10 = real seconds × 6). */
 const SEATED = new Set(['attend-lecture', 'evening-tutorial'])
 
@@ -130,7 +131,7 @@ export function HallScreen({ hallId }: { hallId: string }) {
     runAction.current?.(action)
     if (SEATED.has(action.id) && !hall.office) {
       const minutes = action.chips.find((c) => c.kind === 'time')
-      const seconds = minutes && minutes.kind === 'time' ? Math.max(20, Math.round(minutes.minutes * 6)) : SIT_SECONDS
+      const seconds = minutes && minutes.kind === 'time' ? actionSeconds(minutes.minutes) : SIT_SECONDS
       sit({ emoji: action.emoji, title: action.title, seconds })
     }
   }

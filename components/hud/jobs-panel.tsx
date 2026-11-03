@@ -49,7 +49,7 @@ function JobCard({
         <div>
           <p className={styles.cardTitle}>{job.title}</p>
           <p className={styles.cardMeta}>
-            {job.shiftMinutes} min · Lvl {(job.currentLevel ?? 1)}
+            {Math.max(1, Math.round(Math.min(2800, job.shiftMinutes * 40) / 1000))}s · Lvl {(job.currentLevel ?? 1)}
           </p>
         </div>
         <span className={styles.pay}>{formatNaira(job.payPerShift)}/shift</span>
