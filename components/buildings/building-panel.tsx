@@ -19,6 +19,8 @@ import {
 } from '@/lib/game/buildings'
 import { emptyCampus, feesBalance, type CampusState } from '@/lib/game/campus'
 import { MAP_ZONES } from '@/lib/game/world-layout'
+import { isSchoolCard, runSchoolAction, schoolCardLock, useSchool } from '@/lib/game/school-api'
+import { StudentPortal } from '@/components/school/student-portal'
 import { stickerForZone } from '@/lib/game/zone-stickers'
 import { hapticTap } from '@/components/hud/haptic'
 import econStyles from '@/components/hud/economy.module.css'
@@ -101,7 +103,8 @@ function PanelBody({
   busy: boolean
   onAction: (action: BuildingActionDef) => void
 }) {
-  const { state, act: runTravel } = useGame()
+  const { state, act: runTravel, isGuest } = useGame()
+  const { school } = useSchool(!isGuest)
   const { shopItems, loadShop, loading } = useEconomy()
   const traits = state?.traits ?? []
 
@@ -128,18 +131,13 @@ function PanelBody({
         </div>
       ) : null}
 
-      {building.kind === 'student-affairs' && isHere ? (
-        <div className={styles.feesBar}>
-          <span>School fees balance</span>
-          <strong>₦{feesBalance(campus).toLocaleString()}</strong>
-        </div>
-      ) : null}
-
       {building.actions.map((action) => {
         const lockedReason =
           !isHere
             ? 'Come to this building first.'
-            : closedReason
+            : isSchoolCard(action.id)
+              ? schoolCardLock(school, action.id, building.id, Date.now())
+              : closedReason
               ? closedReason
               : action.lock?.({
                   campus,
@@ -222,7 +220,7 @@ export function BuildingPanel({
   headless?: { buildingId: string; runRef: MutableRefObject<BuildingActionRunner | null> }
 } = {}) {
   const mobile = useIsMobile()
-  const { state, selectedId: pickedId, select, act, travelTo, serverVersion, notifyToast } = useGame()
+  const { state, selectedId: pickedId, select, act, travelTo, serverVersion, notifyToast, refreshServer } = useGame()
   const selectedId = headless ? headless.buildingId : pickedId
   const router = useRouter()
   const [busy, setBusy] = useState(false)
@@ -234,6 +232,7 @@ export function BuildingPanel({
   const [payOpen, setPayOpen] = useState(false)
   const [payAmount, setPayAmount] = useState('')
   const [gpaOpen, setGpaOpen] = useState(false)
+  const [portalOpen, setPortalOpen] = useState(false)
   const [ceremonyOpen, setCeremonyOpen] = useState(false)
   const [notices, setNotices] = useState<string[] | null>(null)
 
@@ -262,6 +261,7 @@ export function BuildingPanel({
     setGpaOpen(false)
     setCeremonyOpen(false)
     setNotices(null)
+    setPortalOpen(false)
   }
 
   const runWithConfetti = async (action: BuildingActionDef, payload?: {
@@ -285,7 +285,30 @@ export function BuildingPanel({
     if (action.flow === 'ceremony' && result.ok) setCeremonyOpen(true)
   }
 
+  const runSchool = async (action: BuildingActionDef) => {
+    if (busy) return
+    setBusy(true)
+    const res = await runSchoolAction(action.id)
+    setBusy(false)
+    if (!res.ok) {
+      notifyToast(res.error, false)
+      return
+    }
+    notifyToast(res.message, true)
+    // Fees change your cash: refresh the wallet
+    if (action.id.startsWith('pay-')) void refreshServer()
+    if (res.result?.grade === 'A') void confetti({ particleCount: 90, spread: 70, origin: { y: 0.65 } })
+  }
+
   const onAction = (action: BuildingActionDef) => {
+    if (action.id === 'student-portal') {
+      setPortalOpen(true)
+      return
+    }
+    if (isSchoolCard(action.id)) {
+      void runSchool(action)
+      return
+    }
     if (action.href) {
       router.push(action.href)
       return
@@ -383,6 +406,8 @@ export function BuildingPanel({
           </div>
         </div>
       )}
+
+      {portalOpen ? <StudentPortal onClose={() => setPortalOpen(false)} /> : null}
 
       {quiz ? (
         <QuizFlow

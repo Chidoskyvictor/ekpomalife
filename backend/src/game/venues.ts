@@ -97,7 +97,8 @@ const HALLS: [string, string][] = [
   ['innovation-hub', 'Innovation Hub'],
 ]
 for (const [id, name] of HALLS) {
-  VENUES[id] = { id, kind: 'hall', name, open: 7, close: 21, entry: 0, capacity: 1000, items: [] }
+  // Open all day: you can always walk in; the school day (class and exam hours) is in school-rules.ts
+  VENUES[id] = { id, kind: 'hall', name, open: 0, close: 24, entry: 0, capacity: 1000, items: [] }
 }
 
 /*
@@ -239,7 +240,7 @@ export async function getVenue(userId: string, venueId: string) {
     venue: {
       id: venue.id,
       name: venue.name,
-      hours: `${hourLabel(venue.open)} – ${hourLabel(venue.close)}`,
+      hours: venue.open === 0 && venue.close === 24 ? 'Open 24 hours' : `${hourLabel(venue.open)} – ${hourLabel(venue.close)}`,
       open: read.open,
       entry: venue.entry,
       items: venue.items,

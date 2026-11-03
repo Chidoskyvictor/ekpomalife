@@ -16,6 +16,13 @@ export type GameActionId =
   | 'cook'
   // Building interiors (Phase 3 UI → server POST /game/action)
   | 'pay-school-fees'
+  // AAU school (POST /school/action)
+  | 'pay-acceptance'
+  | 'pay-installment-1'
+  | 'pay-installment-2'
+  | 'pay-full-session'
+  | 'evening-tutorial'
+  | 'student-portal'
   | 'course-registration'
   | 'collect-matric-gown'
   | 'collect-id-card'

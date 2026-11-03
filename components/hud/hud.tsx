@@ -9,6 +9,7 @@ import { DreamCelebration } from '@/components/hud/dream-celebration'
 import { EventDialog } from '@/components/hud/event-dialog'
 import { MapPlaceSheet } from '@/components/hud/map-place-sheet'
 import { HouseSheet } from '@/components/hud/house-sheet'
+import { SchoolCard } from '@/components/school/school-card'
 import { MarketHubSheet } from '@/components/hud/market-hub-sheet'
 import { MeCard } from '@/components/hud/me-card'
 import { PhoneDialog } from '@/components/hud/phone-dialog'
@@ -236,6 +237,8 @@ export function Hud() {
         <div className={styles.activityRow}>
           <ActionTiles />
         </div>
+        {/* At a school building: level, CGPA, exam prep and today's classes */}
+        {!phoneOpen && !buyOpen ? <SchoolCard /> : null}
         {/* Home (My Room): find / join your real hostel — not while visiting someone (/room/[username]) */}
         {state && pathname === '/room' && !interiorPlaceId(state.locationId, state.lodgingId) ? (
           <div className={styles.topWrap}>

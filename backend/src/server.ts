@@ -1,4 +1,5 @@
 import { houseRoutes } from './routes/houses.js'
+import { schoolRoutes } from './routes/school.js'
 import Fastify from 'fastify'
 import cookie from '@fastify/cookie'
 import websocket from '@fastify/websocket'
@@ -173,6 +174,7 @@ await app.register(spacesRoutes)
 await app.register(adminRoutes)
 await app.register(walletRoutes)
 await app.register(houseRoutes)
+await app.register(schoolRoutes)
 
 const shutdown = async () => {
   await app.close()

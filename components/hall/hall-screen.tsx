@@ -30,7 +30,7 @@ const HomeCanvas = dynamic(() => import('@/components/room/home-canvas').then((m
 /** How long you stay seated before standing up on your own (tap the busy pill to stand sooner). */
 const SIT_SECONDS = 600
 /** Activities that seat you while they run (game minutes ÷ 10 = real seconds × 6). */
-const SEATED = new Set(['attend-lecture', 'night-class'])
+const SEATED = new Set(['attend-lecture', 'evening-tutorial'])
 
 type Space = { name: string; paint?: string; layout: RoomLayout; seats: HallSeat[]; icon: string; office: boolean }
 

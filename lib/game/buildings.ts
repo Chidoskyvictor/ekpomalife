@@ -72,58 +72,29 @@ export function isBuildingOpen(
   return { open: openNow, label: openNow ? 'Open' : 'Closed' }
 }
 
-const lectureActions = (quizBank: string): BuildingActionDef[] => [
+/** AAU school cards in every lecture building (rules: school-rules.ts, run on POST /school/action). */
+const lectureActions = (): BuildingActionDef[] => [
   {
     id: 'attend-lecture',
     emoji: '📝',
     title: 'Attend lecture',
-    subtitle: 'Sit down, listen and learn.',
-    chips: [
-      { kind: 'energy', amount: -12 },
-      { kind: 'time', minutes: 90 },
-    ],
+    subtitle: 'Sit down, listen and learn. 3 a day, 8 AM – 5 PM.',
+    chips: [{ kind: 'reward', text: '+30% exam prep' }],
     buttonLabel: 'Enter class',
   },
   {
-    id: 'submit-assignment',
-    emoji: '📤',
-    title: 'Submit assignment',
-    subtitle: 'Only when one is due. Late comes with a soft penalty.',
-    chips: [{ kind: 'time', minutes: 20 }],
-    buttonLabel: 'Submit',
-    lock: ({ campus }) =>
-      campus.assignmentDueAt ? null : 'No assignment on the table right now.',
-  },
-  {
-    id: 'take-quiz',
-    emoji: '🧠',
-    title: 'Take quiz',
-    subtitle: 'Quick 3–5 questions. No stress.',
-    chips: [
-      { kind: 'energy', amount: -8 },
-      { kind: 'time', minutes: 15 },
-    ],
-    buttonLabel: 'Start quiz',
-    flow: 'quiz',
-    quizBank,
-  },
-  {
-    id: 'night-class',
+    id: 'evening-tutorial',
     emoji: '🌙',
-    title: 'Night class',
-    subtitle: 'The reading room opens after 8pm. Night owls shine.',
-    chips: [
-      { kind: 'energy', amount: -10 },
-      { kind: 'reward', text: 'Bonus knowledge' },
-    ],
-    buttonLabel: 'Read till late',
-    lock: ({ gameHour }) => (gameHour >= 20 || gameHour < 5 ? null : 'Opens at 8pm'),
+    title: 'Evening tutorial',
+    subtitle: 'Extra reading with classmates. Open to everyone, any time.',
+    chips: [{ kind: 'reward', text: '+5% exam prep' }],
+    buttonLabel: 'Join tutorial',
   },
   {
     id: 'exams-pointer',
     emoji: '💻',
     title: 'Exams',
-    subtitle: 'Exams hold at ICT 💻',
+    subtitle: 'Exams hold at ICT 💻, 9 AM – 1 PM, the day after your lectures.',
     chips: [{ kind: 'reward', text: 'Go to ICT' }],
     buttonLabel: 'Noted',
     lock: () => 'Exams hold at ICT 💻',
@@ -174,14 +145,36 @@ export const BUILDINGS: Record<string, BuildingDef> = {
     showJobs: true,
     actions: [
       {
-        id: 'pay-school-fees',
-        emoji: '💳',
-        title: 'Pay school fees',
-        subtitle: 'Partial payment allowed. Balance shows after each pay.',
-        chips: [{ kind: 'cash', amount: 0, label: 'Any amount' }],
+        id: 'pay-acceptance',
+        emoji: '📜',
+        title: 'Pay acceptance fee',
+        subtitle: 'New students, once only. Do this first.',
+        chips: [{ kind: 'cash', amount: -10_000 }],
         buttonLabel: 'Pay',
-        flow: 'pay-fees',
-        lock: ({ campus }) => (feesBalance(campus) <= 0 ? 'Fees already cleared. Nice!' : null),
+      },
+      {
+        id: 'pay-installment-1',
+        emoji: '💳',
+        title: 'School fees: 1st installment',
+        subtitle: 'Covers first semester lectures and exam.',
+        chips: [],
+        buttonLabel: 'Pay',
+      },
+      {
+        id: 'pay-installment-2',
+        emoji: '💳',
+        title: 'School fees: 2nd installment',
+        subtitle: 'Covers second semester. Pay any time after the 1st.',
+        chips: [],
+        buttonLabel: 'Pay',
+      },
+      {
+        id: 'pay-full-session',
+        emoji: '💰',
+        title: 'Pay the full session',
+        subtitle: 'Both installments at once.',
+        chips: [],
+        buttonLabel: 'Pay all',
       },
       {
         id: 'fees-receipt',
@@ -209,22 +202,6 @@ export const BUILDINGS: Record<string, BuildingDef> = {
         subtitle: 'Book a few minutes with the Vice-Chancellor.',
         chips: [{ kind: 'time', minutes: 30 }],
         buttonLabel: 'Go in',
-      },
-      {
-        id: 'course-registration',
-        emoji: '📋',
-        title: 'Course registration',
-        subtitle: 'Pick your courses for the session.',
-        chips: [
-          { kind: 'time', minutes: 30 },
-          { kind: 'cash', amount: -500 },
-        ],
-        buttonLabel: 'Register',
-        lock: ({ campus }) => {
-          if (!feesCleared(campus)) return 'Clear your fees first.'
-          if (campus.registered) return 'You already registered this session.'
-          return null
-        },
       },
       {
         id: 'collect-matric-gown',
@@ -291,13 +268,12 @@ export const BUILDINGS: Record<string, BuildingDef> = {
         },
       },
       {
-        id: 'check-result',
-        emoji: '📊',
-        title: 'Check result / transcript',
-        subtitle: 'GPA history and any pending exam score.',
-        chips: [{ kind: 'time', minutes: 10 }],
+        id: 'student-portal',
+        emoji: '🖥️',
+        title: 'Student portal',
+        subtitle: 'Your level, fees, results and CGPA.',
+        chips: [],
         buttonLabel: 'Open portal',
-        flow: 'gpa',
       },
     ],
   },
@@ -308,7 +284,7 @@ export const BUILDINGS: Record<string, BuildingDef> = {
     emoji: '1️⃣',
     kind: 'lecture-hall',
     openHours: { open: 7, close: 20 },
-    actions: lectureActions('general'),
+    actions: lectureActions(),
   },
   'hall-200': {
     id: 'hall-200',
@@ -316,15 +292,7 @@ export const BUILDINGS: Record<string, BuildingDef> = {
     emoji: '2️⃣',
     kind: 'lecture-hall',
     openHours: { open: 7, close: 20 },
-    actions: lectureActions('general').map((action) =>
-      action.id === 'attend-lecture'
-        ? {
-            ...action,
-            lock: ({ campus }) =>
-              campus.level < 200 ? 'Comes up in 200 Level' : null,
-          }
-        : action,
-    ),
+    actions: lectureActions(),
   },
   'etf-hall': {
     id: 'etf-hall',
@@ -332,7 +300,7 @@ export const BUILDINGS: Record<string, BuildingDef> = {
     emoji: '🏢',
     kind: 'lecture-hall',
     openHours: { open: 7, close: 20 },
-    actions: lectureActions('science'),
+    actions: lectureActions(),
   },
   'mls-hall': {
     id: 'mls-hall',
@@ -340,7 +308,7 @@ export const BUILDINGS: Record<string, BuildingDef> = {
     emoji: '🔬',
     kind: 'lecture-hall',
     openHours: { open: 7, close: 20 },
-    actions: lectureActions('medicine'),
+    actions: lectureActions(),
   },
   'twin-hall': {
     id: 'twin-hall',
@@ -348,7 +316,7 @@ export const BUILDINGS: Record<string, BuildingDef> = {
     emoji: '🏫',
     kind: 'lecture-hall',
     openHours: { open: 7, close: 21 },
-    actions: lectureActions('arts'),
+    actions: lectureActions(),
   },
   'cordelia-hall': {
     id: 'cordelia-hall',
@@ -356,7 +324,7 @@ export const BUILDINGS: Record<string, BuildingDef> = {
     emoji: '🏫',
     kind: 'lecture-hall',
     openHours: { open: 8, close: 20 },
-    actions: lectureActions('arts'),
+    actions: lectureActions(),
   },
   education: {
     id: 'education',
@@ -364,7 +332,7 @@ export const BUILDINGS: Record<string, BuildingDef> = {
     emoji: '📚',
     kind: 'lecture-hall',
     openHours: { open: 8, close: 18 },
-    actions: lectureActions('arts'),
+    actions: lectureActions(),
   },
   'mass-comm': {
     id: 'mass-comm',
@@ -372,7 +340,7 @@ export const BUILDINGS: Record<string, BuildingDef> = {
     emoji: '🎤',
     kind: 'lecture-hall',
     openHours: { open: 8, close: 18 },
-    actions: lectureActions('arts'),
+    actions: lectureActions(),
   },
   bamssa: {
     id: 'bamssa',
@@ -380,7 +348,7 @@ export const BUILDINGS: Record<string, BuildingDef> = {
     emoji: '🎓',
     kind: 'lecture-hall',
     openHours: { open: 8, close: 18 },
-    actions: lectureActions('medicine'),
+    actions: lectureActions(),
   },
   'college-of-medicine': {
     id: 'college-of-medicine',
@@ -411,20 +379,9 @@ export const BUILDINGS: Record<string, BuildingDef> = {
         id: 'write-exam',
         emoji: '🖥️',
         title: 'Write exam',
-        subtitle: 'CBT. Only in exam season, after fees + registration.',
-        chips: [
-          { kind: 'time', minutes: 60 },
-          { kind: 'energy', amount: -20 },
-        ],
+        subtitle: 'CBT, 9 AM – 1 PM, the day after your lectures. Your grade comes from your exam prep.',
+        chips: [{ kind: 'reward', text: 'Semester result' }],
         buttonLabel: 'Start CBT',
-        flow: 'exam',
-        quizBank: 'general',
-        lock: ({ campus }) => {
-          if (!campus.examSeason) return 'Exam season has not opened yet.'
-          if (!feesCleared(campus)) return 'Pay your fees before exams.'
-          if (!campus.registered) return 'Register your courses first.'
-          return null
-        },
       },
       {
         id: 'study',
@@ -632,7 +589,7 @@ export const BUILDINGS: Record<string, BuildingDef> = {
     emoji: '🔭',
     kind: 'faculty',
     openHours: { open: 8, close: 18 },
-    actions: facultyActions('Physical Science'),
+    actions: [...lectureActions(), ...facultyActions('Physical Science')],
   },
   'social-science': {
     id: 'social-science',
@@ -640,7 +597,7 @@ export const BUILDINGS: Record<string, BuildingDef> = {
     emoji: '🗣️',
     kind: 'faculty',
     openHours: { open: 8, close: 18 },
-    actions: facultyActions('Social Science'),
+    actions: [...lectureActions(), ...facultyActions('Social Science')],
   },
   'life-science': {
     id: 'life-science',
@@ -648,7 +605,7 @@ export const BUILDINGS: Record<string, BuildingDef> = {
     emoji: '🧬',
     kind: 'faculty',
     openHours: { open: 8, close: 18 },
-    actions: facultyActions('Life Science'),
+    actions: [...lectureActions(), ...facultyActions('Life Science')],
   },
   'law-campus': {
     id: 'law-campus',
@@ -656,7 +613,7 @@ export const BUILDINGS: Record<string, BuildingDef> = {
     emoji: '⚖️',
     kind: 'faculty',
     openHours: { open: 8, close: 18 },
-    actions: facultyActions('Law'),
+    actions: [...lectureActions(), ...facultyActions('Law')],
   },
   'law-ext': {
     id: 'law-ext',
@@ -664,7 +621,7 @@ export const BUILDINGS: Record<string, BuildingDef> = {
     emoji: '⚖️',
     kind: 'faculty',
     openHours: { open: 8, close: 18 },
-    actions: facultyActions('Law'),
+    actions: [...lectureActions(), ...facultyActions('Law')],
   },
   'management-science': {
     id: 'management-science',
@@ -672,7 +629,7 @@ export const BUILDINGS: Record<string, BuildingDef> = {
     emoji: '📈',
     kind: 'faculty',
     openHours: { open: 8, close: 18 },
-    actions: facultyActions('Management'),
+    actions: [...lectureActions(), ...facultyActions('Management')],
   },
   engineering: {
     id: 'engineering',
@@ -680,7 +637,7 @@ export const BUILDINGS: Record<string, BuildingDef> = {
     emoji: '⚙️',
     kind: 'faculty',
     openHours: { open: 8, close: 18 },
-    actions: facultyActions('Engineering'),
+    actions: [...lectureActions(), ...facultyActions('Engineering')],
   },
 
   'town-shop-1': {
