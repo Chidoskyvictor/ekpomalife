@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'motion/react'
-import { PHONE_APPS, PHONE_DOCK, type PhoneAppId, type PhoneState } from '@/lib/game/phone'
+import { PHONE_APPS, type PhoneAppId, type PhoneState } from '@/lib/game/phone'
 import styles from './phone.module.css'
 
 function AppIcon({
@@ -13,7 +13,6 @@ function AppIcon({
   unread,
   isNew,
   soon,
-  inDock,
   onOpen,
 }: {
   id: PhoneAppId
@@ -24,8 +23,6 @@ function AppIcon({
   unread: number
   isNew: boolean
   soon: boolean
-  /** Dock copies skip the open/close morph — a shared layoutId on two icons hides one of them. */
-  inDock: boolean
   onOpen: (id: PhoneAppId) => void
 }) {
   const aria =
@@ -40,7 +37,7 @@ function AppIcon({
   return (
     <button type="button" className={styles.appBtn} aria-label={aria} onClick={() => onOpen(id)}>
       <motion.span
-        layoutId={inDock ? undefined : `app-${id}`}
+        layoutId={`app-${id}`}
         className={styles.appIcon}
         style={
           image
@@ -73,19 +70,13 @@ function AppIcon({
 export function AppGrid({
   phone,
   onOpen,
-  dock = false,
 }: {
   phone: PhoneState
   onOpen: (id: PhoneAppId) => void
-  dock?: boolean
 }) {
-  const apps = dock
-    ? PHONE_DOCK.map((id) => PHONE_APPS.find((a) => a.id === id)!).filter(Boolean)
-    : PHONE_APPS
-
   return (
-    <div className={dock ? styles.dock : styles.grid} role="list" aria-label={dock ? 'Dock' : 'Apps'}>
-      {apps.map((app) => (
+    <div className={styles.grid} role="list" aria-label="Apps">
+      {PHONE_APPS.map((app) => (
         <div key={app.id} role="listitem">
           <AppIcon
             id={app.id}
@@ -96,7 +87,6 @@ export function AppGrid({
             unread={phone.unread[app.id] ?? 0}
             isNew={phone.newApps.includes(app.id)}
             soon={app.status === 'soon'}
-            inDock={dock}
             onOpen={onOpen}
           />
         </div>

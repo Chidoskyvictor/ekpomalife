@@ -939,7 +939,7 @@ function MoneySheet({
           {busy ? 'Sending…' : amount ? `Send ${naira(amount)}` : 'Enter an amount'}
         </button>
         <p className={styles.sheetHint}>
-          {naira(TRANSFER_MIN)} – {naira(TRANSFER_MAX)} per send. Money can’t be taken back.
+          At least {naira(TRANSFER_MIN)}, up to your balance. Money can’t be taken back.
         </p>
       </div>
     </div>

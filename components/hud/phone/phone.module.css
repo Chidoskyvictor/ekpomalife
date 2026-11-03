@@ -6,10 +6,11 @@
   display: flex;
   align-items: flex-end;
   justify-content: center;
+  /* 16px of map under the phone */
   padding:
     0
     max(10px, env(safe-area-inset-right))
-    max(6px, env(safe-area-inset-bottom))
+    calc(16px + env(safe-area-inset-bottom))
     max(10px, env(safe-area-inset-left));
   overflow: hidden;
   background: transparent;
@@ -45,32 +46,34 @@
   flex-shrink: 0;
 }
 
-/* Thin, even iPhone-style bezel; the screen runs to the top edge. */
+/*
+ * Real-phone shape (9 : 19.5), sized from the height so it never gets fat: the space between the
+ * top HUD and the bottom (minus the Close pill above it), up to 780px. Thin 8px bezel.
+ */
 .frame {
+  --bezel: 8px;
+  --radius: 44px;
   position: relative;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
-  width: min(380px, calc(100vw - 20px));
-  height: min(72dvh, 700px);
-  max-height: calc(
-    100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - var(--close-h) - var(--close-gap) - 24px
+  aspect-ratio: 9 / 19.5;
+  height: min(
+    calc(
+      100dvh - var(--hud-top, 140px) - 24px - var(--close-h) - var(--close-gap) - env(safe-area-inset-bottom)
+    ),
+    780px
   );
+  width: auto;
+  max-width: calc(100vw - 64px);
   overflow: hidden;
-  border-radius: 3rem;
-  border: 5px solid #16161a;
+  border-radius: var(--radius);
+  border: var(--bezel) solid #16161a;
   box-shadow:
     0 0 0 1px rgba(255, 255, 255, 0.08),
     0 24px 80px rgba(0, 0, 0, 0.45);
   background: #0b0b0f;
   color: #fff;
-}
-
-@media (min-width: 640px) {
-  .frame {
-    width: min(380px, calc(100vw - 24px));
-    height: min(84dvh, 800px);
-  }
 }
 
 .closePill {
@@ -96,15 +99,14 @@
   -webkit-backdrop-filter: none;
 }
 
-/* Dynamic Island — sits on the screen, between the time and the battery. */
+/* Dynamic Island — sits on the screen, between the time and the battery; scales with the frame. */
 .island {
   position: absolute;
-  top: 9px;
+  top: 2.6%;
   left: 50%;
   z-index: 6;
   width: 30%;
-  max-width: 112px;
-  height: 28px;
+  aspect-ratio: 4 / 1;
   transform: translateX(-50%);
   border-radius: 999px;
   background: #000;
@@ -118,7 +120,7 @@
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
-  border-radius: calc(3rem - 5px);
+  border-radius: calc(var(--radius) - var(--bezel));
 }
 
 /* No visible scrollbars anywhere inside the phone (still scrolls by touch / wheel). */
@@ -498,19 +500,6 @@
   border-radius: 999px;
   background: rgba(148, 163, 184, 0.95);
   border: 1px solid rgba(255, 255, 255, 0.5);
-}
-
-.dock {
-  /* Outside the scrolling area, so it is always fully visible */
-  flex: none;
-  margin-top: auto;
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
-  padding: 12px;
-  border-radius: 22px;
-  background: rgba(0, 0, 0, 0.28);
-  border: 1px solid rgba(255, 255, 255, 0.18);
 }
 
 .appFrame {
@@ -898,4 +887,60 @@
   .liveDot {
     animation: none;
   }
+}
+
+/* Update notice on the home screen (replaces the promo banner) */
+.updateCard {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 8px 8px 8px 10px;
+  border-radius: 20px;
+  background: rgba(20, 20, 26, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #fff;
+}
+
+.updateCardNew {
+  background: rgba(22, 128, 61, 0.9);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.updateIcon {
+  flex: none;
+  font-size: 18px;
+}
+
+.updateText {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.updateText strong {
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.updateText span {
+  font-size: 11px;
+  line-height: 1.25;
+  opacity: 0.85;
+}
+
+.updateBtn {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 999px;
+  background: #fff;
+  color: #111;
+  font-size: 12px;
+  font-weight: 700;
 }

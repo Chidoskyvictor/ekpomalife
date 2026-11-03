@@ -86,7 +86,9 @@
   }
   html,
   body {
-    @apply h-full overflow-hidden bg-background text-foreground;
+    @apply h-full overflow-hidden text-foreground;
+    /* Plain white behind the canvas (load, overscroll) to match the white status bar */
+    background-color: #ffffff;
     overscroll-behavior: none;
     max-width: 100%;
   }

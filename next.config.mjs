@@ -38,8 +38,13 @@ const securityHeaders = [
   },
 ]
 
+// One id per build: baked into the app and served at /version, so an open phone can tell a new
+// deploy is out and offer Refresh.
+const BUILD_VERSION = process.env.NEXT_PUBLIC_BUILD_VERSION || String(Date.now())
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  env: { NEXT_PUBLIC_BUILD_VERSION: BUILD_VERSION },
   // Phone / other PCs hitting this machine by LAN IP (dev only).
   allowedDevOrigins: [
     '192.168.0.199',

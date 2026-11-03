@@ -5,7 +5,7 @@ import { countPlayersWithSetupComplete } from '../game/setup-status.js'
 type Stats = { players: number; online: number; today: number; visits: number }
 
 let cached: { stats: Stats; at: number } | null = null
-const CACHE_MS = 30_000
+const CACHE_MS = 10_000
 /** A session counts as online if it made a request this recently. */
 const ONLINE_WINDOW = '5 minutes'
 

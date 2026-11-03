@@ -5,7 +5,7 @@ import type { PhoneGetResponse } from '@/lib/game/phone-api'
 import type { SpaceCard } from '@/lib/game/spaces-api'
 import { PHONE_MODE_KEY, type PhoneAppId, type PhonePromo, type PhoneState } from '@/lib/game/phone'
 import { AppGrid } from './app-grid'
-import { PromoBanner } from './promo-banner'
+import { UpdateBanner } from './update-banner'
 import styles from './phone.module.css'
 
 export function PhoneHome({
@@ -54,7 +54,6 @@ export function PhoneHome({
 
   return (
     <div className={styles.home}>
-      {/* Everything but the dock scrolls; the dock sits below it, so it never covers an app */}
       <div className={styles.homeScroll}>
       <p className={styles.clock} aria-label={clock?.label}>
         {clock?.label?.replace(/\s?(AM|PM)$/i, '') ?? '--:--'}
@@ -82,7 +81,7 @@ export function PhoneHome({
         </div>
       </div>
 
-      <PromoBanner promos={promos} onAction={onPromo} lowPerf={lowPerf} />
+      <UpdateBanner />
 
       {liveSpaces.length > 0 ? (
         <section className={styles.liveStrip} aria-label="Live now">
@@ -106,7 +105,6 @@ export function PhoneHome({
 
       <AppGrid phone={phone} onOpen={onOpenApp} />
       </div>
-      <AppGrid phone={phone} onOpen={onOpenApp} dock />
     </div>
   )
 }

@@ -23,9 +23,9 @@ export type ChatSender = {
 /** text · system ("X joined") · sticker (body = sticker id) · invite (body = host username) · visit (body = visited username) · money (body = naira amount) */
 export type MessageKind = 'text' | 'system' | 'sticker' | 'invite' | 'visit' | 'money' | 'game'
 
-/** Naira you can send in one go from a direct chat. */
+/** Naira you can send in one go from a direct chat: at least ₦100, no upper limit (only your balance). */
 export const TRANSFER_MIN = 100
-export const TRANSFER_MAX = 500_000
+export const TRANSFER_MAX = Number.MAX_SAFE_INTEGER
 /** Money sends per user per minute (on top of the general chat rate). */
 export const TRANSFER_RATE_PER_MIN = 5
 
@@ -432,7 +432,7 @@ export async function sendMoney(
   amount: number,
 ): Promise<{ ok: true; message: ChatMessage; cash: number; version: number } | Fail> {
   if (!Number.isInteger(amount) || amount < TRANSFER_MIN || amount > TRANSFER_MAX) {
-    return fail(400, 'BAD_AMOUNT', `Send between ₦${TRANSFER_MIN.toLocaleString()} and ₦${TRANSFER_MAX.toLocaleString()}.`)
+    return fail(400, 'BAD_AMOUNT', `Send at least ₦${TRANSFER_MIN.toLocaleString()}.`)
   }
   if ((await chatKindOf(chatId)) !== 'direct') return fail(400, 'DIRECT_ONLY', 'You can only send money in a one-to-one chat.')
   if (!(await isMember(chatId, userId))) return fail(403, 'NOT_MEMBER', 'You are not in this chat.')

@@ -36,7 +36,7 @@ const jakarta = Plus_Jakarta_Sans({
 
 export const viewport: Viewport = {
   colorScheme: 'light',
-  themeColor: '#3d9ad6',
+  themeColor: '#ffffff',
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',

@@ -18,7 +18,7 @@ type StatsResponse =
   | { ok: true; players: number; online: number; today?: number; visits: number }
   | { ok: false; error?: string }
 
-const REFRESH_MS = 60_000
+const REFRESH_MS = 20_000
 const VISIT_KEY = 'ekpoma-life-visit-counted'
 
 /** Count this browser visit once (per tab session), then forget about it. */

@@ -111,7 +111,8 @@ export function sendChatMessage(chatId: string, body: string, kind: 'text' | 'st
 
 /** Send naira to the other player in a direct chat (₦100 – ₦500,000). */
 export const TRANSFER_MIN = 100
-export const TRANSFER_MAX = 500_000
+/** No upper limit: you can send up to your whole balance. */
+export const TRANSFER_MAX = Number.MAX_SAFE_INTEGER
 
 export function sendChatMoney(chatId: string, amount: number) {
   return apiPost<{ ok: true; message: ChatMessage; cash: number; version: number }>(
