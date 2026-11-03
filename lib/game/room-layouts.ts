@@ -371,7 +371,8 @@ export const LECTURE_HALL: RoomLayout = {
       {
         approach: [s.x + Math.sin(s.heading) * 0.62, s.z + Math.cos(s.heading) * 0.62],
         at: [s.x + Math.sin(s.heading) * 0.04, -0.26, s.z + Math.cos(s.heading) * 0.04],
-        heading: s.heading,
+        // A character with heading 0 faces +z (the camera), so turn half a circle to face the podium
+        heading: s.heading + Math.PI,
       } satisfies FurnitureSpot,
     ]),
   ),
