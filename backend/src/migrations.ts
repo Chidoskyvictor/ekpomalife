@@ -3,6 +3,27 @@ import { resolve } from 'node:path'
 import { createPool } from './db.js'
 import { env } from './env.js'
 
+/** First line marker for files that cannot run in a transaction (e.g. CREATE INDEX CONCURRENTLY). */
+const NO_TRANSACTION = /^-- migrate:no-transaction\s*$/m
+/** Such files are split on lines that read exactly "-- statement"; each chunk runs as its own query. */
+const STATEMENT_BREAK = /^-- statement\s*$/m
+
+/**
+ * Each chunk autocommits, so a failure part-way leaves earlier chunks applied. Write these files so
+ * every chunk is safe to re-run; the file is only recorded once all chunks succeed.
+ */
+async function runWithoutTransaction(pool: ReturnType<typeof createPool>, file: string, sql: string) {
+  const chunks = sql.split(STATEMENT_BREAK).map((chunk) => chunk.trim()).filter(Boolean)
+  try {
+    for (const chunk of chunks) await pool.query(chunk)
+    await pool.query(`INSERT INTO schema_migrations (id) VALUES ($1)`, [file])
+    console.log(`Applied ${file} (no transaction)`)
+  } catch (error) {
+    console.error(`Failed ${file}`)
+    throw error
+  }
+}
+
 /**
  * Apply every backend/sql/*.sql file in sorted order.
  * Tracks applied files in schema_migrations so re-runs are safe.
@@ -34,6 +55,10 @@ export async function runMigrations(): Promise<void> {
       }
 
       const sql = await readFile(resolve(dir, file), 'utf8')
+      if (NO_TRANSACTION.test(sql)) {
+        await runWithoutTransaction(pool, file, sql)
+        continue
+      }
       const client = await pool.connect()
       try {
         await client.query('BEGIN')

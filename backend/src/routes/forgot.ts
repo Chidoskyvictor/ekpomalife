@@ -28,6 +28,28 @@ function firstZodError(error: { issues: { message: string }[] }) {
 
 const OK = { ok: true as const }
 
+/** Retire older codes, store a new one and email it. Runs after the reply has gone out. */
+export async function issueResetCode(user: { id: string; name: string; email: string }) {
+  const code = createResetCode()
+  const codeHash = hashResetCode(code, user.id)
+  const expiresAt = resetExpiry()
+
+  await pool.query(
+    `UPDATE password_resets
+     SET used_at = NOW()
+     WHERE user_id = $1 AND used_at IS NULL AND expires_at > NOW()`,
+    [user.id],
+  )
+  await pool.query(
+    `INSERT INTO password_resets (id, user_id, code_hash, expires_at)
+     VALUES ($1, $2, $3, $4)`,
+    [createId(), user.id, codeHash, expiresAt],
+  )
+
+  const mail = buildResetEmail({ name: user.name, code, appUrl: env.FRONTEND_ORIGIN })
+  await sendMail({ to: user.email, subject: mail.subject, text: mail.text, html: mail.html })
+}
+
 export async function forgotRoutes(app: FastifyInstance) {
   app.post(
     '/auth/forgot',
@@ -61,43 +83,11 @@ export async function forgotRoutes(app: FastifyInstance) {
         [email],
       )
       const user = found.rows[0]
-      if (!user) {
-        return reply.code(404).send({
-          ok: false,
-          code: 'NO_ACCOUNT',
-          error: "We couldn't find an account with that email.",
-        })
+      // Known or unknown email: same reply, sent before any extra work, so neither the body
+      // nor the timing says whether an account exists. The code is issued in the background.
+      if (user) {
+        void issueResetCode(user).catch((error) => request.log.error(error))
       }
-
-      const code = createResetCode()
-      const codeHash = hashResetCode(code, user.id)
-      const expiresAt = resetExpiry()
-
-      await pool.query(
-        `UPDATE password_resets
-         SET used_at = NOW()
-         WHERE user_id = $1 AND used_at IS NULL AND expires_at > NOW()`,
-        [user.id],
-      )
-      await pool.query(
-        `INSERT INTO password_resets (id, user_id, code_hash, expires_at)
-         VALUES ($1, $2, $3, $4)`,
-        [createId(), user.id, codeHash, expiresAt],
-      )
-
-      try {
-        const mail = buildResetEmail({ name: user.name, code, appUrl: env.FRONTEND_ORIGIN })
-        await sendMail({
-          to: user.email,
-          subject: mail.subject,
-          text: mail.text,
-          html: mail.html,
-        })
-      } catch (error) {
-        request.log.error(error)
-        // Still return ok so attackers cannot probe delivery.
-      }
-
       return reply.send(OK)
     },
   )

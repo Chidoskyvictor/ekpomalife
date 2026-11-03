@@ -11,6 +11,7 @@
     "start": "node dist/server.js",
     "migrate": "node dist/migrate.js",
     "db:migrate": "tsx --env-file=.env src/migrate.ts",
+    "db:check-emails": "tsx src/check-email-collisions.ts",
     "test": "vitest run",
     "test:legacy": "tsx src/game/run-tests.ts",
     "test:watch": "vitest",
