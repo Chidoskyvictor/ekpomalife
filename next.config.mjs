@@ -9,13 +9,13 @@ const apiWs = apiOrigin.replace(/^http/, 'ws')
 const csp = [
   "default-src 'self'",
   // 'unsafe-inline': Next's inline bootstrap scripts (no nonces). 'wasm-unsafe-eval': meshopt/Draco GLB decoders.
-  // gstatic: drei's default Draco decoder. Paystack: inline checkout. Cloudflare: auto-injected analytics beacon.
+  // blob:/data: in connect-src: GLTFLoader fetches embedded textures by blob URL. gstatic: drei's default Draco decoder. Paystack: inline checkout. Cloudflare: auto-injected analytics beacon.
   "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://www.gstatic.com https://*.paystack.co https://*.paystack.com https://static.cloudflareinsights.com",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
   "media-src 'self' blob: data:",
-  `connect-src 'self' ${apiOrigin} ${apiWs} https://*.livekit.cloud wss://*.livekit.cloud https://*.paystack.co https://*.paystack.com https://www.gstatic.com https://cloudflareinsights.com`,
+  `connect-src 'self' blob: data: ${apiOrigin} ${apiWs} https://*.livekit.cloud wss://*.livekit.cloud https://*.paystack.co https://*.paystack.com https://www.gstatic.com https://cloudflareinsights.com`,
   "frame-src 'self' https://*.paystack.com https://*.paystack.co",
   "worker-src 'self' blob:",
   "object-src 'none'",
