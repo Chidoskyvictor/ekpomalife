@@ -4,7 +4,7 @@ import { useSyncExternalStore } from 'react'
 
 /**
  * Low-perf / low-data mode: cheap CPUs (≤ 4 cores), Data Saver on, or a slow
- * connection (slow-2g, 2g, 3g). In this mode we skip billboards and drop
+ * connection (slow-2g, 2g, 3g). In this mode we drop
  * blur/backdrop-filter. We never lower DPR, antialias or texture quality.
  *
  * First paint assumes capable so SSR and hydration stay stable.

@@ -20,9 +20,8 @@ import {
   type Mesh,
 } from 'three'
 import { useGame } from '@/hooks/use-game'
-import { useLowPerf } from '@/hooks/use-low-perf'
 import { drawAdPlaceholder, drawBoardAd, drawBoardImage, openAd, stampBoardNumber } from '@/lib/game/billboard-ad'
-import { adForBoard, boardNumber } from '@/lib/game/billboard-ads'
+import { ADS, adForBoard, boardNumber } from '@/lib/game/billboard-ads'
 import { kenneyUrl } from '@/lib/game/kenney-buildings'
 import { mapPalette as MAP } from '@/lib/game/map-theme'
 import { placeFor } from '@/lib/game/place-info'
@@ -851,7 +850,8 @@ const BILLBOARDS: Record<string, { url: string; nativeHeight: number; groundY: n
     ],
   },
 }
-// Billboards load when first drawn (never on low-perf / low-data devices), so no preload here
+// Preload with the other buildings so billboards appear with the map, on every device
+Object.values(BILLBOARDS).forEach(({ url }) => useGLTF.preload(url))
 
 /** World height of a billboard before the zone's scaleMul. */
 const BILLBOARD_HEIGHT = 9
@@ -873,6 +873,11 @@ function loadAdImage(src: string) {
     adImages.set(src, image)
   }
   return image
+}
+
+// Start fetching the ad artwork right away, so the board isn't waiting on it
+if (typeof window !== 'undefined') {
+  for (const ad of Object.values(ADS)) void loadAdImage(ad.boardImage ?? ad.image).catch(() => {})
 }
 
 function toTexture(canvas: HTMLCanvasElement) {
@@ -1011,10 +1016,8 @@ function ZoneFallback({ zone }: { zone: MapZone }) {
 }
 
 function ZoneMesh({ zone }: { zone: MapZone }) {
-  const lowPerf = useLowPerf()
   if (zone.open) return <OpenZone zone={zone} />
-  // Low-perf / low-data: skip billboard GLBs and their ad textures entirely
-  if (BILLBOARDS[zone.model]) return lowPerf ? null : <BillboardZone zone={zone} />
+  if (BILLBOARDS[zone.model]) return <BillboardZone zone={zone} />
   if (zone.model === 'label') return <LabelZone zone={zone} />
   if (zone.parts) return <ClusterZone zone={zone} />
   if (zone.model === 'aau-gate' || zone.id === 'aau-gate') return <AauGateZone zone={zone} />
