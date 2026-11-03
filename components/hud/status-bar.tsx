@@ -25,6 +25,7 @@ export function StatusBar({
   onShop,
   onRetry,
   onMood,
+  missions,
 }: {
   /** Null while waiting on GET /game/state — chrome still paints. */
   state: GameState | null
@@ -34,6 +35,8 @@ export function StatusBar({
   onRetry?: () => void
   /** Tapping the mood chip ("Sad") opens the Needs sheet. */
   onMood?: () => void
+  /** Daily missions counter (🎯 1/3): opens the missions sheet. */
+  missions?: { done: number; total: number; onOpen: () => void } | null
 }) {
   const reduced = useReducedMotion() ?? false
   const [muted, setMuted] = useState(false)
@@ -158,6 +161,17 @@ export function StatusBar({
             {mood ? mood.label : '—'}
           </span>
         )}
+
+        {missions ? (
+          <button
+            type="button"
+            className={`${styles.statusItem} ${styles.moodBtn}`}
+            aria-label={`Today's missions: ${missions.done} of ${missions.total} done`}
+            onClick={missions.onOpen}
+          >
+            🎯 {missions.done}/{missions.total}
+          </button>
+        ) : null}
 
         <SiteStats variant="inline" />
 

@@ -10,6 +10,8 @@ import { EventDialog } from '@/components/hud/event-dialog'
 import { MapPlaceSheet } from '@/components/hud/map-place-sheet'
 import { HouseSheet } from '@/components/hud/house-sheet'
 import { SchoolCard } from '@/components/school/school-card'
+import { MissionsSheet } from '@/components/missions/missions-sheet'
+import { useMissions } from '@/lib/game/missions-api'
 import { MarketHubSheet } from '@/components/hud/market-hub-sheet'
 import { MeCard } from '@/components/hud/me-card'
 import { PhoneDialog } from '@/components/hud/phone-dialog'
@@ -51,6 +53,8 @@ export function Hud() {
   const lowPerf = useLowPerf()
   const [phoneOpen, setPhoneOpen] = useState(false)
   const [buyOpen, setBuyOpen] = useState(false)
+  const [missionsOpen, setMissionsOpen] = useState(false)
+  const missionsView = useMissions(!isGuest && Boolean(state))
   const [topUpOpen, setTopUpOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
@@ -231,6 +235,7 @@ export function Hud() {
             onShop={() => setTopUpOpen(true)}
             onRetry={bootError ? retryBoot : undefined}
             onMood={() => openProfile('needs')}
+            missions={missionsView ? { done: missionsView.doneCount, total: missionsView.missions.length, onOpen: () => setMissionsOpen(true) } : null}
           />
         </div>
         {/* What you're doing and what's next (Sims-style tiles): fills up, ✕ cancels */}
@@ -289,6 +294,7 @@ export function Hud() {
       <MapPlaceSheet hidden={mapSheetHidden} />
       <MarketHubSheet hidden={mapSheetHidden} />
       <HouseSheet hidden={mapSheetHidden} />
+      <MissionsSheet open={missionsOpen && !phoneOpen} onClose={() => setMissionsOpen(false)} />
       <BuySheet
         open={buyOpen}
         onOpenChange={(open) => {

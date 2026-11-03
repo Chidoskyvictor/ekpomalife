@@ -1,0 +1,175 @@
+.list {
+  display: grid;
+  gap: 10px;
+  min-height: 0;
+  overflow-y: auto;
+  padding-bottom: 4px;
+}
+
+.summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 2px 12px;
+}
+
+.ring {
+  flex: none;
+  width: 52px;
+  height: 52px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  font-size: 15px;
+  font-weight: 800;
+  background:
+    radial-gradient(closest-side, #fff 76%, transparent 78%),
+    conic-gradient(var(--primary) calc(var(--done) * 1%), #e8edf3 0);
+}
+
+.summaryText {
+  flex: 1;
+  min-width: 0;
+}
+
+.summaryText strong {
+  display: block;
+  font-size: 15px;
+}
+
+.summaryText span {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.card {
+  display: grid;
+  grid-template-columns: 44px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 12px;
+  border-radius: 18px;
+  border: 1px solid #e8edf3;
+  background: #fff;
+}
+
+.cardDone {
+  opacity: 0.6;
+}
+
+.emoji {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  background: #f3f6fa;
+  font-size: 22px;
+}
+
+.info {
+  min-width: 0;
+}
+
+.tagRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+
+.tag {
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  background: #eef2ff;
+  color: #3746a8;
+}
+
+.tagRisk {
+  background: #fff1f0;
+  color: #b42318;
+}
+
+.title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.blurb {
+  margin: 2px 0 0;
+  font-size: 12px;
+  line-height: 1.35;
+  color: #6b7280;
+}
+
+.meta {
+  margin: 4px 0 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: #15803d;
+}
+
+.side {
+  display: grid;
+  justify-items: end;
+  gap: 6px;
+}
+
+.go {
+  min-width: 64px;
+  min-height: 40px;
+  border-radius: 999px;
+  border: 0;
+  padding: 0 14px;
+  background: var(--primary);
+  color: #fff;
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.go:disabled {
+  opacity: 0.45;
+}
+
+.swap {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  border: 1px solid #e8edf3;
+  background: #fff;
+  color: #6b7280;
+  display: grid;
+  place-items: center;
+}
+
+.check {
+  font-size: 13px;
+  font-weight: 800;
+  color: #15803d;
+}
+
+.note {
+  margin: 10px 2px 0;
+  text-align: center;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+/* HUD counter */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-weight: 800;
+  color: inherit;
+  padding: 0 4px;
+  min-height: 32px;
+}

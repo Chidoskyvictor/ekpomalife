@@ -20,6 +20,7 @@ import {
 import { emptyCampus, feesBalance, type CampusState } from '@/lib/game/campus'
 import { MAP_ZONES } from '@/lib/game/world-layout'
 import { isSchoolCard, runSchoolAction, schoolCardLock, useSchool } from '@/lib/game/school-api'
+import { refreshMissions } from '@/lib/game/missions-api'
 import { StudentPortal } from '@/components/school/student-portal'
 import { stickerForZone } from '@/lib/game/zone-stickers'
 import { hapticTap } from '@/components/hud/haptic'
@@ -295,6 +296,11 @@ export function BuildingPanel({
       return
     }
     notifyToast(res.message, true)
+    // A lecture can finish the "Attend a lecture" mission (and pays its reward)
+    if (action.id === 'attend-lecture') {
+      void refreshMissions()
+      void refreshServer()
+    }
     // Fees change your cash: refresh the wallet
     if (action.id.startsWith('pay-')) void refreshServer()
     if (res.result?.grade === 'A') void confetti({ particleCount: 90, spread: 70, origin: { y: 0.65 } })

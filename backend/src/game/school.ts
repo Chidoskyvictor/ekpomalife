@@ -2,6 +2,7 @@ import type { PoolClient } from 'pg'
 import { pool } from '../db.js'
 import { getCourse } from './aau-courses.js'
 import { applyCash } from './game-state.js'
+import { missionProgress } from './missions.js'
 import {
   ACCEPTANCE_FEE,
   FEES_PLACE,
@@ -227,7 +228,8 @@ export async function schoolAction(
          WHERE character_id = $1`,
         [ch.id, prep, now.day, lecturesToday + 1, tutorialsToday],
       )
-      return done(`Lecture attended 📝 Exam prep ${prep}%.`)
+      const mission = await missionProgress(client, ch.id, 'lecture')
+      return done(`Lecture attended 📝 Exam prep ${prep}%.${mission ? ` ${mission}` : ''}`)
     }
 
     if (action === 'tutorial') {

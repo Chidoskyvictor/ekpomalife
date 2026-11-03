@@ -8,6 +8,7 @@ import { openDirectChat } from '@/lib/game/hostels-api'
 import { requestOpenChat } from '@/lib/game/open-chat'
 import { bubbleFor, REACTIONS, SOCIALS, type SocialId } from '@/lib/game/quick-lines'
 import { socialAtVenue } from '@/lib/game/venues-api'
+import { refreshMissions } from '@/lib/game/missions-api'
 import styles from './place-social.module.css'
 
 /*
@@ -103,7 +104,15 @@ export function usePlaceSocial(placeId: string, live: Live) {
         const reply = NPC_REPLY[kind][res.landed ? 0 : 1]
         window.setTimeout(() => showBubble(npcId, reply), 800)
       }
-      notifyToast(kind === 'joke' && !res.landed ? 'The joke flopped 😬' : `${def.label} · ${def.gains}`, res.landed)
+      // "Bond with 5 people" mission: the server says when it's done
+      const mission = (res as { mission?: string | null }).mission
+      if (mission) {
+        notifyToast(mission, true)
+        void refreshMissions()
+      } else {
+        notifyToast(kind === 'joke' && !res.landed ? 'The joke flopped 😬' : `${def.label} · ${def.gains}`, res.landed)
+        void refreshMissions()
+      }
     } finally {
       setActing(false)
     }

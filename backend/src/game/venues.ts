@@ -1,3 +1,4 @@
+import { missionProgress } from './missions.js'
 import type { PoolClient } from 'pg'
 import { pool } from '../db.js'
 import { createId } from '../ids.js'
@@ -402,11 +403,13 @@ export async function socialAtVenue(userId: string, venueId: string, kind: Socia
           characterId,
           JSON.stringify(nextNeeds),
         ])
+        // "Bond with 5 people" daily mission (players and NPCs both count)
+        const mission = await missionProgress(client, characterId, 'bond', target)
         if (!target.startsWith('npc:')) {
           const group = visit.group_no
           announce = () => announceSocial(venueId, night, group, { from: userId, to: target, kind, landed })
         }
-        return { status: 200, body: { ok: true, landed, needs: nextNeeds } }
+        return { status: 200, body: { ok: true, landed, needs: nextNeeds, mission } }
       },
     }),
   )
