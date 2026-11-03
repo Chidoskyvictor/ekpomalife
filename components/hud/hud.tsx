@@ -8,6 +8,7 @@ import { ChangeDreamDialog } from '@/components/hud/change-dream-dialog'
 import { DreamCelebration } from '@/components/hud/dream-celebration'
 import { EventDialog } from '@/components/hud/event-dialog'
 import { MapPlaceSheet } from '@/components/hud/map-place-sheet'
+import { HouseSheet } from '@/components/hud/house-sheet'
 import { MarketHubSheet } from '@/components/hud/market-hub-sheet'
 import { MeCard } from '@/components/hud/me-card'
 import { PhoneDialog } from '@/components/hud/phone-dialog'
@@ -284,6 +285,7 @@ export function Hud() {
 
       <MapPlaceSheet hidden={mapSheetHidden} />
       <MarketHubSheet hidden={mapSheetHidden} />
+      <HouseSheet hidden={mapSheetHidden} />
       <BuySheet
         open={buyOpen}
         onOpenChange={(open) => {

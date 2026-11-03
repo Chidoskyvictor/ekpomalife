@@ -19,6 +19,7 @@ import { WorldScenery } from './world-scenery'
 import { WorldBase } from './world-base'
 import { WorldTrees } from './world-trees'
 import { ExtSlabHostels } from './ext-slab-hostels'
+import { HouseTargets } from './house-targets'
 import { WorldZones } from './world-zones'
 import { WorldZoneDebugPanel } from './world-zone-debug-panel'
 import { BillboardDebugPanel } from './billboard-debug-panel'
@@ -335,6 +336,8 @@ export function WorldCanvas() {
         <Suspense fallback={null}>
           <ExtSlabHostels />
         </Suspense>
+        {/* players' houses in the estates: tap one for its sheet */}
+        <HouseTargets />
         <Suspense fallback={null}>
           {state ? <PlayerAvatar locationId={state.locationId} color={state.avatarColor} appearance={state.appearance} /> : null}
         </Suspense>
