@@ -270,3 +270,37 @@ async function pickNote(key: string, me: Member, msg: Record<string, unknown>) {
 export function liveCount(venueId: string, night: number, group: number) {
   return rooms.get(roomKey(venueId, night, group))?.size ?? 0
 }
+
+/**
+ * Live room inside a player's home: the owner and anyone visiting see each other move.
+ * Anyone signed in can join a home's room (the visit page is already open to them).
+ */
+export async function createHomeTicket(userId: string, ownerUsername: string) {
+  const owner = await pool.query<{ id: string }>(`SELECT id FROM users WHERE LOWER(username) = LOWER($1)`, [ownerUsername])
+  const ownerId = owner.rows[0]?.id
+  if (!ownerId) return null
+  const me = await pool.query<{ character_id: string; username: string; appearance: unknown }>(
+    `SELECT c.id AS character_id, u.username, c.appearance
+     FROM characters c JOIN users u ON u.id = c.user_id WHERE u.id = $1`,
+    [userId],
+  )
+  const row = me.rows[0]
+  if (!row) return null
+  const token = randomBytes(24).toString('base64url')
+  const now = Date.now()
+  for (const [key, t] of tickets) if (t.expires < now) tickets.delete(key)
+  tickets.set(token, {
+    userId,
+    characterId: row.character_id,
+    username: row.username,
+    displayName: row.username,
+    appearance: row.appearance,
+    vip: false,
+    // No ':' in the id (room keys are split on it)
+    venueId: `home-${ownerId}`,
+    night: 0,
+    group: 1,
+    expires: now + 60_000,
+  })
+  return { ticket: token, group: 1 }
+}

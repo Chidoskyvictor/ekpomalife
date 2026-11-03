@@ -61,7 +61,8 @@ function socketUrl(ticket: string) {
   return `${base.replace(/^http/, 'ws')}/ws/club?ticket=${encodeURIComponent(ticket)}`
 }
 
-export function useClubLive(venueId: string, enabled: boolean, myUsername?: string | null) {
+/** `ticketPath`: where to get the socket ticket (default: the venue's; homes use /homes/<owner>/live-ticket). */
+export function useClubLive(venueId: string, enabled: boolean, myUsername?: string | null, ticketPath?: string) {
   const peers = useRef(new Map<string, Peer>())
   /** Bumps when someone joins or leaves (positions change without re-rendering). */
   const [roster, setRoster] = useState(0)
@@ -80,7 +81,7 @@ export function useClubLive(venueId: string, enabled: boolean, myUsername?: stri
 
     const connect = async () => {
       const res = await apiPost<{ ok: true; ticket: string; group: number }>(
-        `/venues/${encodeURIComponent(venueId)}/live-ticket`,
+        ticketPath ?? `/venues/${encodeURIComponent(venueId)}/live-ticket`,
         {},
       )
       if (stopped) return
@@ -149,7 +150,7 @@ export function useClubLive(venueId: string, enabled: boolean, myUsername?: stri
       socket.current = null
       setConnected(false)
     }
-  }, [enabled, venueId, myUsername])
+  }, [enabled, venueId, myUsername, ticketPath])
 
   // Clear sprays once their notes stop falling
   useEffect(() => {

@@ -21,7 +21,10 @@ import { STREET_AND_TRAVEL } from '@/lib/flags'
 import { BuyPanel } from './buy-panel'
 import { FurnitureSheet } from './furniture-sheet'
 import { RoomSheet } from './room-sheet'
-import type { RoomPlayerControl } from './room-player'
+import type { PlayerMove, RoomPlayerControl } from './room-player'
+import { ClubPeers } from '@/components/club/club-peers'
+import { useClubLive } from '@/lib/game/club-live'
+import type { Object3D } from 'three'
 import { VisitBanner } from './visit-banner'
 import styles from './room.module.css'
 
@@ -147,6 +150,30 @@ export function RoomScreen() {
     [host],
   )
 
+  // Live room inside this home: the owner and visitors see each other move (same socket as clubs)
+  const owner = visitingOther ? visiting : (state?.username ?? null)
+  const live = useClubLive(
+    `home-${owner ?? ''}`,
+    Boolean(owner && state) && !scene.outside,
+    state?.username,
+    owner ? `/homes/${encodeURIComponent(owner)}/live-ticket` : undefined,
+  )
+  const { sendState } = live
+  const onPlayerMove = useCallback(
+    (m: PlayerMove) => sendState({ x: m.x, y: m.y, z: m.z, h: m.h, pose: m.pose, moving: m.moving }),
+    [sendState],
+  )
+  // The host is shown live once they're in the room; until then, standing still from their card
+  const hostLive = useMemo(
+    () => visitingOther && [...live.peers.current.values()].some((p) => p.username.toLowerCase() === (visiting ?? '').toLowerCase()),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- live.roster is the change signal for the peers ref
+    [visitingOther, visiting, live.roster],
+  )
+  const effects = useCallback(
+    (_root: Object3D) => <ClubPeers peers={live.peers} roster={live.roster} />,
+    [live.peers, live.roster],
+  )
+
   useEffect(() => {
     let cancelled = false
     setModelReady('checking')
@@ -177,7 +204,9 @@ export function RoomScreen() {
             paint={paint}
             clock={clock}
             appearance={state?.appearance}
-            host={hostLook}
+            host={hostLive ? undefined : hostLook}
+            effects={effects}
+            onPlayerMove={onPlayerMove}
             onFurniture={buy.active ? undefined : setFurnitureKey}
             furnishing={furnishing}
             control={control}

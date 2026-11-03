@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { getSessionUser } from '../auth/current-user.js'
-import { SESSION_COOKIE } from '../auth/session.js'
+import { clearSessionCookie, hashSessionToken, SESSION_COOKIE } from '../auth/session.js'
 import { pool } from '../db.js'
 import { computeSetupStatus, type SetupStep } from '../game/setup-status.js'
 
@@ -17,6 +17,14 @@ type CharacterRow = {
  * setupComplete requires look + traits + dream and a game_state row.
  */
 export async function meRoutes(app: FastifyInstance) {
+  // Log out: end this session on the server and clear the cookie (works even if already expired)
+  app.post('/auth/logout', async (request, reply) => {
+    const token = request.cookies[SESSION_COOKIE]
+    if (token) await pool.query('DELETE FROM sessions WHERE token_hash = $1', [hashSessionToken(token)])
+    clearSessionCookie(reply)
+    return reply.send({ ok: true })
+  })
+
   app.get('/auth/me', async (request, reply) => {
     const cookieArrived = Boolean(request.cookies[SESSION_COOKIE])
     const user = await getSessionUser(request)

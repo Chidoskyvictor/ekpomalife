@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { apiPost } from '@/lib/api/client'
 import { fetchAuthMe } from '@/lib/auth/fetch-auth-me'
 import { getPostAuthRoute } from '@/lib/auth/post-auth-redirect'
 import { pathsEqual, replaceNavigation } from '@/lib/navigation/safe-nav'
@@ -497,10 +498,17 @@ export function GameProvider({
         setState((current) => (current ? { ...current, dreamCelebrated: true } : current))
       },
       logOut: () => {
-        clearSession()
-        setState(null)
-        setSelectedId(null)
-        setPendingEvent(null)
+        // End the session on the server too (the login cookie is httpOnly, so only the server can
+        // clear it), then reload on the home page as a guest
+        void apiPost<{ ok: true }>('/auth/logout', {})
+          .catch(() => null)
+          .finally(() => {
+            clearSession()
+            setState(null)
+            setSelectedId(null)
+            setPendingEvent(null)
+            window.location.assign('/')
+          })
       },
       refreshServer,
       retryBoot,

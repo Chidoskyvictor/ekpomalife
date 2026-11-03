@@ -1,7 +1,9 @@
 'use client'
 
 import { Link2, X } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { pushNavigation } from '@/lib/navigation/safe-nav'
 import { AuthLinks } from '@/components/hud/auth-links'
 import { useGoTo } from '@/components/travel/use-go'
 import { useGame } from '@/hooks/use-game'
@@ -41,6 +43,7 @@ function formatHour(hour: number) {
  */
 export function MapPlaceSheet({ hidden = false }: { hidden?: boolean }) {
   const { state, booting, selectedId, select, act, notifyToast } = useGame()
+  const router = useRouter()
   const { go, travelling } = useGoTo()
   const place = placeFor(selectedId)
   const [mode, setMode] = useState<TripMode>('trek')
@@ -69,6 +72,13 @@ export function MapPlaceSheet({ hidden = false }: { hidden?: boolean }) {
   }, [placeId])
   const here = Boolean(state && placeId && state.locationId === placeId)
   const signedIn = Boolean(state)
+
+  // Tapping your own house while you're home goes straight inside (no sheet)
+  useEffect(() => {
+    if (placeId !== 'home' || !here) return
+    select(null)
+    pushNavigation(router, '/room')
+  }, [placeId, here, select, router])
 
   // Fresh fares and times whenever you pick another place
   useEffect(() => {
