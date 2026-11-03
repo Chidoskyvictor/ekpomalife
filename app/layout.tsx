@@ -1,6 +1,6 @@
 import { PlayShell } from '@/components/play-shell'
 import type { Viewport } from 'next'
-import { Fredoka, Geist, Inter, Plus_Jakarta_Sans } from 'next/font/google'
+import localFont from 'next/font/local'
 import { NoHScrollGuard } from '@/components/dev/no-hscroll-guard'
 import { RateLimitToast } from '@/components/ui/rate-limit-toast'
 import { TripLayer } from '@/components/travel/trip-layer'
@@ -11,27 +11,34 @@ import { rootMetadata } from '@/lib/seo/metadata'
 
 export const metadata = rootMetadata
 
-const geist = Geist({
-  subsets: ['latin'],
+// Fonts are bundled in app/fonts (Latin, variable weight) instead of downloaded from Google on
+// every build: a dropped connection used to fail the whole build.
+const geist = localFont({
+  src: './fonts/geist-latin.woff2',
   variable: '--font-geist',
+  weight: '100 900',
+  display: 'swap',
 })
 
-const inter = Inter({
-  subsets: ['latin'],
+const inter = localFont({
+  src: './fonts/inter-latin.woff2',
   variable: '--font-inter',
-  weight: ['400', '500', '600', '700', '800'],
+  weight: '100 900',
+  display: 'swap',
 })
 
-const fredoka = Fredoka({
-  subsets: ['latin'],
+const fredoka = localFont({
+  src: './fonts/fredoka-latin.woff2',
   variable: '--font-fredoka',
-  weight: ['500', '600', '700'],
+  weight: '300 700',
+  display: 'swap',
 })
 
-const jakarta = Plus_Jakarta_Sans({
-  subsets: ['latin'],
+const jakarta = localFont({
+  src: './fonts/jakarta-latin.woff2',
   variable: '--font-jakarta',
-  weight: ['400', '500', '600', '700', '800'],
+  weight: '200 800',
+  display: 'swap',
 })
 
 export const viewport: Viewport = {
