@@ -9,9 +9,9 @@
   /* 16px of map under the phone */
   padding:
     0
-    max(10px, env(safe-area-inset-right))
+    max(8px, env(safe-area-inset-right))
     calc(16px + env(safe-area-inset-bottom))
-    max(10px, env(safe-area-inset-left));
+    max(8px, env(safe-area-inset-left));
   overflow: hidden;
   background: transparent;
   backdrop-filter: none;
@@ -47,7 +47,7 @@
 }
 
 /*
- * Real-phone shape (9 : 19.5), sized from the height so it never gets fat: the space between the
+ * Fills the screen: almost full width, and from under the top HUD down to 16px above the bottom (the
  * top HUD and the bottom (minus the Close pill above it), up to 780px. Thin 8px bezel.
  */
 .frame {
@@ -57,15 +57,14 @@
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
-  aspect-ratio: 9 / 19.5;
   height: min(
     calc(
       100dvh - var(--hud-top, 140px) - 24px - var(--close-h) - var(--close-gap) - env(safe-area-inset-bottom)
     ),
     780px
   );
-  width: auto;
-  max-width: calc(100vw - 64px);
+  /* Nearly the full screen width (8px of map each side), up to a phone-like 440px on big screens */
+  width: min(calc(100vw - 16px), 440px);
   overflow: hidden;
   border-radius: var(--radius);
   border: var(--bezel) solid #16161a;

@@ -531,7 +531,7 @@ export const BUILDINGS: Record<string, BuildingDef> = {
     label: 'Shuttle Park',
     emoji: '🚌',
     kind: 'transport',
-    openHours: { open: 6, close: 20 },
+    openHours: null, // rides run day and night
     actions: [
       {
         id: 'shuttle-travel',
@@ -560,7 +560,7 @@ export const BUILDINGS: Record<string, BuildingDef> = {
     label: 'Keke Park',
     emoji: '🛵',
     kind: 'transport',
-    openHours: { open: 5, close: 22 },
+    openHours: null, // rides run day and night
     actions: [
       {
         id: 'travel',

@@ -161,7 +161,7 @@ export const PLACES: Place[] = [
     zoneId: 'keke-park',
     type: 'transport',
     actions: ['travel', 'hangout'],
-    openHours: { open: 5, close: 22 },
+    openHours: null, // rides run day and night
   },
   {
     id: 'shuttle-park',
@@ -169,7 +169,7 @@ export const PLACES: Place[] = [
     zoneId: 'shuttle-park',
     type: 'transport',
     actions: ['travel'],
-    openHours: { open: 6, close: 20 },
+    openHours: null, // rides run day and night
   },
   {
     id: 'engineering',
