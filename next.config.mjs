@@ -95,7 +95,10 @@ const nextConfig = {
     '*': ['./vendor/**'],
   },
   // drei/VideoTexture optional peer — pin resolve for webpack/OpenNext.
-  webpack: (config) => {
+  webpack: (config, { dev }) => {
+    // Production builds: no on-disk webpack cache. Its file-hash step crashed on this machine
+    // (WasmHash "reading 'length'" on a file it couldn't read), killing deploys at random.
+    if (!dev) config.cache = false
     config.resolve.alias = {
       ...config.resolve.alias,
       'hls.js': require.resolve('hls.js'),
