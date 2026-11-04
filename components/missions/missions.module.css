@@ -174,7 +174,7 @@
   min-height: 32px;
 }
 
-/* Missions button on the left, under the top bar: a ring fills as missions get done */
+/* Missions button on the left, under the top bar: just the 🎯, with a thin ring that fills as missions get done */
 .fab {
   pointer-events: auto;
   position: absolute;
@@ -184,14 +184,24 @@
   width: 52px;
   height: 52px;
   border: 0;
+  padding: 0;
   border-radius: 999px;
   display: grid;
   place-items: center;
-  background:
-    radial-gradient(closest-side, #fff 80%, transparent 82%),
-    conic-gradient(var(--primary) calc(var(--done) * 1%), #e3e8ef 0);
-  box-shadow: 0 6px 18px rgba(15, 30, 60, 0.18);
-  font-size: 24px;
+  background: transparent;
+  font-size: 30px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
+}
+
+/* The progress ring (no fill inside) */
+.fab::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: conic-gradient(var(--primary) calc(var(--done) * 1%), rgba(255, 255, 255, 0.75) 0);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
 }
 
 .fabDone {

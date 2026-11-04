@@ -2,7 +2,8 @@
 
 import { Html, OrbitControls, useGLTF } from '@react-three/drei'
 import { Canvas, useFrame, type ThreeEvent } from '@react-three/fiber'
-import { Suspense, use, useMemo, useRef, useState } from 'react'
+import { Suspense, use, useMemo, useRef, useState, type MutableRefObject } from 'react'
+import type { Peer, PeerState } from '@/lib/game/club-live'
 import { Box3, CanvasTexture, SRGBColorSpace, Vector3, type Bone, type Group, type Object3D } from 'three'
 import { CharacterFigure, type FigurePose } from '@/components/look/character-figure'
 import { normalizeAppearance, type Appearance } from '@/lib/game/look'
@@ -262,6 +263,7 @@ function Walker({
   target,
   sitHeading,
   onArrive,
+  onMove,
   children,
 }: {
   look: Partial<Appearance>
@@ -271,6 +273,8 @@ function Walker({
   /** Sit down facing this way once you get to `target` (a stool). */
   sitHeading?: number | null
   onArrive?: () => void
+  /** Your position each frame, sent to the others in your group. */
+  onMove?: (state: PeerState) => void
   children?: React.ReactNode
 }) {
   const appearance = useMemo(() => normalizeAppearance(look), [look])
@@ -308,6 +312,14 @@ function Walker({
         onArrive?.()
       }
     }
+    onMove?.({
+      x: g.position.x,
+      y: g.position.y,
+      z: g.position.z,
+      h: g.rotation.y,
+      pose: moving.current ? 'walk' : (pose.current ?? 'idle'),
+      moving: moving.current,
+    })
   })
   return (
     <group ref={root} position={[start[0], 0, start[1]]} rotation={[0, startHeading, 0]}>
@@ -425,6 +437,55 @@ function Sellers({ onSeller }: { onSeller: (npc: WiseNpc) => void }) {
   )
 }
 
+/** Another player in your group: walks where they really are (their spot until they first move). */
+function LivePlayer({
+  player,
+  peers,
+  spot,
+  onTap,
+  children,
+}: {
+  player: WisePlayer
+  peers?: MutableRefObject<Map<string, Peer>>
+  spot: { at: [number, number]; heading: number }
+  onTap: () => void
+  children?: React.ReactNode
+}) {
+  const appearance = useMemo(() => normalizeAppearance(player.appearance as Partial<Appearance>), [player.appearance])
+  const root = useRef<Group>(null)
+  const moving = useRef(false)
+  const pose = useRef<FigurePose | null>(null)
+  useFrame((_, dt) => {
+    const g = root.current
+    const s = peers?.current.get(player.userId)?.state
+    if (!g || !s) return
+    // Glide toward the latest position (updates arrive ~10 times a second)
+    const k = Math.min(1, dt * 10)
+    g.position.x += (s.x - g.position.x) * k
+    g.position.y += (s.y - g.position.y) * k
+    g.position.z += (s.z - g.position.z) * k
+    let turn = s.h - g.rotation.y
+    turn = Math.atan2(Math.sin(turn), Math.cos(turn))
+    g.rotation.y += turn * k
+    moving.current = s.moving
+    pose.current = s.moving ? null : s.pose === 'idle' || s.pose === 'walk' ? null : s.pose
+  })
+  return (
+    <group
+      ref={root}
+      position={[spot.at[0], 0, spot.at[1]]}
+      rotation={[0, spot.heading, 0]}
+      onClick={(event) => {
+        event.stopPropagation()
+        onTap()
+      }}
+    >
+      <CharacterFigure appearance={appearance} moving={moving} pose={pose} />
+      {children}
+    </group>
+  )
+}
+
 export function WiseScene({
   players,
   bubbles,
@@ -435,9 +496,15 @@ export function WiseScene({
   meSit = null,
   onArrive,
   onSeat,
+  peers,
+  onMove,
 }: {
   /** You first, then the others in your group. */
   players: WisePlayer[]
+  /** Live positions of the others in your group (same socket as the club). */
+  peers?: MutableRefObject<Map<string, Peer>>
+  /** Your position each frame, for the others. */
+  onMove?: (state: PeerState) => void
   /** Short-lived speech bubbles, by NPC id or player userId. */
   bubbles: Record<string, string>
   onWindow: (x: number) => void
@@ -502,22 +569,21 @@ export function WiseScene({
           const spot = PLAYER_SPOTS[i]!
           if (p.me) {
             return (
-              <Walker key={p.userId} look={p.appearance as Partial<Appearance>} start={spot.at} startHeading={spot.heading} target={meTarget} sitHeading={meSit} onArrive={onArrive}>
+              <Walker key={p.userId} look={p.appearance as Partial<Appearance>} start={spot.at} startHeading={spot.heading} target={meTarget} sitHeading={meSit} onArrive={onArrive} onMove={onMove}>
                 {bubbles.me ? <Bubble text={bubbles.me} tone="me" /> : <NameTag text="You" me />}
               </Walker>
             )
           }
           return (
-            <Figure
+            <LivePlayer
               key={p.userId}
-              look={p.appearance as Partial<Appearance>}
-              pose="idle"
-              position={[spot.at[0], 0, spot.at[1]]}
-              heading={spot.heading}
-              onTap={p.me ? undefined : () => onPlayer(p)}
+              player={p}
+              peers={peers}
+              spot={spot}
+              onTap={() => onPlayer(p)}
             >
-              {bubbles[p.userId] ? <Bubble text={bubbles[p.userId]!} tone={p.me ? 'me' : 'light'} /> : <NameTag text={p.me ? 'You' : p.username} me={p.me} />}
-            </Figure>
+              {bubbles[p.userId] ? <Bubble text={bubbles[p.userId]!} tone="light" /> : <NameTag text={p.username} />}
+            </LivePlayer>
           )
         })}
       </Suspense>

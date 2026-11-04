@@ -193,6 +193,8 @@ export function WiseInterior() {
         meSit={walk?.sit ?? null}
         onArrive={onArrive}
         onSeat={sitAt}
+        peers={live.peers}
+        onMove={live.sendState}
       />
 
       {social.talk ? (
