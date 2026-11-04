@@ -339,3 +339,60 @@ export function sellHomeItem(userId: string, id: string, idemKey: string) {
     }
   })
 }
+
+/**
+ * After moving house: the new home's starter furniture goes in, then every piece you bought is
+ * carried over. Each keeps its spot if it still fits, else takes the first free spot (any turn);
+ * a piece that can't fit anywhere (or when the new home is a hostel bunk) is sold back at 50%.
+ */
+export async function rehomeFurniture(characterId: string, lodgingId: string) {
+  await ensureStarters(characterId, lodgingId)
+  const spec = specFor(lodgingId)
+  const client = await pool.connect()
+  let kept = 0
+  let refunded = 0
+  let refundTotal = 0
+  try {
+    await client.query('BEGIN')
+    const catalog = await loadCatalog(client)
+    const shapes = shapesOf(catalog)
+    const all = await loadPlacements(client, characterId)
+    const placed = all.filter((p) => p.itemId.startsWith('starter-'))
+    const bought = all.filter((p) => !p.itemId.startsWith('starter-'))
+    for (const piece of bought) {
+      let spot: { x: number; z: number; rot: HomeRotation } | null = null
+      if (spec) {
+        const fits = (s: { x: number; z: number; rot: HomeRotation }) => checkHomePlacement(spec, shapes, placed, piece.itemId, s).ok
+        const same = { x: piece.x, z: piece.z, rot: piece.rot }
+        if (fits(same)) spot = same
+        for (const rot of [0, 90, 180, 270] as HomeRotation[]) {
+          if (spot) break
+          for (let z = 0; z < spec.rows && !spot; z++) {
+            for (let x = 0; x < spec.cols && !spot; x++) {
+              if (fits({ x, z, rot })) spot = { x, z, rot }
+            }
+          }
+        }
+      }
+      if (spot) {
+        await client.query(`UPDATE home_placements SET x = $2, z = $3, rot = $4 WHERE id = $1`, [piece.id, spot.x, spot.z, spot.rot])
+        placed.push({ ...piece, ...spot })
+        kept++
+      } else {
+        const back = sellBackPrice(piece.paid ?? 0)
+        const item = catalog.find((i) => i.id === piece.itemId)
+        if (back > 0) await applyCash(client, characterId, back, `Sold ${item?.name ?? 'furniture'} (didn't fit your new home)`, 'refund')
+        await client.query(`DELETE FROM home_placements WHERE id = $1`, [piece.id])
+        refunded++
+        refundTotal += back
+      }
+    }
+    await client.query('COMMIT')
+  } catch (error) {
+    await client.query('ROLLBACK')
+    throw error
+  } finally {
+    client.release()
+  }
+  return { kept, refunded, refundTotal }
+}

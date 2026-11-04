@@ -18,6 +18,7 @@ export type PhoneAppId =
   | 'spaces'
   | 'settings'
   | 'prodigy'
+  | 'houses'
 
 export type WallpaperId = 'aau-dusk' | 'ekpoma-night' | 'harmattan' | 'green-white'
 
@@ -102,6 +103,7 @@ export const PHONE_APPS: PhoneAppMeta[] = [
   { id: 'jobs', label: 'Jobs', emoji: '💼', status: 'live', tint: '#3d9ad6' },
   { id: 'invest', label: 'Invest', emoji: '📈', status: 'live', tint: '#0f766e' },
   { id: 'bank', label: 'Bank', emoji: '🏦', status: 'live', tint: '#16a34a' },
+  { id: 'houses', label: 'Houses', emoji: '🏠', status: 'live', tint: '#b45309' },
   {
     id: 'prodigy',
     label: 'Prodigy',
@@ -164,6 +166,7 @@ export const COMING_SOON_COPY: Record<PhoneAppId, string> = {
   games: 'Campus games loading. Go touch grass at Sports Complex meantime.',
   spaces: '',
   settings: '',
+  houses: '',
 }
 
 export const PHONE_MODE_KEY = 'ekpoma-phone-mode'

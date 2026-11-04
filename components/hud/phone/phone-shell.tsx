@@ -33,6 +33,7 @@ import { OPEN_GAMES_EVENT } from '@/lib/game/open-games'
 import { useLiveSpaces } from '@/hooks/use-live-spaces'
 import { OPEN_SPACES_EVENT, hasPendingSpace, requestOpenSpace } from '@/lib/game/open-spaces'
 import { SettingsApp } from './apps/settings-app'
+import { HousesApp } from './apps/houses-app'
 import { ProfileApp } from './apps/profile-app'
 import { ProdigyApp } from './apps/prodigy-app'
 import { InvestApp } from './apps/invest-app'
@@ -316,6 +317,7 @@ export function PhoneShell({
                           <CalendarApp items={mobileApi.notifications} />
                         ) : null}
                         {appId === 'profile' ? <ProfileApp /> : null}
+                        {appId === 'houses' ? <HousesApp /> : null}
                         {appId === 'invest' ? <InvestApp /> : null}
                         {appId === 'prodigy' ? <ProdigyApp onHome={goHome} /> : null}
                         {appId === 'eta' ? <EtaApp /> : null}
