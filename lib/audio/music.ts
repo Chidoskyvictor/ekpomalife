@@ -3,7 +3,8 @@ import { useSyncExternalStore } from 'react'
 /*
  * In-game background music. Drop the songs in public/audio/music/:
  *   theme.mp3 (required), theme-2.mp3, theme-3.mp3 … (optional, played in turn)
- * MP3 around 128 kbps, made to loop cleanly. Missing files are skipped quietly.
+ * It plays through Web Audio, which decodes a whole song into memory: keep each file about
+ * 1–2 MB (an .ogg at ~96 kbps next to the .mp3 is used first when present). Missing files are skipped.
  */
 export const MUSIC_TRACKS = [
   '/audio/music/theme.mp3',
