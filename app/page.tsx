@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
 import { GameLoader } from '@/components/game-loader'
-import { HomeLanding } from '@/components/seo/home-landing'
 import { pageMetadata } from '@/lib/seo/metadata'
 import { DEFAULT_DESCRIPTION, DEFAULT_TITLE } from '@/lib/seo/site'
 
@@ -13,10 +12,6 @@ export const metadata: Metadata = {
 }
 
 export default function Page() {
-  return (
-    <>
-      <GameLoader />
-      <HomeLanding crawlOnly />
-    </>
-  )
+  // The crawlable landing is rendered by the root layout (outside the sign-in gate)
+  return <GameLoader />
 }

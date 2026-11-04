@@ -1,4 +1,6 @@
 import { PlayShell } from '@/components/play-shell'
+import { HomeLanding } from '@/components/seo/home-landing'
+import { HomeOnly } from '@/components/seo/home-only'
 import type { Viewport } from 'next'
 import localFont from 'next/font/local'
 import { NoHScrollGuard } from '@/components/dev/no-hscroll-guard'
@@ -64,6 +66,10 @@ export default function RootLayout({
       <body className="font-sans antialiased" style={{ colorScheme: 'light' }} suppressHydrationWarning>
         {process.env.NODE_ENV === 'development' ? <NoHScrollGuard /> : null}
         <PlayShell>{children}</PlayShell>
+        {/* Crawlable homepage text, map image and JSON-LD: outside PlayShell's sign-in gate */}
+        <HomeOnly>
+          <HomeLanding crawlOnly />
+        </HomeOnly>
         <TripLayer />
         <MusicPlayer />
         <RateLimitToast />

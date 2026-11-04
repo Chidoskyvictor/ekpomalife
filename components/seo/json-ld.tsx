@@ -37,6 +37,7 @@ export function siteJsonLd() {
     '@type': 'VideoGame',
     name: SITE_NAME,
     url: SITE_URL,
+    image: 'https://ekpomalife.app/og-map.jpg',
     description:
       'Mobile-first browser life-sim: manage needs, hustle, shop, rent, phone apps, and chase dreams on an isometric AAU campus.',
     gamePlatform: 'Web browser',
@@ -63,6 +64,7 @@ export function siteJsonLd() {
     '@type': 'WebApplication',
     name: SITE_NAME,
     url: SITE_URL,
+    image: 'https://ekpomalife.app/og-map.jpg',
     browserRequirements: 'Requires JavaScript. Modern mobile or desktop browser.',
     applicationCategory: 'GameApplication',
   }

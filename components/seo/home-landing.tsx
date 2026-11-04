@@ -62,6 +62,15 @@ export function HomeLanding({ crawlOnly = false }: { crawlOnly?: boolean }) {
         </div>
       </header>
 
+      <img
+        src="/og-map.jpg"
+        alt="Ekpoma Life in-game map of Ekpoma and AAU campus"
+        width={1200}
+        height={630}
+        loading="lazy"
+        style={{ display: 'block', width: '100%', height: 'auto', borderRadius: 16 }}
+      />
+
       <section className={styles.section} aria-labelledby="how-to-play">
         <h2 id="how-to-play">How to play</h2>
         <ol className={styles.steps}>
