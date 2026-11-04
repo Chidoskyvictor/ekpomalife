@@ -347,7 +347,8 @@ function useHomeScene(own: boolean, leaveInside: () => void) {
     timers.current = []
     setSlow(false)
     setCover(false)
-    if (outsideRef.current) markSceneReady('home')
+    // The trip home waits for this: inside your room (or on the street when that's used)
+    markSceneReady('home')
   }, [])
 
   // Came here by trip: start on the street

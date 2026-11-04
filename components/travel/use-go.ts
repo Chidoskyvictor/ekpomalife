@@ -8,7 +8,7 @@ import { hasInterior } from '@/lib/game/home-place'
 import { getPlace } from '@/lib/game/places'
 import { newIdempotencyKey } from '@/lib/game/room-api'
 import { travel, type TravelOption, type TravelOptions, type TripMode } from '@/lib/game/travel-api'
-import { cancelTrip, HOME_STREET_EVENT, startTrip, stashHomeStreet, tripMoved, useTrip } from '@/lib/game/trip'
+import { cancelTrip, startTrip, tripMoved, useTrip } from '@/lib/game/trip'
 import { pushNavigation } from '@/lib/navigation/safe-nav'
 
 /**
@@ -64,12 +64,10 @@ export function useGoTo() {
       tripMoved(id)
       void refreshServer()
       if (option.home) {
-        if (pathname === '/room') {
-          window.dispatchEvent(new CustomEvent(HOME_STREET_EVENT))
-        } else {
-          stashHomeStreet()
-          pushNavigation(router, '/room', pathname)
-        }
+        // Straight into your room. (The street outside your house, HOME_STREET_EVENT /
+        // stashHomeStreet, is still being built; switch back to it when it's ready.)
+        select(null)
+        if (pathname !== '/room') pushNavigation(router, '/room', pathname)
         return
       }
       if (interior) {

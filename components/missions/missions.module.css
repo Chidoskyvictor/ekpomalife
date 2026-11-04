@@ -177,10 +177,10 @@
 /* Missions button on the left, under the top bar: just the 🎯, with a thin ring that fills as missions get done */
 .fab {
   pointer-events: auto;
-  position: absolute;
-  left: max(12px, env(safe-area-inset-left));
-  top: calc(max(12px, env(safe-area-inset-top)) + 104px);
-  z-index: 2;
+  /* First in the activity row under the top bar; the task tiles line up to its right */
+  position: relative;
+  flex: none;
+  margin-top: 8px;
   width: 52px;
   height: 52px;
   border: 0;

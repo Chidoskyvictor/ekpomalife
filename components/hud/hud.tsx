@@ -240,23 +240,23 @@ export function Hud() {
         </div>
         {/* What you're doing and what's next (Sims-style tiles): fills up, ✕ cancels */}
         <div className={styles.activityRow}>
+          {/* Today's missions: first in the row, so the task tiles sit beside it (never under it) */}
+          {missionsView && !phoneOpen && !buyOpen && !homeBuy.active ? (
+            <button
+              type="button"
+              className={missionStyles.fab}
+              style={{ ['--done' as string]: (missionsView.doneCount / Math.max(1, missionsView.missions.length)) * 100 }}
+              aria-label={`Today's missions: ${missionsView.doneCount} of ${missionsView.missions.length} done`}
+              onClick={() => setMissionsOpen(true)}
+            >
+              🎯
+              {missionsView.doneCount === missionsView.missions.length && missionsView.missions.length > 0 ? (
+                <span className={missionStyles.fabDone} aria-hidden="true">✓</span>
+              ) : null}
+            </button>
+          ) : null}
           <ActionTiles />
         </div>
-        {/* Today's missions: a button on the left; the ring fills as they get done (tap for the sheet) */}
-        {missionsView && !phoneOpen && !buyOpen && !homeBuy.active ? (
-          <button
-            type="button"
-            className={missionStyles.fab}
-            style={{ ['--done' as string]: (missionsView.doneCount / Math.max(1, missionsView.missions.length)) * 100 }}
-            aria-label={`Today's missions: ${missionsView.doneCount} of ${missionsView.missions.length} done`}
-            onClick={() => setMissionsOpen(true)}
-          >
-            🎯
-            {missionsView.doneCount === missionsView.missions.length && missionsView.missions.length > 0 ? (
-              <span className={missionStyles.fabDone} aria-hidden="true">✓</span>
-            ) : null}
-          </button>
-        ) : null}
         {/* At a school building: level, CGPA, exam prep and today's classes */}
         {!phoneOpen && !buyOpen ? <SchoolCard /> : null}
         {/* Home (My Room): find / join your real hostel — not while visiting someone (/room/[username]) */}
