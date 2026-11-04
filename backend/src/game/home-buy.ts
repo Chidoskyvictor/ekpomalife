@@ -14,6 +14,7 @@ import {
   type HomeShape,
 } from './home-buy-rules.js'
 import { liveSpaceMoneyBlock } from './spaces-money.js'
+import { STARTERS, starterSeedSpot } from './home-starters.js'
 
 /*
  * Buy mode: furniture bought with in-game naira and placed on the tile grid of your own home
@@ -34,6 +35,8 @@ export type HomeItem = {
   helps: string[]
   uses: string | null
   maxPerHome: number
+  /** Comes with the home (free, can be moved or removed, never sold in the shop) */
+  starter: boolean
 }
 
 type ItemRow = {
@@ -50,6 +53,7 @@ type ItemRow = {
   helps: string[]
   uses: string | null
   max_per_home: number
+  starter: boolean | null
 }
 
 type PlacementRow = { id: string; item_id: string; x: number; z: number; rot: number; paid: string | number }
@@ -71,6 +75,7 @@ function mapItem(row: ItemRow): HomeItem {
     helps: row.helps ?? [],
     uses: row.uses,
     maxPerHome: row.max_per_home,
+    starter: row.starter === true,
   }
 }
 
@@ -110,12 +115,67 @@ function fail(error: string, code = 400, reason?: string): HomeBuyFail {
   return { ok: false, error, code, reason }
 }
 
-export async function getHomeBuy(userId: string) {
+/**
+ * Give a player their home's starter furniture as placements, once per home. Moving house swaps
+ * the old home's starter pieces for the new one's. Bought furniture is never touched.
+ */
+async function ensureStarters(characterId: string, lodgingId: string | null) {
+  const key = normalizeLodgingId(lodgingId)
+  const grid = HOME_GRID[key]
+  const defs = STARTERS[key]
+  if (!grid || !defs) return
+  const seen = await pool.query<{ lodging_id: string }>(`SELECT lodging_id FROM home_starters WHERE character_id = $1`, [characterId])
+  if (seen.rows[0]?.lodging_id === key) return
+  const client = await pool.connect()
+  try {
+    await client.query('BEGIN')
+    const locked = await client.query<{ lodging_id: string }>(
+      `SELECT lodging_id FROM home_starters WHERE character_id = $1 FOR UPDATE`,
+      [characterId],
+    )
+    if (locked.rows[0]?.lodging_id === key) {
+      await client.query('ROLLBACK')
+      return
+    }
+    await client.query(`DELETE FROM home_placements WHERE character_id = $1 AND item_id LIKE 'starter-%'`, [characterId])
+    for (const def of defs) {
+      const spot = starterSeedSpot(grid, def)
+      await client.query(
+        `INSERT INTO home_placements (id, character_id, item_id, x, z, rot, paid) VALUES ($1, $2, $3, $4, $5, 0, 0)`,
+        [`hp_${createId()}`, characterId, def.item, spot.x, spot.z],
+      )
+    }
+    await client.query(
+      `INSERT INTO home_starters (character_id, lodging_id) VALUES ($1, $2)
+       ON CONFLICT (character_id) DO UPDATE SET lodging_id = EXCLUDED.lodging_id, seeded_at = NOW()`,
+      [characterId, key],
+    )
+    await client.query('COMMIT')
+  } catch (error) {
+    await client.query('ROLLBACK').catch(() => {})
+    throw error
+  } finally {
+    client.release()
+  }
+}
+
+/** Apps from before starter furniture don't know how to draw it: leave it out for them. */
+function withoutStarters<T extends { catalog: HomeItem[]; placements: { itemId: string }[] }>(data: T, starters: boolean): T {
+  if (starters) return data
+  const ids = new Set(data.catalog.filter((i) => i.starter).map((i) => i.id))
+  return { ...data, catalog: data.catalog.filter((i) => !i.starter), placements: data.placements.filter((p) => !ids.has(p.itemId)) }
+}
+
+export async function getHomeBuy(userId: string, starters = false) {
   const gate = await requireEconomySetup(userId)
   if (!gate.ok) return gate
   const spec = specFor(gate.character.lodging_id)
-  const catalog = await loadCatalog(pool)
-  const placements = await loadPlacements(pool, gate.character.id)
+  if (spec && starters) await ensureStarters(gate.character.id, gate.character.lodging_id)
+  const loaded = withoutStarters(
+    { catalog: await loadCatalog(pool), placements: await loadPlacements(pool, gate.character.id) },
+    starters,
+  )
+  const { catalog, placements } = loaded
   return {
     ok: true as const,
     enabled: spec !== null,
@@ -126,7 +186,7 @@ export async function getHomeBuy(userId: string) {
 }
 
 /** What's placed in someone's home (yours, or a visit when visits are on). */
-export async function getHomePlacements(viewerId: string, username: string) {
+export async function getHomePlacements(viewerId: string, username: string, starters = false) {
   const gate = await requireEconomySetup(viewerId)
   if (!gate.ok) return gate
   const target = await pool.query<{ user_id: string; character_id: string }>(
@@ -139,7 +199,7 @@ export async function getHomePlacements(viewerId: string, username: string) {
   if (!row) return fail('Player not found.', 404)
   if (row.user_id !== viewerId && !env.ROOM_VISITS_ENABLED) return fail('Visits are switched off for now.', 403)
   const [catalog, placements] = await Promise.all([loadCatalog(pool), loadPlacements(pool, row.character_id)])
-  return { ok: true as const, catalog, placements }
+  return { ok: true as const, ...withoutStarters({ catalog, placements }, starters) }
 }
 
 type Spot = { x: number; z: number; rot: HomeRotation }
@@ -210,7 +270,7 @@ const bad = (error: string, status = 400, reason?: string) => ({ status, body: {
 export function placeHomeItem(userId: string, itemId: string, spot: Spot, idemKey: string) {
   return writeHome(userId, idemKey, 'POST /home/place', { itemId, ...spot }, true, async ({ client, characterId, spec, catalog }) => {
     const item = catalog.find((i) => i.id === itemId)
-    if (!item) return bad('That item is not sold.', 404, 'UNKNOWN_ITEM')
+    if (!item || item.starter) return bad('That item is not sold.', 404, 'UNKNOWN_ITEM')
     const placements = await loadPlacements(client, characterId)
     const check = checkHomePlacement(spec, shapesOf(catalog), placements, itemId, spot)
     if (!check.ok) return bad(check.error, 400, check.code)
@@ -266,7 +326,7 @@ export function sellHomeItem(userId: string, id: string, idemKey: string) {
         ok: true,
         placements: await loadPlacements(client, characterId),
         refunded,
-        message: `Sold for ₦${refunded.toLocaleString('en-NG')}.`,
+        message: refunded > 0 ? `Sold for ₦${refunded.toLocaleString('en-NG')}.` : 'Removed.',
       },
     }
   })

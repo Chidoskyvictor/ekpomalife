@@ -4,6 +4,7 @@ import type { HomeItem } from './home-buy-api'
 import type { FurnitureId } from './room-furniture'
 import type { FurnitureSpot, Rect, RoomLayout, SpotKey } from './room-layouts'
 import { normalizeLodging } from './home-lodging'
+import { STARTERS, starterSeedSpot, type StarterDef } from './home-starters'
 
 /*
  * Where bought furniture sits in the 3D home. Tiles (home-grid.ts) map onto the GLB's own
@@ -80,9 +81,11 @@ export function layoutWithPlaced(
   spec: HomeSpec | null,
   placements: HomePlacement[],
   catalog: HomeItem[],
+  starters: StarterDef[] = [],
 ): RoomLayout {
   if (!spec || placements.length === 0) return layout
   const byId = new Map(catalog.map((item) => [item.id, item]))
+  const starterOf = new Map(starters.map((def) => [def.item, def]))
   const taken = new Set<string>()
   for (const p of placements) {
     const item = byId.get(p.itemId)
@@ -91,15 +94,41 @@ export function layoutWithPlaced(
   const free = (x: number, z: number) =>
     spec.floor[z]?.[x] === '1' && spec.blocked[z]?.[x] !== '1' && !taken.has(`${x},${z}`)
 
-  const blocks: Rect[] = [...layout.blocks]
+  // Starter pieces that are placements now: their built-in block and spot give way to the placement
+  const placedStarters = placements.filter((p) => starterOf.has(p.itemId))
+  const same = (a: Rect, b: Rect) => a.every((v, i) => Math.abs(v - b[i]!) < 0.02)
+  const blocks: Rect[] = layout.blocks.filter(
+    (bl) => !placedStarters.some((p) => same(starterOf.get(p.itemId)!.rect, bl)),
+  )
   const spots: RoomLayout['spots'] = { ...layout.spots }
   const tapBoxes: RoomLayout['tapBoxes'] = { ...layout.tapBoxes }
+  for (const p of placedStarters) {
+    const use = starterOf.get(p.itemId)!.use
+    if (use) {
+      delete spots[use]
+      delete tapBoxes[use]
+    }
+  }
 
   for (const p of placements) {
     const item = byId.get(p.itemId)
     if (!item || item.wall) continue
     const rect = pieceRect(spec, item, p)
     blocks.push(rect)
+    const def = starterOf.get(p.itemId)
+    if (def) {
+      // Its own spot (where you sit / lie) moves and turns with the piece
+      const base = def.use ? layout.spots[def.use] : undefined
+      const tap = def.use ? layout.tapBoxes[def.use] : undefined
+      const move = starterMove(spec, item, def, p)
+      if (base) {
+        const approach = move.point(base.approach[0], base.approach[1])
+        const at = move.point(base.at[0], base.at[2])
+        spots[placedKey(p.id)] = { approach, at: [at[0], base.at[1], at[1]], heading: base.heading + move.angle }
+        tapBoxes[placedKey(p.id)] = tap ? [rect[0], tap[1], rect[1], rect[2], tap[4], rect[3]] : [rect[0], 0, rect[1], rect[2], 1, rect[3]]
+      }
+      continue
+    }
     const use = furnitureUse(item)
     if (!use) continue
 
@@ -131,4 +160,32 @@ export function layoutWithPlaced(
     tapBoxes[key] = [rect[0], 0, rect[1], rect[2], Math.max(item.height, 0.3), rect[3]]
   }
   return { ...layout, blocks, spots, tapBoxes }
+}
+
+/** The starter pieces of a home (by lodging), for layoutWithPlaced and drawing. */
+export const startersFor = (lodgingId: string | null | undefined): StarterDef[] => STARTERS[normalizeLodging(lodgingId)] ?? []
+
+/**
+ * How a starter piece moved from where the GLB has it: turned by `angle` (radians, about the
+ * centre of its original tiles) and shifted to the centre of its tiles now.
+ */
+export function starterMove(spec: HomeSpec, item: Pick<HomeItem, 'w' | 'd'>, def: StarterDef, spot: HomeSpot) {
+  const seed = pieceRect(spec, item, starterSeedSpot(spec, def))
+  const now = pieceRect(spec, item, spot)
+  const from: [number, number] = [(seed[0] + seed[2]) / 2, (seed[1] + seed[3]) / 2]
+  const to: [number, number] = [(now[0] + now[2]) / 2, (now[1] + now[3]) / 2]
+  // A quarter turn each step; rot 90 faces −x (see FRONT)
+  const angle = (-spot.rot * Math.PI) / 180
+  const cos = Math.cos(angle)
+  const sin = Math.sin(angle)
+  return {
+    from,
+    to,
+    angle,
+    point(x: number, z: number): [number, number] {
+      const dx = x - from[0]
+      const dz = z - from[1]
+      return [to[0] + dx * cos + dz * sin, to[1] - dx * sin + dz * cos]
+    },
+  }
 }

@@ -1,18 +1,19 @@
 'use client'
 
 import { useThree, type ThreeEvent } from '@react-three/fiber'
-import { useEffect, useMemo, useRef } from 'react'
-import { Vector3, type Group } from 'three'
+import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
+import { Vector3, type Group, type Object3D } from 'three'
 import type { HomeItem, OwnedPiece } from '@/lib/game/home-buy-api'
 import { checkHomePlacement, type HomeSpec } from '@/lib/game/home-buy-rules'
 import { pickPlaced, setBuySpot, useBuyUi } from '@/lib/game/home-buy-store'
-import { FRONT, HOME_TILE, pieceRect, shapeMap, spotUnder } from '@/lib/game/home-placed'
+import { FRONT, HOME_TILE, pieceRect, shapeMap, spotUnder, starterMove } from '@/lib/game/home-placed'
+import { starterOwnsNode, type StarterDef } from '@/lib/game/home-starters'
 
 /** Wall pieces hang at this height (m) and stick out this far from the wall. */
 const WALL_Y = 1.35
 const WALL_DEPTH = 0.07
 
-export type HomeFurnishing = { spec: HomeSpec; catalog: HomeItem[]; placements: OwnedPiece[] }
+export type HomeFurnishing = { spec: HomeSpec; catalog: HomeItem[]; placements: OwnedPiece[]; starters?: StarterDef[] }
 
 /** One block standing in for a piece of furniture (no models yet): its footprint, height and colour. */
 function Block({
@@ -70,15 +71,77 @@ function Block({
   )
 }
 
+/**
+ * A starter piece (bed, chair…) drawn with the room GLB's own objects, moved and turned to where
+ * it's placed now. The originals are hidden by PlacedPieces.
+ */
+function StarterPiece({
+  spec,
+  item,
+  def,
+  spot,
+  root,
+}: {
+  spec: HomeSpec
+  item: HomeItem
+  def: StarterDef
+  spot: { x: number; z: number; rot: 0 | 90 | 180 | 270 }
+  root: Object3D
+}) {
+  const copy = useMemo(() => {
+    const parts = root.children.filter((child) => starterOwnsNode(def, child.name))
+    return parts.map((part) => {
+      const c = part.clone(true)
+      c.visible = true
+      return c
+    })
+  }, [root, def])
+  const move = starterMove(spec, item, def, spot)
+  return (
+    <group position={[move.to[0], 0, move.to[1]]} rotation={[0, move.angle, 0]}>
+      <group position={[-move.from[0], 0, -move.from[1]]}>
+        {copy.map((c) => (
+          <primitive key={c.uuid} object={c} />
+        ))}
+      </group>
+    </group>
+  )
+}
+
 /** Everything bought and placed in this home (Buy mode's layer handles tapping one). */
-export function PlacedPieces({ furnishing }: { furnishing: HomeFurnishing }) {
+export function PlacedPieces({ furnishing, root }: { furnishing: HomeFurnishing; root?: Object3D }) {
   const ui = useBuyUi()
   const byId = useMemo(() => new Map(furnishing.catalog.map((i) => [i.id, i])), [furnishing.catalog])
+  const starterOf = useMemo(() => new Map((furnishing.starters ?? []).map((d) => [d.item, d])), [furnishing.starters])
+  // Starter pieces that are placements are drawn here, so hide the room's built-in copies
+  const placedStarterKey = furnishing.placements
+    .filter((p) => starterOf.has(p.itemId))
+    .map((p) => p.itemId)
+    .sort()
+    .join(',')
+  useLayoutEffect(() => {
+    if (!root) return
+    const placed = new Set(placedStarterKey ? placedStarterKey.split(',') : [])
+    const hidden: Object3D[] = []
+    for (const child of root.children) {
+      for (const [id, def] of starterOf) {
+        if (placed.has(id) && starterOwnsNode(def, child.name) && child.visible) {
+          child.visible = false
+          hidden.push(child)
+        }
+      }
+    }
+    return () => hidden.forEach((child) => (child.visible = true))
+  }, [root, starterOf, placedStarterKey])
   return (
     <>
       {furnishing.placements.map((p) => {
         const item = byId.get(p.itemId)
         if (!item || p.id === ui.movingId) return null
+        const def = starterOf.get(p.itemId)
+        if (def && root) {
+          return <StarterPiece key={p.id} spec={furnishing.spec} item={item} def={def} spot={p} root={root} />
+        }
         return (
           <Block
             key={p.id}

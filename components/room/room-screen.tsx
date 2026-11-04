@@ -10,7 +10,7 @@ import { normalizeAppearance, type Appearance } from '@/lib/game/look'
 import type { FurnitureAction, FurnitureId } from '@/lib/game/room-furniture'
 import { fetchHomeFurniture, fetchVisitFurniture, type HomeItem, type OwnedPiece } from '@/lib/game/home-buy-api'
 import { exitBuyMode, setBuyAvailable, useBuyUi } from '@/lib/game/home-buy-store'
-import { furnitureUse, homeSpecFor, layoutWithPlaced, placedIdOf } from '@/lib/game/home-placed'
+import { furnitureUse, homeSpecFor, layoutWithPlaced, placedIdOf, startersFor } from '@/lib/game/home-placed'
 import { resolvePaint } from '@/lib/game/house-paint'
 import { layoutForLodging, type SpotKey } from '@/lib/game/room-layouts'
 import { roomLightAt } from '@/lib/game/room-lighting'
@@ -70,12 +70,15 @@ export function RoomScreen() {
   const spec = useMemo(() => homeSpecFor(lodgingId), [lodgingId])
   const home = useHomeFurniture(visitingOther ? (host ? visiting : null) : '', spec !== null)
   const layout = useMemo(
-    () => layoutWithPlaced(baseLayout, spec, home.placements, home.catalog),
-    [baseLayout, spec, home.placements, home.catalog],
+    () => layoutWithPlaced(baseLayout, spec, home.placements, home.catalog, startersFor(lodgingId)),
+    [baseLayout, spec, home.placements, home.catalog, lodgingId],
   )
   const furnishing = useMemo(
-    () => (spec && home.loaded ? { spec, catalog: home.catalog, placements: home.placements } : null),
-    [spec, home.loaded, home.catalog, home.placements],
+    () =>
+      spec && home.loaded
+        ? { spec, catalog: home.catalog, placements: home.placements, starters: startersFor(lodgingId) }
+        : null,
+    [spec, home.loaded, home.catalog, home.placements, lodgingId],
   )
   const furniture = useMemo<FurnitureId | null>(() => {
     if (!furnitureKey) return null

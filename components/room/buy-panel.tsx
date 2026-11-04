@@ -127,7 +127,7 @@ export function BuyPanel({
 
   const items = useMemo(() => {
     const q = query.trim().toLowerCase()
-    return catalog.filter((i) => (q ? i.name.toLowerCase().includes(q) : i.category === category) && i.price <= price.max)
+    return catalog.filter((i) => !i.starter && (q ? i.name.toLowerCase().includes(q) : i.category === category) && i.price <= price.max)
   }, [catalog, category, query, price])
 
   const verdict = useMemo(() => {
@@ -347,7 +347,7 @@ export function BuyPanel({
                   Move
                 </button>
                 <button type="button" className={`${styles.pill} ${styles.goFlex}`} disabled={busy} onClick={() => void sell()}>
-                  Sell · {formatNaira(sellBackPrice(picked.paid ?? pickedItem.price))}
+                  {pickedItem.starter ? 'Remove' : `Sell · ${formatNaira(sellBackPrice(picked.paid ?? pickedItem.price))}`}
                 </button>
               </div>
             </div>

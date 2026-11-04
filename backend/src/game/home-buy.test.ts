@@ -48,7 +48,7 @@ describe('checkHomePlacement', () => {
 
   it('refuses a piece that would wall off part of the home from the door', () => {
     // Fill every free tile but one with chairs/tables is overkill: use the real grid and wall off a corridor.
-    const row = spec.floor.findIndex((r, z) => [...r].every((c, x) => c === '1' && spec.blocked[z]![x] !== '1'))
+    const row = spec.floor.findIndex((r, z) => z > 0 && z < spec.rows - 1 && [...r].every((c, x) => c === '1' && spec.blocked[z]![x] !== '1'))
     expect(row).toBeGreaterThan(0)
     const wall: HomePlacement[] = []
     const many = new Map(shapes).set('long', { id: 'long', w: spec.cols, d: 1, wall: false, maxPerHome: 1 })

@@ -23,6 +23,8 @@ export type HomeItem = {
   helps: string[]
   /** Existing furniture actions it gives (room-furniture.ts id). */
   uses: string | null
+  /** Comes with the home: free, movable and removable, never in the shop. */
+  starter?: boolean
   maxPerHome: number
 }
 
@@ -47,12 +49,12 @@ const idem = (key: string) => ({ 'Idempotency-Key': key })
 
 export async function fetchHomeFurniture(): Promise<OkOwn | HomeBuyFail> {
   if (useMocks()) return { ok: false, error: 'Buy mode needs the live game.' }
-  return apiGet<OkOwn>('/home/furniture')
+  return apiGet<OkOwn>('/home/furniture?starters=1')
 }
 
 export async function fetchVisitFurniture(username: string): Promise<OkVisit | HomeBuyFail> {
   if (useMocks()) return { ok: false, error: 'Buy mode needs the live game.' }
-  return apiGet<OkVisit>(`/home/furniture/${encodeURIComponent(username)}`)
+  return apiGet<OkVisit>(`/home/furniture/${encodeURIComponent(username)}?starters=1`)
 }
 
 /** Buy and place in one server transaction. One key per tap: reuse it if you retry. */

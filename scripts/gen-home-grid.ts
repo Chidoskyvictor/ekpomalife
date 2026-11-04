@@ -5,6 +5,7 @@
  */
 import { copyFileSync, writeFileSync } from 'node:fs'
 import { ROOM_LAYOUTS, type Rect } from '../lib/game/room-layouts'
+import { STARTERS } from '../lib/game/home-starters'
 
 const TILE = 0.6
 /** The floors are where the character's centre may go, so the room itself reaches this much further. */
@@ -31,6 +32,12 @@ for (const [lodging, layout] of Object.entries(HOMES)) {
   const maxZ = Math.max(...layout.floors.map((f) => f[3])) + WALL_GAP
   const cols = Math.floor((maxX - ox) / TILE)
   const rows = Math.floor((maxZ - oz) / TILE)
+  const starters = STARTERS[lodging] ?? []
+  const same = (a: Rect, b: Rect) => a.every((v, i) => Math.abs(v - b[i]!) < 0.02)
+  const blocks = layout.blocks.filter((bl) => !starters.some((st) => same(st.rect, bl)))
+  if (layout.blocks.length - blocks.length !== starters.length) {
+    throw new Error(`${lodging}: ${starters.length} starters but ${layout.blocks.length - blocks.length} matching blocks`)
+  }
   const floor: string[] = []
   const blocked: string[] = []
   const startCol = Math.floor((layout.start[0] - ox) / TILE)
@@ -47,7 +54,8 @@ for (const [lodging, layout] of Object.entries(HOMES)) {
         [rect[2], rect[3]],
       ]
       const onFloor = corners.every(([x, z]) => layout.floors.some((fl) => inside(x, z, fl, WALL_GAP)))
-      const taken = layout.blocks.some((bl) => hits(rect, bl, BLOCK_GAP))
+      // Starter furniture (bed, chairs…) is a movable placement, not part of the room
+      const taken = blocks.some((bl) => hits(rect, bl, BLOCK_GAP))
       const door = Math.abs(c - startCol) <= 0 && Math.abs(r - startRow) <= 0
       f += onFloor ? '1' : '0'
       b += onFloor && (taken || door) ? '1' : '0'

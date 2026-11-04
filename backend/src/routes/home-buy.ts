@@ -36,7 +36,9 @@ export async function homeBuyRoutes(app: FastifyInstance) {
     const user = await getSessionUser(request)
     if (!user) return reply.code(401).send({ ok: false, error: 'Log in to play.' })
     try {
-      return send(reply, await getHomeBuy(user.id))
+      // ?starters=1: this app draws the furniture the home comes with (and it's handed out once)
+      const starters = (request.query as { starters?: string } | undefined)?.starters === '1'
+      return send(reply, await getHomeBuy(user.id, starters))
     } catch (error) {
       request.log.error(error)
       return reply.code(500).send({ ok: false, error: 'Could not load your furniture.' })
@@ -47,7 +49,8 @@ export async function homeBuyRoutes(app: FastifyInstance) {
     const user = await getSessionUser(request)
     if (!user) return reply.code(401).send({ ok: false, error: 'Log in to play.' })
     try {
-      return send(reply, await getHomePlacements(user.id, request.params.username))
+      const starters = (request.query as { starters?: string } | undefined)?.starters === '1'
+      return send(reply, await getHomePlacements(user.id, request.params.username, starters))
     } catch (error) {
       request.log.error(error)
       return reply.code(500).send({ ok: false, error: 'Could not load that home.' })
