@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { LegalFooter } from '@/components/seo/legal-footer'
 import { pageMetadata } from '@/lib/seo/metadata'
 
 export const metadata = pageMetadata({
@@ -28,14 +29,18 @@ export default function PrivacyPage() {
           data (browser type, performance) to keep the game running on mobile networks.
         </p>
         <p>
-          We do not sell your personal information. Contact the game team through official support channels
-          listed in the app when those are published.
+          We do not sell your personal information. Questions about your data:{' '}
+          <Link href="/contact" className="text-[#1a6fb0] underline">
+            contact us
+          </Link>
+          .
         </p>
         <p>Live voice in Spaces is never recorded.</p>
         <p>
           For terms of use, see <Link href="/terms" className="text-[#1a6fb0] underline">Terms</Link>.
         </p>
       </div>
+      <LegalFooter />
     </main>
   )
 }

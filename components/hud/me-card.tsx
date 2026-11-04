@@ -10,7 +10,10 @@ import {
   type NeedId,
 } from '@/lib/game/needs'
 import type { GameState } from '@/lib/game/types'
-import { AvatarPortrait } from './avatar-portrait'
+import dynamic from 'next/dynamic'
+
+// 3D face (three.js) loads after the page, so it isn't in every page's first JS
+const AvatarPortrait = dynamic(() => import('./avatar-portrait').then((m) => m.AvatarPortrait), { ssr: false })
 import { hapticTap } from './haptic'
 import styles from './life-hud.module.css'
 

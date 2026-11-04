@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next'
 import { absoluteUrl } from '@/lib/seo/site'
 
-const PUBLIC_PATHS = ['/', '/signup', '/login', '/terms', '/privacy'] as const
+const PUBLIC_PATHS = ['/', '/signup', '/login', '/terms', '/privacy', '/refund', '/contact'] as const
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const lastModified = new Date()

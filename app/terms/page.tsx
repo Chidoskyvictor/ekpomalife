@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { LegalFooter } from '@/components/seo/legal-footer'
 import { pageMetadata } from '@/lib/seo/metadata'
 
 export const metadata = pageMetadata({
@@ -18,6 +19,7 @@ export default function TermsPage() {
         Ekpoma Life is a game. You must be 18 or older to create an account. Be kind on campus, do not
         share passwords, and treat other players how you want to be treated at AAU. No begging, money or crypto giveaways; giveaways may only use in-game cosmetic items.
       </p>
+      <LegalFooter />
     </main>
   )
 }

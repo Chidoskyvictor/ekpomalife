@@ -127,6 +127,8 @@ export function HomeLanding({ crawlOnly = false }: { crawlOnly?: boolean }) {
         <nav aria-label="Legal and account">
           <Link href="/terms">Terms</Link>
           <Link href="/privacy">Privacy</Link>
+          <Link href="/refund">Refunds</Link>
+          <Link href="/contact">Contact</Link>
           <Link href="/signup">Sign up</Link>
           <Link href="/login">Log in</Link>
         </nav>

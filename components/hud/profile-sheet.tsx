@@ -25,8 +25,11 @@ import {
 } from '@/lib/game/needs'
 import { TRAITS } from '@/lib/game/traits'
 import type { GameState } from '@/lib/game/types'
-import { AvatarPortrait } from './avatar-portrait'
-import { CharacterSpinner } from './character-spinner'
+import dynamic from 'next/dynamic'
+
+// 3D (three.js) pieces load on demand
+const AvatarPortrait = dynamic(() => import('./avatar-portrait').then((m) => m.AvatarPortrait), { ssr: false })
+const CharacterSpinner = dynamic(() => import('./character-spinner').then((m) => m.CharacterSpinner), { ssr: false })
 import { HudDrawer } from './hud-drawer'
 import { LookEditor } from './look-editor'
 import styles from './profile-sheet.module.css'

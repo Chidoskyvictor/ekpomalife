@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import { Link2, MessageCircle, Phone, X } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { BodyPortal } from '@/components/ui/body-portal'
@@ -76,7 +77,16 @@ export function AdViewer() {
             <X size={18} aria-hidden="true" />
           </button>
           {ad ? (
-            <img className={styles.flyer} src={ad.image} alt={`${ad.advertiser}: ${ad.tagline}`} />
+            <Image
+              className={styles.flyer}
+              src={ad.image}
+              alt={`${ad.advertiser}: ${ad.tagline}`}
+              width={864}
+              height={1080}
+              sizes="(max-width: 480px) 100vw, 420px"
+              loading="lazy"
+              style={{ height: 'auto' }}
+            />
           ) : placeholder ? (
             <img className={styles.ad} src={placeholder} alt="Your ad here — advertise on Ekpoma Life" />
           ) : null}

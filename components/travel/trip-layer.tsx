@@ -2,7 +2,10 @@
 
 import { useEffect } from 'react'
 import { endTrip, TRIP_TIMEOUT_MS, useTrip } from '@/lib/game/trip'
-import { TripScreen } from './trip-screen'
+import dynamic from 'next/dynamic'
+
+// The ride scene pulls in three.js: loaded only when a trip starts, not on every page
+const TripScreen = dynamic(() => import('./trip-screen').then((m) => m.TripScreen), { ssr: false })
 
 /**
  * The trip screen, mounted once in the root layout so it stays up while the next page boots
