@@ -17,7 +17,6 @@ export const HALLS: Record<string, Hall> = Object.fromEntries(
       ['education', 'Education', '#2e8b57'],
       ['mass-comm', 'Mass Comm', '#d2691e'],
       ['law-campus', 'Law', '#34495e'],
-      ['law-ext', 'Law (extension)', '#5d6d7e'],
       ['physical-science', 'Physical Science', '#1f6b8f'],
       ['social-science', 'Social Science', '#8e44ad'],
       ['life-science', 'Life Science', '#3c8d2f'],
@@ -34,11 +33,12 @@ export const hallFor = (id: string | null | undefined): Hall | null => (id ? (HA
  * (the Admin Block); any other office gets its own wall colour. Add BAMSSA here (and to the
  * backend HALLS list in backend/src/game/venues.ts) once it has a place on the map.
  */
-export type Office = { id: string; name: string; color: string | null }
+export type Office = { id: string; name: string; color: string | null; /** Its own 3D room instead of the shared office */ layout?: 'innovation-hub' }
 
 export const OFFICES: Record<string, Office> = {
   'admin-block': { id: 'admin-block', name: 'Admin Block', color: null },
-  'innovation-hub': { id: 'innovation-hub', name: 'Innovation Hub', color: '#1f6b8f' },
+  // Its own room (innovation-hub.glb) keeps its own colours, so no paint
+  'innovation-hub': { id: 'innovation-hub', name: 'Innovation Hub', color: null, layout: 'innovation-hub' },
 }
 
 export const officeFor = (id: string | null | undefined): Office | null => (id ? (OFFICES[id] ?? null) : null)

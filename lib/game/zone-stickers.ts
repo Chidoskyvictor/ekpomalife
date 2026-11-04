@@ -40,7 +40,6 @@ const BY_ID: Record<string, string> = {
   'ict-lab': '🖥️',
   'keke-park': '🛵',
   'law-campus': '⚖️',
-  'law-ext': '⚖️',
   'life-science': '🧬',
   'management-science': '📈',
   'mass-comm': '🎤',

@@ -261,14 +261,6 @@ export const PLACES: Place[] = [
     openHours: { open: 8, close: 18 },
   },
   {
-    id: 'law-ext',
-    label: 'Law (extension)',
-    zoneId: 'law-ext',
-    type: 'campus',
-    actions: ['study', 'hangout'],
-    openHours: { open: 8, close: 18 },
-  },
-  {
     id: 'aau-gate',
     label: 'AAU School Gate',
     zoneId: 'aau-gate',
@@ -379,7 +371,7 @@ export const PLACES: Place[] = [
     zoneId: 'forbes',
     type: 'leisure',
     actions: ['hangout'],
-    openHours: { open: 20, close: 4 },
+    openHours: { open: 21, close: 5 },
   },
   {
     id: 'spot-rite',
@@ -488,7 +480,6 @@ export const PLACE_UV: Record<string, { u: number; v: number }> = {
   'social-science': { u: 0.76, v: 0.0779 },
   'life-science': { u: 0.835, v: 0.21 },
   'management-science': { u: 0.8582, v: 0.3953 },
-  'law-ext': { u: 0.6, v: 0.28 },
   'aau-gate': { u: 0.5803, v: 0.8821 },
   'town-shop-4': { u: 0.205, v: 0.64 },
   'cattle-market': { u: 0.32, v: 0.42 },

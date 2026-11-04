@@ -264,6 +264,8 @@
 }
 
 .modal {
+  /* Opened from inside the HUD (pointer-events: none): take taps again */
+  pointer-events: auto;
   position: fixed;
   inset: 0;
   z-index: calc(var(--z-modal) + 1);

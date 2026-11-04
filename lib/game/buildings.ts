@@ -616,14 +616,6 @@ export const BUILDINGS: Record<string, BuildingDef> = {
     openHours: { open: 8, close: 18 },
     actions: [...lectureActions(), ...facultyActions('Law')],
   },
-  'law-ext': {
-    id: 'law-ext',
-    label: 'Law (extension)',
-    emoji: '⚖️',
-    kind: 'faculty',
-    openHours: { open: 8, close: 18 },
-    actions: [...lectureActions(), ...facultyActions('Law')],
-  },
   'management-science': {
     id: 'management-science',
     label: 'Management Science',

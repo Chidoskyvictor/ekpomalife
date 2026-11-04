@@ -70,6 +70,24 @@ export const VENUES: Record<string, Venue> = {
       { id: 'ace', kind: 'bottle', name: 'Bottle of Ace', emoji: '🥂', price: 500_000, minutes: 20, needs: { fun: 20, social: 25 }, vipOnly: true },
     ],
   },
+  // Where the big boys hang: opens an hour after Sazza, pricier drinks and bottles
+  forbes: {
+    id: 'forbes',
+    name: 'Forbes',
+    open: 21, // 9 PM – 5 AM
+    close: 5,
+    entry: 0,
+    capacity: 200,
+    items: [
+      { id: 'dance', kind: 'dance', name: 'Dance', emoji: '💃', price: 0, minutes: 30, needs: { fun: 12, social: 8, energy: -8 } },
+      { id: 'lager', kind: 'drink', name: 'Chilled lager', emoji: '🍺', price: 15_000, minutes: 15, needs: DRINK },
+      { id: 'cocktail', kind: 'drink', name: 'House cocktail', emoji: '🍹', price: 25_000, minutes: 15, needs: DRINK },
+      { id: 'forbes-gold', kind: 'drink', name: 'Forbes Gold', emoji: '🥃', price: 40_000, minutes: 15, needs: { fun: 10, social: 7, hunger: 2 } },
+      { id: 'vip', kind: 'vip', name: 'VIP lounge', emoji: '🛋️', price: 100_000, minutes: 5, needs: { social: 12 } },
+      { id: 'moet', kind: 'bottle', name: 'Bottle of Moët', emoji: '🍾', price: 600_000, minutes: 20, needs: { fun: 18, social: 22 }, vipOnly: true },
+      { id: 'ace', kind: 'bottle', name: 'Bottle of Ace', emoji: '🥂', price: 900_000, minutes: 20, needs: { fun: 22, social: 28 }, vipOnly: true },
+    ],
+  },
 }
 
 /*
@@ -87,7 +105,6 @@ const HALLS: [string, string][] = [
   ['education', 'Education'],
   ['mass-comm', 'Mass Comm'],
   ['law-campus', 'Law'],
-  ['law-ext', 'Law (extension)'],
   ['physical-science', 'Physical Science'],
   ['social-science', 'Social Science'],
   ['life-science', 'Life Science'],

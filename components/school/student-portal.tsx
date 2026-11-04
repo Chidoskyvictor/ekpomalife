@@ -1,5 +1,6 @@
 'use client'
 
+import { BodyPortal } from '@/components/ui/body-portal'
 import { useGame } from '@/hooks/use-game'
 import { useSchool } from '@/lib/game/school-api'
 import panel from '@/components/buildings/building-panel.module.css'
@@ -14,6 +15,8 @@ export function StudentPortal({ onClose }: { onClose: () => void }) {
   const r = school?.record
 
   return (
+    // Rendered on <body>: the HUD it's opened from ignores taps and would swallow Close
+    <BodyPortal>
     <div className={panel.modal} role="dialog" aria-modal="true" aria-label="Student portal" onClick={onClose}>
       <div className={panel.modalCard} onClick={(event) => event.stopPropagation()}>
         <p className={panel.modalTitle}>🖥️ Student Portal</p>
@@ -68,5 +71,6 @@ export function StudentPortal({ onClose }: { onClose: () => void }) {
         </button>
       </div>
     </div>
+    </BodyPortal>
   )
 }

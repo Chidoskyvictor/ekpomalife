@@ -313,14 +313,6 @@ export const PLACES: Place[] = [
     openHours: { open: 8, close: 18 },
   },
   {
-    id: 'law-ext',
-    label: 'Law (extension)',
-    zoneId: 'law-ext',
-    type: 'campus',
-    actions: ['study', 'hangout'],
-    openHours: { open: 8, close: 18 },
-  },
-  {
     id: 'aau-gate',
     label: 'AAU School Gate',
     zoneId: 'aau-gate',
@@ -431,7 +423,7 @@ export const PLACES: Place[] = [
     zoneId: 'forbes',
     type: 'leisure',
     actions: ['hangout'],
-    openHours: { open: 20, close: 4 },
+    openHours: { open: 21, close: 5 },
   },
   {
     id: 'spot-rite',

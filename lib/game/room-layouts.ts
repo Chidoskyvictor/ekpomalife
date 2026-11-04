@@ -339,7 +339,10 @@ export const ROOM_LAYOUTS: Record<Exclude<RoomLayoutId, 'street' | 'lecture-hall
 }
 
 /** The 3D scene for a club, by venue id. */
-export const CLUB_LAYOUTS: Record<string, RoomLayout> = { sazza: CLUB_SAZZA }
+/** Forbes (scripts/make-forbes-club.mjs): Sazza's club restyled in black, gold and emerald with cream VIP sofas. */
+const CLUB_FORBES: RoomLayout = { ...CLUB_SAZZA, label: 'Forbes', glb: '/models/club-forbes.glb?v=1' }
+
+export const CLUB_LAYOUTS: Record<string, RoomLayout> = { sazza: CLUB_SAZZA, forbes: CLUB_FORBES }
 
 /** One chair in the lecture hall (blender/build-lecture-hall.py → hall-seats.json). */
 export type HallSeat = { id: string; x: number; z: number; row: number; heading: number; front?: boolean; label?: string }
@@ -396,6 +399,38 @@ export const OFFICE: RoomLayout = {
   blocks: officeData.blocks as [number, number, number, number][],
   start: [3.2, 3.4],
   spots: {}, // offices have no sitting; the chairs are just furniture
+  tapBoxes: {},
+  host: { position: [0, 0, 0], rotation: 0 },
+  view: 'corner',
+  cameraScale: 1.75,
+  speed: 2.4,
+}
+
+/**
+ * The Innovation Hub (scripts/blender/innovation-hub.py): coloured plank floor, light walls on the
+ * right (+x) and back (−z) where the room camera expects them, reception desk at the back right,
+ * coffee bar + stools along the right wall, two rows of three work desks with chairs.
+ * Room x −6…6, z −4.5…4.5.
+ */
+export const INNOVATION_HUB: RoomLayout = {
+  id: 'office',
+  label: 'Innovation Hub',
+  glb: '/models/innovation-hub.glb?v=1',
+  floors: [[-5.9, -4.3, 5.8, 4.4]],
+  blocks: [
+    [1.5, -4.5, 4.9, -3.4], // reception desk
+    [1.5, -3.5, 2.5, -1.8], // reception wing
+    [5, -0.75, 6, 3.75], // coffee bar
+    [4.4, -0.2, 4.9, 3.3], // bar stools
+    [-0.55, 1.5, 1.05, 3.15], // desks + chairs, front row
+    [-2.75, 1.5, -1.15, 3.15],
+    [-4.95, 1.5, -3.35, 3.15],
+    [-0.55, -0.9, 1.05, 0.75], // back row
+    [-2.75, -0.9, -1.15, 0.75],
+    [-4.95, -0.9, -3.35, 0.75],
+  ],
+  start: [-3.6, 3.9],
+  spots: {},
   tapBoxes: {},
   host: { position: [0, 0, 0], rotation: 0 },
   view: 'corner',

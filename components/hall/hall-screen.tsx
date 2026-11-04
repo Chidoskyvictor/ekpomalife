@@ -19,7 +19,7 @@ import { useGame } from '@/hooks/use-game'
 import { endActivity, startActivity } from '@/lib/game/activity'
 import { BUILDINGS, type BuildingActionDef } from '@/lib/game/buildings'
 import { hallFor, officeFor } from '@/lib/game/halls'
-import { HALL_SEATS, LECTURE_HALL, OFFICE, seatKey, type HallSeat, type RoomLayout } from '@/lib/game/room-layouts'
+import { HALL_SEATS, INNOVATION_HUB, LECTURE_HALL, OFFICE, seatKey, type HallSeat, type RoomLayout } from '@/lib/game/room-layouts'
 import { pushNavigation } from '@/lib/navigation/safe-nav'
 import styles from './hall.module.css'
 
@@ -40,7 +40,7 @@ function spaceFor(id: string): Space | null {
   const hall = hallFor(id)
   if (hall) return { name: hall.name, paint: hall.color, layout: LECTURE_HALL, seats: HALL_SEATS, icon: '🎓', office: false }
   const office = officeFor(id)
-  if (office) return { name: office.name, paint: office.color ?? undefined, layout: OFFICE, seats: [], icon: '🏛️', office: true }
+  if (office) return { name: office.name, paint: office.color ?? undefined, layout: office.layout === 'innovation-hub' ? INNOVATION_HUB : OFFICE, seats: [], icon: '🏛️', office: true }
   return null
 }
 

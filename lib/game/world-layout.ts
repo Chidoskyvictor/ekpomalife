@@ -420,7 +420,6 @@ const FIRST_ZONES: MapZone[] = [
   zone('twin-hall', 'Twin Hall', 0.8076, 0.7777, 'building-n', [11.5, 8.5], -0.0092, 3.749, purple),
 
   // School hostels removed from the map (gameplay places kept in places.ts for lodging).
-  zone('law-ext', 'Law', 0.6, 0.28, 'building-l', [10.5, 8.5], 0, 5.1, sand),
   // Pulled west off ext-eng (u=0.92) into the campus lawn
   zone('management-science', 'Management Science', 0.8582, 0.3953, 'building-m', [11.5, 9], 0, 4.16, original),
   // Story building (not the skyscraper — that mesh moved to ICT)
