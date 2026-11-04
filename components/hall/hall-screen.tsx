@@ -8,6 +8,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Object3D } from 'three'
 import { BuildingPanel, type BuildingActionRunner } from '@/components/buildings/building-panel'
 import { ClubPeers } from '@/components/club/club-peers'
+import { ChurchNpcs } from '@/components/church/church-npcs'
+import { HubDeskPanel } from '@/components/hub/hub-desk-panel'
+import { NPC_PEWS } from '@/lib/game/church-npcs'
+import { HubNpcs } from '@/components/hub/hub-npcs'
+import { HUB_DESKS, HUB_SEATS, hubSpotKey, type HubDeskId } from '@/lib/game/hub-desks'
+
+/** The hub's free chairs and bar stools as hall seats (the sit flow walks to `seat:<id>`). */
+const HUB_HALL_SEATS: HallSeat[] = HUB_SEATS.map((s) => ({ id: s.id, x: s.x, z: s.z, row: 0, heading: 0, label: s.label }))
 import { ClubPeople } from '@/components/club/club-people'
 import { JobsPanel } from '@/components/hud/jobs-panel'
 import { BuildingActionCards } from '@/components/hud/interior/building-actions'
@@ -19,7 +27,7 @@ import { useGame } from '@/hooks/use-game'
 import { endActivity, startActivity } from '@/lib/game/activity'
 import { BUILDINGS, type BuildingActionDef } from '@/lib/game/buildings'
 import { hallFor, officeFor } from '@/lib/game/halls'
-import { HALL_SEATS, INNOVATION_HUB, LECTURE_HALL, OFFICE, seatKey, type HallSeat, type RoomLayout } from '@/lib/game/room-layouts'
+import { CHURCH, CHURCH_SEATS, HALL_SEATS, INNOVATION_HUB, LECTURE_HALL, OFFICE, seatKey, type HallSeat, type RoomLayout } from '@/lib/game/room-layouts'
 import { pushNavigation } from '@/lib/navigation/safe-nav'
 import styles from './hall.module.css'
 
@@ -40,7 +48,9 @@ function spaceFor(id: string): Space | null {
   const hall = hallFor(id)
   if (hall) return { name: hall.name, paint: hall.color, layout: LECTURE_HALL, seats: HALL_SEATS, icon: '🎓', office: false }
   const office = officeFor(id)
-  if (office) return { name: office.name, paint: office.color ?? undefined, layout: office.layout === 'innovation-hub' ? INNOVATION_HUB : OFFICE, seats: [], icon: '🏛️', office: true }
+  // The pews the church NPCs sit on are never offered to players
+  if (office?.layout === 'church') return { name: office.name, layout: CHURCH, seats: CHURCH_SEATS.filter((s) => !NPC_PEWS.has(s.id)), icon: '⛪', office: true }
+  if (office) return { name: office.name, paint: office.color ?? undefined, layout: office.layout === 'innovation-hub' ? INNOVATION_HUB : OFFICE, seats: office.layout === 'innovation-hub' ? HUB_HALL_SEATS : [], icon: '🏛️', office: true }
   return null
 }
 
@@ -59,6 +69,10 @@ export function HallScreen({ hallId }: { hallId: string }) {
   const control = useMemo<RoomPlayerControl>(() => ({}), [])
   const [expanded, setExpanded] = useState(true)
   const [peopleOpen, setPeopleOpen] = useState(false)
+  // Innovation Hub: the desk whose task is open (after walking up to its NPC)
+  const isHub = hallId === 'innovation-hub'
+  const isChurch = officeFor(hallId)?.layout === 'church'
+  const [deskOpen, setDeskOpen] = useState<HubDeskId | null>(null)
   const me = useRef<{ x: number; z: number }>({ x: hall?.layout.start[0] ?? 0, z: hall?.layout.start[1] ?? 0 })
 
   // Walk straight in (halls are free), stay counted, join your group's live room
@@ -74,16 +88,46 @@ export function HallScreen({ hallId }: { hallId: string }) {
     [sendState],
   )
 
+  /** Walk to the NPC's desk, then open their task. */
+  const goToDesk = (id: HubDeskId) => {
+    const desk = HUB_DESKS.find((d) => d.id === id)
+    if (!desk) return
+    setExpanded(false)
+    let opened = false
+    const open = () => {
+      if (opened) return
+      opened = true
+      setDeskOpen(id)
+    }
+    control.use?.(
+      hubSpotKey(id),
+      { style: 'stand', seconds: 600 },
+      {
+        onStart: () => {
+          startActivity({ emoji: desk.emoji, title: `${desk.title} · ${desk.npc.name}`, seconds: 600, onCancel: () => control.stop?.() })
+          open()
+        },
+        onDone: endActivity,
+        onAbort: endActivity,
+      },
+    )
+  }
+
   const effects = useCallback(
     (_root: Object3D) => (
+      <>
+      {isHub ? <HubNpcs onTap={(id) => goToDesk(id)} onSeat={(id) => sit(undefined, id)} /> : null}
+      {isChurch ? <ChurchNpcs /> : null}
       <ClubPeers
         peers={live.peers}
         roster={live.roster}
         bubbles={social.bubbles}
         onTap={(peer) => social.setTalk({ kind: 'player', player: { userId: peer.userId, username: peer.username } })}
       />
+      </>
     ),
-    [live.peers, live.roster, social],
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- goToDesk only uses the stable control
+    [live.peers, live.roster, social, isHub, isChurch],
   )
 
   /** Nearest chair to you that nobody in your group is sitting on (or standing at). */
@@ -98,8 +142,9 @@ export function HallScreen({ hallId }: { hallId: string }) {
       .sort((a, b) => Math.hypot(a.x - x, a.z - z) - Math.hypot(b.x - x, b.z - z))[0]
   }
 
-  const sit = (what: { emoji: string; title: string; seconds: number } = { emoji: '🪑', title: 'Seated', seconds: SIT_SECONDS }) => {
-    const seat = freeSeat()
+  const sit = (what: { emoji: string; title: string; seconds: number } = { emoji: '🪑', title: 'Seated', seconds: SIT_SECONDS }, seatId?: string) => {
+    // A tapped chair (if nobody's on it), else the nearest free one
+    const seat = (seatId ? seats.find((s) => s.id === seatId) : undefined) ?? freeSeat()
     if (!seat) {
       notifyToast(hall?.office ? 'Every seat is taken.' : 'Every seat is taken. Stand at the back for now.', false)
       return
@@ -172,16 +217,57 @@ export function HallScreen({ hallId }: { hallId: string }) {
         onExpandedChange={setExpanded}
       >
         {inside ? <PlaceReactions onReact={social.react} /> : null}
+        {isHub ? (
+          <PlaceActions>
+            {HUB_DESKS.map((d) => (
+              <PlaceAction
+                key={d.id}
+                emoji={d.emoji}
+                title={`${d.title} · ${d.npc.name}`}
+                price={d.soon ? 'Soon' : 'Free'}
+                note={d.blurb}
+                disabled={!inside}
+                onClick={() => goToDesk(d.id)}
+              />
+            ))}
+          </PlaceActions>
+        ) : null}
         {building ? (
           <BuildingActionCards
             building={building}
             placeId={hallId}
             onRun={run}
-            before={hall.office ? null : <PlaceAction emoji="🪑" title="Take a seat" price="Free" disabled={!inside} onClick={() => sit()} />}
+            before={
+              hall.seats.length ? (
+                <>
+                  {isChurch ? (
+                    <PlaceAction
+                      emoji="🙏"
+                      title="Pray"
+                      price="Free"
+                      note="Sit on a pew and pray quietly."
+                      disabled={!inside}
+                      onClick={() => sit({ emoji: '🙏', title: 'Praying', seconds: 45 })}
+                    />
+                  ) : null}
+                  <PlaceAction emoji="🪑" title={isChurch ? 'Sit on a pew' : 'Take a seat'} price="Free" disabled={!inside} onClick={() => sit()} />
+                </>
+              ) : null
+            }
           />
-        ) : hall.office ? null : (
+        ) : !hall.seats.length ? null : (
           <PlaceActions>
-            <PlaceAction emoji="🪑" title="Take a seat" price="Free" disabled={!inside} onClick={() => sit()} />
+            {isChurch ? (
+              <PlaceAction
+                emoji="🙏"
+                title="Pray"
+                price="Free"
+                note="Sit on a pew and pray quietly."
+                disabled={!inside}
+                onClick={() => sit({ emoji: '🙏', title: 'Praying', seconds: 45 })}
+              />
+            ) : null}
+            <PlaceAction emoji="🪑" title={isChurch ? 'Sit on a pew' : 'Take a seat'} price="Free" disabled={!inside} onClick={() => sit()} />
           </PlaceActions>
         )}
         {!inside && view && !view.venue.open ? (
@@ -205,6 +291,7 @@ export function HallScreen({ hallId }: { hallId: string }) {
       )}
 
       {/* Runs the cards' actions (and their quiz / results screens); its own list stays hidden */}
+      {deskOpen ? <HubDeskPanel deskId={deskOpen} onClose={() => setDeskOpen(null)} /> : null}
       {building ? <BuildingPanel headless={{ buildingId: hallId, runRef: runAction }} /> : null}
       {inside ? <ClubPeople venueId={hallId} open={peopleOpen} initialPick={null} onOpenChange={setPeopleOpen} /> : null}
     </div>

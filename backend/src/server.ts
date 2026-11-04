@@ -1,4 +1,5 @@
 import { houseRoutes } from './routes/houses.js'
+import { hubRoutes } from './routes/hub.js'
 import { schoolRoutes } from './routes/school.js'
 import { missionRoutes } from './routes/missions.js'
 import Fastify from 'fastify'
@@ -173,6 +174,7 @@ await app.register(gamesRoutes)
 await app.register(whotRoutes)
 await app.register(spacesRoutes)
 await app.register(adminRoutes)
+await app.register(hubRoutes)
 await app.register(walletRoutes)
 await app.register(houseRoutes)
 await app.register(schoolRoutes)

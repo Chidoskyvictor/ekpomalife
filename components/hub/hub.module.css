@@ -1,0 +1,185 @@
+.card {
+  max-height: 88dvh;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 10px 0 12px;
+}
+
+.say {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: #f2f5f9;
+  color: #1d1d1f;
+  font-size: 14px;
+}
+
+.muted {
+  margin: 0;
+  color: #6e6e73;
+  font-size: 12px;
+}
+
+.good {
+  color: #15803d;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.section {
+  margin: 6px 0 0;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid #d7dde5;
+  border-radius: 999px;
+  background: #fff;
+  color: #1d1d1f;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.chipOn {
+  border-color: var(--primary, #1a6fb0);
+  background: var(--primary, #1a6fb0);
+  color: #fff;
+}
+
+.stars {
+  display: flex;
+  gap: 4px;
+}
+
+.stars button {
+  min-width: 36px;
+  min-height: 36px;
+  border: 0;
+  background: transparent;
+  color: #f5a524;
+  font-size: 24px;
+}
+
+.input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d7dde5;
+  border-radius: 14px;
+  font: inherit;
+  font-size: 16px; /* no zoom-on-focus on iOS */
+  resize: vertical;
+}
+
+.primary {
+  min-height: 44px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--primary, #1a6fb0);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.primary:disabled {
+  opacity: 0.5;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  font-size: 13px;
+}
+
+.clip {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.idea {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 0;
+  border-top: 1px solid #eceef1;
+}
+
+.ideaText {
+  flex: 1;
+  min-width: 0;
+}
+
+.ideaText p {
+  margin: 0 0 4px;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.vote,
+.react {
+  flex: none;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid #d7dde5;
+  border-radius: 999px;
+  background: #fff;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.voteOn {
+  border-color: var(--primary, #1a6fb0);
+  background: #e8f1fb;
+}
+
+.post {
+  padding: 10px 0;
+  border-top: 1px solid #eceef1;
+}
+
+.postBody {
+  margin: 0 0 4px;
+  font-size: 14px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.reactions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.skel {
+  height: 46px;
+  margin: 8px 0;
+  border-radius: 12px;
+  background: linear-gradient(90deg, #eceef1 0%, #f6f7f9 40%, #eceef1 80%);
+  background-size: 200% 100%;
+  animation: shine 1.2s ease-in-out infinite;
+}
+
+@keyframes shine {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}

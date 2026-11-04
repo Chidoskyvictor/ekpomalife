@@ -4,6 +4,7 @@ import type { LodgingId } from './room-types'
 import ROOM_SHIFTS from './room-shifts.json'
 import hallSeats from './hall-seats.json'
 import officeData from './office-data.json'
+import { hubDeskSpots } from './hub-desks'
 
 /*
  * The three homes the room screen can show. All numbers are in each GLB's own
@@ -430,12 +431,61 @@ export const INNOVATION_HUB: RoomLayout = {
     [-4.95, -0.9, -3.35, 0.75],
   ],
   start: [-3.6, 3.9],
-  spots: {},
+  // Walk to an NPC's desk to do their task, or sit on a free chair / bar stool
+  spots: hubDeskSpots(),
   tapBoxes: {},
   host: { position: [0, 0, 0], rotation: 0 },
   view: 'corner',
   cameraScale: 1.75,
   speed: 2.4,
+}
+
+/**
+ * Above the Hills Church (scripts/blender/church.py): coloured plank floor, red aisle carpet down
+ * the middle (x −1.1…1.1), two blocks of 6 pews facing the altar at the back (−z), raised altar
+ * with pulpit, cross, screens and choir stand. Walls on +x (stained glass) and −z. Room x −7…7,
+ * z −5.5…5.5. Players sit on the pews (3 places per pew, reached from the aisle).
+ */
+const PEW_ROWS_Z = [0, 1, 2, 3, 4, 5].map((r) => 5.5 - (1.3 + r * 1.2)) // back edge of each pew row
+export const CHURCH_SEATS: HallSeat[] = PEW_ROWS_Z.flatMap((back, r) =>
+  [1.8, 3.45, 5.1, -1.8, -3.45, -5.1].map((x, i) => ({
+    id: `pew-${r + 1}-${i + 1}`,
+    x,
+    z: back - 0.32,
+    row: r + 1,
+    heading: 0,
+    label: `Pew ${r + 1}`,
+  })),
+)
+export const CHURCH: RoomLayout = {
+  id: 'office',
+  label: 'Church',
+  glb: '/models/church.glb?v=1',
+  floors: [[-6.85, -5.3, 6.8, 5.35]],
+  blocks: [
+    ...PEW_ROWS_Z.flatMap((back): [number, number, number, number][] => [
+      [1.0, back - 0.67, 5.9, back + 0.02], // left block (x > 0)
+      [-6.2, back - 0.67, -1.3, back + 0.02], // right block
+    ]),
+    [-4.85, -5.5, 4.85, -2.65], // altar platform + step (pulpit, table, choir, candles)
+  ],
+  start: [0, 4.9],
+  // Walk up the aisle to the pew's end, then slide in and sit facing the altar (−z)
+  spots: Object.fromEntries(
+    CHURCH_SEATS.map((s) => [
+      seatKey(s.id),
+      {
+        approach: [s.x > 0 ? 0.75 : -0.75, s.z + 0.45] as [number, number],
+        at: [s.x, -0.26, s.z] as [number, number, number],
+        heading: Math.PI,
+      } satisfies FurnitureSpot,
+    ]),
+  ),
+  tapBoxes: {},
+  host: { position: [0, 0, 0], rotation: 0 },
+  view: 'corner',
+  cameraScale: 2.05,
+  speed: 2.6,
 }
 
 /** Which home each lodging gets (chosen at sign-up; the hostel is the campus dorm). */

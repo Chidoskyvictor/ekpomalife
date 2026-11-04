@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import { pool } from '../db.js'
 import { countPlayersWithSetupComplete } from '../game/setup-status.js'
+import { countDailyVisit } from '../game/hub.js'
 
 type Stats = { players: number; online: number; today: number; visits: number }
 
@@ -61,6 +62,8 @@ export async function statsRoutes(app: FastifyInstance) {
       const result = await pool.query<{ value: string }>(
         `UPDATE site_counters SET value = value + 1 WHERE id = 'visits' RETURNING value`,
       )
+      // Per-day count for the admin dashboard (best-effort)
+      await countDailyVisit().catch(() => {})
       const visits = Number(result.rows[0]?.value ?? 0)
       if (cached) cached.stats.visits = visits
       return reply.send({ ok: true, visits })
