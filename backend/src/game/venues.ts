@@ -268,9 +268,8 @@ export async function enterVenue(userId: string, venueId: string, key: string) {
       route: `venue:${venueId}:enter`,
       body: { venueId },
       run: async () => {
-        if (!isOpen(venue, gameTime)) {
-          return bad(400, 'CLOSED', `${venue.name} opens at ${hourLabel(venue.open)}. Come back tonight.`)
-        }
+        // Every place lets you in at any hour, so players there always see each other
+        // (the club's drinks and sprays still keep its night hours)
         await client.query(`SELECT pg_advisory_xact_lock(hashtext($1))`, [`venue:${venueId}:${night}`])
         const visit = await visitOf(client, characterId, venueId, night)
         if (visit) {

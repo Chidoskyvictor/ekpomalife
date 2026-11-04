@@ -32,7 +32,8 @@ export function usePlacePresence(placeId: string, { autoEnter = true, enabled = 
     let stop = false
     void (async () => {
       const res = await load()
-      if (stop || !autoEnter || !res.ok || res.me.paid || !res.venue.open) return
+      // Every place lets you in at any hour, so you always see who's there
+      if (stop || !autoEnter || !res.ok || res.me.paid) return
       const entered = await enterVenue(placeId)
       if (!stop && entered.ok) void load()
     })()
