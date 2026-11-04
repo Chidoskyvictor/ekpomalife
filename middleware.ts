@@ -1,20 +1,18 @@
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
+import { canonicalRedirect } from '@/lib/seo/canonical-redirect'
 
-/** Apex canonical host — www → 301 (also set a matching Cloudflare redirect rule in production). */
+/**
+ * Canonical URL: plain http:// and www. → 301 to https://ekpomalife.app (same path and query).
+ * Cloudflare's "Always Use HTTPS" should also be on, so static files (skipped by the matcher) upgrade too.
+ */
 export function middleware(request: NextRequest) {
-  const host = request.headers.get('host') ?? ''
-  if (host.toLowerCase().startsWith('www.')) {
-    const url = request.nextUrl.clone()
-    url.hostname = host.slice(4)
-    url.protocol = 'https:'
-    return NextResponse.redirect(url, 301)
-  }
-  return NextResponse.next()
+  const to = canonicalRedirect(new URL(request.url), request.headers)
+  return to ? NextResponse.redirect(to, 301) : NextResponse.next()
 }
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|glb|woff2?)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|.*\.(?:svg|png|jpg|jpeg|gif|webp|ico|glb|woff2?)$).*)',
   ],
 }
