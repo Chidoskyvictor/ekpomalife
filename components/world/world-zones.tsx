@@ -8,6 +8,7 @@ import {
   BoxGeometry,
   CanvasTexture,
   Color,
+  Group,
   ConeGeometry,
   IcosahedronGeometry,
   MeshStandardMaterial,
@@ -178,7 +179,15 @@ function cloneMaterial(mat: Material, tint?: Color) {
  */
 function useKenney(name: string): Object3D {
   const { scene } = useGLTF(KENNEY_PACK_URL)
-  return useMemo(() => scene.getObjectByName(name) ?? scene.getObjectByName('building-skyscraper-c') ?? scene, [scene, name])
+  return useMemo(() => {
+    const node = scene.getObjectByName(name) ?? scene.getObjectByName('building-skyscraper-c')
+    if (!node) return scene
+    // Wrap it like the old per-building file's scene did: the node keeps its own offset (the
+    // compression stores one), and the caller's position goes on the wrapper, not over it.
+    const wrapper = new Group()
+    wrapper.add(node.clone())
+    return wrapper
+  }, [scene, name])
 }
 
 function tintedClone(source: Object3D, tint?: string) {
