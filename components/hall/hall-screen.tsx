@@ -1,7 +1,7 @@
 'use client'
 
 import { actionSeconds } from '@/lib/game/action-seconds'
-import { BookOpen, Map as MapIcon, Users } from 'lucide-react'
+import { BookOpen, Map as MapIcon, Users, UtensilsCrossed } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -9,6 +9,11 @@ import type { Object3D } from 'three'
 import { BuildingPanel, type BuildingActionRunner } from '@/components/buildings/building-panel'
 import { ClubPeers } from '@/components/club/club-peers'
 import { ChurchNpcs } from '@/components/church/church-npcs'
+import { FoodNpcs } from '@/components/food/food-npcs'
+import { useEconomy } from '@/hooks/use-economy'
+import type { ShopItem } from '@/lib/game/economy-api'
+import { FOOD_PLACES } from '@/lib/game/food-places'
+import { ORDER_SPOT, type FoodNpc } from '@/lib/game/food-room'
 import { HubDeskPanel } from '@/components/hub/hub-desk-panel'
 import { NPC_PEWS } from '@/lib/game/church-npcs'
 import { HubNpcs } from '@/components/hub/hub-npcs'
@@ -49,6 +54,8 @@ function spaceFor(id: string): Space | null {
   if (hall) return { name: hall.name, paint: hall.color, layout: LECTURE_HALL, seats: HALL_SEATS, icon: '🎓', office: false }
   const office = officeFor(id)
   // The pews the church NPCs sit on are never offered to players
+  const food = office?.layout === 'food' ? FOOD_PLACES[id] : undefined
+  if (food) return { name: food.name, layout: food.layout, seats: food.seats, icon: food.icon, office: true }
   if (office?.layout === 'church') return { name: office.name, layout: CHURCH, seats: CHURCH_SEATS.filter((s) => !NPC_PEWS.has(s.id)), icon: '⛪', office: true }
   if (office) return { name: office.name, paint: office.color ?? undefined, layout: office.layout === 'innovation-hub' ? INNOVATION_HUB : OFFICE, seats: office.layout === 'innovation-hub' ? HUB_HALL_SEATS : [], icon: '🏛️', office: true }
   return null
@@ -72,6 +79,16 @@ export function HallScreen({ hallId }: { hallId: string }) {
   // Innovation Hub: the desk whose task is open (after walking up to its NPC)
   const isHub = hallId === 'innovation-hub'
   const isChurch = officeFor(hallId)?.layout === 'church'
+  // Spot Rite: order at the counter (like Wise Gourmet), eat at a table
+  const food = officeFor(hallId)?.layout === 'food' ? FOOD_PLACES[hallId] : undefined
+  const isFood = Boolean(food)
+  const { shopItems, shopPlaceId, loadShop, buy, useItem, busy: shopBusy } = useEconomy()
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [ordering, setOrdering] = useState<string | null>(null)
+  useEffect(() => {
+    if (isFood) void loadShop(hallId)
+  }, [isFood, hallId, loadShop])
+  const menu = isFood && shopPlaceId === hallId ? shopItems.filter((item) => item.category === 'food') : []
   const [deskOpen, setDeskOpen] = useState<HubDeskId | null>(null)
   const me = useRef<{ x: number; z: number }>({ x: hall?.layout.start[0] ?? 0, z: hall?.layout.start[1] ?? 0 })
 
@@ -87,6 +104,53 @@ export function HallScreen({ hallId }: { hallId: string }) {
     },
     [sendState],
   )
+
+  /** Walk up to the counter; the staff greet you and the menu opens when you're there. */
+  const goToCounter = () => {
+    setMenuOpen(false)
+    social.setTalk(null)
+    let opened = false
+    control.use?.(
+      ORDER_SPOT,
+      { style: 'stand', seconds: 600 },
+      {
+        onStart: () => {
+          if (opened) return
+          opened = true
+          if (food) social.showBubble(food.greeter, food.greeting)
+          setMenuOpen(true)
+          setExpanded(true)
+        },
+        onDone: () => {},
+        onAbort: () => setMenuOpen(false),
+      },
+    )
+  }
+
+  /** Buy and eat in one go (as Wise Gourmet). */
+  const order = async (item: ShopItem) => {
+    if ((state?.cash ?? 0) < item.price) {
+      notifyToast('Not enough cash for that', false)
+      return
+    }
+    setOrdering(item.id)
+    try {
+      const bought = await buy(item.id, 1)
+      if (!bought) return
+      if (await useItem(item.id)) {
+        notifyToast(`${item.emoji} ${item.name}: enjoy!`, true)
+        social.showBubble('me', `${item.emoji} Yum!`)
+      }
+    } finally {
+      setOrdering(null)
+    }
+  }
+
+  const onFoodNpc = (npc: FoodNpc) => {
+    if (!npc.seated) return goToCounter()
+    setMenuOpen(false)
+    social.talkToNpc({ id: npc.id, name: npc.name, role: npc.role, line: npc.line })
+  }
 
   /** Walk to the NPC's desk, then open their task. */
   const goToDesk = (id: HubDeskId) => {
@@ -118,6 +182,7 @@ export function HallScreen({ hallId }: { hallId: string }) {
       <>
       {isHub ? <HubNpcs onTap={(id) => goToDesk(id)} onSeat={(id) => sit(undefined, id)} /> : null}
       {isChurch ? <ChurchNpcs /> : null}
+      {food ? <FoodNpcs npcs={food.npcs} onTap={onFoodNpc} bubbles={social.bubbles} /> : null}
       <ClubPeers
         peers={live.peers}
         roster={live.roster}
@@ -127,7 +192,7 @@ export function HallScreen({ hallId }: { hallId: string }) {
       </>
     ),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- goToDesk only uses the stable control
-    [live.peers, live.roster, social, isHub, isChurch],
+    [live.peers, live.roster, social, isHub, isChurch, food],
   )
 
   /** Nearest chair to you that nobody in your group is sitting on (or standing at). */
@@ -211,11 +276,40 @@ export function HallScreen({ hallId }: { hallId: string }) {
           ...(inside
             ? [{ icon: <Users size={18} />, label: 'People', onClick: () => setPeopleOpen(true), badge: count > 1 ? Math.min(count, 99) : undefined }]
             : []),
+          ...(isFood ? [{ icon: <UtensilsCrossed size={18} />, label: 'Order', onClick: () => (menuOpen ? setMenuOpen(false) : goToCounter()) }] : []),
           { icon: <MapIcon size={18} />, label: 'Map', onClick: leave },
         ]}
         expanded={expanded}
         onExpandedChange={setExpanded}
       >
+        {isFood && menuOpen ? (
+          <PlaceActions>
+            {menu.length === 0 ? (
+              <p className={styles.note}>The menu is loading…</p>
+            ) : (
+              menu.map((item) => (
+                <PlaceAction
+                  key={item.id}
+                  emoji={item.emoji}
+                  title={`Buy ${item.name.toLowerCase()}`}
+                  price={`₦${item.price.toLocaleString()}`}
+                  tags={Object.entries(item.effects?.needs ?? {})
+                    .filter(([, v]) => (v ?? 0) > 0)
+                    .slice(0, 2)
+                    .map(([k]) => ({ text: `+${k === 'hunger' ? 'Food' : k[0]!.toUpperCase() + k.slice(1)}`, tone: 'good' as const }))}
+                  note={(state?.cash ?? 0) < item.price ? 'Not enough cash' : undefined}
+                  disabled={shopBusy || ordering !== null || (state?.cash ?? 0) < item.price}
+                  onClick={() => void order(item)}
+                />
+              ))
+            )}
+          </PlaceActions>
+        ) : null}
+        {isFood && !menuOpen ? (
+          <PlaceActions>
+            <PlaceAction emoji="🍛" title="Order food at the counter" price="Menu" note={food?.orderNote} disabled={!inside} onClick={goToCounter} />
+          </PlaceActions>
+        ) : null}
         {inside ? <PlaceReactions onReact={social.react} /> : null}
         {isHub ? (
           <PlaceActions>
@@ -232,7 +326,8 @@ export function HallScreen({ hallId }: { hallId: string }) {
             ))}
           </PlaceActions>
         ) : null}
-        {building ? (
+        {/* Food places use the counter menu and seats instead of the old building cards (jobs still show) */}
+        {building && !isFood ? (
           <BuildingActionCards
             building={building}
             placeId={hallId}

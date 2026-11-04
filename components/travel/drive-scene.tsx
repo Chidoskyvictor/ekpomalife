@@ -5,7 +5,11 @@ import { useFrame, useThree } from '@react-three/fiber'
 import { Suspense, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import {
   BoxGeometry,
+  AdditiveBlending,
   CanvasTexture,
+  CircleGeometry,
+  Matrix4 as Matrix4Class,
+  MeshBasicMaterial,
   Color,
   CylinderGeometry,
   Float32BufferAttribute,
@@ -23,6 +27,7 @@ import {
   type BufferGeometry,
   type Material,
   type Matrix4,
+  type MeshStandardMaterial,
   type PerspectiveCamera,
 } from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
@@ -65,6 +70,26 @@ const WALK = { median: 1.5, sidewalk: 11.3, top: 0.16 }
 const ROAD_EDGE = 14.5
 
 const SKY = '#bcd3e0'
+
+/** Sky and lights for the ride, by the hour in Ekpoma (the game runs on real WAT time). */
+type RideLight = { level: 'day' | 'dusk' | 'night'; sky: string; ambient: number; hemi: [string, string, number]; sun: number; sunColor: string; fogNear: number; fogFar: number }
+const DAY: RideLight = { level: 'day', sky: SKY, ambient: 1.05, hemi: ['#eaf3fb', '#9aa683', 0.55], sun: 1.2, sunColor: '#ffffff', fogNear: 70, fogFar: 230 }
+const DUSK: RideLight = { level: 'dusk', sky: '#e8a87c', ambient: 0.7, hemi: ['#ffd2a8', '#6b5a48', 0.45], sun: 0.8, sunColor: '#ffb27a', fogNear: 60, fogFar: 200 }
+const NIGHT: RideLight = { level: 'night', sky: '#0e1a2c', ambient: 0.32, hemi: ['#3b4f78', '#141a12', 0.4], sun: 0.35, sunColor: '#9fb4ff', fogNear: 30, fogFar: 150 }
+
+function lagosHour(): number {
+  try {
+    return Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Africa/Lagos', hour: '2-digit', hour12: false }).format(new Date())) % 24
+  } catch {
+    return (new Date().getUTCHours() + 1) % 24
+  }
+}
+
+function rideLightAt(hour: number): RideLight {
+  if (hour >= 20 || hour < 5) return NIGHT
+  if (hour >= 18 || hour < 7) return DUSK
+  return DAY
+}
 const SPEED: Record<DriveMode, number> = { keke: 24, okada: 32 }
 /** Campus lanes are slow and narrow. */
 const CAMPUS_SPEED = 13
@@ -208,16 +233,97 @@ function Instances({
 
 /* —— highway —— */
 
-function Highway({ offset, plan, gateZ }: { offset: Offset; plan: Plan; gateZ: Offset }) {
+/** A soft round spot of light (white centre fading out), for lamp pools and bulb halos. */
+function glowTexture() {
+  const size = 128
+  const canvas = document.createElement('canvas')
+  canvas.width = canvas.height = size
+  const ctx = canvas.getContext('2d')!
+  const g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2)
+  g.addColorStop(0, 'rgba(255,255,255,1)')
+  g.addColorStop(0.45, 'rgba(255,255,255,0.45)')
+  g.addColorStop(1, 'rgba(255,255,255,0)')
+  ctx.fillStyle = g
+  ctx.fillRect(0, 0, size, size)
+  const tex = new CanvasTexture(canvas)
+  tex.colorSpace = SRGBColorSpace
+  return tex
+}
+
+/**
+ * Street lamps lit at dusk and night: a warm pool of light on the road under each lamp and a halo
+ * round the bulb (no real lights, so it stays cheap on phones). Moves with the highway tiles.
+ */
+function LampGlow({ lamps, tiles, level }: { lamps: Vector3[]; tiles: Matrix4[]; level: 'dusk' | 'night' }) {
+  const { pool, halo, poolMat, haloMat, poolMatrices, haloMatrices } = useMemo(() => {
+    const tex = glowTexture()
+    const strength = level === 'night' ? 1 : 0.45
+    const poolMat = new MeshBasicMaterial({ map: tex, color: '#ffd28a', transparent: true, opacity: 0.55 * strength, blending: AdditiveBlending, depthWrite: false, fog: false })
+    const haloMat = new MeshBasicMaterial({ map: tex, color: '#ffe2b0', transparent: true, opacity: 0.8 * strength, blending: AdditiveBlending, depthWrite: false, fog: false })
+    const pool = new CircleGeometry(5.5, 32)
+    pool.rotateX(-Math.PI / 2)
+    const halo = new CircleGeometry(1.1, 24)
+    const poolMatrices: Matrix4[] = []
+    const haloMatrices: Matrix4[] = []
+    const local = new Matrix4Class()
+    for (const tile of tiles) {
+      for (const lamp of lamps) {
+        // Pool on the road under the head (the arm reaches over the road toward the centre)
+        local.makeTranslation(lamp.x * 0.72, 0.06, lamp.z)
+        poolMatrices.push(tile.clone().multiply(local))
+        local.makeTranslation(lamp.x, lamp.y - 0.15, lamp.z)
+        haloMatrices.push(tile.clone().multiply(local))
+      }
+    }
+    return { pool, halo, poolMat, haloMat, poolMatrices, haloMatrices }
+  }, [lamps, tiles, level])
+  useEffect(
+    () => () => {
+      pool.dispose()
+      halo.dispose()
+      poolMat.map?.dispose()
+      poolMat.dispose()
+      haloMat.dispose()
+    },
+    [pool, halo, poolMat, haloMat],
+  )
+  // Halos face the camera (flat discs turned toward it every frame)
+  const haloRef = useRef<InstancedMesh>(null)
+  const camera = useThree((st) => st.camera)
+  const tmp = useMemo(() => ({ m: new Matrix4Class(), p: new Vector3(), q: camera.quaternion.clone(), s: new Vector3(1, 1, 1) }), [camera])
+  useFrame(() => {
+    const mesh = haloRef.current
+    if (!mesh) return
+    haloMatrices.forEach((m, i) => {
+      tmp.p.setFromMatrixPosition(m)
+      tmp.m.compose(tmp.p, camera.quaternion, tmp.s)
+      mesh.setMatrixAt(i, tmp.m)
+    })
+    mesh.instanceMatrix.needsUpdate = true
+  })
+  return (
+    <>
+      <Instances geometry={pool} material={poolMat} matrices={poolMatrices} />
+      <instancedMesh ref={haloRef} args={[halo, haloMat, haloMatrices.length]} frustumCulled={false} />
+    </>
+  )
+}
+
+function Highway({ offset, plan, gateZ, level = 'day' }: { offset: Offset; plan: Plan; gateZ: Offset; level?: 'day' | 'dusk' | 'night' }) {
   const { scene } = useGLTF(HIGHWAY_URL)
   const group = useRef<Group>(null)
   const walls = useRef<(Mesh | null)[]>([])
   // The median wall is baked on its own so a gap can be opened in it for the gate
-  const { parts, wall, zMin, zMax } = useMemo(() => {
+  const { parts, wall, zMin, zMax, lamps } = useMemo(() => {
     const root = scene.clone(true)
     const wallRoot = new Group()
     const node = root.getObjectByName('Median_Wall')
     root.updateMatrixWorld(true)
+    // Where the lamp heads are in one tile (Light_Centre_*, Light_Side_*)
+    const lampsFound: Vector3[] = []
+    root.traverse((o) => {
+      if (/^Light_/.test(o.name)) lampsFound.push(o.getWorldPosition(new Vector3()))
+    })
     if (node) wallRoot.attach(node)
     const wallParts = node ? bakeStaticParts(wallRoot) : []
     let lo = Infinity
@@ -227,8 +333,15 @@ function Highway({ offset, plan, gateZ }: { offset: Offset; plan: Plan; gateZ: O
       lo = Math.min(lo, part.geometry.boundingBox!.min.z)
       hi = Math.max(hi, part.geometry.boundingBox!.max.z)
     }
-    return { parts: bakeStaticParts(root), wall: wallParts, zMin: lo, zMax: hi }
+    return { parts: bakeStaticParts(root), wall: wallParts, zMin: lo, zMax: hi, lamps: lampsFound }
   }, [scene])
+  // Bulbs glow full at night, a little at dusk, barely by day
+  useEffect(() => {
+    for (const part of parts) {
+      const mat = part.material as MeshStandardMaterial
+      if (mat.name === 'HW_Lamp_Light' && 'emissiveIntensity' in mat) mat.emissiveIntensity = level === 'night' ? 8 : level === 'dusk' ? 4 : 0.6
+    }
+  }, [parts, level])
   useEffect(
     () => () =>
       [...parts, ...wall].forEach((part) => {
@@ -268,6 +381,7 @@ function Highway({ offset, plan, gateZ }: { offset: Offset; plan: Plan; gateZ: O
         {parts.map((part: StaticPart, i) => (
           <Instances key={i} geometry={part.geometry} material={part.material} matrices={matrices} />
         ))}
+        {level !== 'day' && lamps.length ? <LampGlow lamps={lamps} tiles={matrices} level={level} /> : null}
       </group>
       {wall.flatMap((part, i) =>
         [0, 1].map((s) => (
@@ -1111,6 +1225,8 @@ function World({ mode, view, route, plannedMs, appearance }: DriveProps) {
   const rate = useRef(plan.speed)
   const gateZ = useRef(-9999)
   const time = useRef(0)
+  // Day, dusk or night for the whole ride (checked once when it starts)
+  const light = useMemo(() => rideLightAt(lagosHour()), [])
   const pose = useMemo<Pose>(() => ({ offset: plan.offset0, rate: plan.speed, x: plan.lane, yaw: 0 }), [plan])
   // Where the gate falls in a roadside strip, so the left side can leave room for it
   const gateLocal = hasGate ? -(plan.passAt % STRIP) : null
@@ -1125,11 +1241,11 @@ function World({ mode, view, route, plannedMs, appearance }: DriveProps) {
 
   return (
     <>
-      <color attach="background" args={[SKY]} />
-      <fog attach="fog" args={[SKY, 70, 230]} />
-      <ambientLight intensity={1.05} />
-      <hemisphereLight args={['#eaf3fb', '#9aa683', 0.55]} />
-      <directionalLight position={[18, 30, 12]} intensity={1.2} />
+      <color attach="background" args={[light.sky]} />
+      <fog attach="fog" args={[light.sky, light.fogNear, light.fogFar]} />
+      <ambientLight intensity={light.ambient} />
+      <hemisphereLight args={light.hemi} />
+      <directionalLight position={[18, 30, 12]} intensity={light.sun} color={light.sunColor} />
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.04, -120]}>
         <planeGeometry args={[800, 900]} />
         <meshLambertMaterial color={campus ? '#86a46a' : '#8d9c76'} />
@@ -1138,7 +1254,7 @@ function World({ mode, view, route, plannedMs, appearance }: DriveProps) {
         <CampusRoad offset={offset} />
       ) : (
         <Suspense fallback={null}>
-          <Highway offset={offset} plan={plan} gateZ={gateZ} />
+          <Highway offset={offset} plan={plan} gateZ={gateZ} level={light.level} />
         </Suspense>
       )}
       {hasGate ? (

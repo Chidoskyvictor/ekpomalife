@@ -33,13 +33,17 @@ export const hallFor = (id: string | null | undefined): Hall | null => (id ? (HA
  * (the Admin Block); any other office gets its own wall colour. Add BAMSSA here (and to the
  * backend HALLS list in backend/src/game/venues.ts) once it has a place on the map.
  */
-export type Office = { id: string; name: string; color: string | null; /** Its own 3D room instead of the shared office */ layout?: 'innovation-hub' | 'church' }
+export type Office = { id: string; name: string; color: string | null; /** Its own 3D room instead of the shared office */ layout?: 'innovation-hub' | 'church' | 'food' }
 
 export const OFFICES: Record<string, Office> = {
   'admin-block': { id: 'admin-block', name: 'Admin Block', color: null },
   // Its own room (innovation-hub.glb) keeps its own colours, so no paint
   'innovation-hub': { id: 'innovation-hub', name: 'Innovation Hub', color: null, layout: 'innovation-hub' },
   // Its own room (church.glb): pews to sit on, altar at the back
+  // Its own room (spot-rite.glb): order food at the counter, eat at the tables
+  'spot-rite': { id: 'spot-rite', name: 'Spot Rite', color: null, layout: 'food' },
+  // Its own room (bukka.glb): the same counter ordering, cheaper food
+  bukka: { id: 'bukka', name: 'Mama Amina Bukka', color: null, layout: 'food' },
   'above-the-hills-church': { id: 'above-the-hills-church', name: 'Above the Hills Church', color: null, layout: 'church' },
 }
 
