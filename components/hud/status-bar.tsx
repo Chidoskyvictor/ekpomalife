@@ -41,7 +41,8 @@ export function StatusBar({
   const reduced = useReducedMotion() ?? false
   const [muted, setMuted] = useState(false)
   const [showLabels, setShowLabels] = useShowMapLabels()
-  const prev = useRef(state?.cash ?? 0)
+  // Last balance shown (null until the real one arrives, so loading it never reads as a gain)
+  const prev = useRef<number | null>(cashLoading ? null : (state?.cash ?? null))
   const [delta, setDelta] = useState<number | null>(null)
   // The ±₦ float sits outside the scrolling bar (which clips it), placed over the money chip
   const stackRef = useRef<HTMLDivElement>(null)
@@ -76,7 +77,11 @@ export function StatusBar({
   }, [])
 
   useEffect(() => {
-    if (state == null) return
+    if (state == null || cashLoading) return
+    if (prev.current == null) {
+      prev.current = state.cash
+      return
+    }
     const change = state.cash - prev.current
     prev.current = state.cash
     if (!change) return
@@ -94,7 +99,7 @@ export function StatusBar({
     }
     const timer = window.setTimeout(() => setDelta(null), 1600)
     return () => window.clearTimeout(timer)
-  }, [state])
+  }, [state, cashLoading])
 
   // Balance failed: retry once on its own after 3s (the Retry button stays for more tries)
   const loadFailed = Boolean(onRetry) && !cashLoading && !state
