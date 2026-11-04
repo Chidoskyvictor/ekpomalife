@@ -768,7 +768,7 @@ export const BUILDINGS: Record<string, BuildingDef> = {
         id: 'hangout',
         emoji: '🪩',
         title: 'Enter Sazza',
-        subtitle: 'Club night: dance, drinks, VIP. Entry ₦5,000.',
+        subtitle: 'Club night: dance, drinks, VIP. Free entry.',
         chips: [],
         buttonLabel: 'Enter',
         href: '/club/sazza',

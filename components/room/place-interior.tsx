@@ -5,6 +5,8 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { BuildingPanel, type BuildingActionRunner } from '@/components/buildings/building-panel'
 import { ClubPeople } from '@/components/club/club-people'
+import { ClubScreen } from '@/components/club/club-screen'
+import { CLUB_LAYOUTS } from '@/lib/game/room-layouts'
 import { BuildingActionCards } from '@/components/hud/interior/building-actions'
 import { PlaceReactions, PlaceTalkCard, usePlaceSocial } from '@/components/hud/interior/place-social'
 import { usePlacePresence } from '@/components/hud/interior/use-place-presence'
@@ -42,7 +44,21 @@ export function PlaceInterior({ placeId }: { placeId: string }) {
   // Lecture halls and faculties have a real 3D hall with classmates in it
   if (hallFor(placeId) || officeFor(placeId)) return <HallInterior placeId={placeId} />
   if (placeId === 'wise-gourmet') return <WiseInterior />
+  // Clubs with a 3D floor (Sazza): straight onto the dance floor, no "Enter" sheet first
+  if (CLUB_LAYOUTS[placeId]) return <ClubInterior placeId={placeId} />
   return <StandInInterior placeId={placeId} />
+}
+
+/** A club's 3D floor; tells the trip screen when it's up. */
+function ClubInterior({ placeId }: { placeId: string }) {
+  const trip = useTrip()
+  const wrongPlace = trip?.scene === 'interior' && trip.target !== placeId
+  useEffect(() => {
+    if (wrongPlace) return
+    markSceneReady('interior')
+    return () => markSceneReady('interior', false)
+  }, [placeId, wrongPlace])
+  return <ClubScreen venueId={placeId} />
 }
 
 /** The 3D lecture hall or office; still tells the trip screen when it's up. */

@@ -281,8 +281,8 @@ export function RoomPlayer({
     const down = (e: KeyboardEvent) => {
       // Buy mode moves the preview with the arrows, not the character
       if (!KEYS[e.code] || typing(e) || buyUi().active) return
-      // Busy with a task: keys don't cancel it either (the task's ✕ does)
-      if (task.current?.using) return
+      // Busy with a task (or walking to it): keys don't cancel it either (the task's ✕ does)
+      if (task.current) return
       stopUsing()
       held.current.add(e.code)
       path.current = []
@@ -411,8 +411,8 @@ export function RoomPlayer({
     // Ignore taps that were really a camera drag, and every tap while shopping (it picks furniture instead)
     if (event.delta > 6 || buyUi().active) return
     event.stopPropagation()
-    // Busy sitting / sleeping / cooking: a tap doesn't stand you up; only the task's ✕ does
-    if (task.current?.using) return
+    // On the way to a task, or busy sitting / sleeping / cooking: a tap doesn't cancel it; only the task's ✕ does
+    if (task.current) return
     const local = event.object.parent?.worldToLocal(event.point.clone()) ?? event.point
     const x = Math.min(BOUNDS.maxX, Math.max(BOUNDS.minX, local.x))
     const z = Math.min(BOUNDS.maxZ, Math.max(BOUNDS.minZ, local.z))

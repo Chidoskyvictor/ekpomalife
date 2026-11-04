@@ -173,3 +173,38 @@
   padding: 0 4px;
   min-height: 32px;
 }
+
+/* Missions button on the left, under the top bar: a ring fills as missions get done */
+.fab {
+  pointer-events: auto;
+  position: absolute;
+  left: max(12px, env(safe-area-inset-left));
+  top: calc(max(12px, env(safe-area-inset-top)) + 104px);
+  z-index: 2;
+  width: 52px;
+  height: 52px;
+  border: 0;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(closest-side, #fff 80%, transparent 82%),
+    conic-gradient(var(--primary) calc(var(--done) * 1%), #e3e8ef 0);
+  box-shadow: 0 6px 18px rgba(15, 30, 60, 0.18);
+  font-size: 24px;
+}
+
+.fabDone {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: #16a34a;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+}

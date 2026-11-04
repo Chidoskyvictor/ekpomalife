@@ -173,6 +173,15 @@ export function ClubScreen({ venueId }: { venueId: string }) {
     await load()
   }
 
+  // Free entry: walk straight in (no "Enter" step)
+  const autoEntered = useRef(false)
+  useEffect(() => {
+    if (!view || view.me.paid || !view.venue.open || view.venue.entry > 0 || autoEntered.current) return
+    autoEntered.current = true
+    void enter()
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- enter is recreated each render; run once per visit
+  }, [view])
+
   const buy = async (item: VenueItem) => {
     if (inFlight.current) return
     inFlight.current = true

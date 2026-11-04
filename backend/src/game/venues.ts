@@ -57,7 +57,7 @@ export const VENUES: Record<string, Venue> = {
     name: 'Sazza',
     open: 20,
     close: 4,
-    entry: 5_000,
+    entry: 0, // free to walk in; you pay for drinks, VIP and bottles inside
     capacity: 200,
     items: [
       { id: 'dance', kind: 'dance', name: 'Dance', emoji: '💃', price: 0, minutes: 30, needs: { fun: 12, social: 8, energy: -8 } },
