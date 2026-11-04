@@ -108,7 +108,12 @@ export function MessagesApp({
   onOpenApp: (id: PhoneAppId) => void
 }) {
   const { hostel } = useMyHostel()
-  const [chats, setChats] = useState<ChatSummary[] | null>(null)
+  // Last list seen (this visit) shows at once on reopen; a fresh one replaces it when it lands
+  const [chats, setChatsState] = useState<ChatSummary[] | null>(() => lastChats)
+  const setChats = (next: ChatSummary[]) => {
+    lastChats = next
+    setChatsState(next)
+  }
   const [view, setView] = useState<View>(() => {
     const chat = takePendingChat()
     return chat ? { name: 'chat', chat } : { name: 'list' }
@@ -132,6 +137,7 @@ export function MessagesApp({
   const loadChats = useCallback(async () => {
     const res = await fetchChats()
     if (res.ok) setChats(res.chats)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- setChats only writes state and the module cache
   }, [])
 
   useEffect(() => {
@@ -241,7 +247,7 @@ export function MessagesApp({
       </label>
 
       <div className={styles.scroll}>
-        {chats == null ? <p className={styles.hint}>Loading…</p> : null}
+        {chats == null ? <ChatListSkeleton /> : null}
 
         {pinned.map((chat) => (
           <ChatRow key={chat.id} chat={chat} onOpen={() => openChat(chat)} />
@@ -279,6 +285,46 @@ function previewText(message: ChatMessage) {
   if (message.kind === 'money') return `💸 ${message.mine ? 'Sent' : 'Received'} ${naira(Number(message.body))}`
   if (message.kind === 'game') return message.mine ? 'You sent a 🎮 challenge' : '🎮 Challenged you'
   return message.body
+}
+
+let lastChats: ChatSummary[] | null = null
+
+/** Grey placeholder rows while the chat list loads. */
+function ChatListSkeleton() {
+  return (
+    <div role="status" aria-label="Loading chats">
+      {[0, 1, 2, 3, 4, 5].map((i) => (
+        <div key={i} className={styles.skelRow} aria-hidden="true">
+          <span className={`${styles.skel} ${styles.skelAvatar}`} />
+          <span className={styles.skelLines}>
+            <span className={`${styles.skel} ${styles.skelLine}`} style={{ width: `${45 + ((i * 17) % 30)}%` }} />
+            <span className={`${styles.skel} ${styles.skelLine}`} style={{ width: `${60 + ((i * 23) % 30)}%` }} />
+          </span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/** Placeholder bubbles while a chat's messages load. */
+function MessagesSkeleton() {
+  const rows: { mine: boolean; w: number }[] = [
+    { mine: false, w: 58 },
+    { mine: false, w: 40 },
+    { mine: true, w: 52 },
+    { mine: false, w: 66 },
+    { mine: true, w: 38 },
+    { mine: true, w: 60 },
+  ]
+  return (
+    <div role="status" aria-label="Loading messages">
+      {rows.map((r, i) => (
+        <div key={i} className={`${styles.skelBubbleRow} ${r.mine ? styles.skelMine : ''}`} aria-hidden="true">
+          <span className={`${styles.skel} ${styles.skelBubble}`} style={{ width: `${r.w}%` }} />
+        </div>
+      ))}
+    </div>
+  )
 }
 
 function ChatRow({ chat, onOpen }: { chat: ChatSummary; onOpen: () => void }) {
@@ -591,7 +637,7 @@ function ChatView({
             {loadingOlder ? 'Loading…' : 'Load earlier messages'}
           </button>
         ) : null}
-        {loading ? <p className={styles.hint}>Loading messages…</p> : null}
+        {loading ? <MessagesSkeleton /> : null}
         {error ? <p className={styles.errorText}>{error}</p> : null}
         {!loading && messages.length === 0 && direct && chat.peer ? (
           <p className={styles.hint}>Say hi to {chat.peer.displayName} 👋</p>

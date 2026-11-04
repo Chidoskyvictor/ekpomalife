@@ -20,6 +20,9 @@ function mergeById(current: ChatMessage[], incoming: ChatMessage[]) {
   return fresh.length ? [...current, ...fresh].sort((a, b) => Number(a.id) - Number(b.id)) : current
 }
 
+/** Last page seen per chat (this visit): reopening a chat shows it at once while it refreshes. */
+const recent = new Map<string, { messages: ChatMessage[]; hasMore: boolean }>()
+
 /** `onMoneyIn` runs when someone sends you money while the chat is open (refresh your wallet). */
 export function useChat(chatId: string | null, open: boolean, onMoneyIn?: () => void) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -45,7 +48,12 @@ export function useChat(chatId: string | null, open: boolean, onMoneyIn?: () => 
   useEffect(() => {
     if (!chatId || !open) return
     let cancelled = false
-    setLoading(true)
+    const cached = recent.get(chatId)
+    setMessages(cached?.messages ?? [])
+    setHasMore(cached?.hasMore ?? false)
+    newest.current = cached?.messages.at(-1)?.id ?? null
+    // Skeleton only the first time; after that the cached messages show while fresh ones load
+    setLoading(!cached)
     setError(null)
     void fetchMessages(chatId).then((res) => {
       if (cancelled) return
@@ -54,7 +62,8 @@ export function useChat(chatId: string | null, open: boolean, onMoneyIn?: () => 
         setError(res.error)
         return
       }
-      setMessages(res.messages)
+      // Keep anything newer we already had (sent while the fetch was out)
+      setMessages((current) => mergeById(res.messages, current))
       setHasMore(res.hasMore)
       newest.current = res.messages.at(-1)?.id ?? null
       markRead(newest.current)
@@ -63,6 +72,11 @@ export function useChat(chatId: string | null, open: boolean, onMoneyIn?: () => 
       cancelled = true
     }
   }, [chatId, open, markRead])
+
+  // Remember the latest messages for an instant reopen
+  useEffect(() => {
+    if (chatId && !loading) recent.set(chatId, { messages: messages.slice(-60), hasMore: hasMore || messages.length > 60 })
+  }, [chatId, messages, hasMore, loading])
 
   // Poll for newer messages only while open
   useEffect(() => {

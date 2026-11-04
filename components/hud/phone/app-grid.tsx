@@ -37,7 +37,6 @@ function AppIcon({
   return (
     <button type="button" className={styles.appBtn} aria-label={aria} onClick={() => onOpen(id)}>
       <motion.span
-        layoutId={`app-${id}`}
         className={styles.appIcon}
         style={
           image

@@ -56,6 +56,9 @@ const LOW = [
 
 export const kenneyUrl = (name: string) => `/models/kenney/${name}.glb`
 
+/** Every building the map places, merged into one file (one shared texture). Rebuild with scripts/build-kenney-pack.sh. */
+export const KENNEY_PACK_URL = '/models/kenney-pack.glb'
+
 const nearLandmark = (x: number, z: number, pad: number) =>
   LOCATIONS.some(
     ({ position, size }) =>

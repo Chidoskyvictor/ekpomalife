@@ -27,6 +27,7 @@ import { BillboardDebugPanel } from './billboard-debug-panel'
 import { ZoneStickerOverlay, ZoneStickerProjector, ZoneStickerProvider } from './world-zone-stickers'
 import { ZoneDebugProvider } from './zone-debug-context'
 import { markSceneReady, useTrip } from '@/lib/game/trip'
+import { usePhoneOpenFlag } from '@/lib/game/phone-open'
 
 const PITCH = (32 * Math.PI) / 180
 const HEADING = 0
@@ -221,6 +222,7 @@ export function WorldCanvas() {
   const night = false
   const trip = useTrip()
   const driving = Boolean(trip?.drive && !trip.done)
+  const phoneOpen = usePhoneOpenFlag()
   const { targetPercent, assetsDone, onProgress } = useMapLoadProgress()
   // A trip to a campus place waits for the map to finish loading
   useEffect(() => {
@@ -280,8 +282,8 @@ export function WorldCanvas() {
       <MapLoadOverlay targetPercent={targetPercent} assetsDone={assetsDone} />
       <Canvas
         shadows={!mobile}
-        // The highway drive covers the map: stop drawing it until the drive is over
-        frameloop={driving ? 'never' : 'always'}
+        // The highway drive or the phone covers the map: stop drawing it until it's visible again
+        frameloop={driving || phoneOpen ? 'never' : 'always'}
         dpr={mobile ? mobileDpr : [1, 1.75]}
         gl={{
           antialias: true,

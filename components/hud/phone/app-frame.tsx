@@ -24,8 +24,12 @@ export function AppFrame({
   const startY = useRef(0)
 
   return (
+    // A quick fade + scale (GPU-only). The old icon-to-app layout morph re-measured the whole app
+    // every frame and lagged on phones.
     <motion.div
-      layoutId={reduced ? undefined : `app-${appId}`}
+      initial={reduced ? false : { opacity: 0, scale: 0.97 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.14, ease: 'easeOut' }}
       className={styles.appFrame}
       role="region"
       aria-label={meta?.label ?? 'App'}

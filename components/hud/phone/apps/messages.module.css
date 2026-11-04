@@ -997,3 +997,66 @@
   font-weight: 700;
   cursor: pointer;
 }
+
+/* Loading skeletons (chat list and messages) */
+.skel {
+  display: block;
+  background: linear-gradient(90deg, #eceef1 0%, #f6f7f9 40%, #eceef1 80%);
+  background-size: 200% 100%;
+  animation: skelShine 1.2s ease-in-out infinite;
+}
+
+@keyframes skelShine {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skel {
+    animation: none;
+  }
+}
+
+.skelRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px 10px 26px;
+}
+
+.skelAvatar {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+}
+
+.skelLines {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.skelLine {
+  height: 11px;
+  border-radius: 6px;
+}
+
+.skelBubbleRow {
+  display: flex;
+  padding: 4px 12px;
+}
+
+.skelMine {
+  justify-content: flex-end;
+}
+
+.skelBubble {
+  height: 34px;
+  border-radius: 18px;
+}

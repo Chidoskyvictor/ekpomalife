@@ -1,6 +1,7 @@
 'use client'
 
 import { useUpdateAvailable } from '@/lib/game/update-check'
+import { setPhoneOpenFlag } from '@/lib/game/phone-open'
 import { BackgroundNotifications } from './background-notifications'
 import { SettingsMenu } from './settings-menu'
 import { usePathname, useRouter } from 'next/navigation'
@@ -56,6 +57,11 @@ export function Hud() {
   const guest = isGuest
   const lowPerf = useLowPerf()
   const [phoneOpen, setPhoneOpen] = useState(false)
+  // The map pauses while the phone covers it (smoother app opening on phones)
+  useEffect(() => {
+    setPhoneOpenFlag(phoneOpen)
+    return () => setPhoneOpenFlag(false)
+  }, [phoneOpen])
   const [buyOpen, setBuyOpen] = useState(false)
   const [missionsOpen, setMissionsOpen] = useState(false)
   const missionsView = useMissions(!isGuest && Boolean(state))

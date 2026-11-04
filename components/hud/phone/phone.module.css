@@ -75,6 +75,16 @@
   color: #fff;
 }
 
+/* Phones: a little taller (reaches closer to the top bar; the Close pill still sits above it) */
+@media (max-width: 639px) {
+  .frame {
+    height: min(
+      calc(100dvh - var(--hud-top-mobile, 96px) - 24px - var(--close-h) - var(--close-gap) - env(safe-area-inset-bottom)),
+      820px
+    );
+  }
+}
+
 .closePill {
   display: inline-flex;
   align-items: center;

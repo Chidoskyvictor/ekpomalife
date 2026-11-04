@@ -22,7 +22,7 @@ import {
 import { useGame } from '@/hooks/use-game'
 import { drawAdPlaceholder, drawBoardAd, drawBoardImage, openAd, stampBoardNumber } from '@/lib/game/billboard-ad'
 import { ADS, adForBoard, boardNumber } from '@/lib/game/billboard-ads'
-import { kenneyUrl } from '@/lib/game/kenney-buildings'
+import { KENNEY_PACK_URL } from '@/lib/game/kenney-buildings'
 import { mapPalette as MAP } from '@/lib/game/map-theme'
 import { placeFor } from '@/lib/game/place-info'
 import { MAP_ZONES, type MapZone, type OpenZoneKind, type ZonePart } from '@/lib/game/world-layout'
@@ -75,6 +75,7 @@ function fitToPad(size: { x: number; z: number }, fw: number, fd: number, fill =
 }
 // Kenney zone models are not preloaded at module load: each loads (and is cached) when its zone
 // mounts, so mobile does not fetch every building up front.
+useGLTF.preload(KENNEY_PACK_URL)
 useGLTF.preload(ADMIN_URL, false, true)
 useGLTF.preload(PARKING_URL)
 useGLTF.preload(STADIUM_URL)
@@ -170,6 +171,16 @@ function cloneMaterial(mat: Material, tint?: Color) {
 }
 
 /** Fresh scene clone with optional earth tint. Keeps single materials as single (not arrays). */
+/**
+ * One Kenney building out of the merged pack (/models/kenney-pack.glb: every scatter building in
+ * one file sharing one texture, so the map makes 1 request instead of 17). Same shape as the old
+ * per-building file's `scene`, so callers clone it the same way.
+ */
+function useKenney(name: string): Object3D {
+  const { scene } = useGLTF(KENNEY_PACK_URL)
+  return useMemo(() => scene.getObjectByName(name) ?? scene.getObjectByName('building-skyscraper-c') ?? scene, [scene, name])
+}
+
 function tintedClone(source: Object3D, tint?: string) {
   const root = source.clone(true)
   const multiply = tint ? new Color(tint) : undefined
@@ -231,7 +242,7 @@ function roofStickerY(mesh: Object3D, scale: number, baseY = 0.14) {
 function KenneyZone({ zone }: { zone: MapZone }) {
   const { modelY, scaleMul } = useZoneExtras()
   const gl = useThree((state) => state.gl)
-  const { scene } = useGLTF(kenneyUrl(zone.model))
+  const scene = useKenney(zone.model)
   useLayoutEffect(() => {
     applyGlbTextureAnisotropy(scene, gl)
   }, [scene, gl])
@@ -254,13 +265,13 @@ function AdminZone({ zone }: { zone: MapZone }) {
   const { modelY, scaleMul } = useZoneExtras()
   const gl = useThree((state) => state.gl)
   const gltf = useGLTF(ADMIN_URL, false, true)
-  const fallback = useGLTF(kenneyUrl('building-skyscraper-c'))
+  const fallbackScene = useKenney('building-skyscraper-c')
   const parking = useGLTF(PARKING_URL)
   useLayoutEffect(() => {
     applyGlbTextureAnisotropy(gltf.scene, gl)
-    applyGlbTextureAnisotropy(fallback.scene, gl)
+    applyGlbTextureAnisotropy(fallbackScene, gl)
     applyGlbTextureAnisotropy(parking.scene, gl)
-  }, [gltf.scene, fallback.scene, parking.scene, gl])
+  }, [gltf.scene, fallbackScene, parking.scene, gl])
   const [fw, fd] = zone.footprint
   const [ok, setOk] = useState(false)
 
@@ -271,8 +282,8 @@ function AdminZone({ zone }: { zone: MapZone }) {
 
   const prepared = useMemo(() => {
     if (ok) return paintAdmin(gltf.scene)
-    return tintedClone(fallback.scene, MAP.earthWall)
-  }, [ok, gltf.scene, fallback.scene])
+    return tintedClone(fallbackScene, MAP.earthWall)
+  }, [ok, gltf.scene, fallbackScene])
 
   const bakedParking = useBaked(parking.scene)
   const meshSize = useMemo(() => saneSize(prepared), [prepared])
@@ -480,7 +491,7 @@ const DEFAULT_PART_SCALE = 4.9
 /** Kenney part inside a cluster; carries the zone sticker when `withLabel`. */
 function KenneyPart({ zone, part, withLabel }: { zone: MapZone; part: ZonePart; withLabel: boolean }) {
   const gl = useThree((state) => state.gl)
-  const { scene } = useGLTF(kenneyUrl(part.model))
+  const scene = useKenney(part.model)
   useLayoutEffect(() => {
     applyGlbTextureAnisotropy(scene, gl)
   }, [scene, gl])
