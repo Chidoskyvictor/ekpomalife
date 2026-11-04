@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { BodyPortal } from '@/components/ui/body-portal'
 import { acceptMatch, closeMatch, fetchMatches, type GameMatch } from '@/lib/game/games-api'
 import { requestOpenGames } from '@/lib/game/open-games'
+import { notificationsOn } from '@/lib/notify'
 import styles from './challenge-popup.module.css'
 
 /*
@@ -23,7 +24,8 @@ export function useIncomingChallenges(enabled: boolean) {
     }
     void load()
     const id = window.setInterval(() => {
-      if (document.visibilityState === 'visible') void load()
+      // While hidden, keep checking only if the player wants background notifications
+      if (document.visibilityState === 'visible' || notificationsOn()) void load()
     }, 15_000)
     return () => window.clearInterval(id)
   }, [enabled, load])

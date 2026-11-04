@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { fetchRoom } from '@/lib/game/room-api'
-import { NEED_META, needTone, needValue, type NeedId } from '@/lib/game/needs'
+import { NEED_META, needsFor, needTone, needValue, type NeedId } from '@/lib/game/needs'
 import type { GameState } from '@/lib/game/types'
 import styles from './life-hud.module.css'
 
@@ -25,8 +25,10 @@ export function NeedsStack({ state }: { state: GameState }) {
     })
   }, [])
 
+  const order = needsFor(state, ORDER)
   const critical = useMemo(
-    () => ORDER.find((id) => needValue(state, id) < 25) ?? null,
+    () => order.find((id) => needValue(state, id) < 25) ?? null,
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- order is derived from state
     [state],
   )
   const tipId = focus ?? critical
@@ -39,7 +41,7 @@ export function NeedsStack({ state }: { state: GameState }) {
           {open ? 'Hide' : 'Needs'}
         </button>
         {open
-          ? ORDER.map((id) => {
+          ? order.map((id) => {
               const value = needValue(state, id)
               const tone = needTone(value)
               const meta = NEED_META[id]

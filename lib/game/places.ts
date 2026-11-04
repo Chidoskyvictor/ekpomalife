@@ -350,7 +350,7 @@ export const PLACES: Place[] = [
     zoneId: 'sazza',
     type: 'leisure',
     actions: ['hangout'],
-    openHours: { open: 20, close: 4 },
+    openHours: { open: 20, close: 5 },
   },
   // Buildings with an interior (lib/game/buildings.ts) so tapping them opens the place sheet
   {

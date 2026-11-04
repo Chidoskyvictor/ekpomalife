@@ -176,9 +176,10 @@ export function StatusBar({
         <SiteStats variant="inline" />
 
         <div className={styles.statusRight}>
+          {/* Desktop only: on phones these live in the round settings button under the bar */}
           <button
             type="button"
-            className={styles.iconGhost}
+            className={`${styles.iconGhost} ${styles.deskOnly}`}
             aria-label={showLabels ? 'Hide labels' : 'Show labels'}
             aria-pressed={showLabels}
             title={showLabels ? 'Hide labels' : 'Show labels'}

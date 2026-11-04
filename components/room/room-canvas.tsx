@@ -1,5 +1,6 @@
 'use client'
 
+import { ContextRestore } from '@/components/three/context-restore'
 import { ContactShadows, OrbitControls } from '@react-three/drei'
 import { Canvas } from '@react-three/fiber'
 import { Suspense, useMemo } from 'react'
@@ -48,6 +49,7 @@ export function RoomCanvas({
         invalidate()
       }}
     >
+      <ContextRestore />
       <Suspense fallback={null}>
         <RoomShell
           grid={grid}

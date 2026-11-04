@@ -1,5 +1,6 @@
 'use client'
 
+import { ContextRestore } from '@/components/three/context-restore'
 import { useGLTF } from '@react-three/drei'
 import { Canvas, useThree } from '@react-three/fiber'
 import { Suspense, useEffect, useLayoutEffect, useMemo, type ReactNode } from 'react'
@@ -203,6 +204,7 @@ export function HomeCanvas({ street, onReady, visit = 0, ...props }: CanvasProps
         gl.setClearColor('#000000', 0)
       }}
     >
+      <ContextRestore />
       <Suspense fallback={null}>
         {street ? <StreetScene key={`street-${visit}`} {...street} /> : <HomeModel key={`${props.layout.id}-${visit}`} {...props} />}
         <SceneReady key={`ready-${street ? 'street' : props.layout.id}-${visit}`} onReady={onReady} />

@@ -9,7 +9,7 @@ import { withIdempotency } from './idempotency.js'
 import { applyNeedDelta, type Needs } from './needs.js'
 import { PLACES } from './places.js'
 import { liveSpaceMoneyBlock } from './spaces-money.js'
-import { clockFromGameTime } from './time.js'
+import { clockFromGameTime, realGameTime } from './time.js'
 
 /*
  * Clubs. Sazza is the first; Climax will reuse this with its own name and prices.
@@ -56,7 +56,7 @@ export const VENUES: Record<string, Venue> = {
     id: 'sazza',
     name: 'Sazza',
     open: 20,
-    close: 4,
+    close: 5, // clubs close at 5 AM game time; anyone still inside is sent home
     entry: 0, // free to walk in; you pay for drinks, VIP and bottles inside
     capacity: 200,
     items: [
@@ -127,6 +127,12 @@ const INSIDE_SECONDS = 90
 const NIGHT_MS = (24 * 60 * 60_000) / 10
 
 export const nightKey = (now = Date.now()) => Math.floor(now / NIGHT_MS)
+
+/** Clubs keep night hours (halls and cafés let you in any time). */
+const isClub = (venue: Venue) => (venue.kind ?? 'club') === 'club'
+const hoursOf = (venue: Venue) =>
+  venue.open === 0 && venue.close === 24 ? 'Open 24 hours' : `${hourLabel(venue.open)} – ${hourLabel(venue.close)}`
+const closedCopy = (venue: Venue) => `${venue.name} is closed. Opening hours: ${hoursOf(venue)}.`
 
 function isOpen(venue: Venue, gameTime: number) {
   const { hour } = clockFromGameTime(gameTime)
@@ -241,7 +247,7 @@ export async function getVenue(userId: string, venueId: string) {
     venue: {
       id: venue.id,
       name: venue.name,
-      hours: venue.open === 0 && venue.close === 24 ? 'Open 24 hours' : `${hourLabel(venue.open)} – ${hourLabel(venue.close)}`,
+      hours: hoursOf(venue),
       open: read.open,
       entry: venue.entry,
       items: venue.items,
@@ -268,8 +274,8 @@ export async function enterVenue(userId: string, venueId: string, key: string) {
       route: `venue:${venueId}:enter`,
       body: { venueId },
       run: async () => {
-        // Every place lets you in at any hour, so players there always see each other
-        // (the club's drinks and sprays still keep its night hours)
+        // Halls and cafés let you in at any hour; clubs only during their night hours
+        if (isClub(venue) && !isOpen(venue, gameTime)) return bad(400, 'CLOSED', closedCopy(venue))
         await client.query(`SELECT pg_advisory_xact_lock(hashtext($1))`, [`venue:${venueId}:${night}`])
         const visit = await visitOf(client, characterId, venueId, night)
         if (visit) {
@@ -498,6 +504,8 @@ export async function sprayAtVenue(userId: string, venueId: string, amount: numb
 /** Ticket for the live crowd socket (you must have paid entry tonight). */
 export async function liveTicket(userId: string, venueId: string) {
   if (!VENUES[venueId]) return { ok: false as const, error: 'No such club.', code: 404 }
+  const venue = VENUES[venueId]!
+  if (isClub(venue) && !isOpen(venue, realGameTime())) return { ok: false as const, error: closedCopy(venue), code: 403 }
   const ticket = await createLiveTicket(userId, venueId, nightKey())
   if (!ticket) return { ok: false as const, error: 'Pay the entry first.', code: 403 }
   return { ok: true as const, ...ticket }
@@ -505,7 +513,11 @@ export async function liveTicket(userId: string, venueId: string) {
 
 /** Still inside (sent every ~30 s while the club screen is open). */
 export async function venueHeartbeat(userId: string, venueId: string, leaving = false) {
-  if (!VENUES[venueId]) return { ok: false as const, error: 'No such club.', code: 404 }
+  const venue = VENUES[venueId]
+  if (!venue) return { ok: false as const, error: 'No such club.', code: 404 }
+  // Closing time: a club clears out, so a stale open tab can't keep someone counted inside
+  const closed = isClub(venue) && !isOpen(venue, realGameTime())
+  if (closed) leaving = true
   const found = await pool.query<{ id: string }>(`SELECT c.id FROM characters c WHERE c.user_id = $1`, [userId])
   const characterId = found.rows[0]?.id
   if (!characterId) return { ok: false as const, error: 'No character.', code: 409 }
@@ -514,7 +526,7 @@ export async function venueHeartbeat(userId: string, venueId: string, leaving = 
      WHERE character_id = $1 AND venue_id = $2 AND night_key = $3`,
     [characterId, venueId, nightKey()],
   )
-  return { ok: true as const }
+  return closed ? { ok: true as const, closed: true, message: `${venue.name} is closed, heading home.` } : { ok: true as const }
 }
 
 /** Everyone inside right now (all groups), newest first, a page at a time. */

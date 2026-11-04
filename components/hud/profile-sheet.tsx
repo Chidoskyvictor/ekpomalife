@@ -18,6 +18,7 @@ import {
   moodFromNeeds,
   NEED_GRID,
   NEED_META,
+  needsFor,
   needTone,
   needValue,
   type NeedId,
@@ -68,7 +69,7 @@ const FEELING_HIGH: Record<NeedId, { title: string; text: string; points: number
 
 function feelings(state: GameState) {
   const list: { id: string; emoji: string; title: string; text: string; points: number }[] = []
-  for (const id of NEED_GRID) {
+  for (const id of needsFor(state, NEED_GRID)) {
     const value = needValue(state, id)
     const meta = NEED_META[id]
     if (value < 25) list.push({ id: `${id}-low`, emoji: meta.emoji, ...FEELING_LOW[id] })
@@ -215,7 +216,7 @@ function NeedsTab({ state }: { state: GameState }) {
   return (
     <>
       <div className={styles.card}>
-        {NEED_GRID.map((id) => {
+        {needsFor(state, NEED_GRID).map((id) => {
           const value = Math.round(needValue(state, id))
           const meta = NEED_META[id]
           return (

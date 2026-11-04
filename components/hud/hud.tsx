@@ -1,5 +1,8 @@
 'use client'
 
+import { useUpdateAvailable } from '@/lib/game/update-check'
+import { BackgroundNotifications } from './background-notifications'
+import { SettingsMenu } from './settings-menu'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import { BuySheet } from '@/components/hud/buy-sheet'
@@ -77,11 +80,13 @@ export function Hud() {
   // Tapped a place on the map: its sheet (about, ways to get there, Go) is up
   const mapSheetHidden = pathname !== '/' || phoneOpen || buyOpen
   const mapSheetOpen = !mapSheetHidden && (Boolean(placeFor(selectedId)) || isComingSoon(selectedId))
+  // A newer deployed build counts as one on the phone badge (its Refresh card is on the phone)
+  const updateReady = Boolean(useUpdateAvailable())
   const unread = useMemo(() => {
     if (!hasPhone) return 0
     const feed = state?.feed.filter((entry) => entry.day === state.day).length ?? 0
-    return Math.min(9, feed + chatUnread + challenges.incoming.length)
-  }, [hasPhone, state, chatUnread, challenges.incoming.length])
+    return Math.min(9, feed + chatUnread + challenges.incoming.length + (updateReady ? 1 : 0))
+  }, [hasPhone, state, chatUnread, challenges.incoming.length, updateReady])
 
   useEffect(() => {
     if (pathname?.startsWith('/room')) {
@@ -256,6 +261,8 @@ export function Hud() {
             </button>
           ) : null}
           <ActionTiles />
+          {/* Phones only: Music, Sound and map labels (desktop keeps the icons in the top bar) */}
+          {!phoneOpen ? <SettingsMenu /> : null}
         </div>
         {/* At a school building: level, CGPA, exam prep and today's classes */}
         {!phoneOpen && !buyOpen ? <SchoolCard /> : null}
@@ -268,6 +275,7 @@ export function Hud() {
       </div>
 
       <ToastLayer toast={toast} state={state} />
+      {!guest && hasPhone ? <BackgroundNotifications chatUnread={chatUnread} challenges={challenges.incoming.length} /> : null}
       <ChallengePopup incoming={challenges.incoming} hidden={phoneOpen} onDone={() => void challenges.reload()} />
 
       {state && !homeBuy.active && !mapSheetOpen ? (

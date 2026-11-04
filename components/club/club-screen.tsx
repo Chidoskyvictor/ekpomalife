@@ -122,21 +122,40 @@ export function ClubScreen({ venueId }: { venueId: string }) {
     [sendState],
   )
 
+  // Closing time (5 AM): a short toast, then home to your own room (or the map if you have none)
+  const sentHome = useRef(false)
+  const closeUp = useCallback(
+    (message?: string) => {
+      if (sentHome.current) return
+      sentHome.current = true
+      endActivity()
+      void leaveVenue(venueId)
+      notifyToast(message ?? `${view?.venue.name ?? 'The club'} is closed, heading home.`, false)
+      router.replace(state?.lodgingId ? '/room' : '/')
+    },
+    [venueId, view?.venue.name, state?.lodgingId, notifyToast, router],
+  )
+  useEffect(() => {
+    if (inside && view && !view.venue.open) closeUp()
+  }, [inside, view, closeUp])
+
   // Still here: heartbeat while inside (and the count / spender board refresh); leave on the way out
   useEffect(() => {
     if (!inside) return
     // First ping shortly after arriving (lands after a dev double-mount's "left" call)
-    const first = window.setTimeout(() => void venueHeartbeat(venueId).then(() => load()), 800)
-    const id = window.setInterval(() => {
-      void venueHeartbeat(venueId)
-      void load()
-    }, 30_000)
+    const beat = () =>
+      void venueHeartbeat(venueId).then((res) => {
+        if (res.ok && res.closed) closeUp(res.message)
+        else void load()
+      })
+    const first = window.setTimeout(beat, 800)
+    const id = window.setInterval(beat, 30_000)
     return () => {
       window.clearTimeout(first)
       window.clearInterval(id)
       void leaveVenue(venueId)
     }
-  }, [inside, venueId, load])
+  }, [inside, venueId, load, closeUp])
 
   // Faces for the "Players here" row, while the sheet is open
   useEffect(() => {
@@ -176,7 +195,7 @@ export function ClubScreen({ venueId }: { venueId: string }) {
   // Free entry: walk straight in (no "Enter" step)
   const autoEntered = useRef(false)
   useEffect(() => {
-    if (!view || view.me.paid || view.venue.entry > 0 || autoEntered.current) return
+    if (!view || view.me.paid || view.venue.entry > 0 || !view.venue.open || autoEntered.current) return
     autoEntered.current = true
     void enter()
     // eslint-disable-next-line react-hooks/exhaustive-deps -- enter is recreated each render; run once per visit
@@ -369,7 +388,7 @@ export function ClubScreen({ venueId }: { venueId: string }) {
                   {busy ? 'Paying…' : `Enter · ${naira(view.venue.entry)}`}
                 </button>
               ) : (
-                <p className={styles.doorNote}>Closed now. Doors open at night ({view.venue.hours}).</p>
+                <p className={styles.doorNote}>Closed now. Opening hours: {view.venue.hours}.</p>
               )}
             </div>
           )}

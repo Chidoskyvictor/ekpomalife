@@ -9,6 +9,7 @@ import {
   type PhoneState,
   type WallpaperId,
 } from '@/lib/game/phone'
+import { notificationsSupported, setNotifications, useNotificationsOn } from '@/lib/notify'
 import styles from '../phone.module.css'
 
 export function SettingsApp({
@@ -88,7 +89,45 @@ export function SettingsApp({
         Cash <NumberFlow value={cash} prefix="₦" format={{ maximumFractionDigits: 0 }} />
       </p>
 
+      <h3 className={styles.sectionTitle}>Notifications</h3>
+      <NotificationsToggle onMessage={setMsg} />
+
       {msg ? <p className={styles.listMeta}>{msg}</p> : null}
     </div>
+  )
+}
+
+/** Background notifications (new chats, challenges). The permission prompt only follows this tap. */
+function NotificationsToggle({ onMessage }: { onMessage: (msg: string | null) => void }) {
+  const on = useNotificationsOn()
+  const [busy, setBusy] = useState(false)
+  if (!notificationsSupported()) return <p className={styles.listMeta}>This browser can&apos;t show notifications.</p>
+  return (
+    <ul className={styles.list}>
+      <li className={styles.listItem}>
+        <div>
+          <p className={styles.promoTitle} style={{ color: '#111', margin: 0 }}>
+            Background notifications
+          </p>
+          <p className={styles.listMeta}>New messages and challenges while the game is minimised</p>
+        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={on}
+          className={styles.smallPill}
+          disabled={busy}
+          onClick={() => {
+            void (async () => {
+              setBusy(true)
+              onMessage(await setNotifications(!on))
+              setBusy(false)
+            })()
+          }}
+        >
+          {on ? 'On' : 'Off'}
+        </button>
+      </li>
+    </ul>
   )
 }

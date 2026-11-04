@@ -77,7 +77,7 @@ export function socialAtVenue(id: string, kind: SocialKind, target: string) {
 }
 
 export function venueHeartbeat(id: string) {
-  return apiPost<{ ok: true }>(`/venues/${encodeURIComponent(id)}/heartbeat`, {})
+  return apiPost<{ ok: true; closed?: boolean; message?: string }>(`/venues/${encodeURIComponent(id)}/heartbeat`, {})
 }
 
 export function leaveVenue(id: string) {

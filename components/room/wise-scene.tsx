@@ -1,5 +1,6 @@
 'use client'
 
+import { ContextRestore } from '@/components/three/context-restore'
 import { Html, OrbitControls, useGLTF } from '@react-three/drei'
 import { Canvas, useFrame, type ThreeEvent } from '@react-three/fiber'
 import { Suspense, use, useMemo, useRef, useState, type MutableRefObject } from 'react'
@@ -524,6 +525,7 @@ export function WiseScene({
       gl={{ antialias: true, powerPreference: 'high-performance' }}
       style={{ width: '100%', height: '100%', touchAction: 'none' }}
     >
+      <ContextRestore />
       <color attach="background" args={['#F4C99A']} />
       <fog attach="fog" args={['#F4C99A', 20, 48]} />
       <ambientLight intensity={0.75} color="#FFE9CC" />

@@ -1,5 +1,6 @@
 'use client'
 
+import { ContextRestore } from '@/components/three/context-restore'
 import { MapControls, PerformanceMonitor } from '@react-three/drei'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
@@ -304,6 +305,7 @@ export function WorldCanvas() {
         {mobile ? (
           <MobileDprMonitor onDecline={onMobileDprDecline} onIncline={onMobileDprIncline} />
         ) : null}
+        <ContextRestore />
         <FpsCounter />
         <MapLoadReporter onProgress={onProgress} />
         <color attach="background" args={[ground]} />

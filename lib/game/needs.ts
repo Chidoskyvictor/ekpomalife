@@ -93,10 +93,17 @@ export function levelFromXp(xp: number) {
   return { level, progress: into / 100, into, next: 100 }
 }
 
+/** Study only matters to students: everyone else never sees it or gets judged on it. */
+export const tracksStudy = (state: Pick<GameState, 'characterType'>) => state.characterType === 'student'
+
+/** The needs this player sees (study only for students). */
+export function needsFor<T extends NeedId>(state: Pick<GameState, 'characterType'>, ids: readonly T[]): T[] {
+  return tracksStudy(state) ? [...ids] : ids.filter((id) => id !== 'study')
+}
+
 export function wellbeingScore(state: GameState) {
-  return (
-    (state.hunger + state.energy + state.hygiene + state.fun + state.social + state.academic) / 6
-  )
+  const base = state.hunger + state.energy + state.hygiene + state.fun + state.social
+  return tracksStudy(state) ? (base + state.academic) / 6 : base / 5
 }
 
 export function moodFromNeeds(state: GameState) {
@@ -110,7 +117,7 @@ export function moodFromNeeds(state: GameState) {
 export function criticalNeed(state: GameState): NeedId | null {
   let worst: NeedId | null = null
   let worstValue = 25
-  for (const id of NEED_GRID) {
+  for (const id of needsFor(state, NEED_GRID)) {
     const value = needValue(state, id)
     if (value < worstValue) {
       worst = id

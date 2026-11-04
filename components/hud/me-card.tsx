@@ -3,6 +3,7 @@
 import {
   criticalNeed,
   NEED_META,
+  needsFor,
   needTone,
   needValue,
   wellbeingScore,
@@ -44,7 +45,7 @@ export function MeCard({
   const tone = needTone(well)
   const critical = criticalNeed(state)
   const initial = (state.characterName.trim()[0] || state.username[0] || 'E').toUpperCase()
-  const values = NEEDS_GRID.map((id) => ({ id, value: Math.max(0, Math.min(100, Math.round(needValue(state, id)))) }))
+  const values = needsFor(state, NEEDS_GRID).map((id) => ({ id, value: Math.max(0, Math.min(100, Math.round(needValue(state, id)))) }))
   const sorted = [...values].sort((a, b) => a.value - b.value)
   const lowest = sorted[0]!
   // Other needs that also want attention (below "good")

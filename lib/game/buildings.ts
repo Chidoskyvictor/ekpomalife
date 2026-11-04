@@ -762,7 +762,7 @@ export const BUILDINGS: Record<string, BuildingDef> = {
     label: 'Sazza',
     emoji: '🪩',
     kind: 'generic',
-    openHours: { open: 20, close: 4 },
+    openHours: { open: 20, close: 5 },
     actions: [
       {
         id: 'hangout',
