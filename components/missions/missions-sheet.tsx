@@ -3,6 +3,7 @@
 import { RefreshCw, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useGame } from '@/hooks/use-game'
 import { runTimed } from '@/lib/game/activity'
 import { missionAction, refreshMissions, ROLE_TAG, useMissions, type MissionView } from '@/lib/game/missions-api'
@@ -76,8 +77,9 @@ export function MissionsSheet({ open, onClose }: { open: boolean; onClose: () =>
   const done = view?.doneCount ?? 0
   const total = view?.missions.length ?? 3
 
-  return (
-    <section className={base.sheet} aria-label="Today's missions">
+  // Drawn at the page's top level, above every place's own sheet (rooms, halls, clubs…)
+  return createPortal(
+    <section className={`${base.sheet} ${styles.onTop}`} aria-label="Today's missions">
       <div className={base.handle} aria-hidden="true" />
       <header className={base.head}>
         <span className={base.icon} aria-hidden="true">
@@ -164,6 +166,7 @@ export function MissionsSheet({ open, onClose }: { open: boolean; onClose: () =>
           <p className={styles.note}>{view.swapped ? 'Free swap used today' : '1 free swap today: tap ↻ on a mission'}</p>
         </>
       ) : null}
-    </section>
+    </section>,
+    document.body,
   )
 }

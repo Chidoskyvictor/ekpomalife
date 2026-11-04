@@ -61,14 +61,14 @@ function assert(condition: unknown, message: string) {
 
 // starting money
 {
-  assert(STARTING_RANGES.politics.min === 400_000 && STARTING_RANGES.politics.max === 700_000, 'politics range')
+  assert(STARTING_RANGES.politics.min === 2_500_000 && STARTING_RANGES.politics.max === 4_000_000, 'politics range')
   const dreams = Object.keys(STARTING_RANGES) as DreamId[]
   assert(dreams.length === 7, 'seven dreams')
   for (const dreamId of dreams) {
     const range = STARTING_RANGES[dreamId]
     const rolled = rollStartingMoney({ dreamId, traits: ['tech', 'hustler'], body: 'man' })
     assert(
-      rolled.amount >= range.min - 50_000 && rolled.amount <= range.max + 150_000,
+      rolled.amount >= range.min && rolled.amount <= Math.round((range.max * 1.1) / 10_000) * 10_000,
       `${dreamId} roll in band (${rolled.amount})`,
     )
   }

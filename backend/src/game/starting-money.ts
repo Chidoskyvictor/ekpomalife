@@ -2,17 +2,18 @@ import { randomInt } from 'node:crypto'
 import type { DreamId } from './dreams.js'
 import type { TraitId } from './traits.js'
 
-export const STARTING_CASH_MIN = 100_000
-export const STARTING_CASH_MAX = 1_000_000
+/** Starting money spin: ₦1m to ₦5m (by dream and traits). */
+export const STARTING_CASH_MIN = 1_000_000
+export const STARTING_CASH_MAX = 5_000_000
 
 export const STARTING_RANGES: Record<DreamId, { min: number; max: number }> = {
-  'ekpoma-landlord': { min: 100_000, max: 300_000 },
-  'tech-founder': { min: 200_000, max: 450_000 },
-  'edo-star': { min: 200_000, max: 450_000 },
-  'big-boy': { min: 250_000, max: 500_000 },
-  'first-class': { min: 300_000, max: 600_000 },
-  'campus-celeb': { min: 500_000, max: 1_000_000 },
-  politics: { min: 400_000, max: 700_000 },
+  'ekpoma-landlord': { min: 1_000_000, max: 2_000_000 },
+  'tech-founder': { min: 1_500_000, max: 3_000_000 },
+  'edo-star': { min: 1_500_000, max: 3_000_000 },
+  'big-boy': { min: 2_000_000, max: 3_500_000 },
+  'first-class': { min: 2_000_000, max: 4_000_000 },
+  'campus-celeb': { min: 3_000_000, max: 5_000_000 },
+  politics: { min: 2_500_000, max: 4_000_000 },
 }
 
 export type StartingTierId = 'hustle' | 'steady' | 'big' | 'nepo'
@@ -31,9 +32,9 @@ export function rangeForDream(dreamId: string): { min: number; max: number } | n
 }
 
 export function tierIdForAmount(amount: number): StartingTierId {
-  if (amount < 250_000) return 'hustle'
-  if (amount < 500_000) return 'steady'
-  if (amount < 750_000) return 'big'
+  if (amount < 2_000_000) return 'hustle'
+  if (amount < 3_000_000) return 'steady'
+  if (amount < 4_000_000) return 'big'
   return 'nepo'
 }
 
@@ -49,9 +50,9 @@ function rollInRange(min: number, max: number) {
 }
 
 function clipAndRound(value: number) {
-  const rounded = Math.round(value / 500) * 500
-  const clamped = Math.min(STARTING_CASH_MAX, Math.max(STARTING_CASH_MIN, rounded))
-  return Math.round(clamped / 500) * 500
+  // Round to ₦10,000 so the amounts look clean
+  const rounded = Math.round(value / 10_000) * 10_000
+  return Math.min(STARTING_CASH_MAX, Math.max(STARTING_CASH_MIN, rounded))
 }
 
 function pick<T>(items: readonly T[]): T {

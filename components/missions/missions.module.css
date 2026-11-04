@@ -218,3 +218,9 @@
   display: grid;
   place-items: center;
 }
+
+/* The missions sheet sits above every place's own sheet; the phone and toasts stay above it */
+section.onTop {
+  position: fixed;
+  z-index: var(--z-drawer);
+}

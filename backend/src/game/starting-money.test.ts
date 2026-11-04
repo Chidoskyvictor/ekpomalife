@@ -5,8 +5,8 @@ import type { DreamId } from './dreams.js'
 const DREAMS = Object.keys(STARTING_RANGES) as DreamId[]
 
 describe('starting money ranges', () => {
-  it('includes politics at ₦400k–₦700k', () => {
-    expect(STARTING_RANGES.politics).toEqual({ min: 400_000, max: 700_000 })
+  it('includes politics at ₦2.5m–₦4m', () => {
+    expect(STARTING_RANGES.politics).toEqual({ min: 2_500_000, max: 4_000_000 })
   })
 
   it('rolls within each dream range (base traits)', () => {
@@ -18,8 +18,9 @@ describe('starting money ranges', () => {
           traits: ['tech', 'hustler'],
           body: 'man',
         })
-        expect(rolled.amount).toBeGreaterThanOrEqual(range.min - 50_000)
-        expect(rolled.amount).toBeLessThanOrEqual(range.max + 100_000)
+        expect(rolled.amount).toBeGreaterThanOrEqual(range.min)
+        // hustler adds 10%, rounded to ₦10k
+        expect(rolled.amount).toBeLessThanOrEqual(Math.round((range.max * 1.1) / 10_000) * 10_000)
       }
     }
   })

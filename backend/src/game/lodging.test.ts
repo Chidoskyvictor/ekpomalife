@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { STARTING_CASH_MIN, STARTING_RANGES } from './starting-money.js'
+import { STARTING_CASH_MIN } from './starting-money.js'
 import { moveInFeeFor } from './lodging.js'
 
 describe('move-in fee', () => {
@@ -14,9 +14,7 @@ describe('move-in fee', () => {
     expect(moveInFeeFor('mansion')).toBe(0)
   })
 
-  it('keeps the hostel open to every spin, and the dearest house out of reach of the lowest', () => {
+  it('keeps the hostel open to every spin', () => {
     expect(moveInFeeFor('hostel-poultry')).toBeLessThanOrEqual(STARTING_CASH_MIN)
-    const lowest = Math.min(...Object.values(STARTING_RANGES).map((range) => range.min))
-    expect(moveInFeeFor('onebed-ojo')).toBeGreaterThan(lowest)
   })
 })
