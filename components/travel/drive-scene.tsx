@@ -71,6 +71,9 @@ const ROAD_EDGE = 14.5
 
 const SKY = '#bcd3e0'
 
+/** Reduce Motion (iPhone Settings → Accessibility → Motion): the ride still plays, just without camera bob or vehicle sway. */
+const calm = () => typeof window !== 'undefined' && Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)
+
 /** Sky and lights for the ride, by the hour in Ekpoma (the game runs on real WAT time). */
 type RideLight = { level: 'day' | 'dusk' | 'night'; sky: string; ambient: number; hemi: [string, string, number]; sun: number; sunColor: string; fogNear: number; fogFar: number }
 const DAY: RideLight = { level: 'day', sky: SKY, ambient: 1.05, hemi: ['#eaf3fb', '#9aa683', 0.55], sun: 1.2, sunColor: '#ffffff', fogNear: 70, fogFar: 230 }
@@ -1056,8 +1059,9 @@ function PlayerVehicle({ mode, pose, appearance }: { mode: DriveMode; pose: Pose
     ref.current.rotation.y = pose.yaw
     // Idle at a standstill: no road shake
     const moving = Math.min(pose.rate / 8, 1)
-    ref.current.position.y = Math.sin(t * 13) * 0.018 * moving
-    ref.current.rotation.z = (mode === 'okada' ? Math.sin(t * 2.2) * 0.05 : Math.sin(t * 1.4) * 0.012) * moving
+    const sway = calm() ? 0 : moving
+    ref.current.position.y = Math.sin(t * 13) * 0.018 * sway
+    ref.current.rotation.z = (mode === 'okada' ? Math.sin(t * 2.2) * 0.05 : Math.sin(t * 1.4) * 0.012) * sway
   })
   return (
     <group ref={ref} position={[LANE.mine, 0, 0]}>
@@ -1137,7 +1141,7 @@ function CameraRig({
     // Snap into place on the first frame, then ease
     const k = first.current ? 1 : 1 - Math.exp(-delta * 4)
     first.current = false
-    const bob = Math.sin(clock.elapsedTime * 9) * (view === 'inside' ? 0.025 : 0.012) * Math.min(pose.rate / 8, 1)
+    const bob = calm() ? 0 : Math.sin(clock.elapsedTime * 9) * (view === 'inside' ? 0.025 : 0.012) * Math.min(pose.rate / 8, 1)
     const c = Math.cos(pose.yaw)
     const s = Math.sin(pose.yaw)
     const place = (v: [number, number, number], out: Vector3, y = v[1]) => out.set(pose.x + v[0] * c + v[2] * s, y, -v[0] * s + v[2] * c)

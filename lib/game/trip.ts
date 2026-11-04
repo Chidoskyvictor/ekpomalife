@@ -45,12 +45,14 @@ const MIN_MS: Record<TripMode, number> = { trek: 700, keke: 1200, okada: 900 }
 /** The drive needs long enough to read as a ride; Skip cuts it short. */
 const DRIVE_MS: Record<TripMode, number> = { trek: 1600, keke: 7000, okada: 5500 }
 
-/** Paid rides get the 3D drive, unless the player asked for less motion or the phone is short on memory. */
+/**
+ * Paid rides get the 3D drive (with Reduce Motion on it plays calmly instead of being skipped).
+ * Only phones short on memory, and okada inside campus (no okada lane there), get the pill instead.
+ */
 export function canDrive(mode: TripMode, route: TripRoute = 'road') {
   if (mode === 'trek' || typeof window === 'undefined') return false
   // Okada doesn't ride inside campus: only keke has a lane there
   if (route === 'inside' && mode === 'okada') return false
-  if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return false
   const memory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory
   return memory === undefined || memory >= 3
 }
