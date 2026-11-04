@@ -1,8 +1,9 @@
 'use client'
 
+import { useGLTF } from '@react-three/drei'
 import { useThree, type ThreeEvent } from '@react-three/fiber'
-import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
-import { Vector3, type Group, type Object3D } from 'three'
+import { Suspense, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
+import { Box3, Vector3, type Group, type Object3D } from 'three'
 import type { HomeItem, OwnedPiece } from '@/lib/game/home-buy-api'
 import { checkHomePlacement, type HomeSpec } from '@/lib/game/home-buy-rules'
 import { pickPlaced, setBuySpot, useBuyUi } from '@/lib/game/home-buy-store'
@@ -67,6 +68,32 @@ function Block({
           <meshBasicMaterial color={tint} transparent opacity={0.35} depthWrite={false} />
         </mesh>
       ) : null}
+    </group>
+  )
+}
+
+/**
+ * A bought piece with a real model: centred on its tiles, standing on the floor, turned with the
+ * piece. Real-world size (the models are in metres), never squashed.
+ */
+function ModelPiece({ spec, item, spot }: { spec: HomeSpec; item: HomeItem; spot: { x: number; z: number; rot: 0 | 90 | 180 | 270 } }) {
+  const { scene } = useGLTF(item.model!)
+  const object = useMemo(() => {
+    const copy = scene.clone(true)
+    copy.traverse((o) => {
+      o.castShadow = true
+      o.receiveShadow = true
+    })
+    // Centre it on x/z and stand it on the floor
+    const box = new Box3().setFromObject(copy)
+    const centre = box.getCenter(new Vector3())
+    copy.position.set(-centre.x, -box.min.y, -centre.z)
+    return copy
+  }, [scene])
+  const [x0, z0, x1, z1] = pieceRect(spec, item, spot)
+  return (
+    <group position={[(x0 + x1) / 2, 0, (z0 + z1) / 2]} rotation={[0, (-spot.rot * Math.PI) / 180, 0]}>
+      <primitive object={object} />
     </group>
   )
 }
@@ -141,6 +168,13 @@ export function PlacedPieces({ furnishing, root }: { furnishing: HomeFurnishing;
         const def = starterOf.get(p.itemId)
         if (def && root) {
           return <StarterPiece key={p.id} spec={furnishing.spec} item={item} def={def} spot={p} root={root} />
+        }
+        if (item.model) {
+          return (
+            <Suspense key={p.id} fallback={<Block spec={furnishing.spec} item={item} spot={p} />}>
+              <ModelPiece spec={furnishing.spec} item={item} spot={p} />
+            </Suspense>
+          )
         }
         return (
           <Block

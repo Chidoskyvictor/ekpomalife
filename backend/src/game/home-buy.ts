@@ -37,6 +37,10 @@ export type HomeItem = {
   maxPerHome: number
   /** Comes with the home (free, can be moved or removed, never sold in the shop) */
   starter: boolean
+  /** Its 3D model (null = drawn as a block) */
+  model: string | null
+  /** For sale in the shop (block-only items aren't, but placed ones still show) */
+  available: boolean
 }
 
 type ItemRow = {
@@ -54,6 +58,8 @@ type ItemRow = {
   uses: string | null
   max_per_home: number
   starter: boolean | null
+  model: string | null
+  available: boolean | null
 }
 
 type PlacementRow = { id: string; item_id: string; x: number; z: number; rot: number; paid: string | number }
@@ -76,6 +82,8 @@ function mapItem(row: ItemRow): HomeItem {
     uses: row.uses,
     maxPerHome: row.max_per_home,
     starter: row.starter === true,
+    model: row.model ?? null,
+    available: row.available !== false,
   }
 }
 
@@ -270,7 +278,7 @@ const bad = (error: string, status = 400, reason?: string) => ({ status, body: {
 export function placeHomeItem(userId: string, itemId: string, spot: Spot, idemKey: string) {
   return writeHome(userId, idemKey, 'POST /home/place', { itemId, ...spot }, true, async ({ client, characterId, spec, catalog }) => {
     const item = catalog.find((i) => i.id === itemId)
-    if (!item || item.starter) return bad('That item is not sold.', 404, 'UNKNOWN_ITEM')
+    if (!item || item.starter || !item.available) return bad('That item is not sold.', 404, 'UNKNOWN_ITEM')
     const placements = await loadPlacements(client, characterId)
     const check = checkHomePlacement(spec, shapesOf(catalog), placements, itemId, spot)
     if (!check.ok) return bad(check.error, 400, check.code)

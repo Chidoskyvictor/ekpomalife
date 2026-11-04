@@ -127,7 +127,7 @@ export function BuyPanel({
 
   const items = useMemo(() => {
     const q = query.trim().toLowerCase()
-    return catalog.filter((i) => !i.starter && (q ? i.name.toLowerCase().includes(q) : i.category === category) && i.price <= price.max)
+    return catalog.filter((i) => !i.starter && i.available !== false && (q ? i.name.toLowerCase().includes(q) : i.category === category) && i.price <= price.max)
   }, [catalog, category, query, price])
 
   const verdict = useMemo(() => {

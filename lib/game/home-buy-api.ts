@@ -25,6 +25,10 @@ export type HomeItem = {
   uses: string | null
   /** Comes with the home: free, movable and removable, never in the shop. */
   starter?: boolean
+  /** Its 3D model (public/models/furniture/…); null = drawn as a block. */
+  model?: string | null
+  /** For sale in the shop (block-only items aren't; ones already placed still show). */
+  available?: boolean
   maxPerHome: number
 }
 
