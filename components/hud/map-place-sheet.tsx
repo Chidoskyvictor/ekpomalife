@@ -1,5 +1,6 @@
 'use client'
 
+import { isPlaceOpen, formatOpenHour } from '@/lib/game/places'
 import { Link2, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -111,9 +112,9 @@ export function MapPlaceSheet({ hidden = false }: { hidden?: boolean }) {
 
   const info = placeInfo(place.id)
   const gameTime = state?.gameTime ?? 12 * 60
-  const hour = Math.floor((((gameTime % 1440) + 1440) % 1440) / 60)
   const hours = place.openHours
-  const open = !hours || (hours.open <= hours.close ? hour >= hours.open && hour < hours.close : hour >= hours.open || hour < hours.close)
+  const open = isPlaceOpen(place, gameTime)
+  const closed = !open && place.id !== 'home'
   const fare = option ? fareOf(option, mode) : 0
   const cash = state?.cash ?? 0
   const short = fare > cash
@@ -161,6 +162,11 @@ export function MapPlaceSheet({ hidden = false }: { hidden?: boolean }) {
       </header>
 
       <div className={styles.body} ref={body}>
+        {closed && hours ? (
+          <p className={styles.closed} role="status">
+            <span aria-hidden="true">🔒</span> {place.label} is closed. Come back at {formatOpenHour(hours.open)}.
+          </p>
+        ) : null}
         {info ? <p className={styles.about}>{info.about}</p> : null}
         {home ? (
           <p className={styles.address}>
@@ -246,10 +252,10 @@ export function MapPlaceSheet({ hidden = false }: { hidden?: boolean }) {
           <button
             type="button"
             className={styles.go}
-            disabled={!options || !option || travelling || short}
+            disabled={!options || !option || travelling || short || closed}
             onClick={() => options && option && void go(options, option, mode, () => select(null))}
           >
-            {short ? `Need ${naira(fare)}` : `${isHome ? 'Go home' : 'Go'} · ${fare ? naira(fare) : 'Free'}`}
+            {closed && hours ? `Closed · opens ${formatOpenHour(hours.open)}` : short ? `Need ${naira(fare)}` : `${isHome ? 'Go home' : 'Go'} · ${fare ? naira(fare) : 'Free'}`}
           </button>
         </footer>
       ) : null}

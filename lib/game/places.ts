@@ -499,3 +499,17 @@ export function getPlaceByZone(zoneId: string | null | undefined): Place | null 
 export function isGameplayPlace(id: string) {
   return BY_ID.has(id) || BY_ZONE.has(id)
 }
+
+/** In-game hour (0–23) from the game clock in minutes. */
+export const gameHour = (gameTime: number) => Math.floor((((gameTime % 1440) + 1440) % 1440) / 60)
+
+/** Is this place open at this game time? No hours = always open. Handles hours past midnight. */
+export function isPlaceOpen(place: Pick<Place, 'openHours'> | null | undefined, gameTime: number): boolean {
+  const hours = place?.openHours
+  if (!hours) return true
+  const hour = gameHour(gameTime)
+  return hours.open <= hours.close ? hour >= hours.open && hour < hours.close : hour >= hours.open || hour < hours.close
+}
+
+/** 9 → "9 AM", 22 → "10 PM". */
+export const formatOpenHour = (hour: number) => `${hour % 12 || 12} ${hour < 12 || hour === 24 ? 'AM' : 'PM'}`
