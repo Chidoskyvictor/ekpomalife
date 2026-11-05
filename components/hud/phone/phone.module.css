@@ -57,16 +57,10 @@
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
-  /*
-   * The same slim, tall phone shape on every device (about a real phone's 9:19.5): as tall as the
-   * space under the top HUD allows, never wider than the screen, never over 860px. Width follows
-   * from the shape, so short or wide screens get a smaller phone, not a squatter one.
-   */
-  --phone-ratio: 0.47;
   --phone-room: calc(100dvh - var(--hud-top, 140px) - 24px - var(--close-h) - var(--close-gap) - env(safe-area-inset-bottom));
-  height: min(var(--phone-room), calc((100vw - 16px) / var(--phone-ratio)), 860px);
-  aspect-ratio: var(--phone-ratio);
-  width: auto;
+  /* Width is fixed first (full screen on phones, 420px on desktop); height fills the room. */
+  width: min(calc(100vw - 16px), 420px);
+  height: min(var(--phone-room), 860px);
   overflow: hidden;
   border-radius: var(--radius);
   border: var(--bezel) solid #16161a;
