@@ -213,7 +213,7 @@ export function RoomScreen() {
             onFurniture={buy.active ? undefined : setFurnitureKey}
             furnishing={furnishing}
             control={control}
-            spawn={scene.spawnAtDoor ? layout.start : undefined}
+            spawn={scene.spawnAtDoor || visitingOther ? layout.start : undefined}
             visit={scene.visit}
             onReady={onSceneReady}
             street={
