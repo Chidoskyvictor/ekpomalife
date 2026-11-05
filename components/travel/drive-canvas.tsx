@@ -23,7 +23,7 @@ export function DriveCanvas({
 }) {
   return (
     <Canvas
-      dpr={typeof window !== 'undefined' ? window.devicePixelRatio : 1}
+      dpr={[1, 1.75]}
       gl={{ antialias: true, powerPreference: 'high-performance', failIfMajorPerformanceCaveat: false }}
       camera={{ position: [5.6, 3.1, 8], fov: 58, near: 0.5, far: 320 }}
     >
