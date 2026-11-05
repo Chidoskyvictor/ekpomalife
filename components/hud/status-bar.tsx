@@ -16,6 +16,7 @@ import { useWatClock } from '@/lib/game/wat-clock'
 import type { GameState } from '@/lib/game/types'
 import styles from './life-hud.module.css'
 import { SiteStats } from './site-stats'
+import { usePathname } from 'next/navigation'
 
 const spring = { type: 'spring' as const, stiffness: 400, damping: 32 }
 
@@ -38,6 +39,7 @@ export function StatusBar({
   /** Daily missions counter (🎯 1/3): opens the missions sheet. */
   missions?: { done: number; total: number; onOpen: () => void } | null
 }) {
+  const visiting = usePathname()?.startsWith('/room/') ?? false
   const reduced = useReducedMotion() ?? false
   const [muted, setMuted] = useState(false)
   const [showLabels, setShowLabels] = useShowMapLabels()
@@ -254,7 +256,8 @@ export function StatusBar({
         ) : null}
       </AnimatePresence>
 
-      <SiteStats variant="dock" />
+      {/* Hidden while visiting someone: the "Visiting" banner sits in the same spot */}
+      {visiting ? null : <SiteStats variant="dock" />}
     </div>
   )
 }
