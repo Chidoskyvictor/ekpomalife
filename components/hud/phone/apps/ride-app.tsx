@@ -1,12 +1,14 @@
 'use client'
 
 import NumberFlow from '@number-flow/react'
+import { Search } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { getRideQuote, takeRide } from '@/lib/game/phone-api'
-import { PLACES } from '@/lib/game/places'
 import type { RideMode } from '@/lib/game/phone'
 import { hapticTap } from '@/components/hud/haptic'
 import styles from '../phone.module.css'
+import { RidePicker, rideRows } from './ride-picker'
+import pick from './ride-picker.module.css'
 
 export function RideApp({
   cash,
@@ -31,6 +33,7 @@ export function RideApp({
   const [error, setError] = useState<string | null>(null)
   const [code, setCode] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [picking, setPicking] = useState(false)
   const intentRef = useRef<string | null>(null)
 
   useEffect(() => {
@@ -62,32 +65,29 @@ export function RideApp({
   }, [to])
 
   const picked = quotes?.find((q) => q.mode === mode)
+  const toName = to ? (rideRows(0).find((r) => r.place.id === to)?.name ?? null) : null
+
+  if (picking) {
+    return (
+      <RidePicker
+        value={to}
+        onClose={() => setPicking(false)}
+        onPick={(id) => {
+          setTo(id)
+          setPicking(false)
+        }}
+      />
+    )
+  }
 
   return (
     <div>
-      <label className={styles.sectionTitle} htmlFor="ride-to">
-        Where are you going?
-      </label>
-      <select
-        id="ride-to"
-        value={to}
-        onChange={(e) => setTo(e.target.value)}
-        style={{
-          width: '100%',
-          minHeight: 44,
-          borderRadius: 12,
-          border: '1px solid rgba(0,0,0,0.1)',
-          padding: '0 12px',
-          background: '#fff',
-        }}
-      >
-        <option value="">Pick a place</option>
-        {PLACES.map((p) => (
-          <option key={p.id} value={p.id}>
-            {p.label}
-          </option>
-        ))}
-      </select>
+      <p className={styles.sectionTitle}>Where are you going?</p>
+      <button type="button" className={pick.whereBtn} onClick={() => setPicking(true)} aria-haspopup="dialog">
+        <span className={pick.whereDot} aria-hidden="true" />
+        <span className={toName ? pick.whereName : pick.wherePlaceholder}>{toName ?? 'Where to?'}</span>
+        <Search size={18} aria-hidden="true" className={pick.whereIcon} />
+      </button>
 
       {quotes ? (
         <div className={styles.rideCards} role="radiogroup" aria-label="Ride mode">
