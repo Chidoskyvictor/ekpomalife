@@ -58,9 +58,9 @@
   flex-direction: column;
   flex-shrink: 0;
   --phone-room: calc(100dvh - var(--hud-top, 140px) - 24px - var(--close-h) - var(--close-gap) - env(safe-area-inset-bottom));
-  /* Width is fixed first (full screen on phones, 420px on desktop); height fills the room. */
-  width: min(calc(100vw - 16px), 420px);
-  height: min(var(--phone-room), 860px);
+  /* Width is fixed first 92vw up to 380px; height 80% of the screen up to 760px. */
+  width: min(92vw, 380px);
+  height: min(80dvh, 760px);
   overflow: hidden;
   border-radius: var(--radius);
   border: var(--bezel) solid #16161a;
