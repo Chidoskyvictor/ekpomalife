@@ -1,11 +1,13 @@
 'use client'
 
-import { X } from 'lucide-react'
+import { Users, X } from 'lucide-react'
 import { useEffect } from 'react'
 import { useGame } from '@/hooks/use-game'
 import { COMING_SOON } from '@/lib/game/place-info'
 import base from './map-place-sheet.module.css'
 import styles from './market-hub-sheet.module.css'
+
+const MARKET_HUB_GROUP = 'https://chat.whatsapp.com/Gai8In9DMlF3G2vW9UzQvI?s=sw&p=a&iam=2'
 
 /**
  * Tap the Market Hub on the map: it is still being built, so this says what is coming
@@ -65,6 +67,9 @@ export function MarketHubSheet({ hidden = false }: { hidden?: boolean }) {
           ))}
         </ul>
         <p className={styles.note}>Nothing to buy here yet. Check back when the builders are done.</p>
+        <a className={styles.join} href={MARKET_HUB_GROUP} target="_blank" rel="noopener noreferrer">
+          <Users size={16} aria-hidden="true" /> Join our WhatsApp group
+        </a>
       </div>
     </section>
   )

@@ -26,6 +26,8 @@ export type BillboardAd = {
     contact: string
   }
   whatsapp?: string
+  /** WhatsApp group invite link, shown as a "Join group" button in the pop-up */
+  group?: string
   phone?: string
   /** Last day it runs (ISO date), or undefined for open-ended */
   until?: string
@@ -36,7 +38,7 @@ export const ADS: Record<string, BillboardAd> = {
     id: 'prodigy-nysc',
     advertiser: 'Prodigy Enterprises Omnium Ltd',
     tagline: 'NYSC call-up help: posting support, medicals and NERD',
-    image: '/ads/prodigy-nysc.jpg',
+    image: '/ads/prodigy-nysc.webp',
     imageAspect: 864 / 1080,
     board: {
       background: '#0b5a33',
@@ -46,6 +48,7 @@ export const ADS: Record<string, BillboardAd> = {
       contact: 'WhatsApp / Call 0813 665 2445',
     },
     whatsapp: 'https://wa.me/2348136652445',
+    group: 'https://chat.whatsapp.com/CJ93ONY9CAWGYlgfryoIuT?s=cl&p=a&mlu=4&ilr=4&iam=2',
     phone: '08136652445',
   },
 }
