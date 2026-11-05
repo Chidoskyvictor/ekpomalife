@@ -383,7 +383,7 @@ export const PLACE_INFO: Record<string, PlaceInfo> = {
   },
   'playchill-climax': {
     area: TOWN,
-    about: 'Playchill Climax. Pay-to-play football pitch.',
+    about: 'Play and Chill. Five-a-side turf pitch: play a match or sit by the cage and watch.',
     doing: [
       { emoji: '⚽', text: 'Play football' },
       { emoji: '🤝', text: 'Hang out' },

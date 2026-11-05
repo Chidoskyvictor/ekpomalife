@@ -105,7 +105,7 @@ export const BUSINESSES: BusinessDef[] = [
   { id: 'spot-rite', name: 'Spot Rite · stake', emoji: '🛒', blurb: 'Supermarket on the main road. Everyone needs provisions.', type: 'stake', price: 8_000_000, earnMin: 38_000, earnMax: 140_000, badChance: 0.06, badLoss: 70_000, supply: 10_000, max: 3 },
   { id: 'denco', name: 'Denco · stake', emoji: '🏬', blurb: 'Big store, big footfall. Steady money.', type: 'stake', price: 3_500_000, earnMin: 15_000, earnMax: 60_000, badChance: 0.06, badLoss: 35_000, supply: 10_000, max: 4 },
   { id: 'forbes', name: 'Forbes · stake', emoji: '👑', blurb: 'Where the big boys hang. Bottles pop, you get paid.', type: 'stake', price: 25_000_000, earnMin: 110_000, earnMax: 420_000, badChance: 0.08, badLoss: 250_000, supply: 10_000, max: 2 },
-  { id: 'playchill-climax', name: 'Playchill Climax · stake', emoji: '🪩', blurb: 'The most famous night spot in Ekpoma. Weekends are madness.', type: 'stake', price: 60_000_000, earnMin: 260_000, earnMax: 1_100_000, badChance: 0.09, badLoss: 600_000, supply: 10_000, max: 2 },
+  { id: 'playchill-climax', name: 'Play and Chill · stake', emoji: '⚽', blurb: 'Five-a-side turf pitch. Every evening the cage is full.', type: 'stake', price: 60_000_000, earnMin: 260_000, earnMax: 1_100_000, badChance: 0.09, badLoss: 600_000, supply: 10_000, max: 2 },
 ]
 
 /** Stake buy price climbs as stakes sell; sells pay the same price minus a small fee. */

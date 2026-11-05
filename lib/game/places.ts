@@ -475,7 +475,7 @@ export const PLACES: Place[] = [
   },
   {
     id: 'playchill-climax',
-    label: 'Playchill Climax',
+    label: 'Play and Chill',
     zoneId: 'playchill-climax',
     type: 'leisure',
     actions: ['hangout'],

@@ -86,7 +86,7 @@ export function HallScreen({ hallId }: { hallId: string }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [ordering, setOrdering] = useState<string | null>(null)
   useEffect(() => {
-    if (isFood && !food?.soldOut) void loadShop(hallId)
+    if (isFood && !food?.soldOut && !food?.play) void loadShop(hallId)
   }, [isFood, food?.soldOut, hallId, loadShop])
   const menu = isFood && shopPlaceId === hallId ? shopItems.filter((item) => item.category === 'food') : []
   const [deskOpen, setDeskOpen] = useState<HubDeskId | null>(null)
@@ -146,8 +146,26 @@ export function HallScreen({ hallId }: { hallId: string }) {
     }
   }
 
+  /** Play and Chill: run onto the pitch, then play for a while (the activity bar counts down). */
+  const goPlay = () => {
+    const play = food?.play
+    if (!play) return
+    setExpanded(false)
+    social.setTalk(null)
+    if (food) social.showBubble(food.greeter, food.greeting)
+    control.use?.(
+      play.spot as Parameters<NonNullable<typeof control.use>>[0],
+      { style: play.style, seconds: play.seconds },
+      {
+        onStart: () => startActivity({ emoji: play.emoji, title: play.title, seconds: play.seconds, onCancel: () => control.stop?.() }),
+        onDone: endActivity,
+        onAbort: endActivity,
+      },
+    )
+  }
+
   const onFoodNpc = (npc: FoodNpc) => {
-    if (!npc.seated) return goToCounter()
+    if (!npc.seated && !food?.play) return goToCounter()
     setMenuOpen(false)
     social.talkToNpc({ id: npc.id, name: npc.name, role: npc.role, line: npc.line })
   }
@@ -307,7 +325,12 @@ export function HallScreen({ hallId }: { hallId: string }) {
             )}
           </PlaceActions>
         ) : null}
-        {isFood && !menuOpen ? (
+        {food?.play ? (
+          <PlaceActions>
+            <PlaceAction emoji={food.play.emoji} title={food.play.title} price="Free" note={food.play.note} disabled={!inside} onClick={goPlay} />
+          </PlaceActions>
+        ) : null}
+        {isFood && !menuOpen && !food?.play ? (
           <PlaceActions>
             <PlaceAction emoji={food?.soldOut ? '🛒' : '🍛'} title={food?.soldOut ? 'Ask at the till' : 'Order food at the counter'} price={food?.soldOut ? 'Out of stock' : 'Menu'} note={food?.orderNote} disabled={!inside} onClick={goToCounter} />
           </PlaceActions>

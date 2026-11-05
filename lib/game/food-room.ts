@@ -44,6 +44,8 @@ export type FoodPlace = {
   orderNote: string
   /** A shop with nothing on sale yet: the counter says out of stock, nothing can be bought */
   soldOut?: boolean
+  /** A place to play instead of a counter (Play and Chill): walk to `spot`, then a timed activity */
+  play?: { spot: string; emoji: string; title: string; seconds: number; note: string; style: 'stand' | 'dance' }
 }
 
 export const ORDER_SPOT = 'seat:food-order' as const
