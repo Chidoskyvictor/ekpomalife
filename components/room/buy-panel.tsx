@@ -285,7 +285,7 @@ export function BuyPanel({
             <div className={styles.placing}>
               <div className={styles.placingHead}>
                 <span className={styles.placingIcon} aria-hidden="true">
-                  {ui.item.emoji}
+                  <ItemPic item={ui.item} size={32} />
                 </span>
                 <span className={styles.placingText}>
                   <strong>{ui.item.name}</strong>
@@ -328,7 +328,7 @@ export function BuyPanel({
             <div className={styles.placing}>
               <div className={styles.placingHead}>
                 <span className={styles.placingIcon} aria-hidden="true">
-                  {pickedItem.emoji}
+                  <ItemPic item={pickedItem} size={32} />
                 </span>
                 <span className={styles.placingText}>
                   <strong>{pickedItem.name}</strong>
@@ -437,7 +437,7 @@ export function BuyPanel({
                       {item.wall ? ' · wall' : ''}
                     </span>
                     <span className={styles.cardEmoji} aria-hidden="true">
-                      {item.emoji}
+                      <ItemPic item={item} size={64} />
                     </span>
                     <strong className={styles.cardName}>{item.name}</strong>
                     <span className={item.price > cash ? styles.priceShort : styles.price}>{formatNaira(item.price)}</span>
@@ -457,4 +457,12 @@ export function BuyPanel({
       )}
     </>
   )
+}
+
+/** A picture of the item's own 3D model (public/models/furniture/thumbs/…, rendered in Blender); emoji if it has none. */
+function ItemPic({ item, size }: { item: { emoji: string; model?: string | null }; size: number }) {
+  const thumb = item.model?.startsWith('/models/furniture/') ? item.model.replace('/models/furniture/', '/models/furniture/thumbs/').replace(/\.glb(\?.*)?$/, '.webp') : null
+  if (!thumb) return <>{item.emoji}</>
+  // eslint-disable-next-line @next/next/no-img-element -- tiny static render, no optimisation needed
+  return <img src={thumb} alt="" width={size} height={size} draggable={false} style={{ width: size, height: size, objectFit: 'contain', display: 'block' }} />
 }
