@@ -98,6 +98,8 @@ steel_m = mat("Steel", (0.72, 0.74, 0.77), 0.25, 0.9)
 red_m = mat("Red", (0.78, 0.14, 0.12), 0.55)
 glass_m = mat("Glass", (0.78, 0.90, 0.95), 0.05, alpha=0.25)
 tube_m = mat("Tube", (1.0, 1.0, 0.95), 0.2, emit=(1.0, 1.0, 0.95), strength=10)
+brown_m = mat("ShelfBrown", (0.36, 0.22, 0.12), 0.6)
+black_m = mat("TableBlack", (0.05, 0.05, 0.05), 0.45)
 fsign_m = mat("FridgeSign", (0.3, 0.6, 1.0), 0.3, emit=(0.3, 0.6, 1.0), strength=6)
 
 # ---------- slab (grout) + one-colour tile floor (shelves stay empty: out of stock) ----------
@@ -114,11 +116,11 @@ for ix in range(nx):
             box(f"Tile{ix:02d}_{iy:02d}", (x0 + GROUT_GAP / 2, y0 + GROUT_GAP / 2, 0.02), (tw, tl, 0.03), floor_m)
 
 # ---------- walls ----------
-box("WallLeft", (-0.2, -0.2, 0), (0.2, D + 0.2, H), blue_m)
+box("WallLeft", (-0.2, -0.2, 0), (0.2, D + 0.2, H), wall_w)
 box("WallBack", (-0.2, D, 0), (W + 0.2, 0.2, H), wall_w)
-box("StripeLeftTop", (0, 0, 3.0), (0.04, D, 0.2), yellow_m)
-box("StripeBackTop", (0, D - 0.04, 3.0), (W, 0.04, 0.2), yellow_m)
-box("BackBand", (0, D - 0.04, 0.05), (W, 0.04, 0.15), blue_m)
+box("StripeLeftTop", (0, 0, 3.0), (0.04, D, 0.2), brown_m)
+box("StripeBackTop", (0, D - 0.04, 3.0), (W, 0.04, 0.2), brown_m)
+box("BackBand", (0, D - 0.04, 0.05), (W, 0.04, 0.15), brown_m)
 box("BaseLeft", (0, 0, 0.05), (0.05, D, 0.15), dark_m)
 box("CapLeft", (-0.2, -0.2, H), (0.25, D + 0.2, 0.1), white_m)
 box("CapBack", (-0.2, D - 0.05, H), (W + 0.2, 0.25, 0.1), white_m)
@@ -129,24 +131,24 @@ def gondola(idx, gx, y0=0.9, L=5.0, colour=blue_m):
     box(f"G{idx}_Back", (gx + 0.33, y0, 0.12), (0.04, L, 1.7), colour)
     for e, ey in (("A", y0 - 0.04), ("B", y0 + L)):
         box(f"G{idx}_End{e}", (gx, ey, 0), (0.7, 0.04, 1.82), colour)
-    box(f"G{idx}_Header", (gx, y0 - 0.04, 1.82), (0.7, L + 0.08, 0.08), yellow_m)
+    box(f"G{idx}_Header", (gx, y0 - 0.04, 1.82), (0.7, L + 0.08, 0.08), brown_m)
     for lv, z in enumerate((0.3, 0.75, 1.2)):
-        box(f"G{idx}_Shelf{lv}", (gx, y0, z), (0.7, L, 0.03), white_m)
+        box(f"G{idx}_Shelf{lv}", (gx, y0, z), (0.7, L, 0.03), brown_m)
 
 
 for gi, gx in enumerate((3.0, 5.2, 7.4, 9.6)):
-    gondola(gi, gx, colour=blue_m if gi % 2 == 0 else red_m)
+    gondola(gi, gx, colour=brown_m)
 
 box("WallUnitBase", (0.04, 0.9, 0), (0.55, 5.6, 0.12), dark_m)
 for lv, z in enumerate((0.35, 0.85, 1.35, 1.85)):
-    box(f"WallUnitShelf{lv}", (0.04, 0.9, z), (0.5, 5.6, 0.03), white_m)
-box("WallUnitTop", (0.04, 0.9, 2.3), (0.5, 5.6, 0.05), yellow_m)
+    box(f"WallUnitShelf{lv}", (0.04, 0.9, z), (0.5, 5.6, 0.03), brown_m)
+box("WallUnitTop", (0.04, 0.9, 2.3), (0.5, 5.6, 0.05), brown_m)
 
 
 def back_shelves(tag, x0, x1, levels):
     for lv, z in enumerate(levels):
-        box(f"{tag}Shelf{lv}", (x0, D - 0.45, z), (x1 - x0, 0.4, 0.03), white_m)
-    box(f"{tag}Top", (x0, D - 0.45, levels[-1] + 0.55), (x1 - x0, 0.4, 0.05), yellow_m)
+        box(f"{tag}Shelf{lv}", (x0, D - 0.45, z), (x1 - x0, 0.4, 0.03), brown_m)
+    box(f"{tag}Top", (x0, D - 0.45, levels[-1] + 0.55), (x1 - x0, 0.4, 0.05), brown_m)
 
 
 back_shelves("BSL", 3.6, 6.7, (0.4, 0.9, 1.4, 1.9))
@@ -165,7 +167,7 @@ def fridge(idx, x0):
     box(f"F{idx}_Handle", (x0 + fw - 0.14, y0 - 0.06, 0.8), (0.04, 0.04, 0.5), steel_m)
     box(f"F{idx}_Sign", (x0 + 0.05, y0 - 0.04, 1.9), (fw - 0.1, 0.04, 0.1), fsign_m)
     for lv, z in enumerate((0.3, 0.7, 1.1, 1.5)):
-        box(f"F{idx}_Shelf{lv}", (x0 + t, y0 + 0.05, z), (fw - 2 * t, fd - 0.15, 0.02), white_m)
+        box(f"F{idx}_Shelf{lv}", (x0 + t, y0 + 0.05, z), (fw - 2 * t, fd - 0.15, 0.02), brown_m)
 
 
 fridge(0, 0.9)
@@ -177,15 +179,15 @@ box("FrzFront", (fx, fy, 0.05), (fw, 0.06, fh), white_m)
 box("FrzBack", (fx, fy + fd - 0.06, 0.05), (fw, 0.06, fh), white_m)
 box("FrzLeft", (fx, fy, 0.05), (0.06, fd, fh), white_m)
 box("FrzRight", (fx + fw - 0.06, fy, 0.05), (0.06, fd, fh), white_m)
-box("FrzRim", (fx - 0.02, fy - 0.02, fh + 0.05), (fw + 0.04, fd + 0.04, 0.04), blue_m)
+box("FrzRim", (fx - 0.02, fy - 0.02, fh + 0.05), (fw + 0.04, fd + 0.04, 0.04), black_m)
 box("FrzGlass", (fx + 0.06, fy + 0.06, fh + 0.02), (fw - 0.12, fd - 0.12, 0.03), glass_m)
 
 # ---------- checkout counter ----------
 cx0, cw, cy = 7.0, 5.5, D - 2.5
-box("CounterBody", (cx0, cy + 0.05, 0.05), (cw, 0.8, 1.0), blue_m)
+box("CounterBody", (cx0, cy + 0.05, 0.05), (cw, 0.8, 1.0), black_m)
 for i in range(11):
-    box(f"CStripe{i}", (cx0 + 0.15 + i * 0.5, cy + 0.04, 0.2), (0.3, 0.02, 0.7), yellow_m if i % 2 == 0 else white_m)
-box("CounterTop", (cx0 - 0.1, cy - 0.05, 1.05), (cw + 0.2, 1.05, 0.06), wood_m)
+    box(f"CStripe{i}", (cx0 + 0.15 + i * 0.5, cy + 0.04, 0.2), (0.3, 0.02, 0.7), black_m)
+box("CounterTop", (cx0 - 0.1, cy - 0.05, 1.05), (cw + 0.2, 1.05, 0.06), black_m)
 box("TillBase", (11.2, D - 2.15, 1.11), (0.45, 0.42, 0.18), dark_m)
 box("TillScreen", (11.25, D - 2.0, 1.29), (0.35, 0.05, 0.25), mat("ScreenGlow", (0.3, 0.7, 1.0), emit=(0.3, 0.7, 1.0), strength=3))
 box("CardMachine", (10.6, D - 2.1, 1.11), (0.12, 0.2, 0.05), metal_m)
@@ -195,18 +197,18 @@ box("ScaleDisplay", (9.6, D - 1.95, 1.17), (0.4, 0.04, 0.1), dark_m)
 for i in range(4):
     jx = 7.6 + i * 0.32
     cyl(f"Jar{i}", (jx, D - 2.3, 1.11), 0.1, 0.28, glass_m, 14)
-    cyl(f"JarLid{i}", (jx, D - 2.3, 1.39), 0.105, 0.03, red_m, 14)
-cyl("StoolSeat", (9.7, D - 1.15, 0.62), 0.19, 0.08, yellow_m, 20)
+    cyl(f"JarLid{i}", (jx, D - 2.3, 1.39), 0.105, 0.03, black_m, 14)
+cyl("StoolSeat", (9.7, D - 1.15, 0.62), 0.19, 0.08, brown_m, 20)
 cyl("StoolPole", (9.7, D - 1.15, 0.0), 0.035, 0.62, metal_m, 10)
 cyl("StoolBase", (9.7, D - 1.15, 0.0), 0.18, 0.03, metal_m, 20)
 
 sx0, sw, sz = 8.1, 3.4, 2.65
 for cxp in (sx0 + 0.3, sx0 + sw - 0.3):
     box(f"SignCord{cxp}", (cxp, D - 2.05, sz + 0.6), (0.02, 0.02, H - sz - 0.6), metal_m)
-box("SignFrame", (sx0, D - 2.1, sz), (sw, 0.08, 0.6), blue_m)
-box("SignBoard", (sx0 + 0.06, D - 2.14, sz + 0.06), (sw - 0.12, 0.04, 0.48), yellow_m)
-box("SignText1", (sx0 + 0.4, D - 2.18, sz + 0.3), (2.0, 0.02, 0.1), blue_m)
-box("SignText2", (sx0 + 0.4, D - 2.18, sz + 0.12), (1.4, 0.02, 0.07), red_m)
+box("SignFrame", (sx0, D - 2.1, sz), (sw, 0.08, 0.6), black_m)
+box("SignBoard", (sx0 + 0.06, D - 2.14, sz + 0.06), (sw - 0.12, 0.04, 0.48), brown_m)
+box("SignText1", (sx0 + 0.4, D - 2.18, sz + 0.3), (2.0, 0.02, 0.1), brown_m)
+box("SignText2", (sx0 + 0.4, D - 2.18, sz + 0.12), (1.4, 0.02, 0.07), black_m)
 
 cyl_y("ClockRim", (5.0, D - 0.06, 2.85), 0.34, 0.05, dark_m)
 cyl_y("ClockFace", (5.0, D - 0.1, 2.85), 0.30, 0.04, white_m)
@@ -219,20 +221,20 @@ for ix in range(2):
         cx, cyy = 11.2 + ix * 0.6, 0.9 + iy * 0.45
         levels = random.randint(2, 4)
         for h in range(levels):
-            box(f"Crate{ix}{iy}_{h}", (cx, cyy, h * 0.3), (0.55, 0.4, 0.3), red_m if (ix + iy + h) % 2 == 0 else yellow_m)
+            box(f"Crate{ix}{iy}_{h}", (cx, cyy, h * 0.3), (0.55, 0.4, 0.3), brown_m)
 
 
 def basket(name, x, y, z, m):
-    box(f"{name}_Bottom", (x, y, z), (0.5, 0.35, 0.03), m)
-    box(f"{name}_F", (x, y, z), (0.5, 0.03, 0.22), m)
-    box(f"{name}_B", (x, y + 0.32, z), (0.5, 0.03, 0.22), m)
-    box(f"{name}_L", (x, y, z), (0.03, 0.35, 0.22), m)
-    box(f"{name}_R", (x + 0.47, y, z), (0.03, 0.35, 0.22), m)
+    box(f"{name}_Bottom", (x, y, z), (0.5, 0.35, 0.03), black_m)
+    box(f"{name}_F", (x, y, z), (0.5, 0.03, 0.22), black_m)
+    box(f"{name}_B", (x, y + 0.32, z), (0.5, 0.03, 0.22), black_m)
+    box(f"{name}_L", (x, y, z), (0.03, 0.35, 0.22), black_m)
+    box(f"{name}_R", (x + 0.47, y, z), (0.03, 0.35, 0.22), black_m)
 
 
-basket("Basket0", 11.4, 4.4, 0.0, red_m)
-basket("Basket1", 11.4, 4.4, 0.24, red_m)
-basket("Basket2", 11.4, 4.9, 0.0, blue_m)
+basket("Basket0", 11.4, 4.4, 0.0, black_m)
+basket("Basket1", 11.4, 4.4, 0.24, black_m)
+basket("Basket2", 11.4, 4.9, 0.0, black_m)
 
 for li, lx in enumerate((3.8, 7.2, 10.6)):
     for cyp in (1.8, 5.4):

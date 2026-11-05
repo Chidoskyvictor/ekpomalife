@@ -12,7 +12,7 @@ random.seed(14)
 
 # ================= SETTINGS =================
 W, D, H = 13.0, 10.0, 3.4
-COLOURFUL_FLOOR = True
+COLOURFUL_FLOOR = False  # plain brown floor (one wood colour)
 STAIN_CHANCE = 0.35
 # ============================================
 
@@ -138,7 +138,7 @@ for i in range(int(W / plank_w)):
     if COLOURFUL_FLOOR and random.random() < STAIN_CHANCE:
         m = random.choice(stain_mats)
     else:
-        m = random.choice(wood_mats)
+        m = wood_mats[0]  # one brown for every plank
     y, k = 0.0, 0
     while y < D - 0.05:
         L = min(random.uniform(1.8, 3.6), D - y)

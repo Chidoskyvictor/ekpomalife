@@ -20,7 +20,7 @@ const ORDER_AT: [number, number] = [-2.6, -2.0]
 export const DUBLOUS: RoomLayout = {
   id: 'office',
   label: 'Dublous',
-  glb: '/models/dublous.glb?v=1',
+  glb: '/models/dublous.glb?v=2',
   floors: [[-6.35, -4.85, 6.35, 4.85]],
   blocks: [
     [2.75, -1.0, 3.55, 4.2], // shelf rows

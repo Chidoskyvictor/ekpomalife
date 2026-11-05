@@ -19,7 +19,13 @@ function readApplied(): string | null {
   }
 }
 
+let lastCheck = 0
+
 async function check() {
+  // At most once every 30 s, however often screens subscribe / the tab is refocused
+  const now = Date.now()
+  if (now - lastCheck < 30_000) return
+  lastCheck = now
   try {
     const res = await fetch('/version', { cache: 'no-store' })
     const data = (await res.json()) as { version?: string }

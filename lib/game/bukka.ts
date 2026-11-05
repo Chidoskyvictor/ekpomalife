@@ -53,7 +53,7 @@ const ORDER_AT: [number, number] = [0.5, -2.75]
 export const BUKKA: RoomLayout = {
   id: 'office',
   label: 'Mama Amina Bukka',
-  glb: '/models/bukka.glb?v=1',
+  glb: '/models/bukka.glb?v=2',
   floors: [[-6.35, -4.85, 6.35, 4.85]],
   blocks: [
     [-3.65, -5, 3.65, -3.25], // counter (and behind it)

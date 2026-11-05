@@ -17,6 +17,9 @@ export function FaceHost() {
  * A player's face: their character's head and shoulders when we know their look, else the old
  * coloured circle with their initial (while it's drawn, or for NPCs / players without a look).
  */
+/** Same soft sky as the HUD portrait (life-hud .portrait) */
+const FACE_BG = 'linear-gradient(180deg, #e8f1ff, #cfe0fb)'
+
 export function PlayerFace({
   look,
   color,
@@ -38,7 +41,7 @@ export function PlayerFace({
   const url = useFace(look)
   const box: CSSProperties = { width: size, height: size, borderRadius: 999, flex: 'none', ...style }
   if (url) {
-    return <img className={className} src={url} alt="" draggable={false} style={{ ...box, objectFit: 'cover', background: color }} aria-hidden="true" />
+    return <img className={className} src={url} alt="" draggable={false} style={{ ...box, objectFit: 'cover', background: FACE_BG }} aria-hidden="true" />
   }
   const initial = (label.trim()[0] || '?').toUpperCase()
   return (

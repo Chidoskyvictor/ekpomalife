@@ -1,6 +1,7 @@
 'use client'
 
 import { Html } from '@react-three/drei'
+import bubbleStyles from '@/components/room/head-bubble.module.css'
 import { useRef } from 'react'
 import { CharacterFigure, type FigurePose } from '@/components/look/character-figure'
 import type { FoodNpc } from '@/lib/game/food-room'
@@ -30,21 +31,27 @@ export function FoodNpcs({ npcs, onTap, bubbles }: { npcs: FoodNpc[]; onTap?: (n
               </mesh>
             ) : null}
             <Html position={[0, npc.seated ? 1.95 : 2.15, 0]} center distanceFactor={9} zIndexRange={[10, 0]} style={{ pointerEvents: 'none' }}>
-              <span
-                style={{
-                  display: 'inline-block',
-                  maxWidth: bubble ? 200 : 120,
-                  padding: '2px 8px',
-                  borderRadius: 999,
-                  background: npc.seated ? 'rgba(17,12,40,0.6)' : 'rgba(15,118,110,0.9)',
-                  color: '#fff',
-                  fontSize: 12,
-                  fontWeight: 700,
-                  whiteSpace: bubble ? 'normal' : 'nowrap',
-                }}
-              >
-                {bubble ?? (npc.seated ? npc.name : `🍛 ${npc.name}`)}
-              </span>
+              {bubble ? (
+                <span className={bubbleStyles.speech}>
+                  <span className={bubbleStyles.speechName}>{npc.name}</span>
+                  {bubble}
+                </span>
+              ) : (
+                <span
+                  style={{
+                    display: 'inline-block',
+                    padding: '2px 8px',
+                    borderRadius: 999,
+                    background: npc.seated ? 'rgba(17,12,40,0.6)' : 'rgba(15,118,110,0.9)',
+                    color: '#fff',
+                    fontSize: 12,
+                    fontWeight: 700,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {npc.seated ? npc.name : `🍛 ${npc.name}`}
+                </span>
+              )}
             </Html>
           </group>
         )

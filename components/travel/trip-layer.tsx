@@ -17,6 +17,11 @@ export function TripLayer() {
 
   useEffect(() => {
     if (!trip || trip.done || !trip.moved) return
+    // A 3D ride that hasn't drawn yet: wait for it (its clock starts when it shows), give up only after the timeout
+    if (trip.drive && !trip.shown && trip.minMs > 0) {
+      const id = window.setTimeout(() => endTrip(trip.id), Math.max(0, trip.movedAt + TRIP_TIMEOUT_MS * 2 - Date.now()))
+      return () => window.clearTimeout(id)
+    }
     const left = Math.max(0, trip.startedAt + trip.minMs - Date.now())
     const wait = trip.ready ? left : Math.max(left, trip.movedAt + TRIP_TIMEOUT_MS - Date.now())
     const id = window.setTimeout(() => endTrip(trip.id), wait)
