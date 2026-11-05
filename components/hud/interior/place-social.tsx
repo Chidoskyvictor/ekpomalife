@@ -87,9 +87,13 @@ export function usePlaceSocial(placeId: string, live: Live) {
 
   const social = async (kind: SocialId) => {
     if (!talk || acting) return
-    const target = talk.kind === 'npc' ? `npc:${talk.npc.id}` : talk.player.userId
+    const current = talk
+    const target = current.kind === 'npc' ? `npc:${current.npc.id}` : current.player.userId
     const def = SOCIALS.find((s) => s.id === kind)!
+    // Any action closes the card straight away
+    setTalk(null)
     setActing(true)
+    if (kind === 'gist') showBubble('me', '*gisting*')
     try {
       const res = await socialAtVenue(placeId, kind, target)
       if (!res.ok) {
@@ -98,9 +102,10 @@ export function usePlaceSocial(placeId: string, live: Live) {
       }
       // Needs changed on the server: pull them so the HUD shows the gain
       void refreshServer()
-      showBubble('me', kind === 'joke' && !res.landed ? '😂 …' : `${def.emoji} ${def.label}`)
-      if (talk.kind === 'npc') {
-        const npcId = talk.npc.id
+      if (kind === 'gist') showBubble('me', '*gisting*')
+      else showBubble('me', kind === 'joke' && !res.landed ? '😂 …' : `${def.emoji} ${def.label}`)
+      if (current.kind === 'npc') {
+        const npcId = current.npc.id
         const reply = NPC_REPLY[kind][res.landed ? 0 : 1]
         window.setTimeout(() => showBubble(npcId, reply), 800)
       }
