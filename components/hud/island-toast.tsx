@@ -6,6 +6,7 @@ import { calendarForDay } from '@/lib/game/needs'
 import type { GameState } from '@/lib/game/types'
 import { NoticeCard } from './hud-toast'
 import styles from './life-hud.module.css'
+import { playSfx } from '@/lib/audio/sfx'
 
 /** Game notices (rent day) as a pop-up notification card. */
 export function IslandToast({ state }: { state: GameState }) {
@@ -16,6 +17,7 @@ export function IslandToast({ state }: { state: GameState }) {
   useEffect(() => {
     if (cal.rentDay && rentSeen.current !== state.day) {
       rentSeen.current = state.day
+      playSfx('notify')
       setVisible({
         id: `rent-day-${state.day}`,
         title: 'Rent day · Baba Landlord is coming',

@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import { useReducedMotion } from 'motion/react'
 import { Button } from '@/components/arc/button/button'
 import { Dialog, DialogClose, DialogContent } from '@/components/arc/dialog/dialog'
@@ -7,6 +8,7 @@ import { useGame } from '@/hooks/use-game'
 import { getDream } from '@/lib/game/dreams'
 import { shareDreamCard } from '@/lib/game/share-dream'
 import styles from './dream-celebration.module.css'
+import { playSfx } from '@/lib/audio/sfx'
 
 const BITS = ['🎓', '✨', '🏠', '🎤', '💼', '🤝']
 
@@ -15,6 +17,10 @@ export function DreamCelebration() {
   const reduced = useReducedMotion() ?? false
   const dream = getDream(state?.dreamId)
   const open = Boolean(state?.dreamCompleted && !state?.dreamCelebrated && dream)
+
+  useEffect(() => {
+    if (open) playSfx('celebrate')
+  }, [open])
 
   if (!state || !dream) return null
 

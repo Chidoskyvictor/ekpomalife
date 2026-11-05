@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/arc/button/button'
 import { motionTokens } from '@/components/arc/lib/motion-tokens'
 import styles from './life-hud.module.css'
+import { playSfx } from '@/lib/audio/sfx'
 
 export function MoneyPill({
   cash,
@@ -26,6 +27,7 @@ export function MoneyPill({
     prev.current = cash
     if (!change) return
     setDelta(change)
+    playSfx(change > 0 ? 'coin' : 'spend')
     const timer = window.setTimeout(() => setDelta(null), 1600)
     return () => window.clearTimeout(timer)
   }, [cash])

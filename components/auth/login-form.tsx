@@ -8,6 +8,7 @@ import { redirectAfterAuth } from './auth-gate'
 import { LobbyButton } from './lobby-button'
 import { LobbyField } from './lobby-field'
 import styles from './auth.module.css'
+import { playSfx } from '@/lib/audio/sfx'
 
 export function LoginForm({ onShake }: { onShake: () => void }) {
   const search = useSearchParams()
@@ -33,6 +34,7 @@ export function LoginForm({ onShake }: { onShake: () => void }) {
       setBusy(false)
       return
     }
+    playSfx('login')
     await redirectAfterAuth(result.account)
   }
 

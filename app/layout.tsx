@@ -7,6 +7,7 @@ import { NoHScrollGuard } from '@/components/dev/no-hscroll-guard'
 import { RateLimitToast } from '@/components/ui/rate-limit-toast'
 import { TripLayer } from '@/components/travel/trip-layer'
 import { MusicPlayer } from '@/components/audio/music-player'
+import { SfxPlayer } from '@/components/audio/sfx-player'
 import { FaceHost } from '@/components/look/player-face'
 import '@/components/arc/foundation.css'
 import './globals.css'
@@ -73,6 +74,7 @@ export default function RootLayout({
         </HomeOnly>
         <TripLayer />
         <MusicPlayer />
+        <SfxPlayer />
         <FaceHost />
         <RateLimitToast />
       </body>

@@ -13,6 +13,7 @@ import { LobbyButton } from './lobby-button'
 import { LobbyField } from './lobby-field'
 import { PasswordMeter, passwordScore } from './password-meter'
 import styles from './auth.module.css'
+import { playSfx } from '@/lib/audio/sfx'
 
 type Step = 'email' | 'code' | 'password' | 'done'
 
@@ -62,7 +63,10 @@ export function ForgotForm({ onShake }: { onShake: () => void }) {
   const onEmail = async (event: FormEvent) => {
     event.preventDefault()
     const ok = await sendCode()
-    if (ok) setStep('code')
+    if (ok) {
+      playSfx('success')
+      setStep('code')
+    }
   }
 
   const onCode = async (event: FormEvent) => {
@@ -98,6 +102,7 @@ export function ForgotForm({ onShake }: { onShake: () => void }) {
       if (/code|expired|invalid/i.test(result.error)) setStep('code')
       return
     }
+    playSfx('success')
     setStep('done')
   }
 

@@ -10,6 +10,7 @@ import {
   type ChatMessage,
 } from '@/lib/game/hostels-api'
 import { refreshChatUnread } from './use-chat-unread'
+import { playSfx } from '@/lib/audio/sfx'
 
 /** New messages are fetched this often while the chat is open (no polling when closed). */
 const POLL_MS = 4000
@@ -87,6 +88,7 @@ export function useChat(chatId: string | null, open: boolean, onMoneyIn?: () => 
       if (!res.ok || res.messages.length === 0) return
       setMessages((current) => mergeById(current, res.messages))
       if (res.messages.some((m) => m.kind === 'money' && !m.mine)) moneyIn.current?.()
+      if (res.messages.some((m) => !m.mine)) playSfx(res.messages.some((m) => m.kind === 'money' && !m.mine) ? 'coin' : 'notify')
       newest.current = res.messages.at(-1)!.id
       markRead(newest.current)
     }, POLL_MS)
@@ -113,6 +115,7 @@ export function useChat(chatId: string | null, open: boolean, onMoneyIn?: () => 
       if (!chatId) return { ok: false, error: 'Join a hostel to chat.' }
       const res = await sendChatMessage(chatId, body, kind)
       if (!res.ok) return { ok: false, error: res.error }
+      playSfx('sent')
       setMessages((current) => mergeById(current, [res.message]))
       newest.current = res.message.id
       lastRead.current = res.message.id

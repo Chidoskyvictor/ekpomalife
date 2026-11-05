@@ -4,6 +4,7 @@ import { useSyncExternalStore, type ReactNode } from 'react'
 import { Drawer } from 'vaul'
 import { hapticTap } from './haptic'
 import styles from './hud-drawer.module.css'
+import { playSfx } from '@/lib/audio/sfx'
 
 const DESKTOP = '(min-width: 900px)'
 
@@ -50,7 +51,10 @@ export function HudDrawer({
     <Drawer.Root
       open={open}
       onOpenChange={(next) => {
-        if (next) hapticTap()
+        if (next) {
+          hapticTap()
+          playSfx('open')
+        }
         onOpenChange(next)
       }}
       shouldScaleBackground={false}

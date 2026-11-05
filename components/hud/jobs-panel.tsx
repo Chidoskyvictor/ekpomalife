@@ -8,6 +8,7 @@ import { useGame } from '@/hooks/use-game'
 import type { Job } from '@/lib/game/economy-api'
 import { formatNaira } from '@/lib/game/live'
 import styles from './economy.module.css'
+import { playSfx } from '@/lib/audio/sfx'
 
 function ShiftRing({ progress }: { progress: number }) {
   const r = 18
@@ -100,8 +101,10 @@ export function JobsPanel({ placeId }: { placeId: string }) {
     const result = await doShift()
     setShiftProgress(0)
     if (!result) return
+    playSfx('coin')
     setFloatPay(result.earned)
     window.setTimeout(() => setFloatPay(null), 1500)
+    if (result.levelUp) playSfx('celebrate')
     if (result.levelUp && !reduced) {
       void confetti({ particleCount: 70, spread: 62, origin: { y: 0.55 } })
     }

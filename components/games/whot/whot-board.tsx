@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import type { WhotClientState } from '@/lib/game/whot-api'
 import { WhotCardBack, WhotCardFace, WhotShapePickerCard } from './whot-card'
 import styles from './whot.module.css'
+import { playSfx } from '@/lib/audio/sfx'
 
 const SHAPES = ['Circle', 'Triangle', 'Cross', 'Square', 'Star'] as const
 
@@ -36,6 +37,7 @@ export function WhotBoard({ state, subtitle, onExit, onPlay, onPick, disabled }:
       return
     }
     setPendingWhotIndex(null)
+    playSfx('cardPlay')
     onPlay(index, shape)
   }
 
@@ -105,7 +107,10 @@ export function WhotBoard({ state, subtitle, onExit, onPlay, onPick, disabled }:
       </div>
 
       <div className={styles.actions}>
-        <button type="button" className={styles.pickBtn} disabled={!myTurn || disabled} onClick={onPick}>
+        <button type="button" className={styles.pickBtn} disabled={!myTurn || disabled} onClick={() => {
+              playSfx('cardDraw')
+              onPick()
+            }}>
           {state?.mustPick ? 'Pick cards' : 'Go to market'}
         </button>
       </div>

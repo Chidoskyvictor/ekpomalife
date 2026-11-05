@@ -26,6 +26,7 @@ import { stickerForZone } from '@/lib/game/zone-stickers'
 import { hapticTap } from '@/components/hud/haptic'
 import econStyles from '@/components/hud/economy.module.css'
 import styles from './building-panel.module.css'
+import { playSfx } from '@/lib/audio/sfx'
 
 function formatHour(hour: number) {
   const h12 = hour % 12 || 12
@@ -276,6 +277,7 @@ export function BuildingPanel({
     setBusy(false)
     if (!result) return
     if (result.confetti) {
+      playSfx('celebrate')
       void confetti({ particleCount: 90, spread: 70, origin: { y: 0.65 } })
     }
     if (result.resultView) setGpaOpen(true)
@@ -303,6 +305,7 @@ export function BuildingPanel({
     }
     // Fees change your cash: refresh the wallet
     if (action.id.startsWith('pay-')) void refreshServer()
+    if (res.result?.grade === 'A') playSfx('celebrate')
     if (res.result?.grade === 'A') void confetti({ particleCount: 90, spread: 70, origin: { y: 0.65 } })
   }
 

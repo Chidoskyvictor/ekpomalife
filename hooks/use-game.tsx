@@ -18,6 +18,7 @@ import { applyDreamReward, createInitialState, resetDreamProgress, resolveEvent 
 import type { TraitId } from '@/lib/game/traits'
 import { setMusicSignedIn } from '@/lib/audio/music'
 import type { ActionId, EventChoice, GameEvent, GameState, TimePeriod, TravelMode } from '@/lib/game/types'
+import { playSfx } from '@/lib/audio/sfx'
 
 /** Optional button on a toast, e.g. "Go to my room" → /room. */
 export type ToastAction = { label: string; href: string }
@@ -439,6 +440,7 @@ export function GameProvider({
           return
         }
         mergeServer(result)
+        playSfx('arrive')
         notify(result.message || 'You arrived.', true)
         setSelectedId(locationId)
         void syncDream()

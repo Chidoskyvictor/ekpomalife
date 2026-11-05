@@ -13,6 +13,7 @@ import { shareStartingMoneyCard } from '@/lib/game/share-starting-money'
 import { confettiCount, tierBadge } from '@/lib/game/starting-money'
 import type { TraitId } from '@/lib/game/traits'
 import styles from './starting-money-spin.module.css'
+import { playSfx } from '@/lib/audio/sfx'
 
 const SPIN_MS = 2500
 const STOP_STAGGER = 250
@@ -139,6 +140,7 @@ export function StartingMoneySpin({
     setAmount(result.amount)
     setTier(result.tier)
     setMessage(result.message)
+    playSfx('spin')
 
     const wait = reduced ? 0 : Math.max(0, SPIN_MS - (Date.now() - t0))
     if (wait) await new Promise((resolve) => window.setTimeout(resolve, wait))
@@ -164,6 +166,7 @@ export function StartingMoneySpin({
       setLocking(7)
       setLanded(true)
       setBusy(false)
+      playSfx('reveal')
       try {
         burst(result.tier)
       } catch {

@@ -2,10 +2,11 @@
 
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { usePathname, useRouter } from 'next/navigation'
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import type { Toast } from '@/hooks/use-game'
 import { pushNavigation } from '@/lib/navigation/safe-nav'
 import styles from './life-hud.module.css'
+import { playSfx } from '@/lib/audio/sfx'
 
 const pop = { type: 'spring' as const, stiffness: 520, damping: 30 }
 
@@ -57,6 +58,11 @@ export function HudToast({ toast }: { toast: Toast | null }) {
   // ✕ hides this toast; a new toast (new id) shows again
   const [dismissed, setDismissed] = useState<number | null>(null)
   const shown = toast && toast.id !== dismissed ? toast : null
+  const shownId = shown?.id
+  const shownOk = shown?.ok
+  useEffect(() => {
+    if (shownId != null) playSfx(shownOk ? 'success' : 'error')
+  }, [shownId, shownOk])
 
   return (
     <div className={styles.toastSlot} aria-live="polite">
