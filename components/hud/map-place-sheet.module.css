@@ -331,3 +331,18 @@
   font-size: 15px;
   font-weight: 600;
 }
+
+/* Closed right now: says so and when it opens (Go is disabled) */
+.closed {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: #fff4e5;
+  color: #9a3412;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.35;
+}

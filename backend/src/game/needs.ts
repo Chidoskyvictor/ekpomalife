@@ -47,13 +47,18 @@ export function decayRatesForTraits(traits: TraitId[]): Needs {
   return rates
 }
 
+/** Off: players found needs dropped too fast by themselves. Flip on to bring the time drain back. */
+export const PASSIVE_DECAY = false
+
 export function decayNeeds(
   needs: Needs,
   gameMinutesElapsed: number,
   traits: TraitId[],
   lodgingDecayMult = 1,
 ): Needs {
-  if (gameMinutesElapsed <= 0) return needs
+  // Needs no longer drain on their own with time: they only change through what you do (eating
+  // fills hunger; studying, working and travelling use energy, and so on; see ACTIONS needEffects).
+  if (!PASSIVE_DECAY || gameMinutesElapsed <= 0) return needs
   const hours = gameMinutesElapsed / 60
   const rates = decayRatesForTraits(traits)
   const mult = lodgingDecayMult > 0 ? lodgingDecayMult : 1

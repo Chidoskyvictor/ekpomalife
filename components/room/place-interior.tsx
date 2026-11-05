@@ -19,7 +19,7 @@ import { useGame } from '@/hooks/use-game'
 import { BUILDINGS, type BuildingActionDef } from '@/lib/game/buildings'
 import { hallFor, officeFor } from '@/lib/game/halls'
 import { PLACE_INFO } from '@/lib/game/place-info'
-import { getPlace } from '@/lib/game/places'
+import { formatOpenHour, getPlace, isPlaceOpen } from '@/lib/game/places'
 import { markSceneReady, useTrip } from '@/lib/game/trip'
 import { pushNavigation } from '@/lib/navigation/safe-nav'
 import styles from './place-interior.module.css'
@@ -41,6 +41,42 @@ const EMOJI: Record<string, string> = {
  * reactions, who's here) until a 3D interior is modelled. Map leaves from here.
  */
 export function PlaceInterior({ placeId }: { placeId: string }) {
+  return (
+    <ClosedGate placeId={placeId}>
+      <OpenInterior placeId={placeId} />
+    </ClosedGate>
+  )
+}
+
+/** Closed right now: no interior, just when it opens and the way back to the map. */
+function ClosedGate({ placeId, children }: { placeId: string; children: React.ReactNode }) {
+  const router = useRouter()
+  const { state } = useGame()
+  const trip = useTrip()
+  const place = getPlace(placeId)
+  const closed = Boolean(state && place?.openHours && !isPlaceOpen(place, state.gameTime ?? 12 * 60))
+  // Let the trip screen finish onto this notice instead of hanging
+  useEffect(() => {
+    if (!closed || (trip?.scene === 'interior' && trip.target !== placeId)) return
+    markSceneReady('interior')
+    return () => markSceneReady('interior', false)
+  }, [closed, placeId, trip?.scene, trip?.target])
+  if (!closed || !place?.openHours) return <>{children}</>
+  return (
+    <div className={styles.stage} role="status">
+      <span className={styles.emoji} aria-hidden="true">🔒</span>
+      <h1 className={styles.title}>{place.label} is closed</h1>
+      <p className={styles.note}>Come back at {formatOpenHour(place.openHours.open)}. It is open {formatOpenHour(place.openHours.open)} to {formatOpenHour(place.openHours.close)}.</p>
+      <div className={styles.actions}>
+        <button type="button" className={styles.action} onClick={() => pushNavigation(router, '/')}>
+          <MapIcon size={18} aria-hidden="true" /> Back to map
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function OpenInterior({ placeId }: { placeId: string }) {
   // Lecture halls and faculties have a real 3D hall with classmates in it
   if (hallFor(placeId) || officeFor(placeId)) return <HallInterior placeId={placeId} />
   if (placeId === 'wise-gourmet') return <WiseInterior />
