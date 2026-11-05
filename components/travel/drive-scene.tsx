@@ -1218,9 +1218,22 @@ type DriveProps = {
   plannedMs: number
   /** The rider's own look (a default look when the trip doesn't carry one). */
   appearance?: Appearance
+  /** First frame drawn (the road, the vehicle and the rider are loaded). */
+  onShown?: () => void
 }
 
-function World({ mode, view, route, plannedMs, appearance }: DriveProps) {
+/** Calls `onShown` once, after the first frame that draws the ride. */
+function FirstFrame({ onShown }: { onShown?: () => void }) {
+  const done = useRef(false)
+  useFrame(() => {
+    if (done.current) return
+    done.current = true
+    onShown?.()
+  })
+  return null
+}
+
+function World({ mode, view, route, plannedMs, appearance, onShown }: DriveProps) {
   const rider = useMemo(() => normalizeAppearance(appearance), [appearance])
   const plan = useMemo(() => makePlan(mode, route, plannedMs), [mode, route, plannedMs])
   const campus = plan.kind === 'campus'
@@ -1277,6 +1290,7 @@ function World({ mode, view, route, plannedMs, appearance }: DriveProps) {
       )}
       <Walkers rate={rate} campus={campus} />
       <PlayerVehicle mode={mode} pose={pose} appearance={rider} />
+      <FirstFrame onShown={onShown} />
       <CameraRig mode={mode} view={view} gateZ={gateZ} pose={pose} glance={plan.kind === 'in' || plan.kind === 'stop'} narrow={campus} />
     </>
   )

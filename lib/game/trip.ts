@@ -35,6 +35,8 @@ export type Trip = {
   target?: string
   /** Which road the drive shows: the highway, in through the AAU gate, out through it, or the lane inside campus. */
   route: TripRoute
+  /** The 3D ride has drawn (its clock then restarts, so a slow load never eats the ride) */
+  shown?: boolean
   /** Shown as the looping highway drive (paid rides on devices that can take it) instead of the map card. */
   drive: boolean
   /** The rider's look, so their own avatar sits in the keke / on the okada. */
@@ -89,6 +91,15 @@ export function startTrip(input: Pick<Trip, 'label' | 'mode' | 'from' | 'to' | '
   }
   emit()
   return trip.id
+}
+
+/**
+ * The 3D ride is on screen: start its clock now, not at the tap, so a phone that takes a few
+ * seconds to load the road still gets the whole ride. Once per trip.
+ */
+export function tripShown(id: number) {
+  if (trip?.id !== id || trip.shown || trip.done) return
+  patch({ shown: true, startedAt: Date.now() })
 }
 
 /**

@@ -3,7 +3,7 @@
 import dynamic from 'next/dynamic'
 import { useRef, useState } from 'react'
 import { hapticTap } from '@/components/hud/haptic'
-import { skipTrip, type Trip } from '@/lib/game/trip'
+import { skipTrip, type Trip, tripShown } from '@/lib/game/trip'
 import type { DriveMode, DriveView } from './drive-scene'
 import { TripMap, tripProgress, useTripClock, VEHICLE } from './trip-map'
 import styles from './drive-trip.module.css'
@@ -66,7 +66,7 @@ export function DriveTrip({ trip }: { trip: Trip }) {
   return (
     <div className={styles.drive} data-done={trip.done} role="status" aria-live="polite">
       <div className={styles.canvas} aria-hidden="true">
-        <DriveCanvas mode={mode} view={view} route={trip.route} plannedMs={plannedMs} appearance={trip.appearance} />
+        <DriveCanvas mode={mode} view={view} route={trip.route} plannedMs={plannedMs} appearance={trip.appearance} onShown={() => tripShown(trip.id)} />
       </div>
 
       <div className={styles.top}>

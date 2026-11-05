@@ -12,12 +12,14 @@ export function DriveCanvas({
   route,
   plannedMs,
   appearance,
+  onShown,
 }: {
   mode: DriveMode
   view: DriveView
   route: DriveRoute
   plannedMs: number
   appearance?: Appearance
+  onShown?: () => void
 }) {
   return (
     <Canvas
@@ -26,7 +28,7 @@ export function DriveCanvas({
       camera={{ position: [5.6, 3.1, 8], fov: 58, near: 0.5, far: 320 }}
     >
       <ContextRestore />
-      <DriveScene mode={mode} view={view} route={route} plannedMs={plannedMs} appearance={appearance} />
+      <DriveScene mode={mode} view={view} route={route} plannedMs={plannedMs} appearance={appearance} onShown={onShown} />
     </Canvas>
   )
 }
