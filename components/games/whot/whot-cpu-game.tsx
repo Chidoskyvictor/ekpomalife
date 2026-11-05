@@ -17,6 +17,7 @@ import {
 import { rewardWhotCpuWin } from '@/lib/game/whot-api'
 import { WhotBoard } from './whot-board'
 import type { WhotClientState } from '@/lib/game/whot-api'
+import { playSfx } from '@/lib/audio/sfx'
 
 type Props = {
   players: number
@@ -63,17 +64,24 @@ export function WhotCpuGame({ players, onExit, notify }: Props) {
     const t = window.setTimeout(() => {
       const player = game.players[seat]
       if (!player?.turn) return
-      if (player.toPick > 0 || !player.canPlay()) tryPick(game, seat)
+      if (player.toPick > 0 || !player.canPlay()) {
+        playSfx('cardDraw')
+        tryPick(game, seat)
+      }
       else {
         const idx = pickCompatibleIndex(game, seat)
         if (idx >= 0) {
           const shape = player.hand()[idx]?.shape === 'Whot' ? botShapeChoice() : undefined
           const res = tryPlay(game, seat, idx, shape)
           if (res.ok) {
+            playSfx('cardPlay')
             if (res.lastCard) setAlerts((a) => [...a, { kind: 'last-card', seat }])
             if (res.checkup) setAlerts((a) => [...a, { kind: 'checkup', seat }])
           }
-        } else tryPick(game, seat)
+        } else {
+          playSfx('cardDraw')
+          tryPick(game, seat)
+        }
       }
       advancePastEliminated(game, eliminatedRef.current)
       const w = checkWinner(game, eliminatedRef.current)
@@ -82,6 +90,10 @@ export function WhotCpuGame({ players, onExit, notify }: Props) {
     }, 700)
     return () => window.clearTimeout(t)
   }, [tick, game, winnerSeat, rebuild])
+
+  useEffect(() => {
+    if (winnerSeat != null) playSfx(winnerSeat === 0 ? 'win' : 'lose')
+  }, [winnerSeat])
 
   useEffect(() => {
     if (winnerSeat !== 0 || rewarded.current) return

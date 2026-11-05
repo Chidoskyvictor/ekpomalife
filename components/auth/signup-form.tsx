@@ -10,6 +10,7 @@ import { LobbyCheckbox } from './lobby-checkbox'
 import { LobbyField } from './lobby-field'
 import { PasswordMeter, passwordScore } from './password-meter'
 import styles from './auth.module.css'
+import { playSfx } from '@/lib/audio/sfx'
 
 type Field = 'name' | 'username' | 'email' | 'password' | 'adult' | 'form'
 type Values = { name: string; handle: string; email: string; password: string; isAdult: boolean }
@@ -113,6 +114,7 @@ export function SignupForm({ onShake }: { onShake: () => void }) {
       fail(mapError(result.error), result.error)
       return
     }
+    playSfx('signup')
     await celebrate(reduce)
     await redirectAfterAuth(result.account)
   }

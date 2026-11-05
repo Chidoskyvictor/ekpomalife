@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Spray } from '@/lib/game/club-live'
 import styles from './spray-rain.module.css'
+import { playSfx } from '@/lib/audio/sfx'
 
 /** Where each note falls: spread across the screen, staggered over the spray's time. */
 function layout(spray: Spray) {
@@ -39,6 +40,7 @@ export function SprayRain({
 
   useEffect(() => {
     if (!lastGot) return
+    playSfx('coin')
     setPops((list) => [...list, { id: lastGot.at, value: lastGot.value }])
     const id = window.setTimeout(() => setPops((list) => list.filter((p) => p.id !== lastGot.at)), 1400)
     return () => window.clearTimeout(id)
@@ -47,6 +49,13 @@ export function SprayRain({
   // Finished sprays drop out by the clock too (background tabs run their timers late)
   const live = sprays.filter((s) => s.endsAt > Date.now())
   const placed = live.map((s) => ({ spray: s, notes: layout(s) }))
+
+  const othersLive = live.filter((s) => !s.mine).length
+  const seenOthers = useRef(0)
+  useEffect(() => {
+    if (othersLive > seenOthers.current) playSfx('spray')
+    seenOthers.current = othersLive
+  }, [othersLive])
 
   if (!live.length && !pops.length) return null
 
@@ -71,6 +80,7 @@ export function SprayRain({
               aria-label={`Grab ₦${n.value.toLocaleString()}`}
               onPointerDown={() => {
                 if (spray.mine) return
+                playSfx('grab')
                 setTapped((s) => new Set(s).add(key))
                 onPick(spray.id, n.note)
               }}

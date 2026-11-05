@@ -9,6 +9,7 @@ import { FloatingStickers } from './floating-stickers'
 import { LoginForm } from './login-form'
 import { SignupForm } from './signup-form'
 import styles from './auth.module.css'
+import { playSfx } from '@/lib/audio/sfx'
 
 export type AuthMode = 'signup' | 'login'
 
@@ -23,6 +24,7 @@ export function AuthPage({ initial }: { initial: AuthMode }) {
   const shake = useAnimation()
 
   const bump = () => {
+    playSfx('error')
     if (reduceMotion) return
     void shake.start({ x: [0, -8, 8, -5, 5, 0] }).then(() => shake.set({ x: 0 }))
   }
