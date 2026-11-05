@@ -1,5 +1,6 @@
 'use client'
 
+import { PlayerFace } from '@/components/look/player-face'
 import { Pencil, Settings } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/arc/button/button'
@@ -376,9 +377,7 @@ function PeopleTab() {
       {neighbours == null ? <p className={styles.muted}>Loading neighbours…</p> : null}
       {neighbours?.map((n) => (
         <div key={n.userId} className={styles.person}>
-          <span className={styles.personAvatar} style={{ background: n.avatar.color }} aria-hidden="true">
-            {n.avatar.emoji || n.displayName.trim()[0]?.toUpperCase()}
-          </span>
+          <PlayerFace className={styles.personAvatar} look={n.avatar.look} color={n.avatar.color} label={n.displayName} size={40} />
           <span className={styles.rowText}>
             <strong>
               {n.displayName}

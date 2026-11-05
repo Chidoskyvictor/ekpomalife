@@ -1,5 +1,6 @@
 'use client'
 
+import { PlayerFace } from '@/components/look/player-face'
 import { Bell, Check, ChevronLeft, DoorOpen, Home, MoreHorizontal, Search, Send, Smile, SquarePen, User, Users, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
@@ -77,16 +78,8 @@ function seenLabel(iso: string | null | undefined): { online: boolean; text: str
 }
 
 function Avatar({ person, size = 32 }: { person: ChatSender; size?: number }) {
-  const initial = (person.displayName.trim()[0] || '?').toUpperCase()
-  return (
-    <span
-      className={styles.avatar}
-      style={{ background: person.avatar.color, width: size, height: size, fontSize: size * 0.45 }}
-      aria-hidden="true"
-    >
-      {person.avatar.emoji || initial}
-    </span>
-  )
+  // Their character's face (falls back to the coloured initial while it's drawn)
+  return <PlayerFace className={styles.avatar} look={person.avatar.look} color={person.avatar.color} label={person.displayName} size={size} />
 }
 
 const SEEN_KEY = 'ekpoma-notifications-seen'

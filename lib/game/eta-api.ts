@@ -9,7 +9,8 @@ export type EtaAuthor = {
   id: string
   name: string
   handle: string
-  avatar: { color: string; emoji: string | null }
+  /** look = the player's character appearance (drawn as their face picture) */
+  avatar: { color: string; emoji: string | null; look?: unknown }
   /** Gold badge + "NPC" label */
   npc: boolean
 }

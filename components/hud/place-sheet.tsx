@@ -1,5 +1,6 @@
 'use client'
 
+import { PlayerFace } from '@/components/look/player-face'
 import { ChevronDown, ChevronUp, Clock } from 'lucide-react'
 import { useEffect, useSyncExternalStore, type ReactNode } from 'react'
 import { hapticTap } from './haptic'
@@ -188,7 +189,7 @@ export function PlacePeople({
 }: {
   count: number
   /** Everyone but you; `count` includes you, shown first as "You". */
-  people: { id: string; username: string; mark?: string }[]
+  people: { id: string; username: string; mark?: string; look?: unknown }[]
   onPick: (id: string) => void
   onMore?: () => void
 }) {
@@ -205,7 +206,7 @@ export function PlacePeople({
         </span>
         {people.map((p) => (
           <button key={p.id} type="button" className={styles.person} onClick={() => onPick(p.id)}>
-            <span className={styles.face}>{p.username.slice(0, 1).toUpperCase()}</span>
+            <PlayerFace className={styles.face} look={p.look} color="#7c3aed" label={p.username} size={52} />
             <span className={styles.handleName}>@{p.username}</span>
             {p.mark ? <span className={styles.mark}>{p.mark}</span> : null}
           </button>

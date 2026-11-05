@@ -13,7 +13,8 @@ export type ChatSender = {
   /** Present on chat messages. */
   username?: string
   displayName: string
-  avatar: { color: string; emoji: string | null }
+  /** look = the player's character appearance (drawn as their face picture) */
+  avatar: { color: string; emoji: string | null; look?: unknown }
 }
 
 export type ChatMessage = {

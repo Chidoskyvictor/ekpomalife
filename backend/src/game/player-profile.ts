@@ -25,7 +25,7 @@ export type PublicPlayerProfile = {
   userId: string
   username: string
   displayName: string
-  avatar: { color: string; emoji: string | null }
+  avatar: { color: string; emoji: string | null; look?: unknown }
   department: string
   studyLevel: StudyLevel
   bio: string
@@ -221,7 +221,7 @@ function toPublic(
     username: user.username,
     // Real name is private: only the owner sees it, everyone else sees the username
     displayName: isOwner ? profile.display_name : user.username,
-    avatar: { color: profile.avatar_color, emoji: profile.avatar_emoji },
+    avatar: { color: profile.avatar_color, emoji: profile.avatar_emoji, look: character?.appearance ?? null },
     department: profile.department,
     studyLevel: profile.study_level,
     bio: profile.bio,

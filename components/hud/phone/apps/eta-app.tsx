@@ -1,5 +1,6 @@
 'use client'
 
+import { PlayerFace } from '@/components/look/player-face'
 import { BadgeCheck, ChevronLeft, Flame, MessageCircle, Plus } from 'lucide-react'
 import { Fragment, useCallback, useEffect, useState, type ReactNode } from 'react'
 import {
@@ -42,9 +43,15 @@ const prizeLabel = (n: number) => (n >= 1_000_000 ? `â‚¦${n / 1_000_000}m` : `â‚
 
 function Avatar({ author, size = 38 }: { author: EtaAuthor; size?: number }) {
   return (
-    <span className={styles.avatar} style={{ width: size, height: size, background: author.avatar.color, fontSize: size * 0.48 }} aria-hidden="true">
-      {author.avatar.emoji ?? author.name.trim()[0]?.toUpperCase() ?? '?'}
-    </span>
+    // Players show their character's face; NPCs keep their emoji badge
+    <PlayerFace
+      className={styles.avatar}
+      look={author.npc ? null : author.avatar.look}
+      color={author.avatar.color}
+      emoji={author.avatar.emoji}
+      label={author.name}
+      size={size}
+    />
   )
 }
 

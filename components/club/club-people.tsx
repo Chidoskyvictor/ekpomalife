@@ -1,5 +1,6 @@
 'use client'
 
+import { PlayerFace } from '@/components/look/player-face'
 import { useCallback, useEffect, useState } from 'react'
 import { HudDrawer } from '@/components/hud/hud-drawer'
 import { PlayerProfilePanel } from '@/components/profile/player-profile-panel'
@@ -95,9 +96,7 @@ export function ClubPeople({
           {!people.length && !loading ? <p className={styles.note}>Nobody else is in yet. You're early!</p> : null}
           {people.map((person) => (
             <button key={person.userId} type="button" className={styles.person} onClick={() => setPicked(person)}>
-              <span className={styles.avatar} aria-hidden="true">
-                {person.username.slice(0, 1).toUpperCase()}
-              </span>
+              <PlayerFace className={styles.avatar} look={person.appearance} color="#7c3aed" label={person.username} size={40} />
               <span className={styles.personText}>
                 <span className={styles.personName}>@{person.username}</span>
               </span>

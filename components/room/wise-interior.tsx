@@ -239,7 +239,7 @@ export function WiseInterior() {
               <PlaceSpots hint="Tap one to walk there" spots={SPOTS} value={null} onChange={goToSpot} />
               <PlacePeople
                 count={presence.insideCount}
-                people={presence.others.slice(0, 6).map((p) => ({ id: p.userId, username: p.username }))}
+                people={presence.others.slice(0, 6).map((p) => ({ id: p.userId, username: p.username, look: p.appearance }))}
                 onPick={pickPerson}
                 onMore={() => setPeopleOpen(true)}
               />

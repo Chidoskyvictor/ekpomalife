@@ -1,5 +1,6 @@
 'use client'
 
+import { PlayerFace } from '@/components/look/player-face'
 import { useCallback, useEffect, useState } from 'react'
 import { fetchMyProfile, fetchPlayerProfile } from '@/lib/game/profile-api'
 import type { PlayerProfile } from '@/lib/game/profile-types'
@@ -61,13 +62,14 @@ export function PlayerProfilePanel({
   return (
     <div className={styles.wrap}>
       <div className={styles.hero}>
-        <div
+        <PlayerFace
           className={styles.avatar}
-          style={{ background: profile.avatar.color }}
-          aria-hidden="true"
-        >
-          {profile.avatar.emoji ?? initial}
-        </div>
+          look={profile.avatar.look}
+          color={profile.avatar.color}
+          emoji={profile.avatar.emoji}
+          label={initial}
+          size={72}
+        />
         <div className={styles.meta}>
           {/* Your real name is only shown to you; everyone else sees the @username */}
           <h3 className={styles.name}>{profile.isOwner ? profile.displayName : `@${profile.username}`}</h3>

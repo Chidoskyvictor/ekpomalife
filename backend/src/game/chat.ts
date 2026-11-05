@@ -17,7 +17,8 @@ export type ChatSender = {
   /** Set on chat messages (invites link to this player's place). */
   username?: string
   displayName: string
-  avatar: { color: string; emoji: string | null }
+  /** look = the player's character appearance (for their face picture) */
+  avatar: { color: string; emoji: string | null; look?: unknown }
 }
 
 /** text · system ("X joined") · sticker (body = sticker id) · invite (body = host username) · visit (body = visited username) · money (body = naira amount) */
@@ -72,12 +73,14 @@ type MessageRow = {
   display_name: string | null
   avatar_color: string | null
   avatar_emoji: string | null
+  appearance?: unknown
 }
 
 const MESSAGE_SELECT = `
   SELECT m.seq::text AS seq, m.chat_id, m.kind, m.body, m.created_at, m.sender_id, u.username,
          u.username AS display_name,
-         pp.avatar_color, pp.avatar_emoji
+         pp.avatar_color, pp.avatar_emoji,
+         (SELECT c.appearance FROM characters c WHERE c.user_id = m.sender_id LIMIT 1) AS appearance
   FROM chat_messages m
   LEFT JOIN users u ON u.id = m.sender_id
   LEFT JOIN player_profiles pp ON pp.user_id = m.sender_id`
@@ -100,7 +103,7 @@ function toMessage(row: MessageRow, viewerId: string): ChatMessage {
             userId: row.sender_id,
             username: row.username ?? undefined,
             displayName: row.display_name ?? 'Player',
-            avatar: { color: row.avatar_color ?? '#3d9ad6', emoji: row.avatar_emoji },
+            avatar: { color: row.avatar_color ?? '#3d9ad6', emoji: row.avatar_emoji, look: row.appearance ?? null },
           },
     mine: row.sender_id === viewerId,
   }
@@ -163,13 +166,14 @@ type PlayerRow = {
   display_name: string
   avatar_color: string | null
   avatar_emoji: string | null
+  appearance?: unknown
 }
 
 const toPlayerCard = (row: PlayerRow): PlayerCard => ({
   userId: row.user_id,
   username: row.username,
   displayName: row.display_name,
-  avatar: { color: row.avatar_color ?? '#3d9ad6', emoji: row.avatar_emoji },
+  avatar: { color: row.avatar_color ?? '#3d9ad6', emoji: row.avatar_emoji, look: row.appearance ?? null },
 })
 
 /**
@@ -189,13 +193,14 @@ export async function listChats(userId: string): Promise<ChatSummary[]> {
     } & Partial<PlayerRow>
   >(
     `SELECT c.id, c.kind, c.title, c.hostel_id, (${UNREAD_SQL}) AS unread, last.seq AS last_seq,
-            peer.user_id, peer.username, peer.display_name, peer.avatar_color, peer.avatar_emoji, peer.last_seen_at
+            peer.user_id, peer.username, peer.display_name, peer.avatar_color, peer.avatar_emoji, peer.appearance, peer.last_seen_at
      FROM chat_members cm
      JOIN chats c ON c.id = cm.chat_id
      LEFT JOIN LATERAL (SELECT MAX(seq)::text AS seq FROM chat_messages WHERE chat_id = c.id) last ON true
      LEFT JOIN LATERAL (
        SELECT u.id AS user_id, u.username, u.username AS display_name,
               pp.avatar_color, pp.avatar_emoji,
+              (SELECT c.appearance FROM characters c WHERE c.user_id = u.id LIMIT 1) AS appearance,
               (SELECT MAX(s.last_seen_at) FROM sessions s WHERE s.user_id = u.id) AS last_seen_at
        FROM chat_members other
        JOIN users u ON u.id = other.user_id
@@ -239,7 +244,8 @@ export async function searchPlayers(userId: string, rawQuery: string): Promise<P
   const prefix = `${q.replace(/[\\%_]/g, (ch) => `\\${ch}`)}%`
   const rows = await pool.query<PlayerRow>(
     `SELECT u.id AS user_id, u.username, u.username AS display_name,
-            pp.avatar_color, pp.avatar_emoji
+            pp.avatar_color, pp.avatar_emoji,
+            (SELECT c.appearance FROM characters c WHERE c.user_id = u.id LIMIT 1) AS appearance
      FROM users u
      LEFT JOIN player_profiles pp ON pp.user_id = u.id
      WHERE u.id <> $1
@@ -260,7 +266,8 @@ export async function openDirectChat(
   if (otherUserId === userId) return fail(400, 'SELF', 'That’s you — pick someone else to message.')
   const other = await pool.query<PlayerRow>(
     `SELECT u.id AS user_id, u.username, u.username AS display_name,
-            pp.avatar_color, pp.avatar_emoji
+            pp.avatar_color, pp.avatar_emoji,
+            (SELECT c.appearance FROM characters c WHERE c.user_id = u.id LIMIT 1) AS appearance
      FROM users u LEFT JOIN player_profiles pp ON pp.user_id = u.id WHERE u.id = $1`,
     [otherUserId],
   )

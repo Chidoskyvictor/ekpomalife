@@ -235,10 +235,12 @@ export async function listNeighbours(userId: string, hostelId: string): Promise<
     user_id: string
     display_name: string
     avatar_color: string | null
+    appearance?: unknown
     avatar_emoji: string | null
     joined_at: Date
   }>(
-    `SELECT hm.user_id, u.username AS display_name, pp.avatar_color, pp.avatar_emoji, hm.joined_at
+    `SELECT hm.user_id, u.username AS display_name, pp.avatar_color, pp.avatar_emoji, hm.joined_at,
+            (SELECT c.appearance FROM characters c WHERE c.user_id = u.id LIMIT 1) AS appearance
      FROM hostel_members hm
      JOIN users u ON u.id = hm.user_id
      LEFT JOIN player_profiles pp ON pp.user_id = hm.user_id
@@ -251,7 +253,7 @@ export async function listNeighbours(userId: string, hostelId: string): Promise<
     neighbours: rows.rows.map((row) => ({
       userId: row.user_id,
       displayName: row.display_name,
-      avatar: { color: row.avatar_color ?? '#3d9ad6', emoji: row.avatar_emoji },
+      avatar: { color: row.avatar_color ?? '#3d9ad6', emoji: row.avatar_emoji, look: row.appearance ?? null },
       joinedAt: row.joined_at.toISOString(),
       isMe: row.user_id === userId,
     })),

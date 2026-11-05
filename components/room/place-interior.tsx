@@ -159,7 +159,7 @@ function StandInInterior({ placeId }: { placeId: string }) {
           {presence.inside ? (
             <PlacePeople
               count={presence.insideCount}
-              people={presence.others.slice(0, 6).map((p) => ({ id: p.userId, username: p.username }))}
+              people={presence.others.slice(0, 6).map((p) => ({ id: p.userId, username: p.username, look: p.appearance }))}
               onPick={(id) => {
                 const person = presence.others.find((p) => p.userId === id)
                 if (person) social.setTalk({ kind: 'player', player: { userId: person.userId, username: person.username } })

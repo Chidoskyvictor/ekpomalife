@@ -33,7 +33,7 @@ export type EtaAuthor = {
   id: string
   name: string
   handle: string
-  avatar: { color: string; emoji: string | null }
+  avatar: { color: string; emoji: string | null; look?: unknown }
   /** Gold badge + "NPC" label */
   npc: boolean
 }
@@ -90,6 +90,7 @@ type PostRow = {
   display_name: string | null
   avatar_color: string | null
   avatar_emoji: string | null
+  appearance?: unknown
   liked: boolean
 }
 
@@ -97,6 +98,7 @@ const POST_SELECT = (viewer: string) => `
   SELECT p.id::text, p.author_user_id, p.author_npc_id, p.body, p.tags, p.reply_to::text, p.like_count, p.reply_count,
          p.giveaway_prize::text, p.giveaway_ends_at, p.giveaway_settled, p.giveaway_winner_post::text, p.created_at,
          u.username, u.username AS display_name, pp.avatar_color, pp.avatar_emoji,
+         (SELECT c.appearance FROM characters c WHERE c.user_id = u.id LIMIT 1) AS appearance,
          EXISTS (SELECT 1 FROM eta_likes l WHERE l.post_id = p.id AND l.user_id = ${viewer}) AS liked
   FROM eta_posts p
   LEFT JOIN users u ON u.id = p.author_user_id
@@ -118,7 +120,7 @@ function toPost(row: PostRow, viewerId: string): EtaPost {
         id: row.author_user_id ?? '',
         name: row.display_name ?? 'Player',
         handle: row.username ?? 'player',
-        avatar: { color: row.avatar_color ?? '#3d9ad6', emoji: row.avatar_emoji },
+        avatar: { color: row.avatar_color ?? '#3d9ad6', emoji: row.avatar_emoji, look: row.appearance ?? null },
         npc: false,
       }
   return {
@@ -280,8 +282,8 @@ export async function getProfile(viewerId: string, kind: 'user' | 'npc', idOrHan
       posts: posts.rows.map((r) => toPost(r, viewerId)),
     }
   }
-  const user = await pool.query<{ id: string; username: string; display_name: string; avatar_color: string | null; avatar_emoji: string | null; bio: string | null }>(
-    `SELECT u.id, u.username, u.username AS display_name, pp.avatar_color, pp.avatar_emoji, pp.bio
+  const user = await pool.query<{ id: string; username: string; display_name: string; avatar_color: string | null; avatar_emoji: string | null; bio: string | null; appearance?: unknown }>(
+    `SELECT u.id, u.username, u.username AS display_name, pp.avatar_color, pp.avatar_emoji, pp.bio, (SELECT c.appearance FROM characters c WHERE c.user_id = u.id LIMIT 1) AS appearance
      FROM users u LEFT JOIN player_profiles pp ON pp.user_id = u.id
      WHERE u.id = $1 OR LOWER(u.username) = LOWER($1) LIMIT 1`,
     [idOrHandle],
@@ -305,7 +307,7 @@ export async function getProfile(viewerId: string, kind: 'user' | 'npc', idOrHan
         id: u.id,
         name: u.display_name,
         handle: u.username,
-        avatar: { color: u.avatar_color ?? '#3d9ad6', emoji: u.avatar_emoji },
+        avatar: { color: u.avatar_color ?? '#3d9ad6', emoji: u.avatar_emoji, look: u.appearance ?? null },
         npc: false,
       },
       bio: u.bio ?? '',
@@ -320,9 +322,10 @@ export async function getProfile(viewerId: string, kind: 'user' | 'npc', idOrHan
 
 /** Real players only: followers plus fire received this week. */
 export async function topVoices() {
-  const rows = await pool.query<{ id: string; username: string; display_name: string; avatar_color: string | null; avatar_emoji: string | null; followers: number; fire: number }>(
+  const rows = await pool.query<{ id: string; username: string; display_name: string; avatar_color: string | null; avatar_emoji: string | null; appearance?: unknown; followers: number; fire: number }>(
     `SELECT * FROM (
        SELECT u.id, u.username, u.username AS display_name, pp.avatar_color, pp.avatar_emoji,
+              (SELECT c.appearance FROM characters c WHERE c.user_id = u.id LIMIT 1) AS appearance,
               (SELECT COUNT(*)::int FROM eta_follows f WHERE f.target_kind = 'user' AND f.target_id = u.id) AS followers,
               COALESCE((SELECT SUM(p.like_count)::int FROM eta_posts p WHERE p.author_user_id = u.id AND p.created_at > NOW() - INTERVAL '7 days'), 0) AS fire
        FROM users u LEFT JOIN player_profiles pp ON pp.user_id = u.id
@@ -331,7 +334,7 @@ export async function topVoices() {
      ORDER BY followers * 3 + fire DESC LIMIT 20`,
   )
   return rows.rows.map((r) => ({
-    author: { kind: 'user' as const, id: r.id, name: r.display_name, handle: r.username, avatar: { color: r.avatar_color ?? '#3d9ad6', emoji: r.avatar_emoji }, npc: false },
+    author: { kind: 'user' as const, id: r.id, name: r.display_name, handle: r.username, avatar: { color: r.avatar_color ?? '#3d9ad6', emoji: r.avatar_emoji, look: r.appearance ?? null }, npc: false },
     followers: r.followers,
     fire: r.fire,
   }))

@@ -361,7 +361,7 @@ export function ClubScreen({ venueId }: { venueId: string }) {
               </PlaceActions>
               <PlacePeople
                 count={view.inside}
-                people={faces.map((p) => ({ id: p.userId, username: p.username, mark: p.vip ? 'VIP' : undefined }))}
+                people={faces.map((p) => ({ id: p.userId, username: p.username, mark: p.vip ? 'VIP' : undefined, look: p.appearance }))}
                 onPick={(id) => {
                   const person = faces.find((p) => p.userId === id)
                   if (person) social.setTalk({ kind: 'player', player: { userId: person.userId, username: person.username } })

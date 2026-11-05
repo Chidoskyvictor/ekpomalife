@@ -34,7 +34,7 @@ function writeCache(key: string, url: string) {
 }
 
 /** Frames the head once the model (and hair) has loaded, then hands back a PNG. */
-function PortraitCapture({ appearance, onShot }: { appearance: Appearance; onShot: (url: string) => void }) {
+export function PortraitCapture({ appearance, onShot }: { appearance: Appearance; onShot: (url: string) => void }) {
   const group = useRef<Group>(null)
   const camera = useThree((state) => state.camera) as PerspectiveCamera
   const gl = useThree((state) => state.gl)

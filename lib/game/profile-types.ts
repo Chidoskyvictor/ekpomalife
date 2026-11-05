@@ -5,7 +5,8 @@ export type PlayerProfile = {
   userId: string
   username: string
   displayName: string
-  avatar: { color: string; emoji: string | null }
+  /** look = the player's character appearance (drawn as their face picture) */
+  avatar: { color: string; emoji: string | null; look?: unknown }
   department: string
   studyLevel: StudyLevel
   bio: string
