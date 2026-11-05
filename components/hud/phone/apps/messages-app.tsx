@@ -1,6 +1,6 @@
 'use client'
 
-import { Bell, ChevronLeft, Pin, Search, Send, Smile, SquarePen, Users, X } from 'lucide-react'
+import { Bell, Check, ChevronLeft, DoorOpen, Home, MoreHorizontal, Search, Send, Smile, SquarePen, User, Users, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { PlayerProfilePanel } from '@/components/profile/player-profile-panel'
@@ -62,6 +62,18 @@ function clockTime(iso: string) {
   } catch {
     return ''
   }
+}
+
+/** "online" within 5 minutes, else "last seen …". */
+function seenLabel(iso: string | null | undefined): { online: boolean; text: string } | null {
+  if (!iso) return null
+  const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60_000)
+  if (mins < 5) return { online: true, text: 'online' }
+  if (mins < 60) return { online: false, text: `last seen ${mins}m ago` }
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return { online: false, text: `last seen ${hours}h ago` }
+  const days = Math.floor(hours / 24)
+  return { online: false, text: days === 1 ? 'last seen yesterday' : `last seen ${days}d ago` }
 }
 
 function Avatar({ person, size = 32 }: { person: ChatSender; size?: number }) {
@@ -337,27 +349,33 @@ function ChatRow({ chat, onOpen }: { chat: ChatSummary; onOpen: () => void }) {
         ? `${last.sender.displayName}: ${text}`
         : `${last.mine ? 'You: ' : ''}${text}`
     : 'Say hi to your neighbours 👋'
+  const seen = chat.peer ? seenLabel(chat.peerLastSeen) : null
+  const unread = chat.unread > 0
   return (
     <button type="button" className={styles.chatRow} onClick={onOpen}>
-      <span className={`${styles.dot} ${chat.unread > 0 ? styles.dotOn : ''}`} aria-hidden="true" />
-      {chat.peer ? (
-        <Avatar person={chat.peer} size={44} />
-      ) : (
-        <span className={styles.groupIcon} aria-hidden="true">
-          🏠
-        </span>
-      )}
+      <span className={styles.avatarWrap}>
+        {chat.peer ? (
+          <Avatar person={chat.peer} size={46} />
+        ) : (
+          <span className={styles.groupIcon} aria-hidden="true">
+            🏠
+          </span>
+        )}
+        {seen?.online ? <span className={styles.onlineDot} aria-label="Online" /> : null}
+      </span>
       <span className={styles.chatText}>
         <span className={styles.chatTop}>
-          <span className={styles.chatTitle}>
+          <span className={`${styles.chatTitle} ${unread ? styles.chatTitleUnread : ''}`}>
             {chat.title}
-            {chat.pinned ? <Pin size={11} className={styles.pin} aria-label="Pinned" /> : null}
+            {chat.pinned ? <span className={styles.pinnedTag}>Pinned</span> : null}
           </span>
-          {last ? <span className={styles.chatTime}>{stamp(last.createdAt)}</span> : null}
+          {last ? <span className={`${styles.chatTime} ${unread ? styles.chatTimeUnread : ''}`}>{stamp(last.createdAt)}</span> : null}
         </span>
-        <span className={styles.chatPreview}>{preview}</span>
+        <span className={styles.chatBottom}>
+          <span className={`${styles.chatPreview} ${unread ? styles.chatPreviewUnread : ''}`}>{preview}</span>
+          {unread ? <span className={styles.unreadBadge}>{chat.unread > 99 ? '99+' : chat.unread}</span> : null}
+        </span>
       </span>
-      {chat.unread > 0 ? <span className="sr-only">{chat.unread} unread</span> : null}
     </button>
   )
 }
@@ -524,6 +542,7 @@ function ChatView({
   const [sending, setSending] = useState(false)
   const [sendError, setSendError] = useState<string | null>(null)
   const [menuFor, setMenuFor] = useState<string | null>(null)
+  const [moreOpen, setMoreOpen] = useState(false)
   const scroller = useRef<HTMLDivElement>(null)
   const stickToBottom = useRef(true)
   const prevHeight = useRef(0)
@@ -583,48 +602,93 @@ function ChatView({
   }
 
   const remaining = CHAT_MESSAGE_MAX - draft.length
-  const title = direct && chat.peer ? (
-    <button type="button" className={styles.peerTitle} onClick={() => onProfile(chat.peer!.userId)}>
-      <Avatar person={chat.peer} size={30} />
-      <span className={styles.peerName}>@{chat.peer.username}</span>
-    </button>
-  ) : (
-    <span className={styles.groupTitle}>{chat.title}</span>
-  )
+  const seen = direct ? seenLabel(chat.peerLastSeen) : null
+  const invite = async () => {
+    setMoreOpen(false)
+    if (await sendExtra('', 'invite')) setNotice(`Invite sent to ${chat.peer!.displayName}`)
+  }
 
   return (
     <div className={styles.screen}>
-      <NavBar
-        title={title}
-        onBack={onBack}
-        right={
-          direct ? null : (
-            <button type="button" className={styles.iconBtn} onClick={onNeighbours} aria-label="Neighbours">
-              <Users size={17} aria-hidden="true" />
+      {/* One slim row: back, avatar, name + online/last seen, and ⋯ for Invite / Visit / Send money */}
+      <div className={styles.chatHead}>
+        <button type="button" className={styles.navBack} onClick={onBack} aria-label="Back to chats">
+          <ChevronLeft size={22} aria-hidden="true" />
+        </button>
+        {direct && chat.peer ? (
+          <button type="button" className={styles.chatHeadWho} onClick={() => onProfile(chat.peer!.userId)}>
+            <span className={styles.avatarWrap}>
+              <Avatar person={chat.peer} size={34} />
+              {seen?.online ? <span className={styles.onlineDot} aria-hidden="true" /> : null}
+            </span>
+            <span className={styles.chatHeadText}>
+              <span className={styles.chatHeadName}>@{chat.peer.username}</span>
+              {seen ? <span className={`${styles.chatHeadSeen} ${seen.online ? styles.chatHeadOnline : ''}`}>{seen.text}</span> : null}
+            </span>
+          </button>
+        ) : (
+          <span className={styles.chatHeadWho}>
+            <span className={styles.groupIcon} aria-hidden="true" style={{ width: 34, height: 34, fontSize: 17 }}>
+              🏠
+            </span>
+            <span className={styles.chatHeadText}>
+              <span className={styles.chatHeadName}>{chat.title}</span>
+              <span className={styles.chatHeadSeen}>Hostel chat</span>
+            </span>
+          </span>
+        )}
+        {direct && chat.peer ? (
+          <div className={styles.moreWrap}>
+            <button type="button" className={styles.iconBtn} aria-label="More" aria-expanded={moreOpen} onClick={() => setMoreOpen((o) => !o)}>
+              <MoreHorizontal size={18} aria-hidden="true" />
             </button>
-          )
-        }
-      />
-
-      {direct && chat.peer ? (
-        <div className={styles.actions} role="group" aria-label={`Things to do with ${chat.peer.displayName}`}>
-          <button
-            type="button"
-            className={`${styles.pill} ${styles.pillInvite}`}
-            onClick={async () => {
-              if (await sendExtra('', 'invite')) setNotice(`Invite sent to ${chat.peer!.displayName}`)
-            }}
-          >
-            <span aria-hidden="true">🏠</span> Invite
+            {moreOpen ? (
+              <>
+                <button type="button" className={styles.moreScrim} aria-label="Close menu" onClick={() => setMoreOpen(false)} />
+                <div className={styles.moreMenu} role="menu">
+                  <button type="button" role="menuitem" onClick={() => void invite()}>
+                    <Home size={16} aria-hidden="true" /> Invite to my place
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setMoreOpen(false)
+                      visit(chat.peer!.username)
+                    }}
+                  >
+                    <DoorOpen size={16} aria-hidden="true" /> Visit their place
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setMoreOpen(false)
+                      setMoneyOpen(true)
+                    }}
+                  >
+                    <span className={styles.nairaIcon} aria-hidden="true">₦</span> Send money
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setMoreOpen(false)
+                      onProfile(chat.peer!.userId)
+                    }}
+                  >
+                    <User size={16} aria-hidden="true" /> View profile
+                  </button>
+                </div>
+              </>
+            ) : null}
+          </div>
+        ) : (
+          <button type="button" className={styles.iconBtn} onClick={onNeighbours} aria-label="Neighbours">
+            <Users size={17} aria-hidden="true" />
           </button>
-          <button type="button" className={`${styles.pill} ${styles.pillVisit}`} onClick={() => visit(chat.peer!.username)}>
-            <span aria-hidden="true">🚪</span> Visit
-          </button>
-          <button type="button" className={`${styles.pill} ${styles.pillMoney}`} onClick={() => setMoneyOpen(true)}>
-            <span aria-hidden="true">💸</span> Send money
-          </button>
-        </div>
-      ) : null}
+        )}
+      </div>
       {notice ? (
         <p className={styles.notice} role="status" onAnimationEnd={() => setNotice(null)}>
           {notice}
@@ -738,6 +802,11 @@ function ChatView({
               }
             }}
           />
+          {direct && chat.peer && !draft.trim() ? (
+            <button type="button" className={styles.moneyBtn} aria-label="Send money" onClick={() => setMoneyOpen(true)}>
+              ₦
+            </button>
+          ) : null}
           <button type="submit" className={styles.send} disabled={!draft.trim() || sending} aria-label="Send">
             <Send size={15} aria-hidden="true" />
           </button>
@@ -786,6 +855,7 @@ function MessageRow({
         ) : (
           <div className={`${styles.bubble} ${styles.bubbleMine}`} title={clockTime(message.createdAt)}>
             {content}
+            {message.kind === 'text' ? <span className={styles.bubbleTime}>{clockTime(message.createdAt)}</span> : null}
           </div>
         )}
       </div>
@@ -818,6 +888,7 @@ function MessageRow({
           }}
         >
           {content}
+          {message.kind === 'text' ? <span className={styles.bubbleTime}>{clockTime(message.createdAt)}</span> : null}
         </div>
         {menuOpen ? (
           <div className={styles.menu}>
@@ -832,27 +903,40 @@ function MessageRow({
   )
 }
 
-/** Invite / visit notices: a small centred pill with the time, like a system line. */
+/**
+ * Invites and visits as cards with a button: "Accept invite" goes to their place, "Visit now"
+ * pays them a visit back. Your own invites / visits show what happened.
+ */
 function NoticePill({ message, onVisit }: { message: ChatMessage; onVisit: (username: string | undefined) => void }) {
   const name = message.sender?.username ? `@${message.sender.username}` : (message.sender?.displayName ?? 'They')
   const invite = message.kind === 'invite'
-  const text = invite
+  const title = invite
     ? message.mine
-      ? 'You invited them over 🏠'
-      : `${name} invited you over 🏠`
+      ? 'You invited them over'
+      : `${name} invited you over`
     : message.mine
-      ? `You visited @${message.body} 🚪`
-      : `${name} visited your place 🚪`
+      ? `You visited @${message.body}`
+      : `${name} visited your place`
+  const sub = invite ? (message.mine ? 'Waiting for them to come' : 'Come and hang out at their place') : message.mine ? 'You stopped by' : 'Pay them a visit back'
+  const action = message.mine ? null : invite ? 'Accept invite' : 'Visit now'
+  const where = invite ? message.body || message.sender?.username : message.sender?.username
   return (
-    <div className={styles.noticeRow}>
-      <span className={`${styles.noticePill} ${invite ? styles.noticeInvite : styles.noticeVisit}`}>
-        {text} · {clockTime(message.createdAt)}
-        {invite && !message.mine ? (
-          <button type="button" className={styles.noticeLink} onClick={() => onVisit(message.body || message.sender?.username)}>
-            Visit
+    <div className={`${styles.actionRow} ${message.mine ? styles.actionRowMine : ''}`}>
+      <div className={`${styles.actionCard} ${invite ? styles.actionInvite : styles.actionVisit}`}>
+        <span className={styles.actionIcon} aria-hidden="true">
+          {invite ? <Home size={18} /> : <DoorOpen size={18} />}
+        </span>
+        <span className={styles.actionText}>
+          <strong>{title}</strong>
+          <span>{sub}</span>
+        </span>
+        <span className={styles.actionTime}>{clockTime(message.createdAt)}</span>
+        {action ? (
+          <button type="button" className={styles.actionBtn} onClick={() => onVisit(where)}>
+            {action}
           </button>
         ) : null}
-      </span>
+      </div>
     </div>
   )
 }
@@ -904,14 +988,17 @@ function MessageContent({ message, onVisit }: { message: ChatMessage; onVisit: (
   if (message.kind === 'money') {
     const amount = Number(message.body)
     return (
-      <div className={`${styles.card} ${styles.cardMoney}`}>
-        <span className={styles.cardIcon} aria-hidden="true">
-          💸
+      <div className={styles.moneyCard}>
+        <span className={styles.coin} aria-hidden="true">
+          ₦
         </span>
-        <span className={styles.cardText}>
+        <span className={styles.moneyText}>
           <strong>{naira(amount)}</strong>
-          <span>{message.mine ? 'Sent' : `From ${message.sender?.displayName ?? 'a friend'}`}</span>
+          <span className={styles.moneyStatus}>
+            <Check size={13} aria-hidden="true" /> {message.mine ? 'Sent' : `Received from ${message.sender?.displayName ?? 'a friend'}`}
+          </span>
         </span>
+        <span className={styles.moneyTime}>{clockTime(message.createdAt)}</span>
       </div>
     )
   }

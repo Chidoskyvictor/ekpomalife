@@ -50,6 +50,8 @@ export type ChatSummary = {
   hostelId: string | null
   /** The other player in a direct chat. */
   peer: PlayerCard | null
+  /** When the other player in a direct chat was last active (online = within 5 minutes). */
+  peerLastSeen?: string | null
   /** Hostel chats are pinned to the top of Messages and can't be unpinned. */
   pinned: boolean
   unread: number
@@ -183,16 +185,18 @@ export async function listChats(userId: string): Promise<ChatSummary[]> {
       hostel_id: string | null
       unread: number
       last_seq: string | null
+      last_seen_at: Date | null
     } & Partial<PlayerRow>
   >(
     `SELECT c.id, c.kind, c.title, c.hostel_id, (${UNREAD_SQL}) AS unread, last.seq AS last_seq,
-            peer.user_id, peer.username, peer.display_name, peer.avatar_color, peer.avatar_emoji
+            peer.user_id, peer.username, peer.display_name, peer.avatar_color, peer.avatar_emoji, peer.last_seen_at
      FROM chat_members cm
      JOIN chats c ON c.id = cm.chat_id
      LEFT JOIN LATERAL (SELECT MAX(seq)::text AS seq FROM chat_messages WHERE chat_id = c.id) last ON true
      LEFT JOIN LATERAL (
        SELECT u.id AS user_id, u.username, u.username AS display_name,
-              pp.avatar_color, pp.avatar_emoji
+              pp.avatar_color, pp.avatar_emoji,
+              (SELECT MAX(s.last_seen_at) FROM sessions s WHERE s.user_id = u.id) AS last_seen_at
        FROM chat_members other
        JOIN users u ON u.id = other.user_id
        LEFT JOIN player_profiles pp ON pp.user_id = u.id
@@ -217,6 +221,7 @@ export async function listChats(userId: string): Promise<ChatSummary[]> {
       title: peer ? peer.displayName : row.title,
       hostelId: row.hostel_id,
       peer,
+      peerLastSeen: peer && row.last_seen_at ? new Date(row.last_seen_at).toISOString() : null,
       pinned: row.kind === 'hostel',
       unread: row.unread,
       lastMessage: last.rows[0] ? toMessage(last.rows[0], userId) : null,

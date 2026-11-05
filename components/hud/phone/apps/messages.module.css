@@ -123,9 +123,9 @@
 .chatRow {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   width: 100%;
-  padding: 8px 12px 8px 4px;
+  padding: 6px 12px 6px 12px;
   border: 0;
   background: transparent;
   color: inherit;
@@ -1059,4 +1059,378 @@
 .skelBubble {
   height: 34px;
   border-radius: 18px;
+}
+
+/* —— Chat list (WhatsApp-style rows) —— */
+.avatarWrap {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+}
+
+.onlineDot {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 12px;
+  height: 12px;
+  border: 2px solid #fff;
+  border-radius: 999px;
+  background: #22c55e;
+}
+
+.chatTitleUnread {
+  font-weight: 800;
+}
+
+.chatTimeUnread {
+  color: #007aff;
+  font-weight: 700;
+}
+
+.chatBottom {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chatBottom .chatPreview {
+  flex: 1;
+  min-width: 0;
+  -webkit-line-clamp: 1;
+}
+
+.chatPreviewUnread {
+  color: #1c1c1e;
+  font-weight: 600;
+}
+
+.unreadBadge {
+  flex: none;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #007aff;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 20px;
+  text-align: center;
+}
+
+.pinnedTag {
+  flex: none;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: #eef2f7;
+  color: #6e6e73;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+/* —— Chat header: one slim row —— */
+.chatHead {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 50px;
+  padding: 3px 6px;
+  border-bottom: 1px solid #ececf0;
+  background: rgba(249, 249, 251, 0.97);
+}
+
+.chatHeadWho {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  gap: 9px;
+  padding: 2px 4px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.chatHeadText {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.chatHeadName {
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chatHeadSeen {
+  color: #8e8e93;
+  font-size: 11.5px;
+}
+
+.chatHeadOnline {
+  color: #16a34a;
+  font-weight: 600;
+}
+
+.moreWrap {
+  position: relative;
+  flex: none;
+}
+
+.moreScrim {
+  position: fixed;
+  inset: 0;
+  z-index: 4;
+  border: 0;
+  background: transparent;
+}
+
+.moreMenu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 5;
+  display: flex;
+  min-width: 190px;
+  flex-direction: column;
+  padding: 6px;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+}
+
+.moreMenu button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 42px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #1c1c1e;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.moreMenu button:active {
+  background: #f2f2f7;
+}
+
+.nairaIcon {
+  display: inline-grid;
+  width: 16px;
+  place-items: center;
+  font-weight: 800;
+}
+
+/* ₦ next to the message box (send money) */
+.moneyBtn {
+  display: grid;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(145deg, #f7c948, #d9a21b);
+  color: #3b2a00;
+  font-size: 16px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+/* —— Bubbles: time inside, bottom-right —— */
+.bubbleTime {
+  float: right;
+  margin: 6px 0 -3px 8px;
+  font-size: 10px;
+  line-height: 1;
+  opacity: 0.6;
+}
+
+/* —— Gold money card (Ekpoma style) —— */
+.moneyCard {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 190px;
+  max-width: 250px;
+  padding: 11px 14px 14px;
+  border: 1px solid #f1d27a;
+  border-radius: 18px;
+  background: linear-gradient(145deg, #fff6d6, #ffe7a3);
+  color: #3b2a00;
+  box-shadow: 0 2px 8px rgba(201, 162, 39, 0.25);
+}
+
+.coin {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex: none;
+  place-items: center;
+  border-radius: 999px;
+  background: radial-gradient(circle at 35% 30%, #ffe589, #d9a21b 70%);
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.15);
+  color: #5a3d00;
+  font-size: 18px;
+  font-weight: 900;
+  animation: coinPop 0.7s ease-out 1;
+}
+
+@keyframes coinPop {
+  0% {
+    transform: translateY(6px) scale(0.6) rotate(-20deg);
+    opacity: 0;
+  }
+  60% {
+    transform: translateY(-4px) scale(1.12) rotate(8deg);
+    opacity: 1;
+  }
+  100% {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .coin {
+    animation: none;
+  }
+}
+
+.moneyText {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.moneyText strong {
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.moneyStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #15803d;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.moneyTime {
+  position: absolute;
+  right: 12px;
+  bottom: 5px;
+  font-size: 10px;
+  opacity: 0.6;
+}
+
+/* —— Invite / visit cards with a button —— */
+.actionRow {
+  display: flex;
+  margin: 6px 0;
+}
+
+.actionRowMine {
+  justify-content: flex-end;
+}
+
+.actionCard {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 4px 10px;
+  width: min(250px, 86%);
+  padding: 11px 12px 12px;
+  border-radius: 18px;
+}
+
+.actionInvite {
+  background: #eef0ff;
+  color: #312e81;
+}
+
+.actionVisit {
+  background: #e6f7f1;
+  color: #065f46;
+}
+
+.actionIcon {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.actionText {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 1px;
+  font-size: 12px;
+}
+
+.actionText strong {
+  overflow: hidden;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.actionTime {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  font-size: 10px;
+  opacity: 0.6;
+}
+
+.actionBtn {
+  grid-column: 1 / -1;
+  min-height: 36px;
+  margin-top: 6px;
+  border: 0;
+  border-radius: 999px;
+  background: currentColor;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.actionInvite .actionBtn {
+  background: #4f46e5;
+  color: #fff;
+}
+
+.actionVisit .actionBtn {
+  background: #059669;
+  color: #fff;
+}
+
+/* Text and its time on one line when it fits */
+.bubble > .body {
+  display: inline;
 }

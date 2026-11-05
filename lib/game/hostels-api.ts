@@ -36,6 +36,8 @@ export type ChatSummary = {
   title: string
   hostelId: string | null
   peer: PlayerCard | null
+  /** When the other player in a direct chat was last active (online = within 5 minutes). */
+  peerLastSeen?: string | null
   pinned: boolean
   unread: number
   lastMessage: ChatMessage | null
