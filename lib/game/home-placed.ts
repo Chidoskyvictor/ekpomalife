@@ -62,7 +62,8 @@ export function spotUnder(spec: HomeSpec, item: Pick<HomeItem, 'w' | 'd' | 'wall
 
 /** Standing height of the character's origin when using a piece, by the furniture action it gives. */
 function seatY(use: FurnitureId, height: number) {
-  if (use === 'bed') return height + 0.03
+  // Lie on the mattress, not on top of the headboard (a family bed is 1.05 m tall with it)
+  if (use === 'bed') return Math.min(height, 0.52) + 0.03
   if (use === 'toilet') return -0.2
   if (use === 'bucket' || use === 'cooker') return 0
   return Math.min(0, height - 0.77)
