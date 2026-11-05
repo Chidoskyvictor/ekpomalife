@@ -980,3 +980,49 @@
   font-size: 12px;
   font-weight: 700;
 }
+
+/* Arrange mode (long-press an app): pin/unpin and reorder */
+.editBar {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 6px 8px;
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  color: #fff;
+}
+.editHint {
+  margin: 0;
+  min-width: 0;
+  flex: 1;
+  font-size: 12px;
+  font-weight: 600;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.editBtns { display: flex; gap: 6px; flex-shrink: 0; }
+.editBtn {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+}
+.editBtn:disabled { opacity: 0.4; }
+.editDone { background: #14b84a; }
+.appEditing { animation: appWiggle 0.28s ease-in-out infinite alternate; }
+.appSelected .appIcon { outline: 3px solid #fff; outline-offset: 2px; }
+@keyframes appWiggle { from { transform: rotate(-1.6deg); } to { transform: rotate(1.6deg); } }
+@media (prefers-reduced-motion: reduce) { .appEditing { animation: none; } }

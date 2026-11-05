@@ -305,6 +305,64 @@ async function settle(client: PoolClient, characterId: string, gameTime: number,
   await addEvents(client, characterId, events)
 }
 
+/** Business daily summary goes out at 9 PM game time (after the 6 PM payout). */
+export const BUSINESS_SUMMARY_HOUR = 21
+
+/** The most recent game day whose summary is due: today once it is 9 PM, otherwise yesterday. */
+export function summaryDayFor(gameTime: number): number {
+  const { day, hour } = clockFromGameTime(gameTime)
+  return hour >= BUSINESS_SUMMARY_HOUR ? day : day - 1
+}
+
+/** Made = business income, spent = business losses ("bad day"), from that day's invest events. */
+export function totalsFromEvents(events: { kind: string; amount: number }[]) {
+  let made = 0
+  let spent = 0
+  let count = 0
+  for (const event of events) {
+    if (event.kind === 'business_income' && event.amount > 0) made += event.amount
+    else if (event.kind === 'business_loss' || (event.kind === 'business_income' && event.amount < 0)) spent += Math.abs(event.amount)
+    else continue
+    count++
+  }
+  return { made, spent, count }
+}
+
+export type BusinessSummary = { id: string; day: number; made: number; spent: number; title: string; body: string }
+
+export function formatBusinessSummary(day: number, made: number, spent: number): BusinessSummary {
+  const naira = (n: number) => `₦${n.toLocaleString('en-NG')}`
+  return {
+    id: `biz-summary-${day}`,
+    day,
+    made,
+    spent,
+    title: 'Business summary',
+    body: `Today your business made ${naira(made)} and spent ${naira(spent)}.`,
+  }
+}
+
+/**
+ * Daily business summary for the phone notification list. Pays any pending 6 PM payouts first, then
+ * totals the day's business events. Stable id per day and derived from stored events, so it is never
+ * duplicated; null for players with no business activity that day.
+ */
+export async function getBusinessSummary(client: PoolClient, characterId: string, gameTime: number): Promise<BusinessSummary | null> {
+  const day = summaryDayFor(gameTime)
+  if (day < 1) return null
+  const owns = await client.query(`SELECT 1 FROM business_holdings WHERE character_id = $1 LIMIT 1`, [characterId])
+  if (!owns.rowCount) return null
+  await settle(client, characterId, gameTime, await loadMarket(client))
+  const rows = await client.query<{ kind: string; amount: string }>(
+    `SELECT kind, amount FROM invest_events
+     WHERE character_id = $1 AND game_day = $2 AND kind IN ('business_income', 'business_loss')`,
+    [characterId, day],
+  )
+  const totals = totalsFromEvents(rows.rows.map((r) => ({ kind: r.kind, amount: asMoney(r.amount) })))
+  if (totals.count === 0) return null
+  return formatBusinessSummary(day, totals.made, totals.spent)
+}
+
 async function businessHolders(db: PoolClient | typeof pool) {
   const rows = await db.query<{ business_id: string; n: number }>(
     `SELECT business_id, COUNT(*)::int AS n FROM business_holdings GROUP BY business_id`,

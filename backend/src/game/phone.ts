@@ -13,6 +13,7 @@ import {
   PHONE_ERROR_COPY,
   SAME_PLACE,
 } from './economy-codes.js'
+import { getBusinessSummary } from './invest.js'
 import { isPhoneFreeForAll } from './phone-free.js'
 import { requireEconomySetup } from './economy.js'
 import {
@@ -783,6 +784,17 @@ export async function listNotifications(userId: string) {
         title: amt >= 0 ? 'Money in' : 'Money out',
         body: `${entry.reason}: ${amt >= 0 ? '+' : ''}₦${Math.abs(amt).toLocaleString()}`,
         createdAt: new Date(entry.created_at).toISOString(),
+      })
+    }
+
+    const bizSummary = await getBusinessSummary(client, gate.character.id, row.game_time)
+    if (bizSummary) {
+      items.push({
+        id: bizSummary.id,
+        appId: 'invest',
+        title: bizSummary.title,
+        body: bizSummary.body,
+        createdAt: new Date().toISOString(),
       })
     }
 

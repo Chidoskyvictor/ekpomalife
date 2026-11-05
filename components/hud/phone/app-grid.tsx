@@ -20,6 +20,8 @@ import {
   Bike,
   type LucideIcon,
 } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { DOCK_MAX, loadLayout, moveApp, pinApp, saveLayout, unpinApp, type PhoneLayout } from '@/lib/game/phone-layout'
 import { PHONE_APPS, type PhoneAppId, type PhoneState } from '@/lib/game/phone'
 import styles from './phone.module.css'
 
@@ -44,11 +46,34 @@ const ICONS: Partial<Record<PhoneAppId, { Icon: LucideIcon; from: string; to: st
   music: { Icon: Headphones, from: '#ff5f7e', to: '#d0123f' },
 }
 
-const DOCK: PhoneAppId[] = ['messages', 'bank', 'ride', 'market']
-
 type App = (typeof PHONE_APPS)[number]
 
-function AppIcon({ app, phone, onOpen, dock }: { app: App; phone: PhoneState; onOpen: (id: PhoneAppId) => void; dock?: boolean }) {
+const LONG_PRESS_MS = 500
+
+function AppIcon({
+  app,
+  phone,
+  onOpen,
+  dock,
+  editing,
+  selected,
+  onLongPress,
+}: {
+  app: App
+  phone: PhoneState
+  onOpen: (id: PhoneAppId) => void
+  dock?: boolean
+  editing?: boolean
+  selected?: boolean
+  onLongPress?: () => void
+}) {
+  const timer = useRef<number | null>(null)
+  const fired = useRef(false)
+  const cancel = () => {
+    if (timer.current != null) window.clearTimeout(timer.current)
+    timer.current = null
+  }
+  useEffect(() => cancel, [])
   const unread = phone.unread[app.id] ?? 0
   const isNew = phone.newApps.includes(app.id)
   const soon = app.status === 'soon'
@@ -56,7 +81,32 @@ function AppIcon({ app, phone, onOpen, dock }: { app: App; phone: PhoneState; on
   const aria = unread > 0 ? `${app.label}, ${unread} new` : isNew ? `${app.label}, new` : soon ? `${app.label}, coming soon` : app.label
 
   return (
-    <button type="button" className={styles.appBtn} aria-label={aria} onClick={() => onOpen(app.id)}>
+    <button
+      type="button"
+      className={`${styles.appBtn} ${editing ? styles.appEditing : ''} ${selected ? styles.appSelected : ''}`}
+      aria-label={aria}
+      aria-pressed={editing ? !!selected : undefined}
+      onPointerDown={() => {
+        fired.current = false
+        if (editing || !onLongPress) return
+        cancel()
+        timer.current = window.setTimeout(() => {
+          fired.current = true
+          onLongPress()
+        }, LONG_PRESS_MS)
+      }}
+      onPointerUp={cancel}
+      onPointerLeave={cancel}
+      onPointerCancel={cancel}
+      onContextMenu={(e) => e.preventDefault()}
+      onClick={() => {
+        if (fired.current) {
+          fired.current = false
+          return
+        }
+        onOpen(app.id)
+      }}
+    >
       <span
         className={`${styles.appIcon} ${app.image ? styles.appIconLogo : ''}`}
         style={look && !app.image ? { background: `linear-gradient(160deg, ${look.from}, ${look.to})` } : undefined}
@@ -82,21 +132,85 @@ function AppIcon({ app, phone, onOpen, dock }: { app: App; phone: PhoneState; on
 }
 
 export function AppGrid({ phone, onOpen }: { phone: PhoneState; onOpen: (id: PhoneAppId) => void }) {
-  const docked = DOCK.map((id) => PHONE_APPS.find((a) => a.id === id)).filter((a): a is App => !!a)
+  const allIds = useMemo(() => PHONE_APPS.map((a) => a.id), [])
+  const [layout, setLayout] = useState<PhoneLayout>(() => loadLayout(allIds))
+  const [editing, setEditing] = useState(false)
+  const [selected, setSelected] = useState<PhoneAppId | null>(null)
+  const [hint, setHint] = useState<string | null>(null)
+
+  // Saved arrangement lives in localStorage; read it after mount so SSR and the first paint match.
+  useEffect(() => {
+    setLayout(loadLayout(allIds))
+  }, [allIds])
+
+  const apply = (next: PhoneLayout | null) => {
+    if (!next) {
+      setHint(`Dock is full (${DOCK_MAX}). Unpin one first.`)
+      return
+    }
+    setHint(null)
+    setLayout(next)
+    saveLayout(next)
+  }
+  const find = (id: PhoneAppId) => PHONE_APPS.find((a) => a.id === id)
+  const gridApps = layout.grid.map(find).filter((a): a is App => !!a)
+  const dockApps = layout.dock.map(find).filter((a): a is App => !!a)
+  const inDock = selected ? layout.dock.includes(selected) : false
+
+  const startEdit = (id: PhoneAppId) => {
+    setEditing(true)
+    setSelected(id)
+    setHint(null)
+  }
+  const tap = (id: PhoneAppId) => {
+    if (editing) setSelected(id)
+    else onOpen(id)
+  }
+  const done = () => {
+    setEditing(false)
+    setSelected(null)
+    setHint(null)
+  }
+  const icon = (app: App, dock?: boolean) => (
+    <AppIcon
+      app={app}
+      phone={phone}
+      onOpen={tap}
+      dock={dock}
+      editing={editing}
+      selected={editing && selected === app.id}
+      onLongPress={() => startEdit(app.id)}
+    />
+  )
+
   return (
     <>
-      <div className={styles.grid} role="list" aria-label="Apps">
-        {PHONE_APPS.filter((a) => !DOCK.includes(a.id)).map((app) => (
-          <div key={app.id} role="listitem">
-            <AppIcon app={app} phone={phone} onOpen={onOpen} />
+      {editing ? (
+        <div className={styles.editBar} role="toolbar" aria-label="Arrange apps">
+          <p className={styles.editHint}>{hint ?? (selected ? `${find(selected)?.label}` : 'Tap an app')}</p>
+          <div className={styles.editBtns}>
+            <button type="button" className={styles.editBtn} disabled={!selected} aria-label="Move earlier" onClick={() => selected && apply(moveApp(layout, selected, -1))}>◀</button>
+            <button type="button" className={styles.editBtn} disabled={!selected} aria-label="Move later" onClick={() => selected && apply(moveApp(layout, selected, 1))}>▶</button>
+            <button
+              type="button"
+              className={styles.editBtn}
+              disabled={!selected}
+              onClick={() => selected && apply(inDock ? unpinApp(layout, selected) : pinApp(layout, selected))}
+            >
+              {inDock ? 'Unpin' : 'Pin'}
+            </button>
+            <button type="button" className={`${styles.editBtn} ${styles.editDone}`} onClick={done}>Done</button>
           </div>
+        </div>
+      ) : null}
+      <div className={styles.grid} role="list" aria-label="Apps">
+        {gridApps.map((app) => (
+          <div key={app.id} role="listitem">{icon(app)}</div>
         ))}
       </div>
       <div className={styles.dock} role="list" aria-label="Dock">
-        {docked.map((app) => (
-          <div key={app.id} role="listitem">
-            <AppIcon app={app} phone={phone} onOpen={onOpen} dock />
-          </div>
+        {dockApps.map((app) => (
+          <div key={app.id} role="listitem">{icon(app, true)}</div>
         ))}
       </div>
     </>
