@@ -271,8 +271,9 @@ export const PLACE_INFO: Record<string, PlaceInfo> = {
   },
   'dubious': {
     area: TOWN,
-    about: 'Dubious. A popular open spot in town.',
+    about: 'Dublous supermarket. Provisions, drinks and snacks. Out of stock for now, new goods coming soon.',
     doing: [
+      { emoji: '🛒', text: 'Walk the aisles' },
       { emoji: '🤝', text: 'Hang out' },
     ],
   },

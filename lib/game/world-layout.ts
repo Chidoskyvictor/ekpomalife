@@ -476,7 +476,8 @@ const SOUTH_ZONES: MapZone[] = [
       { model: 'building-e', dx: 0, dz: 4.6, tint: sand, rotation: Math.PI },
     ],
   }),
-  southZone('dubious', 'Dubious', 0.17, 0.2, 'open', [14, 10], { open: 'plot' }),
+  // Supermarket: same tall glass tower as Spot Rite outside, its own shop room inside (dublous.glb)
+  southZone('dubious', 'Dublous', 0.17, 0.2, 'building-skyscraper-a', [10, 10], { scale: 5.6 }),
   southZone('innovation-hub', 'Innovation Hub', 0.29, 0.2, 'building-l', [10, 8], { scale: 4.9, tint: lilac }),
   // Mechanic: small workshop + a stretch of the parking-lot model (it has cars) as the yard
   southZone('magmus-autos', 'Magmus Autos', 0.41, 0.14, 'cluster', [14, 8], {

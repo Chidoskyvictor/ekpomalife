@@ -355,7 +355,7 @@ export const PLACES: Place[] = [
   },
   {
     id: 'dubious',
-    label: 'Dubious',
+    label: 'Dublous',
     zoneId: 'dubious',
     type: 'leisure',
     actions: ['hangout'],

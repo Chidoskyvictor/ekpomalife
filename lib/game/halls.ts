@@ -44,6 +44,8 @@ export const OFFICES: Record<string, Office> = {
   'spot-rite': { id: 'spot-rite', name: 'Spot Rite', color: null, layout: 'food' },
   // Its own room (bukka.glb): the same counter ordering, cheaper food
   bukka: { id: 'bukka', name: 'Mama Amina Bukka', color: null, layout: 'food' },
+  // Its own room (dublous.glb): supermarket, out of stock for now (id stays 'dubious')
+  dubious: { id: 'dubious', name: 'Dublous', color: null, layout: 'food' },
   'above-the-hills-church': { id: 'above-the-hills-church', name: 'Above the Hills Church', color: null, layout: 'church' },
 }
 

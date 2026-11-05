@@ -86,8 +86,8 @@ export function HallScreen({ hallId }: { hallId: string }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [ordering, setOrdering] = useState<string | null>(null)
   useEffect(() => {
-    if (isFood) void loadShop(hallId)
-  }, [isFood, hallId, loadShop])
+    if (isFood && !food?.soldOut) void loadShop(hallId)
+  }, [isFood, food?.soldOut, hallId, loadShop])
   const menu = isFood && shopPlaceId === hallId ? shopItems.filter((item) => item.category === 'food') : []
   const [deskOpen, setDeskOpen] = useState<HubDeskId | null>(null)
   const me = useRef<{ x: number; z: number }>({ x: hall?.layout.start[0] ?? 0, z: hall?.layout.start[1] ?? 0 })
@@ -284,7 +284,9 @@ export function HallScreen({ hallId }: { hallId: string }) {
       >
         {isFood && menuOpen ? (
           <PlaceActions>
-            {menu.length === 0 ? (
+            {food?.soldOut ? (
+              <PlaceAction emoji="📦" title="Out of stock" price="Soon" note="Nothing on the shelves yet. New goods are coming soon." disabled onClick={() => {}} />
+            ) : menu.length === 0 ? (
               <p className={styles.note}>The menu is loading…</p>
             ) : (
               menu.map((item) => (
@@ -307,7 +309,7 @@ export function HallScreen({ hallId }: { hallId: string }) {
         ) : null}
         {isFood && !menuOpen ? (
           <PlaceActions>
-            <PlaceAction emoji="🍛" title="Order food at the counter" price="Menu" note={food?.orderNote} disabled={!inside} onClick={goToCounter} />
+            <PlaceAction emoji={food?.soldOut ? '🛒' : '🍛'} title={food?.soldOut ? 'Ask at the till' : 'Order food at the counter'} price={food?.soldOut ? 'Out of stock' : 'Menu'} note={food?.orderNote} disabled={!inside} onClick={goToCounter} />
           </PlaceActions>
         ) : null}
         {inside ? <PlaceReactions onReact={social.react} /> : null}

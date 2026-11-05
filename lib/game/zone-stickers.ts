@@ -3,7 +3,7 @@ const BY_ID: Record<string, string> = {
   'admin-block': '🏛️',
   // Second slab
   'market-square': '🧺',
-  dubious: '❓',
+  dubious: '🛒',
   'innovation-hub': '💡',
   'magmus-autos': '🔧',
   'above-the-hills-church': '⛪',

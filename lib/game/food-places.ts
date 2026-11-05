@@ -1,4 +1,5 @@
 import { BUKKA_PLACE } from './bukka'
+import { DUBLOUS_PLACE } from './dublous'
 import type { FoodPlace } from './food-room'
 import { SPOT_RITE_PLACE } from './spot-rite'
 
@@ -6,4 +7,5 @@ import { SPOT_RITE_PLACE } from './spot-rite'
 export const FOOD_PLACES: Record<string, FoodPlace> = {
   'spot-rite': SPOT_RITE_PLACE,
   bukka: BUKKA_PLACE,
+  dubious: DUBLOUS_PLACE,
 }

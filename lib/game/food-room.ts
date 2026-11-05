@@ -42,6 +42,8 @@ export type FoodPlace = {
   greeter: string
   greeting: string
   orderNote: string
+  /** A shop with nothing on sale yet: the counter says out of stock, nothing can be bought */
+  soldOut?: boolean
 }
 
 export const ORDER_SPOT = 'seat:food-order' as const
