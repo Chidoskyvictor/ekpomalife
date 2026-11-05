@@ -1,7 +1,7 @@
 'use client'
 
 import Image from 'next/image'
-import { Link2, MessageCircle, Phone, X } from 'lucide-react'
+import { Link2, MessageCircle, Phone, Users, X } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { BodyPortal } from '@/components/ui/body-portal'
 import { OPEN_AD_EVENT, drawAdPlaceholder } from '@/lib/game/billboard-ad'
@@ -111,6 +111,11 @@ export function AdViewer() {
                     </a>
                   ) : null}
                 </div>
+                {ad.group ? (
+                  <a className={styles.group} href={ad.group} target="_blank" rel="noopener noreferrer">
+                    <Users size={16} aria-hidden="true" /> Join our WhatsApp group
+                  </a>
+                ) : null}
               </>
             ) : (
               <>
