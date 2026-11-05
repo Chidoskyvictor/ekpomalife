@@ -114,7 +114,7 @@ export const PHONE_APPS: PhoneAppMeta[] = [
     image: '/apps/prodigy-logo.png',
   },
   { id: 'eta', label: 'ẹta', emoji: '🗣️', status: 'live', tint: '#5b3fd1' },
-  { id: 'gist', label: 'Campus News', emoji: '📰', status: 'live', tint: '#ea580c' },
+  { id: 'gist', label: 'News', emoji: '📰', status: 'live', tint: '#ea580c' },
   { id: 'market', label: 'Market', emoji: '🛍️', status: 'live', tint: '#db2777' },
   { id: 'ride', label: 'Ride', emoji: '🛺', status: 'live', tint: '#ca8a04' },
   { id: 'map', label: 'Map', emoji: '🗺️', status: 'live', tint: '#0d9488' },
