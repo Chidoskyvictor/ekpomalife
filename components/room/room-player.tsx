@@ -314,8 +314,14 @@ export function RoomPlayer({
       } else {
         const spot = SPOTS[job.furniture]
         group.position.set(...spot.at)
-        if (job.action.style === 'lie') group.rotation.set(-Math.PI / 2, 0, 0)
-        else group.rotation.set(0, spot.heading, 0)
+        // Lying: tip over, then turn with the bed (heading 0 = head toward −z)
+        if (job.action.style === 'lie') {
+          group.rotation.order = 'YXZ'
+          group.rotation.set(-Math.PI / 2, spot.heading, 0)
+        } else {
+          group.rotation.order = 'XYZ'
+          group.rotation.set(0, spot.heading, 0)
+        }
         if (shadow.current) shadow.current.visible = false
         if (marker.current) marker.current.visible = false
         moving.current = false

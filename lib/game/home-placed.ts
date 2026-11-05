@@ -150,6 +150,19 @@ export function layoutWithPlaced(
     const cz = (rect[1] + rect[3]) / 2
     const heading = Math.atan2(approach[0] - cx, approach[1] - cz)
     const standing = use === 'bucket' || use === 'cooker'
+    if (use === 'bed') {
+      // Lie along the bed's long side, centred on the mattress (feet ~0.85 m from the middle)
+      const alongX = rect[2] - rect[0] > rect[3] - rect[1]
+      const lieHeading = alongX ? Math.PI / 2 : 0 // head toward −x or −z
+      const key = placedKey(p.id)
+      spots[key] = {
+        approach,
+        at: [cx + Math.sin(lieHeading) * 0.85, seatY(use, item.height), cz + Math.cos(lieHeading) * 0.85],
+        heading: lieHeading,
+      }
+      tapBoxes[key] = [rect[0], 0, rect[1], rect[2], Math.max(item.height, 0.3), rect[3]]
+      continue
+    }
     const spot: FurnitureSpot = {
       approach,
       at: standing ? [approach[0], 0, approach[1]] : [cx, seatY(use, item.height), cz],
