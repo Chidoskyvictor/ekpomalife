@@ -139,6 +139,14 @@ export function Hud() {
     window.setTimeout(() => requestOpenSpace(link), 0)
   }, [guest, state, hasPhone])
 
+  // Visiting someone (/room/<username>, e.g. "Visit now" in Messages): put the phone away so their house shows
+  useEffect(() => {
+    if (!pathname?.startsWith('/room/')) return
+    setPhoneOpen(false)
+    setBuyOpen(false)
+    setTab('home')
+  }, [pathname])
+
   // "Message" / "Challenge" from outside the phone (club People list, profile, chat note) opens the phone
   useEffect(() => {
     const onOpenChat = () => {
