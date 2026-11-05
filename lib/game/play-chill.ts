@@ -78,5 +78,5 @@ export const PLAY_CHILL_PLACE: FoodPlace = {
   greeter: 'pc-p3',
   greeting: 'Come join, we need one more player!',
   orderNote: '',
-  play: { spot: PITCH_KEY, emoji: '⚽', title: 'Play football', seconds: 30, note: 'Run onto the pitch and join the five-a-side', style: 'dance' },
+  play: { spot: PITCH_KEY, emoji: '⚽', title: 'Play football', seconds: 30, note: 'Play a full match: +Fun, +Social', style: 'dance' },
 }

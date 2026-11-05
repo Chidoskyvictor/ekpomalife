@@ -68,7 +68,7 @@ function spaceFor(id: string): Space | null {
  */
 export function HallScreen({ hallId }: { hallId: string }) {
   const router = useRouter()
-  const { state, select, notifyToast } = useGame()
+  const { state, select, notifyToast, act } = useGame()
   const building = BUILDINGS[hallId] ?? null
   const runAction = useRef<BuildingActionRunner | null>(null)
   const hall = spaceFor(hallId)
@@ -158,7 +158,11 @@ export function HallScreen({ hallId }: { hallId: string }) {
       { style: play.style, seconds: play.seconds },
       {
         onStart: () => startActivity({ emoji: play.emoji, title: play.title, seconds: play.seconds, onCancel: () => control.stop?.() }),
-        onDone: endActivity,
+        // Full match played: the server's hang-out reward (+Social, +Fun, costs ₦200)
+        onDone: () => {
+          endActivity()
+          void act('hangout')
+        },
         onAbort: endActivity,
       },
     )
@@ -327,7 +331,7 @@ export function HallScreen({ hallId }: { hallId: string }) {
         ) : null}
         {food?.play ? (
           <PlaceActions>
-            <PlaceAction emoji={food.play.emoji} title={food.play.title} price="Free" note={food.play.note} disabled={!inside} onClick={goPlay} />
+            <PlaceAction emoji={food.play.emoji} title={food.play.title} price="₦200" tags={[{ text: '+Fun', tone: 'good' as const }, { text: '+Social', tone: 'good' as const }]} note={food.play.note} disabled={!inside} onClick={goPlay} />
           </PlaceActions>
         ) : null}
         {isFood && !menuOpen && !food?.play ? (
