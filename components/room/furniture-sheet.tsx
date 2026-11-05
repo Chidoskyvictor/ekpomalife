@@ -23,7 +23,7 @@ export function FurnitureSheet({
 }) {
   const item = furniture ? FURNITURE[furniture] : null
   return (
-    <ItemMenu open={!!item?.actions.length} icon={item?.emoji} title={item?.label ?? ''} blurb={item?.blurb} onClose={onClose}>
+    <ItemMenu bare open={!!item?.actions.length} icon={item?.emoji} title={item?.label ?? ''} blurb={item?.blurb} onClose={onClose}>
       {item ? (
         <PlaceActions>
           {item.actions.map((action) => (

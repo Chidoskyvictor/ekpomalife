@@ -136,3 +136,20 @@
     padding: 2px 12px 12px;
   }
 }
+
+/* Bare: only the action cards float above the nav (furniture at home) */
+.card.bare {
+  border: none;
+  background: none;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.card.bare .body {
+  padding: 0;
+}
+/* One or two cards, centred above the nav instead of stretched across */
+.card.bare .body > div {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 180px));
+  justify-content: center;
+}

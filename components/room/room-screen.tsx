@@ -20,7 +20,6 @@ import travelStyles from '@/components/travel/travel.module.css'
 import { STREET_AND_TRAVEL } from '@/lib/flags'
 import { BuyPanel } from './buy-panel'
 import { FurnitureSheet } from './furniture-sheet'
-import { RoomSheet } from './room-sheet'
 import type { PlayerMove, RoomPlayerControl } from './room-player'
 import { ClubPeers } from '@/components/club/club-peers'
 import { useClubLive } from '@/lib/game/club-live'
@@ -88,17 +87,6 @@ export function RoomScreen() {
     return furnitureUse(home.catalog.find((i) => i.id === piece?.itemId))
   }, [furnitureKey, home.placements, home.catalog])
   const buy = useBuyUi()
-  // Every spot in the room and what it is, for the room's place sheet
-  const pieces = useMemo(
-    () =>
-      (Object.keys(layout.spots) as SpotKey[]).map((key) => {
-        const id = placedIdOf(key)
-        if (!id) return { key, furniture: key as FurnitureId }
-        const piece = home.placements.find((p) => p.id === id)
-        return { key, furniture: furnitureUse(home.catalog.find((i) => i.id === piece?.itemId)) }
-      }),
-    [layout.spots, home.placements, home.catalog],
-  )
   // Wall paint follows whoever lives here, so visitors see the owner's colour
   const ownerName = visitingOther ? host?.username : state?.username
   const paint = ownerName ? resolvePaint({ id: ownerName.toLowerCase() }).hex : undefined
@@ -267,9 +255,7 @@ export function RoomScreen() {
           </div>
         ) : null}
         {visiting && !isOwn ? <VisitBanner username={host?.username ?? visiting} displayName={host?.displayName ?? null} /> : null}
-        {isOwn && state && !buy.active && !scene.outside && !furniture ? (
-          <RoomSheet label={layout.label} pieces={pieces} onPick={(key, action) => pick(key, action)} />
-        ) : null}
+        {/* No "My room" bar: tap a piece of furniture to use it */}
         <FurnitureSheet
           furniture={furniture}
           onClose={() => setFurnitureKey(null)}

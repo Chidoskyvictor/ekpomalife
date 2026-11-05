@@ -18,6 +18,7 @@ export function ItemMenu({
   blurb,
   onClose,
   children,
+  bare = false,
 }: {
   open: boolean
   icon: ReactNode
@@ -25,6 +26,8 @@ export function ItemMenu({
   blurb?: string
   onClose: () => void
   children: ReactNode
+  /** Just the action cards, floating (no title, blurb or close; tap outside closes) */
+  bare?: boolean
 }) {
   useEffect(() => {
     if (!open) return
@@ -40,8 +43,8 @@ export function ItemMenu({
   return (
     <BodyPortal>
     <div className={styles.backdrop} onClick={onClose} role="presentation">
-      <section className={styles.card} role="dialog" aria-label={title} onClick={(e) => e.stopPropagation()}>
-        <header className={styles.head}>
+      <section className={`${styles.card} ${bare ? styles.bare : ''}`} role="dialog" aria-label={title} onClick={(e) => e.stopPropagation()}>
+        {bare ? null : <header className={styles.head}>
           <span className={styles.icon} aria-hidden="true">
             {icon}
           </span>
@@ -52,7 +55,7 @@ export function ItemMenu({
           <button type="button" className={styles.close} onClick={onClose} aria-label="Close">
             <X size={18} />
           </button>
-        </header>
+        </header>}
         <div className={styles.body}>{children}</div>
       </section>
     </div>
