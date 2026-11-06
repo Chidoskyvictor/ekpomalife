@@ -25,25 +25,25 @@ import { DOCK_MAX, loadLayout, moveApp, pinApp, saveLayout, unpinApp, type Phone
 import { PHONE_APPS, type PhoneAppId, type PhoneState } from '@/lib/game/phone'
 import styles from './phone.module.css'
 
-/* One iOS-style look: white glyph on a bright two-tone gradient tile. */
+/* Soft pastel tiles with a 3D icon on top (Fluent Emoji 3D, MIT, public/apps/icons); a line icon if the picture can't load. */
 const ICONS: Partial<Record<PhoneAppId, { Icon: LucideIcon; from: string; to: string }>> = {
-  messages: { Icon: MessageCircle, from: '#5ef27a', to: '#14b84a' },
-  jobs: { Icon: Briefcase, from: '#ffb547', to: '#f2731c' },
-  invest: { Icon: TrendingUp, from: '#3ee0b0', to: '#0b8f6e' },
-  bank: { Icon: Landmark, from: '#4f8cff', to: '#1d3fbf' },
-  houses: { Icon: House, from: '#ff8a70', to: '#e2453a' },
-  eta: { Icon: AudioLines, from: '#ff6fb5', to: '#c21e7a' },
-  gist: { Icon: Newspaper, from: '#ff9f43', to: '#e8541b' },
-  market: { Icon: ShoppingBag, from: '#ff6b9d', to: '#d6246a' },
-  ride: { Icon: Bike, from: '#ffd84a', to: '#f0a100' },
-  map: { Icon: MapIcon, from: '#5ee0d0', to: '#0f9488' },
-  calendar: { Icon: CalendarDays, from: '#ff6b6b', to: '#e02f2f' },
-  profile: { Icon: UserRound, from: '#62c6ff', to: '#1683e0' },
-  games: { Icon: Gamepad2, from: '#9b7bff', to: '#5b33e0' },
-  spaces: { Icon: Podcast, from: '#c084fc', to: '#7c2fe0' },
-  settings: { Icon: Settings, from: '#a8b3c2', to: '#5d6878' },
-  portal: { Icon: GraduationCap, from: '#7c8cff', to: '#3a3fc9' },
-  music: { Icon: Headphones, from: '#ff5f7e', to: '#d0123f' },
+  messages: { Icon: MessageCircle, from: '#bff0cd', to: '#8fe0a8' },
+  jobs: { Icon: Briefcase, from: '#fff1dc', to: '#ffe0b5' },
+  invest: { Icon: TrendingUp, from: '#dcfaf0', to: '#b8f0dd' },
+  bank: { Icon: Landmark, from: '#e3ecff', to: '#c9d9ff' },
+  houses: { Icon: House, from: '#ffe6e1', to: '#ffcfc6' },
+  eta: { Icon: AudioLines, from: '#ffe4f1', to: '#ffcae3' },
+  gist: { Icon: Newspaper, from: '#eef0f4', to: '#dde1e9' },
+  market: { Icon: ShoppingBag, from: '#ffe3ee', to: '#ffc9dd' },
+  ride: { Icon: Bike, from: '#fff6cf', to: '#ffe999' },
+  map: { Icon: MapIcon, from: '#dcf7f3', to: '#b9ede5' },
+  calendar: { Icon: CalendarDays, from: '#ffe5e5', to: '#ffcccc' },
+  profile: { Icon: UserRound, from: '#e1f2ff', to: '#c4e4ff' },
+  games: { Icon: Gamepad2, from: '#ece6ff', to: '#d9ceff' },
+  spaces: { Icon: Podcast, from: '#f1e6ff', to: '#e2ccff' },
+  settings: { Icon: Settings, from: '#eef1f5', to: '#dce2ea' },
+  portal: { Icon: GraduationCap, from: '#e6e9ff', to: '#cdd3ff' },
+  music: { Icon: Headphones, from: '#ffe3ea', to: '#ffc8d5' },
 }
 
 type App = (typeof PHONE_APPS)[number]
@@ -115,7 +115,7 @@ function AppIcon({
           // eslint-disable-next-line @next/next/no-img-element -- tiny static logo
           <img src={app.image} alt="" aria-hidden="true" width={52} height={52} />
         ) : look ? (
-          <look.Icon aria-hidden="true" size={28} strokeWidth={2.2} color="#fff" />
+          <TileArt id={app.id} Icon={look.Icon} />
         ) : (
           <span aria-hidden="true">{app.emoji}</span>
         )}
@@ -214,5 +214,24 @@ export function AppGrid({ phone, onOpen }: { phone: PhoneState; onOpen: (id: Pho
         ))}
       </div>
     </>
+  )
+}
+
+/** The app's 3D icon (public/apps/icons/<id>.webp, rendered in Blender); the line icon if it can't load. */
+function TileArt({ id, Icon }: { id: string; Icon: LucideIcon }) {
+  const [broken, setBroken] = useState(false)
+  if (broken) return <Icon aria-hidden="true" size={28} strokeWidth={2.2} color="#374151" />
+  return (
+    // eslint-disable-next-line @next/next/no-img-element -- tiny static render
+    <img
+      src={`/apps/icons/${id}.webp?v=1`}
+      alt=""
+      aria-hidden="true"
+      width={46}
+      height={46}
+      draggable={false}
+      onError={() => setBroken(true)}
+      style={{ width: '74%', height: '74%', objectFit: 'contain', filter: 'drop-shadow(0 2px 2px rgba(0,0,0,0.18))' }}
+    />
   )
 }
