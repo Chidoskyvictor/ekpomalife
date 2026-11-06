@@ -1,5 +1,6 @@
 'use client'
 
+import { getPlace } from '@/lib/game/places'
 import confetti from 'canvas-confetti'
 import { useEffect, useState } from 'react'
 import { useReducedMotion } from 'motion/react'
@@ -70,7 +71,8 @@ function JobCard({
   )
 }
 
-export function JobsPanel({ placeId }: { placeId: string }) {
+/** `all`: the phone's Jobs app lists every job in Ekpoma (yours first, then here, then elsewhere), never blank. */
+export function JobsPanel({ placeId, all = false }: { placeId: string; all?: boolean }) {
   const reduced = useReducedMotion() ?? false
   const { state } = useGame()
   const { jobs, currentJobId, loading, working, busy, loadJobs, apply, doShift } = useEconomy()
@@ -78,10 +80,16 @@ export function JobsPanel({ placeId }: { placeId: string }) {
   const [floatPay, setFloatPay] = useState<number | null>(null)
 
   useEffect(() => {
-    void loadJobs(placeId)
-  }, [placeId, loadJobs])
+    // The phone app asks for every job; a place's panel only for that place
+    void loadJobs(all ? null : placeId)
+  }, [placeId, all, loadJobs])
 
   const hereJobs = jobs.filter((job) => job.placeId === placeId)
+  const elsewhere = all
+    ? jobs
+        .filter((job) => job.placeId !== placeId)
+        .sort((a, b) => Number(b.id === currentJobId) - Number(a.id === currentJobId) || a.payPerShift - b.payPerShift)
+    : []
   const current = jobs.find((job) => job.id === currentJobId)
   const canWorkHere = Boolean(current && current.placeId === placeId && state?.locationId === placeId)
 
@@ -110,7 +118,7 @@ export function JobsPanel({ placeId }: { placeId: string }) {
     }
   }
 
-  if (loading && hereJobs.length === 0) {
+  if (loading && hereJobs.length === 0 && elsewhere.length === 0) {
     return (
       <div className={styles.section} aria-busy="true">
         <p className={styles.sectionTitle}>Jobs here</p>
@@ -120,11 +128,13 @@ export function JobsPanel({ placeId }: { placeId: string }) {
     )
   }
 
-  if (hereJobs.length === 0) return null
+  if (hereJobs.length === 0 && elsewhere.length === 0) {
+    return all ? <p className={styles.sectionTitle}>No jobs right now. Check back later.</p> : null
+  }
 
   return (
     <div className={styles.section}>
-      <p className={styles.sectionTitle}>Jobs here</p>
+      {hereJobs.length ? <p className={styles.sectionTitle}>Jobs here</p> : null}
       {hereJobs.map((job) => (
         <JobCard
           key={job.id}
@@ -148,6 +158,13 @@ export function JobsPanel({ placeId }: { placeId: string }) {
           </button>
         </div>
       ) : null}
+      {elsewhere.length ? <p className={styles.sectionTitle}>Jobs around Ekpoma</p> : null}
+      {elsewhere.map((job) => (
+        <div key={job.id}>
+          <p className={styles.jobPlace}>📍 {getPlace(job.placeId)?.label ?? job.placeId}</p>
+          <JobCard job={job} isCurrent={job.id === currentJobId} busy={working || busy} onApply={() => void apply(job.id)} />
+        </div>
+      ))}
       {floatPay !== null ? (
         <span className={styles.floatPay} aria-live="polite">
           +{formatNaira(floatPay)}

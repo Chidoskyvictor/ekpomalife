@@ -269,3 +269,11 @@
     opacity: 1;
   }
 }
+
+/* Phone Jobs app: where a job elsewhere is */
+.jobPlace {
+  margin: 6px 0 4px;
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 700;
+}
