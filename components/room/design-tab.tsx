@@ -20,6 +20,13 @@ import styles from './design-tab.module.css'
 
 const naira = (n: number) => `₦${n.toLocaleString()}`
 
+/** The second half of a paint pill: the same colour a shade darker (like the room's side wall). */
+function shadeHex(hex: string): string {
+  const n = parseInt(hex.slice(1), 16)
+  const c = (s: number) => Math.round(((n >> s) & 0xff) * 0.88).toString(16).padStart(2, '0')
+  return `#${c(16)}${c(8)}${c(0)}`
+}
+
 const SECTION: Record<DecorZone, { title: string; custom: string }> = {
   wall: { title: 'Wall paint', custom: 'Mix your own colour' },
   floor: { title: 'Floor', custom: 'Floor in your own colour' },
@@ -109,8 +116,8 @@ export function DesignTab() {
                     className={styles.chip}
                     style={
                       pair
-                        ? { background: `conic-gradient(${pair[0]} 0 25%, ${pair[1]} 0 50%, ${pair[0]} 0 75%, ${pair[1]} 0)`, backgroundSize: '50% 50%' }
-                        : { background: (d as { hex: string }).hex }
+                        ? { background: `conic-gradient(${pair[0]} 0 25%, ${pair[1]} 0 50%, ${pair[0]} 0 75%, ${pair[1]} 0)`, backgroundSize: '20px 20px' }
+                        : { background: `linear-gradient(90deg, ${(d as { hex: string }).hex} 50%, ${shadeHex((d as { hex: string }).hex)} 50%)` }
                     }
                     aria-hidden="true"
                   >
