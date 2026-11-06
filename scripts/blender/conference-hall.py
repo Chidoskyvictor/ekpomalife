@@ -61,6 +61,18 @@ def wood(x, y, s):
     return ((0.55 + grain + n) * tone * edge, (0.34 + grain * 0.7 + n) * tone * edge, (0.18 + n) * tone * edge)
 
 
+def floor_tile(x, y, s):
+    # big square ceramic tiles (2 per texture), thin grout, faint marble streaks, same cream as the courtyard
+    t = s // 2
+    grout = (x % t < 2 or y % t < 2)
+    if grout:
+        return (0.62, 0.60, 0.56)
+    k = (x // t) * 3 + (y // t)
+    vein = 0.03 * math.sin(x * 0.11 + y * 0.07 + k * 2.1) + 0.02 * math.sin(x * 0.03 - y * 0.05 + k)
+    n = noise(0.025)
+    return (0.86 + vein + n, 0.83 + vein + n, 0.76 + vein + n)
+
+
 def fabric(x, y, s):
     weave = 0.04 if (x + y) % 2 else -0.02
     n = noise(0.05)
@@ -90,10 +102,26 @@ def asphalt(x, y, s):
 
 
 def paving(x, y, s):
-    t = s // 4
-    joint = 0.7 if (x % t < 2 or y % t < 2) else 1.0
-    n = noise(0.06)
-    return ((0.72 + n) * joint, (0.68 + n) * joint, (0.60 + n) * joint)
+    # interlocking pavers in a herringbone: 2:1 bricks, alternating direction, grey with a few red
+    u = s // 8
+    bx, by = x // u, y // u
+    k = (bx + by) % 4
+    if k < 2:  # horizontal brick, 2 units wide
+        sx = (x - (k * u)) % (2 * u)
+        edge = sx < 2 or (y % u) < 2
+        bid = ((x - k * u) // (2 * u), by)
+    else:  # vertical brick, 2 units tall
+        sy = (y - ((k - 2) * u)) % (2 * u)
+        edge = sy < 2 or (x % u) < 2
+        bid = (bx, (y - (k - 2) * u) // (2 * u))
+    if edge:
+        return (0.30, 0.29, 0.28)
+    h = (bid[0] * 73 + bid[1] * 151) % 11
+    n = noise(0.05)
+    if h == 0:
+        return (0.62 + n, 0.30 + n, 0.22 + n)
+    shade = 0.56 + (h % 4) * 0.035
+    return (shade + n, shade - 0.01 + n, shade - 0.04 + n)
 
 
 def facade(x, y, s):
@@ -130,12 +158,12 @@ def mat(name, color=None, img=None, rough=0.7, metal=0.0, emit=None):
 
 
 S = 128
-wood_m = mat("Parquet", img=texture("parquet", S, wood), rough=0.45)
+tile_m = mat("HallTile", img=texture("halltile", S, floor_tile), rough=0.25)
 fabric_m = mat("ChairFabric", img=texture("fabric", 64, fabric), rough=0.9)
 carpet_m = mat("StageCarpet", img=texture("carpet", 64, carpet), rough=0.95)
 wall_m = mat("HallWall", img=texture("hallwall", S, wall), rough=0.85)
 asphalt_m = mat("Asphalt", img=texture("asphalt", 64, asphalt), rough=0.95)
-paving_m = mat("Paving", img=texture("paving", 64, paving), rough=0.9)
+paving_m = mat("Paving", img=texture("paving", 128, paving), rough=0.9)
 facade_m = mat("Facade", img=texture("facade", 64, facade), rough=0.85)
 metal_m = mat("ChairMetal", (0.12, 0.12, 0.13), rough=0.35, metal=0.8)
 walnut_m = mat("Walnut", (0.30, 0.17, 0.09), rough=0.5)
@@ -213,7 +241,7 @@ def text(name, body, x, y, z, size, m, face='+z', depth=0.04):
 # ================= HALL =================
 HX0, HX1, HZ0, HZ1 = -8.0, 6.0, -6.0, 6.0
 WH = 3.4
-box("HallFloor", HX0, HZ0, HX1, HZ1, -0.15, 0.0, wood_m, tile=(2.4, 2.4))
+box("HallFloor", HX0, HZ0, HX1, HZ1, -0.15, 0.0, tile_m, tile=(1.6, 1.6))
 box("WallBack", HX0 - 0.2, HZ0 - 0.25, HX1 + 0.25, HZ0, 0.0, WH, wall_m, tile=(3.0, WH))
 box("WallRight", HX1, HZ0 - 0.25, HX1 + 0.25, HZ1, 0.0, WH, wall_m, tile=(3.0, WH))
 # low front/left edge so the room reads as closed without blocking the camera
