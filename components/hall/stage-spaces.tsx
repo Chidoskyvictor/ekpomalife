@@ -51,6 +51,9 @@ export function StagePanel({
   inside,
   busy,
   hearing,
+  title,
+  onTitle,
+  error,
   onHost,
   onListen,
 }: {
@@ -59,10 +62,14 @@ export function StagePanel({
   busy: boolean
   /** Already connected to the stage's sound */
   hearing: boolean
+  /** Kept by the hall, so it survives the sheet folding away (e.g. when the keyboard opens) */
+  title: string
+  onTitle: (title: string) => void
+  /** Why going live failed (daily limit, stage busy…), shown in the card */
+  error: string | null
   onHost: (title: string) => void
   onListen: () => void
 }) {
-  const [title, setTitle] = useState('')
   const clean = title.trim()
 
   if (live) {
@@ -105,7 +112,7 @@ export function StagePanel({
           value={title}
           maxLength={80}
           placeholder="What's the talk about?"
-          onChange={(e) => setTitle(e.target.value)}
+          onChange={(e) => onTitle(e.target.value)}
           enterKeyHint="go"
           onKeyDown={(e) => {
             if (e.key === 'Enter' && clean.length >= 3 && inside && !busy) onHost(clean)
@@ -114,6 +121,7 @@ export function StagePanel({
         <button type="button" className={styles.go} disabled={!inside || busy || clean.length < 3} onClick={() => onHost(clean)}>
           {busy ? 'Going live…' : 'Walk to the podium & go live'}
         </button>
+        {error ? <p className={styles.error}>{error}</p> : clean.length > 0 && clean.length < 3 ? <p className={styles.note}>Give your talk a title (3 letters or more).</p> : null}
         <p className={styles.note}>Everyone in the hall hears you. It also shows in the Spaces app, tagged 📍 Student Conference.</p>
       </div>
     </PlaceActions>

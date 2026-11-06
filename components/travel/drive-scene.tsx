@@ -771,6 +771,8 @@ type Car = {
   color: Color
   /** The lane it belongs in (a slow car in ours steps out to let us by) */
   home?: number
+  /** x last frame, to lean the car while it changes lane */
+  lastX?: number
 }
 
 /** Existing hatchback plus the jeep, GT3 and SUV. All are vertex-coloured, front at +z, wheels on the ground. */
@@ -836,6 +838,9 @@ function useCarGeometry(url: string) {
 }
 
 /** Cars of four models, each its own colour, in the lanes, drawn as one shared instanced mesh per model. */
+/** Closest two cars in one lane may get, front to back (m). */
+const CAR_GAP = 7.5
+
 function Traffic({ plan, rate }: { plan: Plan; rate: Offset }) {
   const g0 = useCarGeometry(CAR_URLS[0]!)
   const g1 = useCarGeometry(CAR_URLS[1]!)
@@ -874,18 +879,55 @@ function Traffic({ plan, rate }: { plan: Plan; rate: Offset }) {
 
   useFrame((_, delta) => {
     const dt = Math.min(delta, 0.05)
+    const us = rate.current
+    // Which lane a car is in right now (by its x), and is there room in `lane` around z?
+    const laneOf = (x: number) => [LANE.mine, LANE.other, ...LANE.oncoming].reduce((a, b) => (Math.abs(b - x) < Math.abs(a - x) ? b : a))
+    const clear = (self: Car, lane: number, z: number) => list.every((o) => o === self || laneOf(o.x) !== lane || Math.abs(o.z - z) > CAR_GAP)
     list.forEach((car, i) => {
-      car.z += (rate.current - car.ws) * dt
-      // A slow car in our lane moves over as we close in, and drifts back once we're past
-      if (car.home === LANE.mine) {
-        const want = car.z > -30 && car.z < 12 ? LANE.other : LANE.mine
-        car.x += (want - car.x) * Math.min(1, dt * 1.6)
+      let ws = car.ws
+      const lane = laneOf(car.x)
+      // A slow car in our lane moves over as we close in, if the outer lane has room; otherwise it keeps ahead of us
+      if (car.home === LANE.mine && car.ws > 0) {
+        const closing = car.z > -32 && car.z < 12
+        const wantOut = closing && (car.x > (LANE.mine + LANE.other) / 2 || clear(car, LANE.other, car.z))
+        const want = wantOut ? LANE.other : car.z >= 12 || clear(car, LANE.mine, car.z) ? LANE.mine : LANE.other
+        car.x += (want - car.x) * Math.min(1, dt * 1.8)
+        if (closing && laneOf(car.x) === LANE.mine && car.z > -14) ws = Math.max(ws, us)
       }
-      // Gone past the camera: come back in far ahead; pulled far ahead of a stopped us: come back behind
+      // Never drive into the car in front in the same lane: slow to its pace (same direction only)
+      const dir = Math.sign(car.ws)
+      let front: Car | null = null
+      for (const o of list) {
+        if (o === car || Math.sign(o.ws) !== dir || laneOf(o.x) !== lane) continue
+        const ahead = dir > 0 ? car.z - o.z : o.z - car.z
+        if (ahead > 0 && (!front || ahead < (dir > 0 ? car.z - front.z : front.z - car.z))) front = o
+      }
+      if (front) {
+        const gap = dir > 0 ? car.z - front.z : front.z - car.z
+        if (gap < CAR_GAP * 1.6) {
+          // A fast car pulls out to pass if the other lane is free, else it waits behind
+          const other = lane === LANE.other ? LANE.mine : lane === LANE.mine ? LANE.other : lane
+          if (dir > 0 && car.home === LANE.other && car.ws > front.ws && other !== lane && clear(car, other, car.z) && car.z > 14) car.x += (other - car.x) * Math.min(1, dt * 1.8)
+          else ws = dir > 0 ? Math.min(ws, front.ws) : Math.max(ws, front.ws)
+        }
+      } else if (car.home === LANE.other && laneOf(car.x) !== LANE.other && clear(car, LANE.other, car.z)) {
+        car.x += (LANE.other - car.x) * Math.min(1, dt * 1.8)
+      }
+      car.z += (us - ws) * dt
+      if (front) {
+        // Hard stop: keep at least CAR_GAP behind it whatever happened this frame
+        if (dir > 0 && car.z - front.z < CAR_GAP) car.z = front.z + CAR_GAP
+        if (dir < 0 && front.z - car.z < CAR_GAP) car.z = front.z - CAR_GAP
+      }
+      // Gone past the camera: come back in far ahead (in a free spot); pulled far ahead of a stopped us: come back behind
       if (car.z > 40) {
-        car.z -= 280 + (i % 5) * 9
         car.x = car.home ?? car.x
-      } else if (car.z < -300) car.z += 330
+        car.z -= 280 + (i % 5) * 9
+        while (!clear(car, laneOf(car.x), car.z)) car.z -= CAR_GAP
+      } else if (car.z < -300) {
+        car.z += 330
+        while (!clear(car, laneOf(car.x), car.z)) car.z += CAR_GAP
+      }
     })
     byModel.forEach((cars, m) => {
       const mesh = meshes.current[m]
@@ -893,8 +935,8 @@ function Traffic({ plan, rate }: { plan: Plan; rate: Offset }) {
       cars.forEach((car, i) => {
         dummy.position.set(car.x, 0.1, car.z)
         // The models' front is +z: our way (−z) turns them round, oncoming keeps it; a little steer while changing lane
-        const target = car.z > -30 && car.z < 12 ? LANE.other : LANE.mine
-        const steer = car.home === LANE.mine ? Math.max(-0.15, Math.min(0.15, (car.x - target) * 0.06)) : 0
+        const steer = car.home !== undefined && car.ws > 0 ? Math.max(-0.15, Math.min(0.15, (car.x - (car.lastX ?? car.x)) * -4)) : 0
+        car.lastX = car.x
         dummy.rotation.set(0, (car.ws > 0 ? Math.PI : 0) + steer, 0)
         dummy.scale.setScalar(1)
         dummy.updateMatrix()

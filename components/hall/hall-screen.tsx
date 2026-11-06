@@ -175,6 +175,8 @@ export function HallScreen({ hallId }: { hallId: string }) {
   const stage = food?.stage
   const [stageOpen, setStageOpen] = useState(false)
   const [goingLive, setGoingLive] = useState(false)
+  const [stageTitle, setStageTitle] = useState('')
+  const [stageError, setStageError] = useState<string | null>(null)
   const { live: stageLive, refresh: refreshStage } = useStageSpace(hallId, Boolean(stage) && inside)
   // The hall's speakers: your connection to the stage Space while you're in here
   const [stageJoin, setStageJoin] = useState<StageJoin | null>(null)
@@ -210,6 +212,7 @@ export function HallScreen({ hallId }: { hallId: string }) {
       return
     }
     setGoingLive(true)
+    setStageError(null)
     setExpanded(false)
     social.setTalk(null)
     let started = false
@@ -224,9 +227,13 @@ export function HallScreen({ hallId }: { hallId: string }) {
             setGoingLive(false)
             if (!res.ok) {
               notifyToast(res.error, false)
+              setStageError(res.error)
+              setExpanded(true)
+              setStageOpen(true)
               control.stop?.()
               return
             }
+            setStageTitle('')
             setStageJoin(res.join)
             social.showBubble('me', '🎙️ We are live!')
             if (food) social.showBubble(food.greeter, 'Everyone, please take your seats 👏')
@@ -415,7 +422,7 @@ export function HallScreen({ hallId }: { hallId: string }) {
             )}
           </PlaceActions>
         ) : null}
-        {stage && (stageOpen || stageLive) ? <StagePanel live={stageLive} inside={inside} busy={goingLive} hearing={stageJoin !== null} onHost={hostSpace} onListen={() => void listenStage()} /> : null}
+        {stage && (stageOpen || stageLive) ? <StagePanel live={stageLive} inside={inside} busy={goingLive} hearing={stageJoin !== null} title={stageTitle} onTitle={(t) => { setStageTitle(t); setStageError(null) }} error={stageError} onHost={hostSpace} onListen={() => void listenStage()} /> : null}
         {food?.play ? (
           <PlaceActions>
             <PlaceAction emoji={food.play.emoji} title={food.play.title} price="₦200" tags={[{ text: '+Fun', tone: 'good' as const }, { text: '+Social', tone: 'good' as const }]} note={food.play.note} disabled={!inside} onClick={goPlay} />

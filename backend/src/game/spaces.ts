@@ -197,7 +197,10 @@ export async function createSpace(userId: string, input: CreateInput) {
   }
 
   const today = await pool.query<{ n: number }>(
-    `SELECT COUNT(*)::int AS n FROM spaces WHERE host_id = $1 AND created_at >= $2`,
+    // A Space that ended within 2 minutes (a mistake, a quick test) doesn't use up one of the day's starts
+    `SELECT COUNT(*)::int AS n FROM spaces
+      WHERE host_id = $1 AND created_at >= $2
+        AND NOT (status = 'ended' AND ended_at IS NOT NULL AND ended_at - COALESCE(started_at, created_at) < INTERVAL '2 minutes')`,
     [userId, lagosDayStart(now)],
   )
   if (createCapReached(today.rows[0]?.n ?? 0)) {
