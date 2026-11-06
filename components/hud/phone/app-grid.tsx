@@ -231,7 +231,7 @@ function TileArt({ id, Icon }: { id: string; Icon: LucideIcon }) {
       height={46}
       draggable={false}
       onError={() => setBroken(true)}
-      style={{ width: '74%', height: '74%', objectFit: 'contain', filter: 'drop-shadow(0 2px 2px rgba(0,0,0,0.18))' }}
+      style={{ width: '82%', height: '82%', objectFit: 'contain', filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.12))' }}
     />
   )
 }
