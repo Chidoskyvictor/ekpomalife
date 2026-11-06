@@ -15,6 +15,7 @@ import {
   type DecorZone,
 } from '@/lib/game/home-decor'
 import { setOwnedDecor, stopTrying, tryDecor, useDecorUi } from '@/lib/game/home-decor-store'
+import { ColourWheel } from './colour-wheel'
 import styles from './design-tab.module.css'
 
 const naira = (n: number) => `₦${n.toLocaleString()}`
@@ -129,17 +130,18 @@ export function DesignTab() {
   )
 }
 
-/** "Your own colour": a colour picker; every change is tried on straight away. */
+/** "Your own colour": the wheel; every change is tried on straight away. */
 function CustomColour({ zone, label }: { zone: DecorZone; label: string }) {
   const ui = useDecorUi()
-  const current = ui.trying?.zone === zone && ui.trying.value.startsWith('#') ? ui.trying.value : (ui.owned[zone]?.startsWith('#') ? ui.owned[zone] : '#c8a27a')
+  const owned = ui.owned[zone]
+  const current = ui.trying?.zone === zone && ui.trying.value.startsWith('#') ? ui.trying.value : owned?.startsWith('#') ? owned : '#c8a27a'
   return (
-    <label className={styles.custom}>
-      <input type="color" value={current} onChange={(e) => tryDecor(zone, e.target.value.toLowerCase())} aria-label={label} />
+    <div className={styles.custom}>
       <span className={styles.customText}>
         <strong>{label}</strong>
-        <span>{naira(DECOR_CUSTOM_PRICE)} a colour · tap to pick</span>
+        <span>{naira(DECOR_CUSTOM_PRICE)} a colour</span>
       </span>
-    </label>
+      <ColourWheel value={current} onChange={(hex) => tryDecor(zone, hex)} />
+    </div>
   )
 }
