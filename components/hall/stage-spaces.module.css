@@ -74,3 +74,10 @@
   color: #6b7280;
   font-size: 12.5px;
 }
+
+/* The sheet lays actions out in a 2-column grid: the stage cards take the full row */
+.host,
+.live,
+.note {
+  grid-column: 1 / -1;
+}

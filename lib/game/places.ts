@@ -504,9 +504,20 @@ export function isGameplayPlace(id: string) {
 export const gameHour = (gameTime: number) => Math.floor((((gameTime % 1440) + 1440) % 1440) / 60)
 
 /** Is this place open at this game time? No hours = always open. Handles hours past midnight. */
+/** Dev only: open with ?open=1 on localhost and every place stays open (to look inside at night). */
+function devAllOpen(): boolean {
+  if (process.env.NODE_ENV === 'production' || typeof window === 'undefined') return false
+  try {
+    if (new URLSearchParams(window.location.search).get('open') === '1') sessionStorage.setItem('ekpoma-dev-open', '1')
+    return sessionStorage.getItem('ekpoma-dev-open') === '1'
+  } catch {
+    return false
+  }
+}
+
 export function isPlaceOpen(place: Pick<Place, 'openHours'> | null | undefined, gameTime: number): boolean {
   const hours = place?.openHours
-  if (!hours) return true
+  if (!hours || devAllOpen()) return true
   const hour = gameHour(gameTime)
   return hours.open <= hours.close ? hour >= hours.open && hour < hours.close : hour >= hours.open || hour < hours.close
 }
