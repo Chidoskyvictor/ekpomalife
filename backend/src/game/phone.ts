@@ -1,5 +1,6 @@
 /** mirror lib/game/phone.ts — shared ids/constants + server phone domain */
 
+import { roadKm } from './road-distances.js'
 import type { PoolClient } from 'pg'
 import { pool } from '../db.js'
 import {
@@ -67,6 +68,22 @@ export type RideMode = 'keke' | 'okada'
 export const RIDE_BASE = { keke: 150, okada: 250 } as const
 export const RIDE_PER_HOP = { keke: 50, okada: 80 } as const
 export const RIDE_MINUTES = { keke: 20, okada: 10 } as const
+
+/*
+ * Trips priced and timed by real road distance (OpenStreetMap, road-distances.ts): keke about
+ * 22 km/h plus a short wait, okada about 30 km/h, walking 5 km/h. Fares round to ₦50.
+ */
+export const RIDE_PER_KM = { keke: 70, okada: 100 } as const
+const KMH = { trek: 5, keke: 22, okada: 30 } as const
+const WAIT_MIN = { trek: 0, keke: 2, okada: 1 } as const
+
+export function fareForKm(mode: RideMode, km: number): number {
+  return Math.max(RIDE_BASE[mode], Math.round((RIDE_BASE[mode] + RIDE_PER_KM[mode] * km) / 50) * 50)
+}
+
+export function minutesForKm(mode: RideMode | 'trek', km: number): number {
+  return Math.max(mode === 'trek' ? 2 : 3, Math.round(WAIT_MIN[mode] + (km / KMH[mode]) * 60))
+}
 
 /**
  * Battery is switched off for now: the phone always reads 100%, apps never drain it and nothing
@@ -284,6 +301,7 @@ export function rideQuote(
   if (hops == null) {
     return { ok: false, code: BAD_PLACE, error: PHONE_ERROR_COPY.BAD_PLACE }
   }
+  const km = roadKm(fromPlaceId, toPlaceId)
   const modes: RideMode[] = ['keke', 'okada']
   return {
     ok: true,
@@ -291,8 +309,8 @@ export function rideQuote(
     to: toPlaceId,
     quotes: modes.map((mode) => ({
       mode,
-      fare: RIDE_BASE[mode] + RIDE_PER_HOP[mode] * hops,
-      minutes: RIDE_MINUTES[mode],
+      fare: km === null ? RIDE_BASE[mode] + RIDE_PER_HOP[mode] * hops : fareForKm(mode, km),
+      minutes: km === null ? RIDE_MINUTES[mode] : minutesForKm(mode, km),
     })),
   }
 }

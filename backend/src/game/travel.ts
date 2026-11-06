@@ -2,7 +2,8 @@ import { pool } from '../db.js'
 import { BAD_PLACE, PHONE_ERROR_COPY, SAME_PLACE } from './economy-codes.js'
 import { requireEconomySetup } from './economy.js'
 import { getPublicState } from './game-state.js'
-import { RIDE_BASE, RIDE_PER_HOP } from './phone.js'
+import { RIDE_BASE, RIDE_PER_HOP, fareForKm, minutesForKm } from './phone.js'
+import { roadKm } from './road-distances.js'
 import { getPlace, hopDistance, PLACE_UV, PLACES, startPlaceForLodging } from './places.js'
 
 /*
@@ -40,6 +41,8 @@ export function travelOptions(fromPlaceId: string, homePlaceId: string): TravelO
     // Home stays on the list even when you're on its block (hops 0: just walk to your gate)
     if ((place.id === fromPlaceId && place.id !== homePlaceId) || !PLACE_UV[place.id]) continue
     const hops = hopDistance(fromPlaceId, place.id) ?? 1
+    // Real road distance (OpenStreetMap); places not on the table keep the old hop pricing
+    const km = roadKm(fromPlaceId, place.id)
     options.push({
       id: place.id,
       label: place.label,
@@ -49,13 +52,13 @@ export function travelOptions(fromPlaceId: string, homePlaceId: string): TravelO
       near: hops <= NEAR_HOPS,
       home: place.id === homePlaceId,
       minutes: {
-        trek: TRAVEL_MINUTES.trek(hops),
-        keke: TRAVEL_MINUTES.keke(hops),
-        okada: TRAVEL_MINUTES.okada(hops),
+        trek: km === null ? TRAVEL_MINUTES.trek(hops) : minutesForKm('trek', km),
+        keke: km === null ? TRAVEL_MINUTES.keke(hops) : minutesForKm('keke', km),
+        okada: km === null ? TRAVEL_MINUTES.okada(hops) : minutesForKm('okada', km),
       },
       fares: {
-        keke: RIDE_BASE.keke + RIDE_PER_HOP.keke * hops,
-        okada: RIDE_BASE.okada + RIDE_PER_HOP.okada * hops,
+        keke: km === null ? RIDE_BASE.keke + RIDE_PER_HOP.keke * hops : fareForKm('keke', km),
+        okada: km === null ? RIDE_BASE.okada + RIDE_PER_HOP.okada * hops : fareForKm('okada', km),
       },
     })
   }
@@ -93,6 +96,7 @@ export async function trek(userId: string, toPlaceId: string) {
 
   const client = await pool.connect()
   let hops = 1
+  let from0: string | null = null
   try {
     await client.query('BEGIN')
     const found = await client.query<{ location_id: string }>(
@@ -109,6 +113,7 @@ export async function trek(userId: string, toPlaceId: string) {
       return { ok: false as const, error: PHONE_ERROR_COPY.SAME_PLACE, code: SAME_PLACE, status: 400 }
     }
     hops = hopDistance(from, dest.id) ?? 1
+    from0 = from
     await client.query(
       `UPDATE game_state SET location_id = $2, version = version + 1, updated_at = NOW()
        WHERE character_id = $1`,
@@ -127,7 +132,10 @@ export async function trek(userId: string, toPlaceId: string) {
   return {
     ok: true as const,
     message: `Trekked to ${dest.label}`,
-    minutes: TRAVEL_MINUTES.trek(hops),
+    minutes: (() => {
+      const km = from0 ? roadKm(from0, dest.id) : null
+      return km === null ? TRAVEL_MINUTES.trek(hops) : minutesForKm('trek', km)
+    })(),
     state: state.state,
   }
 }
