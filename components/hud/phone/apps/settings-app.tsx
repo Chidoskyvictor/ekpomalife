@@ -93,6 +93,15 @@ export function SettingsApp({
       <NotificationsToggle onMessage={setMsg} />
 
       {msg ? <p className={styles.listMeta}>{msg}</p> : null}
+
+      <h3 className={styles.sectionTitle}>Credits</h3>
+      <p className={styles.listMeta}>
+        Ride distances and times use map data ©{' '}
+        <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">
+          OpenStreetMap contributors
+        </a>
+        . App icons: Fluent Emoji by Microsoft.
+      </p>
     </div>
   )
 }
