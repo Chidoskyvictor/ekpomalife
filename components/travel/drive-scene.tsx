@@ -23,6 +23,7 @@ import {
   RepeatWrapping,
   SRGBColorSpace,
   Vector3,
+  Quaternion,
   type BufferGeometry,
   type Material,
   type Matrix4,
@@ -212,13 +213,27 @@ function Instances({
   material,
   matrices,
   colors,
+  stream,
 }: {
   geometry: BufferGeometry
   material: Material
   matrices: Matrix4[]
   colors?: Color[]
+  /** The strip's scroll: buildings rise out of the haze ahead and drop away behind (only what's near is drawn) */
+  stream?: Offset
 }) {
   const ref = useRef<InstancedMesh>(null)
+  const base = useMemo(
+    () =>
+      matrices.map((m) => {
+        const position = new Vector3()
+        const quaternion = new Quaternion()
+        const scale = new Vector3()
+        m.decompose(position, quaternion, scale)
+        return { position, quaternion, scale }
+      }),
+    [matrices],
+  )
   useLayoutEffect(() => {
     const mesh = ref.current
     if (!mesh) return
@@ -229,9 +244,31 @@ function Instances({
     mesh.instanceMatrix.needsUpdate = true
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true
   }, [matrices, colors])
+  const tmp = useMemo(() => ({ m: new Matrix4Class(), s: new Vector3() }), [])
+  useFrame(() => {
+    const mesh = ref.current
+    if (!stream || !mesh) return
+    const shift = stream.current % STRIP
+    base.forEach((b, i) => {
+      const z = b.position.z + shift
+      // Rise from the ground between STREAM_FAR and STREAM_FULL ahead; gone once well behind
+      const grow = z < -STREAM_FAR || z > STREAM_BEHIND ? 0 : z < -STREAM_FULL ? (z + STREAM_FAR) / (STREAM_FAR - STREAM_FULL) : 1
+      const k = grow * grow * (3 - 2 * grow)
+      tmp.s.set(b.scale.x, b.scale.y * Math.max(k, 0.0001), b.scale.z)
+      tmp.m.compose(b.position, b.quaternion, tmp.s)
+      if (k === 0) tmp.m.makeScale(0, 0, 0)
+      mesh.setMatrixAt(i, tmp.m)
+    })
+    mesh.instanceMatrix.needsUpdate = true
+  })
   if (matrices.length === 0) return null
   return <instancedMesh ref={ref} args={[geometry, material, matrices.length]} frustumCulled={false} />
 }
+
+/** Roadside streaming: a building appears this far ahead (m), is full height by STREAM_FULL, and goes STREAM_BEHIND past us. */
+const STREAM_FAR = 170
+const STREAM_FULL = 120
+const STREAM_BEHIND = 40
 
 /* —— highway —— */
 
@@ -711,10 +748,11 @@ function Roadside({ offset, edge, campus, gateLocal }: { offset: Offset } & Stri
           material={kind === 'shopA' || kind === 'shopB' ? kit.shop : kit.flats}
           matrices={matrices}
           colors={colors}
+          stream={offset}
         />
       ))}
-      <Instances geometry={kit.crownGeo} material={kit.crownMat} matrices={kit.crowns} />
-      <Instances geometry={kit.trunkGeo} material={kit.trunkMat} matrices={kit.trunks} />
+      <Instances geometry={kit.crownGeo} material={kit.crownMat} matrices={kit.crowns} stream={offset} />
+      <Instances geometry={kit.trunkGeo} material={kit.trunkMat} matrices={kit.trunks} stream={offset} />
     </group>
   )
 }
@@ -731,6 +769,8 @@ type Car = {
   /** Index into CAR_URLS. */
   model: number
   color: Color
+  /** The lane it belongs in (a slow car in ours steps out to let us by) */
+  home?: number
 }
 
 /** Existing hatchback plus the jeep, GT3 and SUV. All are vertex-coloured, front at +z, wheels on the ground. */
@@ -817,14 +857,15 @@ function Traffic({ plan, rate }: { plan: Plan; rate: Offset }) {
     })
     const speed = plan.speed
     const out: Car[] = []
-    // Same direction, in the outer lane: slower than us, so we slowly overtake them
-    for (let i = 0; i < 4; i++) out.push(make(LANE.other, -25 - i * 65 - rand() * 20, speed * (0.5 + rand() * 0.25)))
-    // The go-slow ahead of us in our own lane keeps pace
-    out.push(make(LANE.mine, -17, speed))
-    // Oncoming on the other carriageway, mostly hidden behind the median wall; none where we cross it
+    // Our lane: slower cars ahead that pull over to the outer lane as we come up behind (we overtake them)
+    for (let i = 0; i < 3; i++) out.push({ ...make(LANE.mine, -35 - i * 90 - rand() * 25, speed * (0.45 + rand() * 0.15)), home: LANE.mine })
+    // Outer lane: a mix of slower cars (we pass) and a couple of fast ones that come past us
+    for (let i = 0; i < 3; i++) out.push({ ...make(LANE.other, -20 - i * 80 - rand() * 20, speed * (0.55 + rand() * 0.2)), home: LANE.other })
+    for (let i = 0; i < 2; i++) out.push({ ...make(LANE.other, 25 + i * 120, speed * (1.3 + rand() * 0.15)), home: LANE.other })
+    // Oncoming traffic, steady; none where we cross the median
     if (plan.gapAt === null) {
       LANE.oncoming.forEach((x, lane) => {
-        for (let i = 0; i < 4; i++) out.push(make(x, -20 - i * 70 - lane * 30 - rand() * 20, -(14 + rand() * 12)))
+        for (let i = 0; i < 5; i++) out.push({ ...make(x, -20 - i * 55 - lane * 25 - rand() * 20, -(16 + rand() * 12)), home: x })
       })
     }
     return out
@@ -835,17 +876,26 @@ function Traffic({ plan, rate }: { plan: Plan; rate: Offset }) {
     const dt = Math.min(delta, 0.05)
     list.forEach((car, i) => {
       car.z += (rate.current - car.ws) * dt
+      // A slow car in our lane moves over as we close in, and drifts back once we're past
+      if (car.home === LANE.mine) {
+        const want = car.z > -30 && car.z < 12 ? LANE.other : LANE.mine
+        car.x += (want - car.x) * Math.min(1, dt * 1.6)
+      }
       // Gone past the camera: come back in far ahead; pulled far ahead of a stopped us: come back behind
-      if (car.z > 40) car.z -= 280 + (i % 5) * 9
-      else if (car.z < -300) car.z += 330
+      if (car.z > 40) {
+        car.z -= 280 + (i % 5) * 9
+        car.x = car.home ?? car.x
+      } else if (car.z < -300) car.z += 330
     })
     byModel.forEach((cars, m) => {
       const mesh = meshes.current[m]
       if (!mesh) return
       cars.forEach((car, i) => {
         dummy.position.set(car.x, 0.1, car.z)
-        // The models' front is +z: our way (−z) turns them round, oncoming keeps it
-        dummy.rotation.set(0, car.ws > 0 ? Math.PI : 0, 0)
+        // The models' front is +z: our way (−z) turns them round, oncoming keeps it; a little steer while changing lane
+        const target = car.z > -30 && car.z < 12 ? LANE.other : LANE.mine
+        const steer = car.home === LANE.mine ? Math.max(-0.15, Math.min(0.15, (car.x - target) * 0.06)) : 0
+        dummy.rotation.set(0, (car.ws > 0 ? Math.PI : 0) + steer, 0)
         dummy.scale.setScalar(1)
         dummy.updateMatrix()
         mesh.setMatrixAt(i, dummy.matrix)

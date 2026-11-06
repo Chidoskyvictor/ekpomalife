@@ -3,7 +3,7 @@
 import dynamic from 'next/dynamic'
 import { useRef, useState } from 'react'
 import { hapticTap } from '@/components/hud/haptic'
-import { skipTrip, type Trip, tripShown } from '@/lib/game/trip'
+import { type Trip, tripShown } from '@/lib/game/trip'
 import type { DriveMode, DriveView } from './drive-scene'
 import { TripMap, tripProgress, useTripClock, VEHICLE } from './trip-map'
 import styles from './drive-trip.module.css'
@@ -46,7 +46,7 @@ function useHorn() {
 }
 
 /**
- * The ride to a place: a looping highway drive with a camera switch, Horn, Map and Skip. It stays
+ * The ride to a place: a looping highway drive with a camera switch, Horn and Map. It stays
  * up until the server has moved you and the next scene is ready, same as the plain trip card.
  */
 export function DriveTrip({ trip }: { trip: Trip }) {
@@ -119,16 +119,6 @@ export function DriveTrip({ trip }: { trip: Trip }) {
         </button>
         <button type="button" className={styles.action} aria-pressed={showMap} onClick={() => setShowMap((on) => !on)}>
           🗺️ Map
-        </button>
-        <button
-          type="button"
-          className={`${styles.action} ${styles.skip}`}
-          onClick={() => {
-            // Cut the timer short; the trip layer still waits for the server and the next scene
-            skipTrip(trip.id)
-          }}
-        >
-          ⏭ Skip
         </button>
       </div>
     </div>

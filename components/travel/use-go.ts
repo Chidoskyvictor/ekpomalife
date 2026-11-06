@@ -47,6 +47,7 @@ export function useGoTo() {
         target: option.id,
         route: fromCampus && toCampus ? 'inside' : toCampus ? 'in' : fromCampus ? 'out' : 'road',
         appearance: state?.appearance,
+        minutes: option.minutes[how],
       })
       // One key per intent, reused if the player retries the same ride
       const intent = `${option.id}:${how}`

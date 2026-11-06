@@ -44,8 +44,15 @@ export type Trip = {
 }
 
 const MIN_MS: Record<TripMode, number> = { trek: 700, keke: 1200, okada: 900 }
-/** The drive needs long enough to read as a ride; Skip cuts it short. */
-const DRIVE_MS: Record<TripMode, number> = { trek: 1600, keke: 7000, okada: 5500 }
+
+/**
+ * How long the 3D ride plays, from the trip's real minutes (OpenStreetMap road distance at keke /
+ * okada speed): 20 s for a hop round the corner, up to 45 s across town. No skipping.
+ */
+export function driveMs(minutes: number | undefined): number {
+  const m = Number.isFinite(minutes) ? (minutes as number) : 6
+  return Math.round(Math.min(45, Math.max(20, 12 + m * 1.8)) * 1000)
+}
 
 /**
  * Paid rides get the 3D drive (with Reduce Motion on it plays calmly instead of being skipped).
@@ -74,15 +81,17 @@ function patch(next: Partial<Trip>) {
   emit()
 }
 
-export function startTrip(input: Pick<Trip, 'label' | 'mode' | 'from' | 'to' | 'scene' | 'target' | 'appearance'> & { route?: TripRoute }) {
+export function startTrip(input: Pick<Trip, 'label' | 'mode' | 'from' | 'to' | 'scene' | 'target' | 'appearance'> & { route?: TripRoute; minutes?: number }) {
+  const { minutes: _minutes, ...rest } = input
+  void _minutes
   const route = input.route ?? 'road'
   const drive = canDrive(input.mode, route)
   trip = {
-    ...input,
+    ...rest,
     route,
     id: nextId++,
     startedAt: Date.now(),
-    minMs: drive ? DRIVE_MS[input.mode] : MIN_MS[input.mode],
+    minMs: drive ? driveMs(input.minutes) : MIN_MS[input.mode],
     drive,
     moved: false,
     movedAt: 0,
