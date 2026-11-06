@@ -173,6 +173,18 @@ async function newJoinCode(): Promise<string> {
   throw new Error('Could not find a free join code')
 }
 
+/**
+ * Local testing only: usernames in SPACES_DEV_UNLIMITED (comma separated) skip the daily start cap.
+ * Ignored whenever NODE_ENV is production, so it can never apply on the live game.
+ */
+async function devUncapped(userId: string): Promise<boolean> {
+  if (process.env.NODE_ENV === 'production') return false
+  const list = (process.env.SPACES_DEV_UNLIMITED ?? '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean)
+  if (!list.length) return false
+  const me = await pool.query<{ username: string }>(`SELECT username FROM users WHERE id = $1`, [userId])
+  return list.includes((me.rows[0]?.username ?? '').toLowerCase())
+}
+
 export async function createSpace(userId: string, input: CreateInput) {
   const now = new Date()
   const gate = await requireEconomySetup(userId)
@@ -203,7 +215,7 @@ export async function createSpace(userId: string, input: CreateInput) {
         AND NOT (status = 'ended' AND ended_at IS NOT NULL AND ended_at - COALESCE(started_at, created_at) < INTERVAL '2 minutes')`,
     [userId, lagosDayStart(now)],
   )
-  if (createCapReached(today.rows[0]?.n ?? 0)) {
+  if (createCapReached(today.rows[0]?.n ?? 0) && !(await devUncapped(userId))) {
     return fail(409, 'DAILY_LIMIT', `You can start ${ROOMS_PER_DAY} Spaces a day. Try again tomorrow.`)
   }
 
