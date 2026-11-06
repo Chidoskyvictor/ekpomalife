@@ -66,7 +66,7 @@ const PLACEHOLDER_PHONE: PhoneState = {
   battery: 100,
   charging: false,
   dataMb: 1,
-  wallpaper: 'aau-dusk',
+  wallpaper: 'green-white',
   unread: {},
   newApps: [],
 }

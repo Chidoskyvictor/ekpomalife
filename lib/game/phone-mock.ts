@@ -24,7 +24,7 @@ let phone: PhoneState = {
   battery: 76,
   charging: false,
   dataMb: 120,
-  wallpaper: 'aau-dusk',
+  wallpaper: 'green-white',
   unread: { jobs: 1, gist: 3, calendar: 1 },
   newApps: ['ride', 'calendar'],
 }
@@ -158,7 +158,7 @@ export function resetPhoneMock() {
     battery: 76,
     charging: false,
     dataMb: 120,
-    wallpaper: 'aau-dusk',
+    wallpaper: 'green-white',
     unread: { jobs: 1, gist: 3, calendar: 1 },
     newApps: ['ride', 'calendar'],
   }

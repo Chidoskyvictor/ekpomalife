@@ -200,7 +200,7 @@ function parseNewApps(raw: string[] | null | undefined): PhoneAppId[] {
 
 function parseWallpaper(raw: string): WallpaperId {
   if ((WALLPAPER_IDS as readonly string[]).includes(raw)) return raw as WallpaperId
-  return 'aau-dusk'
+  return 'green-white'
 }
 
 export function toPhoneState(row: {

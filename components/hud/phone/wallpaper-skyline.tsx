@@ -10,7 +10,7 @@ export function WallpaperSkyline({
   wallpaper: WallpaperId
   night: boolean
 }) {
-  const bg = WALLPAPERS[wallpaper]?.css ?? WALLPAPERS['aau-dusk'].css
+  const bg = WALLPAPERS[wallpaper]?.css ?? WALLPAPERS['green-white'].css
   const windowFill = night ? '#fbbf24' : 'rgba(255,255,255,0.35)'
 
   return (
