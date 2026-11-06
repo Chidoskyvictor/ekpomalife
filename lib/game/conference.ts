@@ -47,7 +47,7 @@ const seatSpots: Record<string, FurnitureSpot> = Object.fromEntries(
 export const CONFERENCE: RoomLayout = {
   id: 'office',
   label: 'Student Conference',
-  glb: '/models/conference-hall.glb?v=3',
+  glb: '/models/conference-hall.glb?v=4',
   floors: [[-8, -6, 6, 6]],
   blocks: [
     [-6.5, -6.2, 4.5, -3.85], // stage

@@ -62,15 +62,15 @@ def wood(x, y, s):
 
 
 def floor_tile(x, y, s):
-    # big square ceramic tiles (2 per texture), thin grout, faint marble streaks, same cream as the courtyard
+    # big square ceramic tiles (2 per texture), thin grout, faint streaks, wood brown
     t = s // 2
     grout = (x % t < 2 or y % t < 2)
     if grout:
-        return (0.62, 0.60, 0.56)
+        return (0.25, 0.16, 0.09)
     k = (x // t) * 3 + (y // t)
     vein = 0.03 * math.sin(x * 0.11 + y * 0.07 + k * 2.1) + 0.02 * math.sin(x * 0.03 - y * 0.05 + k)
     n = noise(0.025)
-    return (0.86 + vein + n, 0.83 + vein + n, 0.76 + vein + n)
+    return (0.55 + vein + n, 0.34 + vein * 0.7 + n, 0.18 + n)  # wood brown, like the old parquet
 
 
 def fabric(x, y, s):
