@@ -17,8 +17,10 @@ import type { RoomLayout } from '@/lib/game/room-layouts'
 import { CLUB_LIGHT, roomLightAt, type RoomLight } from '@/lib/game/room-lighting'
 
 /** Bulb / tube materials in the home GLBs that glow when the lamps are on. */
-const GLOWING = new Set(['LampBulb', 'HostelTube'])
+const GLOWING = new Set(['LampBulb', 'HostelTube', 'ClassTube', 'ClassWindowGlow'])
 const LAMP_COLOR = '#ffd9a0'
+/** Fluorescent classes glow cool white (tubes, and the windows lit from inside) instead of the warm bulb colour. */
+const GLOW_COLOR: Record<string, string> = { ClassTube: '#eef6ff', ClassWindowGlow: '#dcecff' }
 
 type Live = Omit<RoomLight, 'skyTop' | 'skyBottom' | 'skyOpacity'>
 
@@ -64,7 +66,7 @@ export function RoomLights({ layout, root, clock }: { layout: RoomLayout; root: 
       const mesh = object as Mesh
       if (!mesh.isMesh || Array.isArray(mesh.material) || !GLOWING.has(mesh.material.name)) return
       const glow = mesh.material.clone() as MeshStandardMaterial
-      glow.emissive = new Color(LAMP_COLOR)
+      glow.emissive = new Color(GLOW_COLOR[mesh.material.name] ?? LAMP_COLOR)
       swapped.push([mesh, mesh.material])
       mesh.material = glow
       bulbs.current.push(glow)

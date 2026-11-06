@@ -32,9 +32,13 @@ import { useGame } from '@/hooks/use-game'
 import { endActivity, startActivity } from '@/lib/game/activity'
 import { BUILDINGS, type BuildingActionDef } from '@/lib/game/buildings'
 import { hallFor, officeFor } from '@/lib/game/halls'
-import { CHURCH, CHURCH_SEATS, HALL_SEATS, INNOVATION_HUB, LECTURE_HALL, OFFICE, seatKey, type HallSeat, type RoomLayout } from '@/lib/game/room-layouts'
+import { CHURCH, CHURCH_SEATS, INNOVATION_HUB, OFFICE, seatKey, type HallSeat, type RoomLayout } from '@/lib/game/room-layouts'
 import { pushNavigation } from '@/lib/navigation/safe-nav'
 import styles from './hall.module.css'
+import { CLASS_HALL, CLASS_SEATS } from '@/lib/game/class-hall'
+import { hallNeighbours } from '@/lib/game/hall-neighbours'
+import { devPinnedMinute, watMinuteOfDay } from '@/lib/game/wat-clock'
+import { ClassSigns } from './class-signs'
 import { StagePanel, StageScreen, goLiveHere, useStageSpace } from './stage-spaces'
 import { StageAudio, type StageJoin } from './stage-audio'
 import { joinSpace } from '@/lib/game/spaces-api'
@@ -54,7 +58,7 @@ type Space = { name: string; paint?: string; layout: RoomLayout; seats: HallSeat
 /** The 3D room for a place: the shared lecture hall, or the shared office (Admin Block keeps its navy). */
 function spaceFor(id: string): Space | null {
   const hall = hallFor(id)
-  if (hall) return { name: hall.name, paint: hall.color, layout: LECTURE_HALL, seats: HALL_SEATS, icon: '🎓', office: false }
+  if (hall) return { name: hall.name, paint: hall.color, layout: CLASS_HALL, seats: CLASS_SEATS, icon: '🎓', office: false }
   const office = officeFor(id)
   // The pews the church NPCs sit on are never offered to players
   const food = office?.layout === 'food' ? FOOD_PLACES[id] : undefined
@@ -93,6 +97,10 @@ export function HallScreen({ hallId }: { hallId: string }) {
   }, [isFood, food?.soldOut, hallId, loadShop])
   const menu = isFood && shopPlaceId === hallId ? shopItems.filter((item) => item.category === 'food') : []
   const [deskOpen, setDeskOpen] = useState<HubDeskId | null>(null)
+  // Real WAT time of day (dev: ?time=21:30 pins it): classes light their tubes and windows at night
+  const [pinned, setPinned] = useState<number | null>(null)
+  useEffect(() => setPinned(devPinnedMinute(window.location.search)), [])
+  const clock = useCallback(() => pinned ?? watMinuteOfDay(), [pinned])
   const me = useRef<{ x: number; z: number }>({ x: hall?.layout.start[0] ?? 0, z: hall?.layout.start[1] ?? 0 })
 
   // Walk straight in (halls are free), stay counted, join your group's live room
@@ -278,8 +286,9 @@ export function HallScreen({ hallId }: { hallId: string }) {
   }
 
   const effects = useCallback(
-    (_root: Object3D) => (
+    (root: Object3D) => (
       <>
+      {hallFor(hallId) ? <ClassSigns root={root} names={hallNeighbours(hallId)} /> : null}
       {isHub ? <HubNpcs onTap={(id) => goToDesk(id)} onSeat={(id) => sit(undefined, id)} /> : null}
       {isChurch ? <ChurchNpcs /> : null}
       {food ? <FoodNpcs npcs={food.npcs} onTap={onFoodNpc} bubbles={social.bubbles} /> : null}
@@ -293,7 +302,7 @@ export function HallScreen({ hallId }: { hallId: string }) {
       </>
     ),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- goToDesk only uses the stable control
-    [live.peers, live.roster, social, isHub, isChurch, food, stage, stageLive],
+    [live.peers, live.roster, social, isHub, isChurch, food, stage, stageLive, hallId],
   )
 
   /** Nearest chair to you that nobody in your group is sitting on (or standing at). */
@@ -362,6 +371,7 @@ export function HallScreen({ hallId }: { hallId: string }) {
           paint={hall.paint}
           appearance={state?.appearance}
           control={control}
+          clock={hall.office ? undefined : clock}
           effects={effects}
           onFurniture={
             inside
