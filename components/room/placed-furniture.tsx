@@ -195,7 +195,7 @@ export function PlacedPieces({ furnishing, root }: { furnishing: HomeFurnishing;
  * Move / Sell. One transparent plane takes both, because react-three-fiber only registers pointer
  * handlers that exist when an object mounts, and pieces appear and disappear as you shop.
  */
-export function BuyLayer({ furnishing }: { furnishing: HomeFurnishing }) {
+export function BuyLayer({ furnishing, root: roomRoot }: { furnishing: HomeFurnishing; root?: Object3D }) {
   const ui = useBuyUi()
   const dragging = useRef(false)
   const root = useRef<Group>(null)
@@ -295,9 +295,58 @@ export function BuyLayer({ furnishing }: { furnishing: HomeFurnishing }) {
             <planeGeometry args={[width, depth]} />
             <meshBasicMaterial transparent opacity={0} depthWrite={false} />
           </mesh>
-          <Block spec={spec} item={item} spot={spot} ghost={verdict?.ok ? 'ok' : 'bad'} />
+          <PlacingGhost spec={spec} item={item} spot={spot} ok={!!verdict?.ok} starters={furnishing.starters} root={roomRoot} />
         </>
       ) : null}
     </group>
   )
+}
+
+/**
+ * What you're placing or moving: the real model (or the room's own starter piece), with a green
+ * (fits) or red (in the way) patch on the floor under it. Pieces without a model stay a tinted block.
+ */
+function PlacingGhost({
+  spec,
+  item,
+  spot,
+  ok,
+  starters,
+  root,
+}: {
+  spec: HomeSpec
+  item: HomeItem
+  spot: { x: number; z: number; rot: 0 | 90 | 180 | 270 }
+  ok: boolean
+  starters?: StarterDef[]
+  root?: Object3D
+}) {
+  const def = starters?.find((d) => d.item === item.id)
+  const tint = ok ? '#34c759' : '#ff3b30'
+  const [x0, z0, x1, z1] = pieceRect(spec, item, spot)
+  const patch = item.wall ? null : (
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[(x0 + x1) / 2, 0.03, (z0 + z1) / 2]} raycast={() => null}>
+      <planeGeometry args={[x1 - x0, z1 - z0]} />
+      <meshBasicMaterial color={tint} transparent opacity={0.45} depthWrite={false} />
+    </mesh>
+  )
+  if (def && root) {
+    return (
+      <group>
+        {patch}
+        <StarterPiece spec={spec} item={item} def={def} spot={spot} root={root} />
+      </group>
+    )
+  }
+  if (item.model) {
+    return (
+      <group>
+        {patch}
+        <Suspense fallback={<Block spec={spec} item={item} spot={spot} ghost={ok ? 'ok' : 'bad'} />}>
+          <ModelPiece spec={spec} item={item} spot={spot} />
+        </Suspense>
+      </group>
+    )
+  }
+  return <Block spec={spec} item={item} spot={spot} ghost={ok ? 'ok' : 'bad'} />
 }

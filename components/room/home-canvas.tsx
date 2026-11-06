@@ -141,7 +141,7 @@ function HomeModel({ layout, paint, clock = MIDDAY, effects, onPlayerMove, appea
         <RoomLights layout={layout} root={prepared} clock={clock} />
         {effects?.(prepared)}
         {furnishing ? <PlacedPieces furnishing={furnishing} root={prepared} /> : null}
-        {furnishing ? <BuyLayer furnishing={furnishing} /> : null}
+        {furnishing ? <BuyLayer furnishing={furnishing} root={prepared} /> : null}
         <RoomPlayer
           key={layout.id}
           layout={layout}
