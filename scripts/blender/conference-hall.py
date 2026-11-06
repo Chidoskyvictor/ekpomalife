@@ -1,0 +1,396 @@
+"""
+Student Conference: a big hall (wood parquet floor, panelled walls, a carpeted stage with a podium
+and screen, rows of maroon conference chairs), standing in a courtyard ringed by a road and cream
+campus buildings with rooftop signs (MASS COMMUNICATION, CORDELIA HALL). -> public/models/conference-hall.glb
+Headless:  blender -b --factory-startup -P scripts/blender/conference-hall.py -- <out.glb> <tmp dir>
+
+GAME coordinates: game (x, y, z) = Blender (x, -y, z). Walls at game -z (stage) and +x, where the room
+camera expects them. Hall floor x -8..6, z -6..6. Keep in sync with lib/game/conference.ts.
+"""
+import bpy, math, sys, os, random
+
+args = sys.argv[sys.argv.index("--") + 1:]
+OUT, TMP = args[0], args[1]
+os.makedirs(TMP, exist_ok=True)
+random.seed(7)
+
+bpy.ops.object.select_all(action='SELECT')
+bpy.ops.object.delete()
+col = bpy.data.collections.new("Hall")
+bpy.context.scene.collection.children.link(col)
+
+
+def link(o):
+    for c in list(o.users_collection):
+        c.objects.unlink(o)
+    col.objects.link(o)
+    return o
+
+
+# ---------- small generated textures (saved as PNG, embedded in the GLB) ----------
+def texture(name, size, fn):
+    img = bpy.data.images.new(name, size, size, alpha=False)
+    px = [0.0] * (size * size * 4)
+    for y in range(size):
+        for x in range(size):
+            r, g, b = fn(x, y, size)
+            i = (y * size + x) * 4
+            px[i], px[i + 1], px[i + 2], px[i + 3] = r, g, b, 1.0
+    img.pixels = px
+    path = os.path.join(TMP, name + ".png")
+    img.filepath_raw = path
+    img.file_format = 'PNG'
+    img.save()
+    return img
+
+
+def noise(a=0.06):
+    return (random.random() - 0.5) * a
+
+
+def wood(x, y, s):
+    # parquet planks: 8 planks across, staggered joints, grain streaks
+    pw = s // 8
+    k = x // pw
+    off = (k * 37) % s
+    yy = (y + off) % s
+    tone = 0.85 + ((k * 53) % 7) / 40
+    grain = 0.04 * math.sin((x % pw) * 0.9 + yy * 0.05 + k)
+    edge = 0.55 if (x % pw == 0 or yy % (s // 2) == 0) else 1.0
+    n = noise(0.05)
+    return ((0.55 + grain + n) * tone * edge, (0.34 + grain * 0.7 + n) * tone * edge, (0.18 + n) * tone * edge)
+
+
+def fabric(x, y, s):
+    weave = 0.04 if (x + y) % 2 else -0.02
+    n = noise(0.05)
+    return (0.45 + weave + n, 0.07 + weave * 0.5 + n * 0.3, 0.10 + weave * 0.5 + n * 0.3)
+
+
+def carpet(x, y, s):
+    n = noise(0.06)
+    border = 0.75 if (x < 6 or y < 6 or x > s - 7 or y > s - 7) else 1.0
+    return (0.10 * border + n * 0.3, 0.16 * border + n * 0.3, 0.32 * border + n)
+
+
+def wall(x, y, s):
+    # cream plaster above, walnut wainscot below with a gold rail line
+    n = noise(0.035)
+    if y < s * 0.32:
+        seam = 0.7 if x % (s // 4) < 2 else 1.0
+        return ((0.40 + n) * seam, (0.25 + n) * seam, (0.14 + n) * seam)
+    if y < s * 0.34:
+        return (0.78, 0.62, 0.30)
+    return (0.92 + n, 0.88 + n, 0.78 + n)
+
+
+def asphalt(x, y, s):
+    n = noise(0.08) + (0.05 if random.random() < 0.03 else 0)
+    return (0.20 + n, 0.20 + n, 0.21 + n)
+
+
+def paving(x, y, s):
+    t = s // 4
+    joint = 0.7 if (x % t < 2 or y % t < 2) else 1.0
+    n = noise(0.06)
+    return ((0.72 + n) * joint, (0.68 + n) * joint, (0.60 + n) * joint)
+
+
+def facade(x, y, s):
+    # one bay of a cream building: a window with a dark frame and a sill
+    n = noise(0.03)
+    wx0, wx1, wy0, wy1 = s * 0.22, s * 0.78, s * 0.30, s * 0.80
+    if wx0 <= x <= wx1 and wy0 <= y <= wy1:
+        if abs(x - s / 2) < 2 or x - wx0 < 3 or wx1 - x < 3 or y - wy0 < 3 or wy1 - y < 3:
+            return (0.22, 0.20, 0.18)
+        sky = 0.35 + (y - wy0) / (wy1 - wy0) * 0.25
+        return (0.30 + n, sky * 0.9 + n, sky + 0.1 + n)
+    if wy0 - 6 <= y < wy0 and wx0 - 4 <= x <= wx1 + 4:
+        return (0.80, 0.78, 0.72)
+    return (0.88 + n, 0.82 + n, 0.66 + n)
+
+
+def mat(name, color=None, img=None, rough=0.7, metal=0.0, emit=None):
+    m = bpy.data.materials.new(name)
+    m.use_nodes = True
+    nt = m.node_tree
+    b = nt.nodes["Principled BSDF"]
+    b.inputs["Roughness"].default_value = rough
+    b.inputs["Metallic"].default_value = metal
+    if img is not None:
+        t = nt.nodes.new("ShaderNodeTexImage")
+        t.image = img
+        nt.links.new(t.outputs["Color"], b.inputs["Base Color"])
+    else:
+        b.inputs["Base Color"].default_value = (*color, 1)
+    if emit is not None:
+        b.inputs["Emission Color"].default_value = (*emit, 1)
+        b.inputs["Emission Strength"].default_value = 1.0
+    return m
+
+
+S = 128
+wood_m = mat("Parquet", img=texture("parquet", S, wood), rough=0.45)
+fabric_m = mat("ChairFabric", img=texture("fabric", 64, fabric), rough=0.9)
+carpet_m = mat("StageCarpet", img=texture("carpet", 64, carpet), rough=0.95)
+wall_m = mat("HallWall", img=texture("hallwall", S, wall), rough=0.85)
+asphalt_m = mat("Asphalt", img=texture("asphalt", 64, asphalt), rough=0.95)
+paving_m = mat("Paving", img=texture("paving", 64, paving), rough=0.9)
+facade_m = mat("Facade", img=texture("facade", 64, facade), rough=0.85)
+metal_m = mat("ChairMetal", (0.12, 0.12, 0.13), rough=0.35, metal=0.8)
+walnut_m = mat("Walnut", (0.30, 0.17, 0.09), rough=0.5)
+gold_m = mat("Gold", (0.83, 0.64, 0.25), rough=0.35, metal=0.8)
+screen_m = mat("Screen", (0.10, 0.25, 0.55), rough=0.3, emit=(0.08, 0.22, 0.50))
+banner_m = mat("Banner", (0.06, 0.32, 0.18), rough=0.8)
+white_m = mat("WhiteText", (0.97, 0.97, 0.95), rough=0.5, emit=(0.6, 0.6, 0.58))
+roof_m = mat("Roof", (0.60, 0.58, 0.55), rough=0.9)
+trim_m = mat("Trim", (0.95, 0.93, 0.88), rough=0.8)
+signbg_m = mat("SignBoard", (0.07, 0.23, 0.45), rough=0.6)
+line_m = mat("RoadLine", (0.95, 0.93, 0.85), rough=0.7)
+kerb_m = mat("Kerb", (0.80, 0.80, 0.78), rough=0.9)
+trunk_m = mat("PalmTrunk", (0.45, 0.35, 0.24), rough=0.9)
+leaf_m = mat("PalmLeaf", (0.16, 0.45, 0.16), rough=0.8)
+plant_m = mat("Plant", (0.20, 0.52, 0.22), rough=0.8)
+pot_m = mat("Pot", (0.85, 0.82, 0.75), rough=0.7)
+
+TILED = {}  # object -> texture tile size in metres (box-projected UVs)
+
+
+def box(name, x0, z0, x1, z1, y0, y1, m, tile=None):
+    bpy.ops.mesh.primitive_cube_add(size=1)
+    o = bpy.context.active_object
+    o.name = name
+    o.scale = (x1 - x0, z1 - z0, y1 - y0)
+    o.location = ((x0 + x1) / 2, -(z0 + z1) / 2, (y0 + y1) / 2)
+    o.data.materials.append(m)
+    if tile:
+        TILED[o.name] = tile
+    return link(o)
+
+
+def cyl(name, x, z, y0, h, r, m, verts=12):
+    bpy.ops.mesh.primitive_cylinder_add(vertices=verts, radius=r, depth=h, location=(x, -z, y0 + h / 2))
+    o = bpy.context.active_object
+    o.name = name
+    o.data.materials.append(m)
+    return link(o)
+
+
+def boxuv(o, tile):
+    """World-space box projection so textures keep their size on any box."""
+    me = o.data
+    uv = me.uv_layers.active.data
+    for poly in me.polygons:
+        n = poly.normal
+        ax = max(range(3), key=lambda i: abs(n[i]))
+        for li in poly.loop_indices:
+            v = me.vertices[me.loops[li].vertex_index].co
+            if ax == 2:
+                u, w = v.x, v.y
+            elif ax == 0:
+                u, w = v.y, v.z
+            else:
+                u, w = v.x, v.z
+            uv[li].uv = (u / tile[0], w / tile[1])
+
+
+def text(name, body, x, y, z, size, m, face='+z', depth=0.04):
+    bpy.ops.object.text_add(location=(0, 0, 0))
+    t = bpy.context.active_object
+    t.data.body = body
+    t.data.size = size
+    t.data.extrude = depth
+    t.data.align_x = 'CENTER'
+    t.data.align_y = 'CENTER'
+    t.rotation_euler = (math.radians(90), 0, 0 if face == '+z' else math.radians(-90))
+    t.location = (x, -z, y)
+    bpy.ops.object.convert(target='MESH')
+    t = bpy.context.active_object
+    t.name = name
+    t.data.materials.clear()
+    t.data.materials.append(m)
+    return link(t)
+
+
+# ================= HALL =================
+HX0, HX1, HZ0, HZ1 = -8.0, 6.0, -6.0, 6.0
+WH = 3.4
+box("HallFloor", HX0, HZ0, HX1, HZ1, -0.15, 0.0, wood_m, tile=(2.4, 2.4))
+box("WallBack", HX0 - 0.2, HZ0 - 0.25, HX1 + 0.25, HZ0, 0.0, WH, wall_m, tile=(3.0, WH))
+box("WallRight", HX1, HZ0 - 0.25, HX1 + 0.25, HZ1, 0.0, WH, wall_m, tile=(3.0, WH))
+# low front/left edge so the room reads as closed without blocking the camera
+box("SillFront", HX0 - 0.2, HZ1, HX1 + 0.25, HZ1 + 0.2, 0.0, 0.35, walnut_m)
+box("SillLeft", HX0 - 0.2, HZ0 - 0.25, HX0, HZ1 + 0.2, 0.0, 0.35, walnut_m)
+box("CrownBack", HX0 - 0.2, HZ0 - 0.32, HX1 + 0.32, HZ0 + 0.05, WH, WH + 0.18, trim_m)
+box("CrownRight", HX1 - 0.05, HZ0 - 0.32, HX1 + 0.32, HZ1, WH, WH + 0.18, trim_m)
+# wall lights (gold sconces) on the side wall
+for i, z in enumerate((-3.0, 0.0, 3.0)):
+    box(f"Sconce{i}", HX1 - 0.12, z - 0.12, HX1, z + 0.12, 2.3, 2.6, gold_m)
+
+# stage at the back with carpet, steps, podium, screen and banner
+SX0, SX1, SZ0, SZ1, SY = -6.5, 4.5, HZ0, -3.9, 0.45
+box("Stage", SX0, SZ0, SX1, SZ1, 0.0, SY, carpet_m, tile=(1.5, 1.5))
+box("StageEdge", SX0, SZ1, SX1, SZ1 + 0.06, 0.0, SY + 0.02, gold_m)
+box("StepL", -4.6, SZ1, -3.6, SZ1 + 0.4, 0.0, SY / 2, carpet_m, tile=(1.5, 1.5))
+box("StepR", 1.6, SZ1, 2.6, SZ1 + 0.4, 0.0, SY / 2, carpet_m, tile=(1.5, 1.5))
+PODX, PODZ = -1.0, -4.55
+box("Podium", PODX - 0.45, PODZ - 0.3, PODX + 0.45, PODZ + 0.3, SY, SY + 1.1, walnut_m)
+box("PodiumTop", PODX - 0.55, PODZ - 0.38, PODX + 0.55, PODZ + 0.38, SY + 1.1, SY + 1.16, walnut_m)
+box("PodiumCrest", PODX - 0.28, PODZ + 0.3, PODX + 0.28, PODZ + 0.32, SY + 0.55, SY + 0.85, gold_m)
+cyl("Mic", PODX, PODZ - 0.15, SY + 1.16, 0.35, 0.015, metal_m, 6)
+# speakers' table on the stage (right) with chairs behind it
+box("PanelTable", 1.0, -5.3, 4.0, -4.6, SY + 0.72, SY + 0.78, walnut_m)
+box("PanelSkirt", 1.0, -4.62, 4.0, -4.58, SY + 0.1, SY + 0.76, banner_m)
+# screen + banner on the back wall
+box("ScreenFrame", -4.6, HZ0, 2.6, HZ0 + 0.06, 1.55, WH - 0.12, metal_m)
+box("Screen", -4.5, HZ0 + 0.06, 2.5, HZ0 + 0.08, 1.62, WH - 0.2, screen_m)
+text("ScreenTitle", "AAU STUDENT CONFERENCE", -1.0, 2.7, HZ0 + 0.1, 0.42, white_m, depth=0.01)
+text("ScreenSub", "Ideas  ·  Leadership  ·  Community", -1.0, 2.15, HZ0 + 0.1, 0.22, white_m, depth=0.01)
+for i, x in enumerate((-6.0, 4.0)):
+    box(f"Banner{i}", x - 0.5, HZ0, x + 0.5, HZ0 + 0.05, 1.0, WH - 0.15, banner_m)
+    box(f"BannerRod{i}", x - 0.6, HZ0, x + 0.6, HZ0 + 0.08, WH - 0.15, WH - 0.08, gold_m)
+# plants at the stage corners and by the door
+for i, (x, z) in enumerate(((-7.4, -3.4), (5.3, -3.4), (5.3, 5.3))):
+    cyl(f"Pot{i}", x, z, 0.0, 0.5, 0.28, pot_m)
+    bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=1, radius=0.5, location=(x, -z, 0.95))
+    p = link(bpy.context.active_object)
+    p.name = f"Plant{i}"
+    p.data.materials.append(plant_m)
+
+# ---------- conference chairs (one maroon chair mesh, instanced) ----------
+SEAT_TOP = 0.51
+
+
+def make_chair():
+    parts = []
+    parts.append(box("cSeat", -0.24, -0.24, 0.24, 0.24, 0.42, SEAT_TOP, fabric_m))
+    parts.append(box("cBack", -0.24, 0.22, 0.24, 0.32, 0.50, 1.05, fabric_m))
+    for sx in (-0.26, 0.26):
+        parts.append(box("cArm", sx - 0.025, -0.2, sx + 0.025, 0.3, 0.62, 0.66, metal_m))
+        parts.append(box("cLegF", sx - 0.02, -0.2, sx + 0.02, -0.16, 0.0, 0.64, metal_m))
+        parts.append(box("cLegB", sx - 0.02, 0.24, sx + 0.02, 0.28, 0.0, 0.64, metal_m))
+    bpy.ops.object.select_all(action='DESELECT')
+    for p in parts:
+        p.select_set(True)
+    bpy.context.view_layer.objects.active = parts[0]
+    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+    bpy.ops.object.join()
+    c = bpy.context.active_object
+    c.name = "Chair"
+    boxuv(c, (0.5, 0.5))
+    return c
+
+
+ROWS = [-2.7, -1.5, -0.3, 0.9, 2.1, 3.3]
+COLS = [-6.2, -5.4, -4.6, -3.8, -3.0, 0.2, 1.0, 1.8, 2.6, 3.4]
+proto = make_chair()
+chairs = []
+for r, z in enumerate(ROWS):
+    for c, x in enumerate(COLS):
+        o = proto if not chairs else link(proto.copy())
+        # chairs face -z (the stage): the back sits on +z
+        o.location = (x, -z, 0)
+        o.name = f"Chair_{r + 1}_{c + 1}"
+        chairs.append(o)
+
+# ================= OUTSIDE: paving, road ring, buildings, palms =================
+OX0, OX1, OZ0, OZ1 = -24.0, 26.0, -28.0, 22.0
+box("Paving", HX0 - 3, HZ0 - 3, HX1 + 3, HZ1 + 3, -0.17, -0.02, paving_m, tile=(2.0, 2.0))
+box("Asphalt", OX0, OZ0, OX1, OZ1, -0.2, -0.05, asphalt_m, tile=(4.0, 4.0))
+# kerbs round the paving
+for i, (a, b, c, d) in enumerate(((HX0 - 3.2, HZ0 - 3.2, HX1 + 3.2, HZ0 - 3.0), (HX0 - 3.2, HZ1 + 3.0, HX1 + 3.2, HZ1 + 3.2),
+                                  (HX0 - 3.2, HZ0 - 3.2, HX0 - 3.0, HZ1 + 3.2), (HX1 + 3.0, HZ0 - 3.2, HX1 + 3.2, HZ1 + 3.2))):
+    box(f"Kerb{i}", a, b, c, d, -0.05, 0.08, kerb_m)
+# dashed centre lines of the ring road (about 5 m out from the kerb)
+RZ_BACK, RX_RIGHT = HZ0 - 8.0, HX1 + 8.0
+for i in range(14):
+    x = -20 + i * 3.2
+    box(f"DashB{i}", x, RZ_BACK - 0.08, x + 1.6, RZ_BACK + 0.08, -0.05, -0.03, line_m)
+for i in range(12):
+    z = -20 + i * 3.2
+    box(f"DashR{i}", RX_RIGHT - 0.08, z, RX_RIGHT + 0.08, z + 1.6, -0.05, -0.03, line_m)
+
+
+def building(tag, x0, z0, x1, z1, floors, sign=None, face='+z'):
+    FH = 3.2
+    h = floors * FH
+    box(f"{tag}Body", x0, z0, x1, z1, 0.0, h, facade_m, tile=(3.2, FH))
+    box(f"{tag}Roof", x0 - 0.3, z0 - 0.3, x1 + 0.3, z1 + 0.3, h, h + 0.35, roof_m)
+    box(f"{tag}Base", x0 - 0.1, z0 - 0.1, x1 + 0.1, z1 + 0.1, 0.0, 0.6, trim_m)
+    # rooftop water tank like the Lagos blocks
+    cx, cz = x0 + (x1 - x0) * 0.7, z0 + (z1 - z0) * 0.5
+    box(f"{tag}TankStand", cx - 0.6, cz - 0.6, cx + 0.6, cz + 0.6, h + 0.35, h + 1.2, metal_m)
+    cyl(f"{tag}Tank", cx, cz, h + 1.2, 1.3, 0.75, metal_m)
+    if sign:
+        # sign board on the roof edge facing the hall
+        if face == '+z':
+            sx = (x0 + x1) / 2
+            w = min(x1 - x0 - 1, len(sign) * 0.95)
+            box(f"{tag}SignPostL", sx - w / 2 + 0.4, z1 - 0.7, sx - w / 2 + 0.6, z1 - 0.5, h + 0.35, h + 1.0, metal_m)
+            box(f"{tag}SignPostR", sx + w / 2 - 0.6, z1 - 0.7, sx + w / 2 - 0.4, z1 - 0.5, h + 0.35, h + 1.0, metal_m)
+            box(f"{tag}SignBoard", sx - w / 2, z1 - 0.5, sx + w / 2, z1 - 0.3, h + 0.9, h + 2.6, signbg_m)
+            box(f"{tag}SignTrim", sx - w / 2 - 0.1, z1 - 0.52, sx + w / 2 + 0.1, z1 - 0.28, h + 2.6, h + 2.75, gold_m)
+            text(f"{tag}SignText", sign, sx, h + 1.75, z1 - 0.27, 1.05, white_m, '+z', 0.05)
+            # the name again across the facade, where the room camera sees it
+            box(f"{tag}FaceBand", sx - w / 2, z1, sx + w / 2, z1 + 0.08, 6.7, 8.1, signbg_m)
+            text(f"{tag}FaceText", sign, sx, 7.4, z1 + 0.1, 0.9, white_m, '+z', 0.03)
+        else:  # faces -x
+            sz = (z0 + z1) / 2
+            w = min(z1 - z0 - 1, len(sign) * 0.95)
+            box(f"{tag}SignPostL", x0 + 0.5, sz - w / 2 + 0.4, x0 + 0.7, sz - w / 2 + 0.6, h + 0.35, h + 1.0, metal_m)
+            box(f"{tag}SignPostR", x0 + 0.5, sz + w / 2 - 0.6, x0 + 0.7, sz + w / 2 - 0.4, h + 0.35, h + 1.0, metal_m)
+            box(f"{tag}SignBoard", x0 + 0.3, sz - w / 2, x0 + 0.5, sz + w / 2, h + 0.9, h + 2.6, signbg_m)
+            box(f"{tag}SignTrim", x0 + 0.28, sz - w / 2 - 0.1, x0 + 0.52, sz + w / 2 + 0.1, h + 2.6, h + 2.75, gold_m)
+            text(f"{tag}SignText", sign, x0 + 0.27, h + 1.75, sz, 1.05, white_m, '-x', 0.05)
+            box(f"{tag}FaceBand", x0 - 0.08, sz - w / 2, x0, sz + w / 2, 6.7, 8.1, signbg_m)
+            text(f"{tag}FaceText", sign, x0 - 0.1, 7.4, sz, 0.9, white_m, '-x', 0.03)
+
+
+# behind the stage wall (game -z) and beside the right wall (+x)
+building("MassComm", -18.0, -26.0, 4.0, -15.0, 5, "MASS COMMUNICATION", '+z')
+building("Cordelia", 16.0, -10.0, 25.0, 14.0, 4, "CORDELIA HALL", '-x')
+building("Corner", 9.0, -26.0, 23.0, -15.0, 6)
+building("WestBlock", -24.0, -12.0, -16.0, 4.0, 3)
+
+
+def palm(i, x, z, h=4.5):
+    cyl(f"Palm{i}Trunk", x, z, 0.0, h, 0.14, trunk_m, 8)
+    for k in range(6):
+        a = k * math.pi / 3 + i
+        bpy.ops.mesh.primitive_cone_add(vertices=4, radius1=0.35, radius2=0.0, depth=2.0,
+                                        location=(x + math.cos(a) * 0.9, -(z + math.sin(a) * 0.9), h - 0.2),
+                                        rotation=(math.radians(100) * math.sin(a), math.radians(100) * math.cos(a), 0))
+        l = link(bpy.context.active_object)
+        l.name = f"Palm{i}Leaf{k}"
+        l.data.materials.append(leaf_m)
+
+
+for i, (x, z) in enumerate(((-10.5, -8.5), (-3.0, -8.6), (4.5, -8.6), (8.6, -8.5), (8.6, -1.0), (8.6, 6.5), (-10.6, 1.0), (-10.6, 8.5))):
+    palm(i, x, z, 4.2 + (i % 3) * 0.5)
+
+# ---------- bake transforms, box-UV the tiled pieces, join per material (chairs stay instanced) ----------
+chair_set = set(chairs)
+rest = [o for o in col.objects if o not in chair_set]
+bpy.ops.object.select_all(action='DESELECT')
+for o in rest:
+    o.select_set(True)
+bpy.context.view_layer.objects.active = rest[0]
+bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+for o in rest:
+    if o.name in TILED:
+        boxuv(o, TILED[o.name])
+groups = {}
+for o in rest:
+    if o.type == 'MESH' and o.data.materials:
+        groups.setdefault(o.data.materials[0].name, []).append(o)
+for name, objs in groups.items():
+    bpy.ops.object.select_all(action='DESELECT')
+    for o in objs:
+        o.select_set(True)
+    bpy.context.view_layer.objects.active = objs[0]
+    if len(objs) > 1:
+        bpy.ops.object.join()
+    bpy.context.view_layer.objects.active.name = name
+
+bpy.ops.export_scene.gltf(filepath=OUT, export_format='GLB', export_apply=True, export_lights=False, export_cameras=False)
+print("EXPORTED", OUT, len(col.objects), "objects")
