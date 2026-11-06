@@ -1,6 +1,9 @@
 'use client'
 
+import NumberFlow from '@number-flow/react'
+import { hapticTap } from '@/components/hud/haptic'
 import { PlayerFace } from '@/components/look/player-face'
+import { playSfx } from '@/lib/audio/sfx'
 import { BadgeCheck, ChevronLeft, Flame, MessageCircle, Plus } from 'lucide-react'
 import { Fragment, useCallback, useEffect, useState, type ReactNode } from 'react'
 import {
@@ -38,6 +41,10 @@ function ago(iso: string) {
   if (s < 86400) return `${Math.floor(s / 3600)}h`
   return `${Math.floor(s / 86400)}d`
 }
+
+/** More 🔥 → a warmer gist. */
+const heatOf = (fire: number) => (fire >= 50 ? 'hot' : fire >= 10 ? 'warm' : null)
+const EMBERS = [0, 1, 2, 3, 4, 5]
 
 const prizeLabel = (n: number) => (n >= 1_000_000 ? `₦${n / 1_000_000}m` : `₦${Math.round(n / 1000)}k`)
 
@@ -103,16 +110,27 @@ export function GistCard({
   onOpen,
   onAuthor,
   onChange,
+  reply = false,
 }: {
   post: EtaPost
   onOpen?: () => void
   onAuthor?: (author: EtaAuthor) => void
   onChange?: (post: EtaPost) => void
+  /** A reply in a thread: draws the line down from the avatar. */
+  reply?: boolean
 }) {
   const [busy, setBusy] = useState(false)
+  // Each new fire restarts the flame pop and the embers
+  const [burst, setBurst] = useState(0)
+  const heat = heatOf(post.likes)
   const fire = async () => {
     if (busy || post.mine) return
     setBusy(true)
+    if (!post.liked) {
+      setBurst((n) => n + 1)
+      hapticTap()
+      playSfx('grab')
+    }
     // Optimistic
     onChange?.({ ...post, liked: !post.liked, likes: post.likes + (post.liked ? -1 : 1) })
     const res = await toggleFire(post.id)
@@ -121,7 +139,9 @@ export function GistCard({
     else onChange?.(post)
   }
   return (
-    <article className={`${styles.gist} ${post.giveaway && !post.giveaway.settled ? styles.gistGiveaway : ''}`}>
+    <article
+      className={`${styles.gist} ${post.giveaway && !post.giveaway.settled ? styles.gistGiveaway : ''} ${reply ? styles.gistReply : ''} ${heat === 'hot' ? styles.heatHot : heat === 'warm' ? styles.heatWarm : ''}`}
+    >
       <button type="button" className={styles.avatarBtn} onClick={() => onAuthor?.(post.author)} aria-label={`${post.author.name}'s profile`}>
         <Avatar author={post.author} />
       </button>
@@ -157,7 +177,13 @@ export function GistCard({
             aria-pressed={post.liked}
             aria-label={post.mine ? 'Fire (your gist)' : 'Fire'}
           >
-            <Flame size={15} aria-hidden="true" /> {post.likes || ''}
+            <span key={burst} className={`${styles.flame} ${burst ? styles.flamePop : ''}`} aria-hidden="true">
+              <Flame size={16} />
+              {burst
+                ? EMBERS.map((i) => <i key={i} className={styles.ember} style={{ ['--a' as string]: `${i * 60 - 150}deg` }} />)
+                : null}
+            </span>
+            {post.likes ? <NumberFlow value={post.likes} className={styles.fireCount} /> : null}
           </button>
         </div>
       </div>
@@ -211,12 +237,13 @@ function Composer({ replyTo, prefill = '', onPosted, onCancel }: { replyTo?: str
 }
 
 /** Gist list that keeps its own like/reply updates. */
-export function GistList({ posts, setPosts, onOpen, onAuthor, empty }: {
+export function GistList({ posts, setPosts, onOpen, onAuthor, empty, replies = false }: {
   posts: EtaPost[]
   setPosts: (update: (posts: EtaPost[]) => EtaPost[]) => void
   onOpen?: (post: EtaPost) => void
   onAuthor?: (author: EtaAuthor) => void
   empty: ReactNode
+  replies?: boolean
 }) {
   if (!posts.length) return <p className={styles.hint}>{empty}</p>
   return (
@@ -227,6 +254,7 @@ export function GistList({ posts, setPosts, onOpen, onAuthor, empty }: {
           post={post}
           onOpen={onOpen ? () => onOpen(post) : undefined}
           onAuthor={onAuthor}
+          reply={replies}
           onChange={(next) => setPosts((all) => all.map((p) => (p.id === next.id ? next : p)))}
         />
       ))}
@@ -383,7 +411,7 @@ function Thread({ id, onBack, onAuthor }: { id: string; onBack: () => void; onAu
             }}
           />
           <h3 className={styles.section}>{post.giveaway ? 'Entries · most 🔥 wins' : 'Replies'}</h3>
-          <GistList posts={replies} setPosts={setReplies} onAuthor={onAuthor} empty="No replies yet." />
+          <GistList posts={replies} setPosts={setReplies} onAuthor={onAuthor} empty="No replies yet." replies />
         </>
       ) : !error ? (
         <p className={styles.hint}>Loading…</p>
