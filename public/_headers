@@ -6,6 +6,11 @@
   X-Frame-Options: DENY
   Referrer-Policy: strict-origin-when-cross-origin
 
+# The Snooker table is a static page the phone loads in an iframe, so it must be framable by this site.
+/games/*
+  ! X-Frame-Options
+  X-Frame-Options: SAMEORIGIN
+
 /_next/static/*
   Cache-Control: public, max-age=31536000, immutable
 
