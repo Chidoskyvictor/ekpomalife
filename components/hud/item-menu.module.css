@@ -153,3 +153,6 @@
   grid-template-columns: repeat(auto-fit, minmax(150px, 180px));
   justify-content: center;
 }
+.card.bare {
+  bottom: calc(104px + env(safe-area-inset-bottom));
+}
