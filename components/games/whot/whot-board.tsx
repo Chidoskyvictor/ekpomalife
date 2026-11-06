@@ -53,33 +53,35 @@ export function WhotBoard({ state, subtitle, onExit, onPlay, onPick, disabled }:
       </div>
 
       <div className={styles.opponents}>
-        {(state?.players ?? []).filter((p) => p.seat !== state?.mySeat).map((p) => (
-          <div key={p.seat} className={`${styles.opp} ${p.isTurn ? styles.oppTurn : ''}`}>
-            <div className={styles.oppAvatar}>{p.name.replace('@', '').slice(0, 1).toUpperCase()}</div>
-            <div>{p.name}</div>
-            <div>{p.eliminated ? 'Out' : `${p.cardCount} cards`}</div>
+        {(state?.players ?? []).map((p) => (
+          <div key={p.seat} className={`${styles.opp} ${p.isTurn ? styles.oppTurn : ''} ${p.eliminated ? styles.oppOut : ''}`}>
+            <div className={styles.oppAvatar}>{(p.seat === state?.mySeat ? 'Y' : p.name.replace('@', '').slice(0, 1)).toUpperCase()}</div>
+            <div className={styles.oppName}>{p.seat === state?.mySeat ? 'You' : p.name}</div>
+            <div className={styles.oppCount}>{p.eliminated ? 'Out' : `${p.cardCount} cards`}</div>
           </div>
         ))}
       </div>
 
-      {alertText ? <div className={styles.alert}>{alertText}</div> : null}
-      {state?.phase === 'over' && state.winnerSeat != null ? (
-        <div className={styles.alert}>
-          {state.winnerSeat === state.mySeat ? 'You won! 🏆' : `${state.players[state.winnerSeat]?.name ?? 'Someone'} won.`}
-        </div>
-      ) : null}
+      <div className={styles.status}>
+        {state?.phase === 'over' && state.winnerSeat != null
+          ? state.winnerSeat === state.mySeat
+            ? 'You won! 🏆'
+            : `${state.players[state.winnerSeat]?.name ?? 'Someone'} won.`
+          : (alertText ?? (state?.mustPick && myTurn ? 'You must pick cards' : myTurn ? 'Your turn' : 'Waiting for others…'))}
+      </div>
 
-      <div className={styles.table}>
-        <div className={styles.pile}>
-          {state?.pileTop ? <WhotCardFace card={state.pileTop} size="pile" /> : <WhotCardBack />}
-          <span>Pile{state?.callShape ? ` · ${state.callShape}` : ''}</span>
-        </div>
-        <div className={styles.market}>
-          <div className={styles.marketStack}>
-            <WhotCardBack className={styles.marketCard} />
-            <span className={styles.marketCount}>{state?.marketCount ?? 0}</span>
+      <div className={styles.felt}>
+        <div className={styles.table}>
+          <div className={styles.market}>
+            <div className={styles.marketStack}>
+              <WhotCardBack className={styles.marketCard} />
+            </div>
+            <span className={styles.marketTag}>Market · {state?.marketCount ?? 0}</span>
           </div>
-          <span>Market</span>
+          <div className={styles.pile}>
+            {state?.pileTop ? <WhotCardFace card={state.pileTop} size="pile" /> : <WhotCardBack />}
+            <span>{state?.callShape ? `Call: ${state.callShape}` : 'Pile'}</span>
+          </div>
         </div>
       </div>
 

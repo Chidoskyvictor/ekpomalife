@@ -21,7 +21,6 @@ import {
   MeshLambertMaterial,
   Object3D,
   RepeatWrapping,
-  SphereGeometry,
   SRGBColorSpace,
   Vector3,
   type BufferGeometry,
@@ -723,20 +722,19 @@ function Roadside({ offset, edge, campus, gateLocal }: { offset: Offset } & Stri
 /* —— vehicles (stand-ins) —— */
 
 const BODY_COLORS = ['#c94f4f', '#3d6fb5', '#e8e2d0', '#4a4a4a', '#6aa36a', '#d9a441', '#8b5fa8', '#9aa3ab'].map((c) => new Color(c))
-const DANFO = new Color('#f2c230')
 
 type Car = {
   x: number
   z: number
   /** Units per second along the road in our direction (negative = oncoming). */
   ws: number
-  w: number
-  h: number
-  l: number
+  /** Index into CAR_URLS. */
+  model: number
   color: Color
 }
 
-const CAR_URL = '/models/npc-car.glb?v=1'
+/** Existing hatchback plus the jeep, GT3 and SUV. All are vertex-coloured, front at +z, wheels on the ground. */
+const CAR_URLS = ['/models/npc-car.glb?v=1', '/models/cars/jeep.glb?v=1', '/models/cars/gt3.glb?v=1', '/models/cars/suv.glb?v=1']
 
 /** Copy a (possibly quantized) attribute into plain floats so meshes can be merged and moved. */
 function floatAttribute(attr: BufferGeometry['attributes'][string]) {
@@ -756,8 +754,8 @@ const colorKey = (r: number, g: number, b: number) => `${r.toFixed(2)},${g.toFix
  * npc-car.glb as one geometry (front at +z, wheels on the ground) with its body paint turned white,
  * so each car's instance colour repaints the body while glass, tyres and trim stay dark.
  */
-function useCarGeometry() {
-  const { scene } = useGLTF(CAR_URL)
+function useCarGeometry(url: string) {
+  const { scene } = useGLTF(url)
   return useMemo(() => {
     scene.updateMatrixWorld(true)
     const parts: BufferGeometry[] = []
@@ -797,29 +795,26 @@ function useCarGeometry() {
   }, [scene])
 }
 
-/**
- * Cars (npc-car.glb, each its own colour) and danfos (yellow blocks until a bus model lands) in the
- * lanes, drawn as shared instanced meshes.
- */
+/** Cars of four models, each its own colour, in the lanes, drawn as one shared instanced mesh per model. */
 function Traffic({ plan, rate }: { plan: Plan; rate: Offset }) {
-  const cars = useRef<InstancedMesh>(null)
-  const bodies = useRef<InstancedMesh>(null)
-  const cabins = useRef<InstancedMesh>(null)
-  const carGeometry = useCarGeometry()
+  const g0 = useCarGeometry(CAR_URLS[0]!)
+  const g1 = useCarGeometry(CAR_URLS[1]!)
+  const g2 = useCarGeometry(CAR_URLS[2]!)
+  const g3 = useCarGeometry(CAR_URLS[3]!)
+  const geometries = useMemo(() => [g0, g1, g2, g3], [g0, g1, g2, g3])
+  const meshes = useRef<(InstancedMesh | null)[]>([])
   const carMat = useMemo(() => new MeshLambertMaterial({ vertexColors: true }), [])
-  const geometry = useMemo(() => new BoxGeometry(1, 1, 1), [])
-  const bodyMat = useMemo(() => new MeshLambertMaterial(), [])
-  const cabinMat = useMemo(() => new MeshLambertMaterial({ color: '#2c353b' }), [])
   const dummy = useMemo(() => new Object3D(), [])
 
   const list = useMemo(() => {
     const rand = mulberry32(99)
-    const make = (x: number, z: number, ws: number): Car => {
-      const danfo = rand() < 0.3
-      return danfo
-        ? { x, z, ws, w: 2.1, h: 2.3, l: 5.2, color: DANFO }
-        : { x, z, ws, w: 1.8, h: 1.35, l: 4.2, color: BODY_COLORS[Math.floor(rand() * BODY_COLORS.length)]! }
-    }
+    const make = (x: number, z: number, ws: number): Car => ({
+      x,
+      z,
+      ws,
+      model: Math.floor(rand() * CAR_URLS.length),
+      color: BODY_COLORS[Math.floor(rand() * BODY_COLORS.length)]!,
+    })
     const speed = plan.speed
     const out: Car[] = []
     // Same direction, in the outer lane: slower than us, so we slowly overtake them
@@ -834,8 +829,7 @@ function Traffic({ plan, rate }: { plan: Plan; rate: Offset }) {
     }
     return out
   }, [plan])
-  const carList = useMemo(() => list.filter((car) => car.color !== DANFO), [list])
-  const danfoList = useMemo(() => list.filter((car) => car.color === DANFO), [list])
+  const byModel = useMemo(() => CAR_URLS.map((_, m) => list.filter((car) => car.model === m)), [list])
 
   useFrame((_, delta) => {
     const dt = Math.min(delta, 0.05)
@@ -845,86 +839,64 @@ function Traffic({ plan, rate }: { plan: Plan; rate: Offset }) {
       if (car.z > 40) car.z -= 280 + (i % 5) * 9
       else if (car.z < -300) car.z += 330
     })
-    const carMesh = cars.current
-    if (carMesh) {
-      carList.forEach((car, i) => {
+    byModel.forEach((cars, m) => {
+      const mesh = meshes.current[m]
+      if (!mesh) return
+      cars.forEach((car, i) => {
         dummy.position.set(car.x, 0.1, car.z)
-        // The model's front is +z: our way (−z) turns it round, oncoming keeps it
+        // The models' front is +z: our way (−z) turns them round, oncoming keeps it
         dummy.rotation.set(0, car.ws > 0 ? Math.PI : 0, 0)
         dummy.scale.setScalar(1)
         dummy.updateMatrix()
-        carMesh.setMatrixAt(i, dummy.matrix)
-        carMesh.setColorAt(i, car.color)
+        mesh.setMatrixAt(i, dummy.matrix)
+        mesh.setColorAt(i, car.color)
       })
-      carMesh.instanceMatrix.needsUpdate = true
-      if (carMesh.instanceColor) carMesh.instanceColor.needsUpdate = true
-    }
-    const body = bodies.current
-    const cabin = cabins.current
-    if (!body || !cabin) return
-    danfoList.forEach((car, i) => {
-      dummy.rotation.set(0, 0, 0)
-      dummy.position.set(car.x, car.h / 2 + 0.1, car.z)
-      dummy.scale.set(car.w, car.h * 0.6, car.l)
-      dummy.updateMatrix()
-      body.setMatrixAt(i, dummy.matrix)
-      body.setColorAt(i, car.color)
-      dummy.position.set(car.x, car.h * 0.6 + 0.1 + car.h * 0.2, car.z - car.l * 0.05)
-      dummy.scale.set(car.w * 0.9, car.h * 0.4, car.l * 0.92)
-      dummy.updateMatrix()
-      cabin.setMatrixAt(i, dummy.matrix)
+      mesh.instanceMatrix.needsUpdate = true
+      if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true
     })
-    body.instanceMatrix.needsUpdate = true
-    cabin.instanceMatrix.needsUpdate = true
-    if (body.instanceColor) body.instanceColor.needsUpdate = true
   })
 
   useEffect(
     () => () => {
-      geometry.dispose()
-      bodyMat.dispose()
-      cabinMat.dispose()
       carMat.dispose()
-      carGeometry.dispose()
+      geometries.forEach((g) => g.dispose())
     },
-    [geometry, bodyMat, cabinMat, carMat, carGeometry],
+    [carMat, geometries],
   )
 
   return (
     <>
-      {carList.length ? <instancedMesh ref={cars} args={[carGeometry, carMat, carList.length]} frustumCulled={false} /> : null}
-      {danfoList.length ? (
-        <>
-          <instancedMesh ref={bodies} args={[geometry, bodyMat, danfoList.length]} frustumCulled={false} />
-          <instancedMesh ref={cabins} args={[geometry, cabinMat, danfoList.length]} frustumCulled={false} />
-        </>
-      ) : null}
+      {byModel.map((cars, m) =>
+        cars.length ? (
+          <instancedMesh
+            key={m}
+            ref={(el) => {
+              meshes.current[m] = el
+            }}
+            args={[geometries[m]!, carMat, cars.length]}
+            frustumCulled={false}
+          />
+        ) : null,
+      )}
     </>
   )
 }
 
-/* —— pedestrians (stand-ins) —— */
+/* —— pedestrians: the game's own character, a handful of them —— */
 
-const SHIRTS = ['#d95f3b', '#3d6fb5', '#f0e3c0', '#5a9a5a', '#c94f8a', '#e0b13c', '#7a5fb0', '#2e3a46'].map((c) => new Color(c))
-const SKINS = ['#8a5a3b', '#6b4226', '#a9744f', '#5a3a22'].map((c) => new Color(c))
 const WALK_SPEED = 1.4
+const TOP_COLORS = ['#d95f3b', '#3d6fb5', '#f0e3c0', '#5a9a5a', '#c94f8a', '#e0b13c']
+const SKIN_PICKS = ['#8a5a3b', '#6b4226', '#a9744f', '#5C3317']
 
-type Walker = { x: number; z: number; dir: 1 | -1; shirt: Color; skin: Color; phase: number }
+type Walker = { x: number; z: number; dir: 1 | -1; look: Appearance }
 
 /**
- * People on the sidewalk and the median, as three shared instanced meshes (legs, body, head).
- * Stand-ins for now: to use real characters, swap this for loaded models at the same spots.
+ * A few people on the sidewalk and the median, each the same animated character the player uses.
+ * Kept to five so the road stays light on phones.
  */
 function Walkers({ rate, campus }: { rate: Offset; campus: boolean }) {
-  const legs = useRef<InstancedMesh>(null)
-  const torsos = useRef<InstancedMesh>(null)
-  const heads = useRef<InstancedMesh>(null)
-  const legGeo = useMemo(() => new CylinderGeometry(0.17, 0.15, 0.8, 6), [])
-  const torsoGeo = useMemo(() => new CylinderGeometry(0.22, 0.2, 0.75, 6), [])
-  const headGeo = useMemo(() => new SphereGeometry(0.15, 6, 5), [])
-  const legMat = useMemo(() => new MeshLambertMaterial({ color: '#2b3340' }), [])
-  const bodyMat = useMemo(() => new MeshLambertMaterial(), [])
-  const dummy = useMemo(() => new Object3D(), [])
+  const refs = useRef<(Group | null)[]>([])
+  const walking = useRef(true)
 
   const list = useMemo(() => {
     const rand = mulberry32(31)
@@ -933,73 +905,54 @@ function Walkers({ rate, campus }: { rate: Offset; campus: boolean }) {
       for (let i = 0; i < count; i++) {
         out.push({
           x: x + (rand() - 0.5) * spread,
-          z: -15 - rand() * 230,
+          z: -12 - rand() * 90,
           dir: rand() < 0.5 ? 1 : -1,
-          shirt: SHIRTS[Math.floor(rand() * SHIRTS.length)]!,
-          skin: SKINS[Math.floor(rand() * SKINS.length)]!,
-          phase: rand() * 6,
+          look: normalizeAppearance({
+            body: rand() < 0.5 ? 'man' : 'woman',
+            skin: SKIN_PICKS[Math.floor(rand() * SKIN_PICKS.length)],
+            topColor: TOP_COLORS[Math.floor(rand() * TOP_COLORS.length)],
+            bottomColor: '#2a2a2a',
+          }),
         })
       }
     }
     if (campus) {
-      // Footpaths on both sides of the lane
-      add(-(CAMPUS_ROAD + 0.9), 14, 1.2)
-      add(CAMPUS_ROAD + 0.9, 14, 1.2)
+      add(-(CAMPUS_ROAD + 0.9), 2, 1.2)
+      add(CAMPUS_ROAD + 0.9, 3, 1.2)
     } else {
-      add(WALK.sidewalk, 12, 1.2)
-      add(WALK.median, 8, 0.9)
+      add(WALK.sidewalk, 3, 1.2)
+      add(WALK.median, 2, 0.9)
     }
     return out
   }, [campus])
   const top = campus ? 0.03 : WALK.top
 
-  useFrame(({ clock }, delta) => {
+  useFrame((_, delta) => {
     const dt = Math.min(delta, 0.05)
-    const l = legs.current
-    const t = torsos.current
-    const h = heads.current
-    if (!l || !t || !h) return
     list.forEach((p, i) => {
       // Walking the same way as us moves slower past us than the ground does; against us, faster
       p.z += (rate.current - p.dir * WALK_SPEED) * dt
-      if (p.z > 40) p.z -= 270
-      else if (p.z < -240) p.z += 270
-      const bob = Math.abs(Math.sin(clock.elapsedTime * 5 + p.phase)) * 0.05
-      dummy.scale.set(1, 1, 1)
-      dummy.position.set(p.x, top + 0.4 + bob, p.z)
-      dummy.updateMatrix()
-      l.setMatrixAt(i, dummy.matrix)
-      dummy.position.set(p.x, top + 0.8 + 0.375 + bob, p.z)
-      dummy.updateMatrix()
-      t.setMatrixAt(i, dummy.matrix)
-      t.setColorAt(i, p.shirt)
-      dummy.position.set(p.x, top + 1.55 + 0.15 + bob, p.z)
-      dummy.updateMatrix()
-      h.setMatrixAt(i, dummy.matrix)
-      h.setColorAt(i, p.skin)
+      if (p.z > 30) p.z -= 120
+      else if (p.z < -100) p.z += 120
+      const g = refs.current[i]
+      if (g) g.position.set(p.x, top, p.z)
     })
-    for (const mesh of [l, t, h]) {
-      mesh.instanceMatrix.needsUpdate = true
-      if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true
-    }
   })
-
-  useEffect(
-    () => () => {
-      legGeo.dispose()
-      torsoGeo.dispose()
-      headGeo.dispose()
-      legMat.dispose()
-      bodyMat.dispose()
-    },
-    [legGeo, torsoGeo, headGeo, legMat, bodyMat],
-  )
 
   return (
     <>
-      <instancedMesh ref={legs} args={[legGeo, legMat, list.length]} frustumCulled={false} />
-      <instancedMesh ref={torsos} args={[torsoGeo, bodyMat, list.length]} frustumCulled={false} />
-      <instancedMesh ref={heads} args={[headGeo, bodyMat, list.length]} frustumCulled={false} />
+      {list.map((p, i) => (
+        <group
+          key={i}
+          ref={(el) => {
+            refs.current[i] = el
+          }}
+          position={[p.x, top, p.z]}
+          rotation={[0, p.dir === 1 ? Math.PI : 0, 0]}
+        >
+          <CharacterFigure appearance={p.look} moving={walking} />
+        </group>
+      ))}
     </>
   )
 }
