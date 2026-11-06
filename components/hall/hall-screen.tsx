@@ -36,6 +36,8 @@ import { CHURCH, CHURCH_SEATS, HALL_SEATS, INNOVATION_HUB, LECTURE_HALL, OFFICE,
 import { pushNavigation } from '@/lib/navigation/safe-nav'
 import styles from './hall.module.css'
 import { StagePanel, StageScreen, goLiveHere, useStageSpace } from './stage-spaces'
+import { StageAudio, type StageJoin } from './stage-audio'
+import { joinSpace } from '@/lib/game/spaces-api'
 
 const HomeCanvas = dynamic(() => import('@/components/room/home-canvas').then((m) => m.HomeCanvas), {
   ssr: false,
@@ -174,6 +176,31 @@ export function HallScreen({ hallId }: { hallId: string }) {
   const [stageOpen, setStageOpen] = useState(false)
   const [goingLive, setGoingLive] = useState(false)
   const { live: stageLive, refresh: refreshStage } = useStageSpace(hallId, Boolean(stage) && inside)
+  // The hall's speakers: your connection to the stage Space while you're in here
+  const [stageJoin, setStageJoin] = useState<StageJoin | null>(null)
+  const dropStage = useCallback(() => {
+    setStageJoin(null)
+    refreshStage()
+  }, [refreshStage])
+  const listenStage = async () => {
+    if (!stageLive) return
+    const res = await joinSpace(stageLive.id)
+    if (!res.ok) return notifyToast(res.error || 'Could not reach the stage.', false)
+    setStageJoin(res)
+  }
+  // 🎙️ over whoever is talking (you, or another player in the hall)
+  const lastMark = useRef<Record<string, number>>({})
+  const onSpeaking = useCallback(
+    (ids: string[], localId: string | null) => {
+      const now = Date.now()
+      for (const id of ids) {
+        if (now - (lastMark.current[id] ?? 0) < 2500) continue
+        lastMark.current[id] = now
+        social.showBubble(id === localId ? 'me' : id, '🎙️ Speaking…')
+      }
+    },
+    [social],
+  )
 
   /** Up the steps to the podium, then go live: the Space opens in the phone with your mic. */
   const hostSpace = (title: string) => {
@@ -200,17 +227,14 @@ export function HallScreen({ hallId }: { hallId: string }) {
               control.stop?.()
               return
             }
+            setStageJoin(res.join)
             social.showBubble('me', '🎙️ We are live!')
             if (food) social.showBubble(food.greeter, 'Everyone, please take your seats 👏')
-            startActivity({ emoji: '🎙️', title: `Hosting · ${title}`, seconds: 3600, onCancel: () => control.stop?.() })
             refreshStage()
           })
         },
-        onDone: endActivity,
-        onAbort: () => {
-          setGoingLive(false)
-          endActivity()
-        },
+        onDone: () => {},
+        onAbort: () => setGoingLive(false),
       },
     )
   }
@@ -343,6 +367,9 @@ export function HallScreen({ hallId }: { hallId: string }) {
         />
       </div>
 
+      {stage && inside ? (
+        <StageAudio live={stageLive} join={stageJoin} onJoin={setStageJoin} onDrop={dropStage} onSpeaking={onSpeaking} />
+      ) : null}
       {social.talk ? <PlaceTalkCard social={social} placeName={hall.name} /> : null}
       {social.talk ? null : (
       <PlaceSheet
@@ -388,7 +415,7 @@ export function HallScreen({ hallId }: { hallId: string }) {
             )}
           </PlaceActions>
         ) : null}
-        {stage && (stageOpen || stageLive) ? <StagePanel live={stageLive} inside={inside} busy={goingLive} onHost={hostSpace} /> : null}
+        {stage && (stageOpen || stageLive) ? <StagePanel live={stageLive} inside={inside} busy={goingLive} hearing={stageJoin !== null} onHost={hostSpace} onListen={() => void listenStage()} /> : null}
         {food?.play ? (
           <PlaceActions>
             <PlaceAction emoji={food.play.emoji} title={food.play.title} price="₦200" tags={[{ text: '+Fun', tone: 'good' as const }, { text: '+Social', tone: 'good' as const }]} note={food.play.note} disabled={!inside} onClick={goPlay} />

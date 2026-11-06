@@ -3,8 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { CanvasTexture, SRGBColorSpace } from 'three'
 import { PlaceAction, PlaceActions } from '@/components/hud/place-sheet'
-import { createSpace, fetchSpaces, isJoin, type SpaceCard } from '@/lib/game/spaces-api'
-import { requestOpenSpace } from '@/lib/game/open-spaces'
+import { createSpace, fetchSpaces, isJoin, joinSpace, type SpaceCard, type SpaceJoin } from '@/lib/game/spaces-api'
 import styles from './stage-spaces.module.css'
 
 /*
@@ -37,13 +36,13 @@ export function useStageSpace(placeId: string, enabled: boolean) {
   return { live, refresh: () => setTick((n) => n + 1) }
 }
 
-/** Go live: create the Space here, then open it in the phone (the host joins with the mic). */
-export async function goLiveHere(placeId: string, title: string): Promise<{ ok: true; spaceId: string } | { ok: false; error: string }> {
+/** Go live: create the Space here and join it as host (the hall's speakers carry your voice). */
+export async function goLiveHere(placeId: string, title: string): Promise<{ ok: true; join: SpaceJoin } | { ok: false; error: string }> {
   const res = await createSpace({ title, placeId, visibility: 'public', askToSpeak: true })
   if (!res.ok) return { ok: false, error: res.error || 'Could not start your Space.' }
-  const spaceId = isJoin(res) ? res.spaceId : res.space.id
-  requestOpenSpace({ spaceId })
-  return { ok: true, spaceId }
+  if (isJoin(res)) return { ok: true, join: res }
+  const joined = await joinSpace(res.space.id)
+  return joined.ok ? { ok: true, join: joined } : { ok: false, error: joined.error || 'Could not start your Space.' }
 }
 
 /** The sheet's stage panel: join the live Space, or write a title and host one. */
@@ -51,12 +50,17 @@ export function StagePanel({
   live,
   inside,
   busy,
+  hearing,
   onHost,
+  onListen,
 }: {
   live: SpaceCard | null
   inside: boolean
   busy: boolean
+  /** Already connected to the stage's sound */
+  hearing: boolean
   onHost: (title: string) => void
+  onListen: () => void
 }) {
   const [title, setTitle] = useState('')
   const clean = title.trim()
@@ -74,13 +78,16 @@ export function StagePanel({
             </span>
           </span>
         </div>
-        <PlaceAction
-          emoji={mine ? '🎙️' : '🎧'}
-          title={mine ? 'Back to your Space' : 'Join the live Space'}
-          price="Free"
-          note={mine ? 'You are on the stage.' : 'Listen in, or raise your hand to speak.'}
-          onClick={() => requestOpenSpace({ spaceId: live.id })}
-        />
+        {hearing ? null : (
+          <PlaceAction
+            emoji={mine ? '🎙️' : '🔊'}
+            title={mine ? 'Back on the mic' : 'Hear the stage'}
+            price="Free"
+            note={mine ? 'Reconnect your mic at the podium.' : 'Hear the talk in the hall, raise your hand to speak.'}
+            disabled={!inside}
+            onClick={onListen}
+          />
+        )}
         {!mine ? <p className={styles.note}>The stage is busy. Host your own once this one ends.</p> : null}
       </PlaceActions>
     )
@@ -107,7 +114,7 @@ export function StagePanel({
         <button type="button" className={styles.go} disabled={!inside || busy || clean.length < 3} onClick={() => onHost(clean)}>
           {busy ? 'Going live…' : 'Walk to the podium & go live'}
         </button>
-        <p className={styles.note}>It shows in the Spaces app for everyone in Ekpoma, tagged 📍 Student Conference.</p>
+        <p className={styles.note}>Everyone in the hall hears you. It also shows in the Spaces app, tagged 📍 Student Conference.</p>
       </div>
     </PlaceActions>
   )

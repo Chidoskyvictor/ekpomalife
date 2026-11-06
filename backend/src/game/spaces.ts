@@ -201,7 +201,7 @@ export async function createSpace(userId: string, input: CreateInput) {
     [userId, lagosDayStart(now)],
   )
   if (createCapReached(today.rows[0]?.n ?? 0)) {
-    return fail(429, 'DAILY_LIMIT', `You can start ${ROOMS_PER_DAY} Spaces a day. Try again tomorrow.`)
+    return fail(409, 'DAILY_LIMIT', `You can start ${ROOMS_PER_DAY} Spaces a day. Try again tomorrow.`)
   }
 
   const id = createId()
