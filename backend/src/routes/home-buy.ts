@@ -2,7 +2,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { z } from 'zod'
 import { getSessionUser } from '../auth/current-user.js'
 import { roomFail } from '../game/economy-codes.js'
-import { getHomeBuy, getHomePlacements, moveHomeItem, placeHomeItem, sellHomeItem } from '../game/home-buy.js'
+import { buyHomeDecor, getHomeBuy, getHomePlacements, moveHomeItem, placeHomeItem, sellHomeItem } from '../game/home-buy.js'
 import { isUuidV4, readIdempotencyKey } from '../game/idempotency.js'
 
 function requireIdemKey(request: FastifyRequest, reply: FastifyReply): string | null {
@@ -101,6 +101,23 @@ export async function homeBuyRoutes(app: FastifyInstance) {
     } catch (error) {
       request.log.error(error)
       return reply.code(500).send({ ok: false, error: 'Could not sell that.' })
+    }
+  })
+
+  app.post('/home/decor', limit, async (request, reply) => {
+    const user = await getSessionUser(request)
+    if (!user) return reply.code(401).send({ ok: false, error: 'Log in to play.' })
+    const key = requireIdemKey(request, reply)
+    if (!key) return
+    const parsed = z
+      .object({ zone: z.enum(['wall', 'floor', 'tiles']), value: z.string().min(2).max(40) })
+      .safeParse(request.body)
+    if (!parsed.success) return reply.code(400).send({ ok: false, error: 'Pick a design.' })
+    try {
+      return send(reply, await buyHomeDecor(user.id, parsed.data.zone, parsed.data.value, key))
+    } catch (error) {
+      request.log.error(error)
+      return reply.code(500).send({ ok: false, error: 'Could not change your home.' })
     }
   })
 }

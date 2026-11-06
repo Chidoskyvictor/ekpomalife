@@ -7,6 +7,7 @@ import { Suspense, useEffect, useLayoutEffect, useMemo, type ReactNode } from 'r
 import { Box3, Vector3, type Material, type Mesh, type Object3D } from 'three'
 import { applyGlbTextureAnisotropy } from '@/components/world/glb-textures'
 import { shadeOf } from '@/lib/game/house-paint'
+import { floorColours, type HomeDecor } from '@/lib/game/home-decor'
 import type { Appearance } from '@/lib/game/look'
 import { paintOf, releasePaint } from '@/lib/game/paint-material'
 import type { SpotKey } from '@/lib/game/room-layouts'
@@ -27,6 +28,8 @@ type PlayerProps = {
   layout: RoomLayout
   /** Wall paint (#rrggbb) of whoever lives here; the GLB's own colours when unset. */
   paint?: string
+  /** Floor and kitchen & bath tiles bought in the Design tab. */
+  decor?: HomeDecor
   /** Current game time in minutes, read every frame for the day/night lighting (midday when unset). */
   clock?: () => number
   /** Extra scene pieces in the model's own coordinates (e.g. a club's lights and screens). */
@@ -93,6 +96,57 @@ const WALL_PAINT: Record<string, (hex: string) => string> = {
   Partition: (hex) => shadeOf(hex),
 }
 
+/** Floor materials in the home GLBs: the main floor, and the kitchen & bathroom tiles. Each pair alternates as a checker. */
+const FLOOR_MATS: Record<string, { zone: 'floor' | 'tiles'; step: number }> = {
+  RoomTile0: { zone: 'floor', step: 0 },
+  RoomTile1: { zone: 'floor', step: 1 },
+  ParlourTile0: { zone: 'floor', step: 0 },
+  ParlourTile1: { zone: 'floor', step: 1 },
+  BedTile0: { zone: 'floor', step: 0 },
+  BedTile1: { zone: 'floor', step: 1 },
+  KitchenTile0: { zone: 'tiles', step: 0 },
+  KitchenTile1: { zone: 'tiles', step: 1 },
+  BathTile0: { zone: 'tiles', step: 0 },
+  BathTile1: { zone: 'tiles', step: 1 },
+  // The single room's wooden floor: five planks, blended from one colour to the other
+  Plank: { zone: 'floor', step: 0 },
+  'Plank.001': { zone: 'floor', step: 0.25 },
+  'Plank.002': { zone: 'floor', step: 0.5 },
+  'Plank.003': { zone: 'floor', step: 0.75 },
+  'Plank.004': { zone: 'floor', step: 1 },
+}
+
+function mix(a: string, b: string, t: number): string {
+  const pa = parseInt(a.slice(1), 16)
+  const pb = parseInt(b.slice(1), 16)
+  const ch = (s: number) => Math.round(((pa >> s) & 0xff) * (1 - t) + ((pb >> s) & 0xff) * t).toString(16).padStart(2, '0')
+  return `#${ch(16)}${ch(8)}${ch(0)}`
+}
+
+/** Recolour the floor and kitchen & bath tiles from the home's design; undo on cleanup. */
+function useDecorFloors(root: Object3D, floor: string | undefined, tiles: string | undefined) {
+  useLayoutEffect(() => {
+    const colours = { floor: floorColours(floor), tiles: floorColours(tiles) }
+    if (!colours.floor && !colours.tiles) return
+    const swapped: [Mesh, Material][] = []
+    root.traverse((object) => {
+      const mesh = object as Mesh
+      if (!mesh.isMesh || Array.isArray(mesh.material)) return
+      const slot = FLOOR_MATS[mesh.material.name]
+      const pair = slot ? colours[slot.zone] : undefined
+      if (!slot || !pair) return
+      swapped.push([mesh, mesh.material])
+      mesh.material = paintOf(mesh.material, mix(pair[0], pair[1], slot.step))
+    })
+    return () => {
+      for (const [mesh, original] of swapped) {
+        releasePaint(mesh.material as Material)
+        mesh.material = original
+      }
+    }
+  }, [root, floor, tiles])
+}
+
 /** Swap the walls of a cloned home onto painted copies; undo (and release them) on cleanup. */
 function usePaintedWalls(root: Object3D, paint: string | undefined) {
   useLayoutEffect(() => {
@@ -117,7 +171,7 @@ function usePaintedWalls(root: Object3D, paint: string | undefined) {
 
 const MIDDAY = () => 12 * 60
 
-function HomeModel({ layout, paint, clock = MIDDAY, effects, onPlayerMove, appearance, host, onFurniture, control, spawn, furnishing }: PlayerProps) {
+function HomeModel({ layout, paint, decor, clock = MIDDAY, effects, onPlayerMove, appearance, host, onFurniture, control, spawn, furnishing }: PlayerProps) {
   const gl = useThree((state) => state.gl)
   const { scene } = useGLTF(layout.glb)
   useLayoutEffect(() => {
@@ -132,6 +186,7 @@ function HomeModel({ layout, paint, clock = MIDDAY, effects, onPlayerMove, appea
     return clone
   }, [scene])
   usePaintedWalls(prepared, paint)
+  useDecorFloors(prepared, decor?.floor, decor?.tiles)
 
   return (
     <>

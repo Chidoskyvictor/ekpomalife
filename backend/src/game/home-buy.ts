@@ -15,6 +15,7 @@ import {
 } from './home-buy-rules.js'
 import { liveSpaceMoneyBlock } from './spaces-money.js'
 import { STARTERS, starterSeedSpot } from './home-starters.js'
+import { cleanDecor, decorName, decorPrice, decorZones, type DecorZone } from './home-decor.js'
 
 /*
  * Buy mode: furniture bought with in-game naira and placed on the tile grid of your own home
@@ -190,6 +191,8 @@ export async function getHomeBuy(userId: string, starters = false) {
     lodgingId: normalizeLodgingId(gate.character.lodging_id),
     catalog,
     placements,
+    decor: await loadDecor(pool, gate.character.id),
+    decorZones: decorZones(gate.character.lodging_id),
   }
 }
 
@@ -206,8 +209,8 @@ export async function getHomePlacements(viewerId: string, username: string, star
   const row = target.rows[0]
   if (!row) return fail('Player not found.', 404)
   if (row.user_id !== viewerId && !env.ROOM_VISITS_ENABLED) return fail('Visits are switched off for now.', 403)
-  const [catalog, placements] = await Promise.all([loadCatalog(pool), loadPlacements(pool, row.character_id)])
-  return { ok: true as const, ...withoutStarters({ catalog, placements }, starters) }
+  const [catalog, placements, decor] = await Promise.all([loadCatalog(pool), loadPlacements(pool, row.character_id), loadDecor(pool, row.character_id)])
+  return { ok: true as const, ...withoutStarters({ catalog, placements }, starters), decor }
 }
 
 type Spot = { x: number; z: number; rot: HomeRotation }
@@ -395,4 +398,36 @@ export async function rehomeFurniture(characterId: string, lodgingId: string) {
     client.release()
   }
   return { kept, refunded, refundTotal }
+}
+
+/** A home's design (wall paint, floor, kitchen & bathroom tiles). */
+async function loadDecor(db: Pick<PoolClient, 'query'>, characterId: string) {
+  const res = await db.query<{ home_decor: unknown }>(`SELECT home_decor FROM characters WHERE id = $1`, [characterId])
+  return cleanDecor(res.rows[0]?.home_decor)
+}
+
+/** Buy a wall paint / floor / tiles for your home: checks the home has that zone, charges, saves. */
+export function buyHomeDecor(userId: string, zone: DecorZone, value: string, idemKey: string) {
+  return writeHome(userId, idemKey, 'POST /home/decor', { zone, value }, true, async ({ client, characterId }) => {
+    const lodging = await client.query<{ lodging_id: string | null }>(`SELECT lodging_id FROM characters WHERE id = $1`, [characterId])
+    if (!decorZones(lodging.rows[0]?.lodging_id).includes(zone)) {
+      return bad(zone === 'tiles' ? 'Your home has no kitchen or bathroom tiles to change.' : 'You can’t change that in this home.', 400, 'NO_ZONE')
+    }
+    const price = decorPrice(zone, value)
+    if (price === null) return bad('That design isn’t sold.', 404, 'UNKNOWN_DECOR')
+    const decor = await loadDecor(client, characterId)
+    if (decor[zone] === value.toLowerCase()) return bad('Your home already has that.', 400, 'SAME_DECOR')
+    const name = decorName(zone, value)
+    const what = zone === 'wall' ? 'wall paint' : zone === 'floor' ? 'floor' : 'kitchen & bathroom tiles'
+    if (price > 0) {
+      const wrote = await applyCash(client, characterId, -price, `${name} ${what} for your home`, 'purchase')
+      if (!wrote.ok) return bad('Not enough naira for that.', 400, 'INSUFFICIENT_FUNDS')
+    }
+    const next = { ...decor, [zone]: value.toLowerCase() }
+    await client.query(`UPDATE characters SET home_decor = $2::jsonb WHERE id = $1`, [characterId, JSON.stringify(next)])
+    return {
+      status: 200,
+      body: { ok: true, decor: next, placements: await loadPlacements(client, characterId), message: `${name} ${what} done.` },
+    }
+  })
 }

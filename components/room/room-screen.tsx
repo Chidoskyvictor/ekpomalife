@@ -12,6 +12,8 @@ import { fetchHomeFurniture, fetchVisitFurniture, type HomeItem, type OwnedPiece
 import { exitBuyMode, setBuyAvailable, useBuyUi } from '@/lib/game/home-buy-store'
 import { furnitureUse, homeSpecFor, layoutWithPlaced, placedIdOf, startersFor } from '@/lib/game/home-placed'
 import { resolvePaint } from '@/lib/game/house-paint'
+import { wallHex, type HomeDecor } from '@/lib/game/home-decor'
+import { setOwnedDecor, shownDecor, useDecorUi } from '@/lib/game/home-decor-store'
 import { layoutForLodging, type SpotKey } from '@/lib/game/room-layouts'
 import { roomLightAt } from '@/lib/game/room-lighting'
 import { devPinnedMinute, watMinuteOfDay } from '@/lib/game/wat-clock'
@@ -89,7 +91,10 @@ export function RoomScreen() {
   const buy = useBuyUi()
   // Wall paint follows whoever lives here, so visitors see the owner's colour
   const ownerName = visitingOther ? host?.username : state?.username
-  const paint = ownerName ? resolvePaint({ id: ownerName.toLowerCase() }).hex : undefined
+  // Your own home shows what you're trying on in the Design tab; a visit shows the owner's look
+  const decorUi = useDecorUi()
+  const decor = isOwn ? shownDecor(decorUi) : home.decor
+  const paint = wallHex(decor.wall) ?? (ownerName ? resolvePaint({ id: ownerName.toLowerCase() }).hex : undefined)
 
   // Real WAT time of day, the same for everyone (dev: ?time=21:30 pins it)
   const [pinned, setPinned] = useState<number | null>(null)
@@ -193,6 +198,7 @@ export function RoomScreen() {
           <HomeCanvas
             layout={layout}
             paint={paint}
+            decor={decor}
             clock={clock}
             appearance={state?.appearance}
             host={hostLive ? undefined : hostLook}
@@ -452,6 +458,7 @@ function useRoomActionQueue(control: RoomPlayerControl, run: (action: FurnitureA
 function useHomeFurniture(who: string | null, hasGrid: boolean) {
   const [catalog, setCatalog] = useState<HomeItem[]>([])
   const [placements, setPlacements] = useState<OwnedPiece[]>([])
+  const [decor, setDecor] = useState<HomeDecor>({})
   const [loaded, setLoaded] = useState(false)
   const [enabled, setEnabled] = useState(false)
   const [failed, setFailed] = useState(false)
@@ -468,6 +475,8 @@ function useHomeFurniture(who: string | null, hasGrid: boolean) {
       }
       setCatalog(res.catalog)
       setPlacements(res.placements)
+      setDecor(res.decor ?? {})
+      if (who === '') setOwnedDecor(res.decor ?? {}, 'decorZones' in res ? res.decorZones : [])
       setEnabled('enabled' in res ? res.enabled : false)
       setLoaded(true)
     })
@@ -475,5 +484,5 @@ function useHomeFurniture(who: string | null, hasGrid: boolean) {
       cancelled = true
     }
   }, [who, hasGrid, attempt])
-  return { catalog, placements, setPlacements, loaded, enabled, failed, retry: () => setAttempt((n) => n + 1) }
+  return { catalog, placements, setPlacements, decor, loaded, enabled, failed, retry: () => setAttempt((n) => n + 1) }
 }

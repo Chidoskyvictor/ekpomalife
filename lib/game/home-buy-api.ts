@@ -3,6 +3,7 @@ import type { ApiFail } from '@/lib/api/errors'
 import type { ServerGameState } from './game-api'
 import type { HomePlacement, HomeRotation } from './home-buy-rules'
 import { newIdempotencyKey } from './room-api'
+import type { DecorZone, HomeDecor } from './home-decor'
 
 export type HomeCategory = 'sleep' | 'kitchen' | 'bath' | 'comfort' | 'study' | 'light' | 'deco'
 
@@ -34,8 +35,8 @@ export type HomeItem = {
 
 export type OwnedPiece = HomePlacement & { paid?: number }
 
-type OkOwn = { ok: true; enabled: boolean; lodgingId: string; catalog: HomeItem[]; placements: OwnedPiece[] }
-type OkVisit = { ok: true; catalog: HomeItem[]; placements: OwnedPiece[] }
+type OkOwn = { ok: true; enabled: boolean; lodgingId: string; catalog: HomeItem[]; placements: OwnedPiece[]; decor?: HomeDecor; decorZones?: DecorZone[] }
+type OkVisit = { ok: true; catalog: HomeItem[]; placements: OwnedPiece[]; decor?: HomeDecor }
 type OkWrite = {
   ok: true
   placements: OwnedPiece[]
@@ -80,4 +81,13 @@ export async function moveHomeItem(
 
 export async function sellHomeItem(id: string, key: string): Promise<OkWrite | HomeBuyFail> {
   return apiPost<OkWrite>('/home/sell', { id }, idem(key))
+}
+
+/** Buy a wall paint / floor / kitchen & bath tiles (one key per tap). */
+export async function buyHomeDecor(
+  zone: DecorZone,
+  value: string,
+  key: string,
+): Promise<{ ok: true; decor: HomeDecor; state: ServerGameState; message: string } | HomeBuyFail> {
+  return apiPost('/home/decor', { zone, value }, idem(key))
 }

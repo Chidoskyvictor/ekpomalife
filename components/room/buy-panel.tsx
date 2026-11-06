@@ -12,6 +12,7 @@ import {
   Flower2,
   Lamp,
   LayoutGrid,
+  Paintbrush,
   Rotate3d,
   RotateCw,
   Search,
@@ -50,6 +51,7 @@ import { shapeMap } from '@/lib/game/home-placed'
 import { formatNaira } from '@/lib/game/live'
 import type { RoomView } from '@/lib/game/room-camera'
 import styles from './buy-panel.module.css'
+import { DesignTab } from './design-tab'
 
 /** "Any price" cycles through these caps. */
 const PRICE_STEPS = [
@@ -105,6 +107,8 @@ export function BuyPanel({
   const ui = useBuyUi()
   const cash = state?.cash ?? 0
   const [category, setCategory] = useState<HomeCategory>('sleep')
+  /** The Design tab (paint, floor, tiles) instead of furniture */
+  const [design, setDesign] = useState(false)
   const [query, setQuery] = useState('')
   const [busy, setBusy] = useState(false)
   const [note, setNote] = useState<{ text: string; bad?: boolean } | null>(null)
@@ -390,15 +394,28 @@ export function BuyPanel({
                   if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) e.currentTarget.scrollLeft += e.deltaY
                 }}
               >
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={design}
+                  className={`${styles.chip} ${design ? styles.chipOn : ''}`}
+                  onClick={() => {
+                    closeSearch()
+                    setDesign(true)
+                  }}
+                >
+                  <Paintbrush size={16} aria-hidden="true" /> Design
+                </button>
                 {CATEGORIES.map(({ id, label, Icon }) => (
                   <button
                     key={id}
                     type="button"
                     role="tab"
-                    aria-selected={!query && category === id}
-                    className={`${styles.chip} ${!query && category === id ? styles.chipOn : ''}`}
+                    aria-selected={!design && !query && category === id}
+                    className={`${styles.chip} ${!design && !query && category === id ? styles.chipOn : ''}`}
                     onClick={() => {
                       closeSearch()
+                      setDesign(false)
                       setCategory(id)
                     }}
                   >
@@ -428,7 +445,8 @@ export function BuyPanel({
                   {note.text}
                 </p>
               ) : null}
-              <div className={styles.cards}>
+              {design && !query ? <DesignTab /> : null}
+              <div className={styles.cards} hidden={design && !query}>
                 {items.length === 0 ? <p className={styles.hint}>Nothing like that. Try another word.</p> : null}
                 {items.map((item) => (
                   <button key={item.id} type="button" className={styles.card} onClick={() => pick(item)}>
