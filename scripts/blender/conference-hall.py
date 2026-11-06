@@ -148,8 +148,6 @@ trim_m = mat("Trim", (0.95, 0.93, 0.88), rough=0.8)
 signbg_m = mat("SignBoard", (0.07, 0.23, 0.45), rough=0.6)
 line_m = mat("RoadLine", (0.95, 0.93, 0.85), rough=0.7)
 kerb_m = mat("Kerb", (0.80, 0.80, 0.78), rough=0.9)
-trunk_m = mat("PalmTrunk", (0.45, 0.35, 0.24), rough=0.9)
-leaf_m = mat("PalmLeaf", (0.16, 0.45, 0.16), rough=0.8)
 plant_m = mat("Plant", (0.20, 0.52, 0.22), rough=0.8)
 pot_m = mat("Pot", (0.85, 0.82, 0.75), rough=0.7)
 
@@ -353,23 +351,38 @@ building("Corner", 9.0, -26.0, 23.0, -15.0, 6)
 building("WestBlock", -24.0, -12.0, -16.0, 4.0, 3)
 
 
-def palm(i, x, z, h=4.5):
-    cyl(f"Palm{i}Trunk", x, z, 0.0, h, 0.14, trunk_m, 8)
-    for k in range(6):
-        a = k * math.pi / 3 + i
-        bpy.ops.mesh.primitive_cone_add(vertices=4, radius1=0.35, radius2=0.0, depth=2.0,
-                                        location=(x + math.cos(a) * 0.9, -(z + math.sin(a) * 0.9), h - 0.2),
-                                        rotation=(math.radians(100) * math.sin(a), math.radians(100) * math.cos(a), 0))
-        l = link(bpy.context.active_object)
-        l.name = f"Palm{i}Leaf{k}"
-        l.data.materials.append(leaf_m)
-
-
-for i, (x, z) in enumerate(((-10.5, -8.5), (-3.0, -8.6), (4.5, -8.6), (8.6, -8.5), (8.6, -1.0), (8.6, 6.5), (-10.6, 1.0), (-10.6, 8.5))):
-    palm(i, x, z, 4.2 + (i % 3) * 0.5)
+# Tree ferns (scripts/blender/assets/tree-fern.glb): one mesh, instanced round the courtyard
+FERN = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "tree-fern.glb")
+before = set(bpy.data.objects)
+bpy.ops.import_scene.gltf(filepath=FERN)
+parts = [o for o in bpy.data.objects if o not in before]
+part_names = [o.name for o in parts]
+meshes = [o for o in parts if o.type == 'MESH']
+bpy.ops.object.select_all(action='DESELECT')
+for o in meshes:
+    o.select_set(True)
+bpy.context.view_layer.objects.active = meshes[0]
+bpy.ops.object.parent_clear(type='CLEAR_KEEP_TRANSFORM')
+bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+if len(meshes) > 1:
+    bpy.ops.object.join()
+fern = bpy.context.active_object
+for n in part_names:
+    if n != fern.name and n in bpy.data.objects:
+        bpy.data.objects.remove(bpy.data.objects[n], do_unlink=True)
+link(fern)
+fern.name = "Fern_0"
+ferns = []
+for i, (x, z, sc) in enumerate(((-10.5, -8.5, 0.6), (-1.0, -8.6, 0.52), (8.6, -8.5, 0.62), (8.6, 1.0, 0.55), (-10.6, 1.0, 0.58), (-10.6, 8.5, 0.5))):
+    o = fern if i == 0 else link(fern.copy())
+    o.name = f"Fern_{i}"
+    o.location = (x, -z, 0)
+    o.scale = (sc, sc, sc)
+    o.rotation_euler = (0, 0, i * 1.3)
+    ferns.append(o)
 
 # ---------- bake transforms, box-UV the tiled pieces, join per material (chairs stay instanced) ----------
-chair_set = set(chairs)
+chair_set = set(chairs) | set(ferns)
 rest = [o for o in col.objects if o not in chair_set]
 bpy.ops.object.select_all(action='DESELECT')
 for o in rest:

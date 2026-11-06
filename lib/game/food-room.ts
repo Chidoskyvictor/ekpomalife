@@ -45,6 +45,8 @@ export type FoodPlace = {
   /** A shop with nothing on sale yet: the counter says out of stock, nothing can be bought */
   soldOut?: boolean
   /** A place to play instead of a counter (Play and Chill): walk to `spot`, then a timed activity */
+  /** A stage to host Spaces from (Student Conference): the podium spot and the screen behind it */
+  stage?: { spot: string; screen: { at: [number, number, number]; size: [number, number] } }
   play?: { spot: string; emoji: string; title: string; seconds: number; note: string; style: 'stand' | 'dance' }
 }
 

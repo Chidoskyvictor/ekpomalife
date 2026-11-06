@@ -47,7 +47,7 @@ const seatSpots: Record<string, FurnitureSpot> = Object.fromEntries(
 export const CONFERENCE: RoomLayout = {
   id: 'office',
   label: 'Student Conference',
-  glb: '/models/conference-hall.glb?v=1',
+  glb: '/models/conference-hall.glb?v=2',
   floors: [[-8, -6, 6, 6]],
   blocks: [
     [-6.5, -6.2, 4.5, -3.85], // stage
@@ -63,7 +63,10 @@ export const CONFERENCE: RoomLayout = {
     // Up the steps and behind the podium, facing the hall
     [PODIUM_KEY]: { approach: [-1.0, -3.4], at: [-1.0, STAGE_Y, -5.15], heading: 0 } satisfies FurnitureSpot,
   },
-  tapBoxes: {},
+  // Every free chair can be tapped to sit on it
+  tapBoxes: Object.fromEntries(
+    SEATS.filter((s) => !NPCS.some((n) => n.seat === s.id)).map((s) => [seatKey(s.id), [s.x - 0.28, 0, s.z - 0.28, s.x + 0.28, 1.05, s.z + 0.33]]),
+  ),
   host: { position: [0, 0, 0], rotation: 0 },
   view: 'corner',
   cameraScale: 2.3,
@@ -79,5 +82,6 @@ export const CONFERENCE_PLACE: FoodPlace = {
   greeter: 'cf-usher',
   greeting: 'Welcome to the Student Conference. Sit anywhere!',
   orderNote: '',
+  stage: { spot: PODIUM_KEY, screen: { at: [-1.0, 2.41, -5.86], size: [7.0, 1.58] } },
   play: { spot: PODIUM_KEY, emoji: '🎤', title: 'Give a talk', seconds: 30, note: 'Speak at the podium: +Fun, +Social', style: 'stand' },
 }

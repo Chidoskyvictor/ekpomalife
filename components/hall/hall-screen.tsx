@@ -1,7 +1,7 @@
 'use client'
 
 import { actionSeconds } from '@/lib/game/action-seconds'
-import { BookOpen, Map as MapIcon, Users, UtensilsCrossed } from 'lucide-react'
+import { BookOpen, Map as MapIcon, Mic, Users, UtensilsCrossed } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -35,6 +35,7 @@ import { hallFor, officeFor } from '@/lib/game/halls'
 import { CHURCH, CHURCH_SEATS, HALL_SEATS, INNOVATION_HUB, LECTURE_HALL, OFFICE, seatKey, type HallSeat, type RoomLayout } from '@/lib/game/room-layouts'
 import { pushNavigation } from '@/lib/navigation/safe-nav'
 import styles from './hall.module.css'
+import { StagePanel, StageScreen, goLiveHere, useStageSpace } from './stage-spaces'
 
 const HomeCanvas = dynamic(() => import('@/components/room/home-canvas').then((m) => m.HomeCanvas), {
   ssr: false,
@@ -168,6 +169,52 @@ export function HallScreen({ hallId }: { hallId: string }) {
     )
   }
 
+  // Student Conference: host a Space from the podium; the screen shows whoever is live
+  const stage = food?.stage
+  const [stageOpen, setStageOpen] = useState(false)
+  const [goingLive, setGoingLive] = useState(false)
+  const { live: stageLive, refresh: refreshStage } = useStageSpace(hallId, Boolean(stage) && inside)
+
+  /** Up the steps to the podium, then go live: the Space opens in the phone with your mic. */
+  const hostSpace = (title: string) => {
+    if (!stage || goingLive) return
+    if (stageLive && !stageLive.mine) {
+      notifyToast('The stage is busy. Join as a listener for now.', false)
+      return
+    }
+    setGoingLive(true)
+    setExpanded(false)
+    social.setTalk(null)
+    let started = false
+    control.use?.(
+      stage.spot as Parameters<NonNullable<typeof control.use>>[0],
+      { style: 'stand', seconds: 3600 },
+      {
+        onStart: () => {
+          if (started) return
+          started = true
+          void goLiveHere(hallId, title).then((res) => {
+            setGoingLive(false)
+            if (!res.ok) {
+              notifyToast(res.error, false)
+              control.stop?.()
+              return
+            }
+            social.showBubble('me', '🎙️ We are live!')
+            if (food) social.showBubble(food.greeter, 'Everyone, please take your seats 👏')
+            startActivity({ emoji: '🎙️', title: `Hosting · ${title}`, seconds: 3600, onCancel: () => control.stop?.() })
+            refreshStage()
+          })
+        },
+        onDone: endActivity,
+        onAbort: () => {
+          setGoingLive(false)
+          endActivity()
+        },
+      },
+    )
+  }
+
   const onFoodNpc = (npc: FoodNpc) => {
     if (!npc.seated && !food?.play) return goToCounter()
     setMenuOpen(false)
@@ -205,6 +252,7 @@ export function HallScreen({ hallId }: { hallId: string }) {
       {isHub ? <HubNpcs onTap={(id) => goToDesk(id)} onSeat={(id) => sit(undefined, id)} /> : null}
       {isChurch ? <ChurchNpcs /> : null}
       {food ? <FoodNpcs npcs={food.npcs} onTap={onFoodNpc} bubbles={social.bubbles} /> : null}
+      {stage ? <StageScreen live={stageLive} at={stage.screen.at} size={stage.screen.size} /> : null}
       <ClubPeers
         peers={live.peers}
         roster={live.roster}
@@ -214,7 +262,7 @@ export function HallScreen({ hallId }: { hallId: string }) {
       </>
     ),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- goToDesk only uses the stable control
-    [live.peers, live.roster, social, isHub, isChurch, food],
+    [live.peers, live.roster, social, isHub, isChurch, food, stage, stageLive],
   )
 
   /** Nearest chair to you that nobody in your group is sitting on (or standing at). */
@@ -284,6 +332,13 @@ export function HallScreen({ hallId }: { hallId: string }) {
           appearance={state?.appearance}
           control={control}
           effects={effects}
+          onFurniture={
+            inside
+              ? (key) => {
+                  if (key.startsWith('seat:')) sit(undefined, key.slice(5))
+                }
+              : undefined
+          }
           onPlayerMove={inside ? onPlayerMove : undefined}
         />
       </div>
@@ -298,7 +353,11 @@ export function HallScreen({ hallId }: { hallId: string }) {
           ...(inside
             ? [{ icon: <Users size={18} />, label: 'People', onClick: () => setPeopleOpen(true), badge: count > 1 ? Math.min(count, 99) : undefined }]
             : []),
-          ...(isFood ? [{ icon: <UtensilsCrossed size={18} />, label: 'Order', onClick: () => (menuOpen ? setMenuOpen(false) : goToCounter()) }] : []),
+          ...(stage
+            ? [{ icon: <Mic size={18} />, label: 'Host a Space', onClick: () => { setStageOpen((o) => !o); setExpanded(true) }, badge: stageLive ? 1 : undefined }]
+            : isFood && !food?.play
+              ? [{ icon: <UtensilsCrossed size={18} />, label: 'Order', onClick: () => (menuOpen ? setMenuOpen(false) : goToCounter()) }]
+              : []),
           { icon: <MapIcon size={18} />, label: 'Map', onClick: leave },
         ]}
         expanded={expanded}
@@ -329,6 +388,7 @@ export function HallScreen({ hallId }: { hallId: string }) {
             )}
           </PlaceActions>
         ) : null}
+        {stage && (stageOpen || stageLive) ? <StagePanel live={stageLive} inside={inside} busy={goingLive} onHost={hostSpace} /> : null}
         {food?.play ? (
           <PlaceActions>
             <PlaceAction emoji={food.play.emoji} title={food.play.title} price="₦200" tags={[{ text: '+Fun', tone: 'good' as const }, { text: '+Social', tone: 'good' as const }]} note={food.play.note} disabled={!inside} onClick={goPlay} />
