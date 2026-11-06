@@ -1,7 +1,7 @@
 'use client'
 
 import { PlayerFace } from '@/components/look/player-face'
-import { Bell, Check, ChevronLeft, DoorOpen, Home, MoreHorizontal, Search, Send, Smile, SquarePen, User, Users, X } from 'lucide-react'
+import { Bell, Check, ChevronLeft, DoorOpen, Home, MoreHorizontal, Search, Send, Smile, SquarePen, User, Users, X, Lock } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { PlayerProfilePanel } from '@/components/profile/player-profile-panel'
@@ -696,6 +696,15 @@ function ChatView({
         ) : null}
         {loading ? <MessagesSkeleton /> : null}
         {error ? <p className={styles.errorText}>{error}</p> : null}
+        {/* Like WhatsApp's note at the top of a chat: who can see it (true to how the server checks) */}
+        {!loading && !hasMore ? (
+          <p className={styles.privacyNote}>
+            <Lock size={12} aria-hidden="true" />
+            {direct && chat.peer
+              ? `This chat is private. Only you and @${chat.peer.username} can see these messages.`
+              : `Everyone in ${chat.title || 'this hostel'} can see this group chat.`}
+          </p>
+        ) : null}
         {!loading && messages.length === 0 && direct && chat.peer ? (
           <p className={styles.hint}>Say hi to {chat.peer.displayName} 👋</p>
         ) : null}
