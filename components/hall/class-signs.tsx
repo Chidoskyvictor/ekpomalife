@@ -4,19 +4,11 @@ import { useLayoutEffect } from 'react'
 import { CanvasTexture, MeshBasicMaterial, SRGBColorSpace, type Material, type Mesh, type Object3D } from 'three'
 
 /** One board's look: navy with a thin gold rule and the name in white capitals. */
-function signTexture(name: string, board: number) {
+function signTexture(name: string) {
   const c = document.createElement('canvas')
   c.width = 1024
   c.height = 136
   const g = c.getContext('2d')!
-  // Each board's UVs face a different way in the model: board 0 needs a mirror, board 1 a vertical flip
-  if (board === 0) {
-    g.translate(c.width, 0)
-    g.scale(-1, 1)
-  } else {
-    g.translate(0, c.height)
-    g.scale(1, -1)
-  }
   g.fillStyle = '#13294b'
   g.fillRect(0, 0, c.width, c.height)
   g.fillStyle = '#c9a227'
@@ -35,6 +27,8 @@ function signTexture(name: string, board: number) {
   g.fillText(text, c.width / 2, c.height / 2 + 2)
   const t = new CanvasTexture(c)
   t.colorSpace = SRGBColorSpace
+  // The boards' UVs come from glTF (v runs top-down), so don't flip the canvas like a normal texture
+  t.flipY = false
   t.anisotropy = 4
   return t
 }
@@ -49,7 +43,7 @@ export function ClassSigns({ root, names }: { root: Object3D; names: [string, st
     names.forEach((name, i) => {
       const mesh = root.getObjectByName(`SignBoard${i}`) as Mesh | undefined
       if (!mesh?.isMesh) return
-      const map = signTexture(name, i)
+      const map = signTexture(name)
       swapped.push([mesh, mesh.material as Material])
       mesh.material = new MeshBasicMaterial({ map, toneMapped: false })
     })
