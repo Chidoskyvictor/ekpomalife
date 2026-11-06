@@ -7,7 +7,7 @@ import { COMING_SOON } from '@/lib/game/place-info'
 import base from './map-place-sheet.module.css'
 import styles from './market-hub-sheet.module.css'
 
-const MARKET_HUB_GROUP = 'https://chat.whatsapp.com/Gai8In9DMlF3G2vW9UzQvI?s=sw&p=a&iam=2'
+const MARKET_HUB_GROUP = 'https://chat.whatsapp.com/Gai8In9DMlF3G2vW9UzQvI?s=cl&p=a&mlu=4&ilr=4'
 
 /**
  * Tap the Market Hub on the map: it is still being built, so this says what is coming
