@@ -1,3 +1,4 @@
+import { placeLock } from './place-locks.js'
 /** mirror lib/game/phone.ts — shared ids/constants + server phone domain */
 
 import { roadKm } from './road-distances.js'
@@ -897,6 +898,8 @@ export async function takeRide(
       body: { to: toPlaceId, mode },
       run: async () => {
         const { row } = await tickAndLoad(client, gate.character, gate.traits)
+        const locked = placeLock(toPlaceId)
+        if (locked) return { status: 400, body: { ok: false, error: locked, code: 'LOCKED' } }
         const quoted = rideQuote(row.location_id, toPlaceId)
         if (!quoted.ok) {
           return {

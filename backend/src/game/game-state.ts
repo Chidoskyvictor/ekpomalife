@@ -1,3 +1,4 @@
+import { placeLock } from './place-locks.js'
 import { awardSkill, skillForAction } from './skills.js'
 import type { PoolClient } from 'pg'
 import { pool } from '../db.js'
@@ -510,6 +511,11 @@ export async function performGameAction(
       if (!place.actions.includes(action.id)) {
         await client.query('ROLLBACK')
         return { ok: false, error: `You cannot ${action.label.toLowerCase()} here.`, code: 400 }
+      }
+      const locked = placeLock(place.id)
+      if (locked) {
+        await client.query('ROLLBACK')
+        return { ok: false, error: locked, code: 400 }
       }
       const hours = action.openHours ?? place.openHours
       if (!isOpenAt(hours, clock.hour)) {
