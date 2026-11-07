@@ -41,6 +41,7 @@ import { EtaApp } from './apps/eta-app'
 import { GamesApp } from './apps/games-app'
 import { AnonymousApp } from './apps/anonymous-app'
 import { SpacesApp } from './apps/spaces-app'
+import { GuideApp } from './apps/guide-app'
 import { PhoneHome, phoneModeFromStorage } from './phone-home'
 import { PhoneStatusBar } from './phone-status-bar'
 import { WallpaperSkyline } from './wallpaper-skyline'
@@ -182,7 +183,8 @@ export function PhoneShell({
   const openApp = async (id: PhoneAppId) => {
     const meta = PHONE_APPS.find((a) => a.id === id)
     setAppId(id)
-    if (meta?.status === 'soon') return
+    // The Guide works offline and isn't a server app (no battery or data cost).
+    if (meta?.status === 'soon' || id === 'guide') return
     const res = await mobileApi.open(id)
     if (!res.ok) {
       if (res.code === 'BATTERY_DEAD') {
@@ -326,6 +328,15 @@ export function PhoneShell({
                         {appId === 'anonymous' ? <AnonymousApp onHome={goHome} /> : null}
                         {appId === 'spaces' ? (
                           <SpacesApp currentPlaceId={mobileApi.location?.placeId ?? state?.locationId ?? null} onHome={goHome} />
+                        ) : null}
+                        {appId === 'guide' ? (
+                          <GuideApp
+                            onOpenApp={(id) => void openApp(id)}
+                            onGo={(id) => {
+                              select(id)
+                              close()
+                            }}
+                          />
                         ) : null}
                         {appId === 'settings' ? (
                           <SettingsApp

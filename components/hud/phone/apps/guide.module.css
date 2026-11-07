@@ -1,0 +1,226 @@
+.wrap {
+  position: relative;
+  display: flex;
+  min-height: 100%;
+  flex-direction: column;
+  gap: 14px;
+  font-family: var(--font-jakarta), system-ui, sans-serif;
+}
+.hero {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #15803d 0%, #16a34a 60%, #22c55e 100%);
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(21, 128, 61, 0.25);
+}
+.heroText {
+  min-width: 0;
+  flex: 1;
+}
+.kicker {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  opacity: 0.85;
+  text-transform: uppercase;
+}
+.hero h3 {
+  margin: 2px 0 4px;
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+.hero p {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.35;
+  opacity: 0.92;
+}
+.ring {
+  position: relative;
+  display: grid;
+  width: 56px;
+  height: 56px;
+  flex: none;
+  place-items: center;
+}
+.ring svg {
+  position: absolute;
+  inset: 0;
+  transform: rotate(-90deg);
+}
+.ringBg {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.25);
+  stroke-width: 5;
+}
+.ringFg {
+  fill: none;
+  stroke: #fff;
+  stroke-linecap: round;
+  stroke-width: 5;
+  transition: stroke-dashoffset 0.4s ease;
+}
+.ring span {
+  font-size: 12px;
+  font-weight: 800;
+}
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.card {
+  position: relative;
+  display: flex;
+  min-height: 112px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid #eef0f3;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
+  color: #111827;
+  font: inherit;
+  text-align: left;
+  transition: transform 0.12s ease;
+}
+.card:active {
+  transform: scale(0.97);
+}
+.card strong {
+  margin-top: 4px;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+.card small {
+  color: #6b7280;
+  font-size: 11.5px;
+  line-height: 1.3;
+}
+.icon {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  place-items: center;
+  border-radius: 12px;
+  font-size: 21px;
+}
+.tick {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: grid;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+  border-radius: 999px;
+  background: #16a34a;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 900;
+}
+.scrim {
+  /* fixed = pinned to the app frame (its motion transform makes it the containing block) */
+  position: fixed;
+  z-index: 5;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.35);
+}
+.sheet {
+  position: fixed;
+  z-index: 6;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  max-height: 82%;
+  overflow-y: auto;
+  padding: 8px 18px 24px;
+  border-radius: 24px 24px 0 0;
+  background: #fff;
+  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.15);
+}
+.grab {
+  width: 40px;
+  height: 4px;
+  margin: 0 auto 10px;
+  border-radius: 999px;
+  background: #e5e7eb;
+}
+.sheetHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.sheetHead h3 {
+  flex: 1;
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+}
+.close {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border: none;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #111827;
+}
+.steps {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.steps li {
+  display: flex;
+  gap: 12px;
+}
+.num {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  flex: none;
+  place-items: center;
+  border-radius: 999px;
+  background: #dcfce7;
+  color: #15803d;
+  font-size: 13px;
+  font-weight: 800;
+}
+.steps strong {
+  display: block;
+  font-size: 14.5px;
+  font-weight: 800;
+  line-height: 1.3;
+}
+.steps p {
+  margin: 3px 0 0;
+  color: #4b5563;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.showMe {
+  min-height: 34px;
+  margin-top: 8px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 999px;
+  background: #16a34a;
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+}
