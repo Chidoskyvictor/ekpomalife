@@ -47,16 +47,16 @@ export function LoginExplore() {
       <div
         role="group"
         aria-label="Explore Ekpoma Life"
-        className="flex flex-wrap items-center justify-center gap-1.5 font-sans"
+        className="flex flex-nowrap items-center justify-center gap-1 whitespace-nowrap" style={{ fontFamily: 'var(--font-jakarta), system-ui, sans-serif' }}
       >
         {ITEMS.map((item) => (
           <button
             key={item.key}
             type="button"
             onClick={() => setOpen(item)}
-            className="inline-flex h-7 items-center gap-1 rounded-full bg-white/95 px-2.5 text-[12.5px] font-medium text-neutral-900 shadow-sm ring-1 ring-black/5"
+            className="inline-flex h-[26px] shrink-0 items-center gap-1 rounded-full bg-white/55 px-2 text-[11.5px] font-semibold tracking-[-0.01em] text-neutral-900 shadow-[0_2px_8px_rgba(0,0,0,0.12)] ring-1 ring-white/70 backdrop-blur-md"
           >
-            <span aria-hidden="true">{item.emoji}</span>
+            <span aria-hidden="true" className="text-[12px] leading-none">{item.emoji}</span>
             {item.label}
           </button>
         ))}
