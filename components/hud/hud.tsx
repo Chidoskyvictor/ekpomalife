@@ -1,6 +1,5 @@
 'use client'
 
-import { PitchDayPill } from './pitch-day-pill'
 import { useUpdateAvailable } from '@/lib/game/update-check'
 import { setPhoneOpenFlag } from '@/lib/game/phone-open'
 import { BackgroundNotifications } from './background-notifications'
@@ -262,7 +261,6 @@ export function Hud() {
             onRetry={bootError ? retryBoot : undefined}
             onMood={() => openProfile('needs')}
           />
-          {!phoneOpen && !buyOpen ? <PitchDayPill /> : null}
         </div>
         {/* What you're doing and what's next (Sims-style tiles): fills up, ✕ cancels */}
         <div className={styles.activityRow}>
