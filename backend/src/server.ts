@@ -35,6 +35,7 @@ import { gamesRoutes } from './routes/games.js'
 import { whotRoutes } from './routes/whot.js'
 import { adminRoutes } from './routes/admin.js'
 import { spacesRoutes } from './routes/spaces.js'
+import { anonymousRoutes } from './routes/anonymous.js'
 import { walletRoutes } from './routes/wallet.js'
 
 const app = Fastify({
@@ -135,6 +136,9 @@ const ROUTE_MAP = {
   spaceCreate: 'POST /spaces',
   spaceJoin: 'POST /spaces/:id/join',
   spaceJoinCode: 'POST /spaces/join-code/:code',
+  anonymousFeed: 'GET /anonymous/feed?sort=new|trending&category=&wall=',
+  anonymousPost: 'POST /anonymous/posts',
+  anonymousWalls: 'GET|POST /anonymous/walls',
   walletPacks: 'GET /wallet/packs',
   walletTopupInit: 'POST /wallet/topup/init',
   walletTopupVerify: 'GET /wallet/topup/verify/:reference',
@@ -175,6 +179,7 @@ await app.register(venueRoutes)
 await app.register(gamesRoutes)
 await app.register(whotRoutes)
 await app.register(spacesRoutes)
+await app.register(anonymousRoutes)
 await app.register(adminRoutes)
 await app.register(hubRoutes)
 await app.register(rentalsRoutes)

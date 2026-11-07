@@ -19,6 +19,7 @@ export type PhoneAppId =
   | 'settings'
   | 'prodigy'
   | 'houses'
+  | 'anonymous'
 
 export type WallpaperId = 'aau-dusk' | 'ekpoma-night' | 'harmattan' | 'green-white'
 
@@ -49,6 +50,7 @@ export const DATA_COST_MB: Partial<Record<PhoneAppId, number>> = {
   music: 5,
   games: 3,
   spaces: 3,
+  anonymous: 2,
   map: 1,
 }
 
@@ -122,6 +124,7 @@ export const PHONE_APPS: PhoneAppMeta[] = [
   { id: 'profile', label: 'Profile', emoji: '👤', status: 'live', tint: '#0ea5e9' },
   { id: 'games', label: 'Games', emoji: '🎮', status: 'live', tint: '#0891b2' },
   { id: 'spaces', label: 'Spaces', emoji: '🎙️', status: 'live', tint: '#7c3aed' },
+  { id: 'anonymous', label: 'Anonymous', emoji: '🎭', status: 'live', tint: '#4c1d95' },
   { id: 'settings', label: 'Settings', emoji: '⚙️', status: 'live', tint: '#64748b' },
   { id: 'portal', label: 'Results', emoji: '🎓', status: 'soon', tint: '#7c3aed' },
   { id: 'music', label: 'Music', emoji: '🎧', status: 'soon', tint: '#e11d48' },
@@ -167,6 +170,7 @@ export const COMING_SOON_COPY: Record<PhoneAppId, string> = {
   spaces: '',
   settings: '',
   houses: '',
+  anonymous: '',
 }
 
 export const PHONE_MODE_KEY = 'ekpoma-phone-mode'

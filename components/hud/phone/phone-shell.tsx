@@ -39,6 +39,7 @@ import { ProdigyApp } from './apps/prodigy-app'
 import { InvestApp } from './apps/invest-app'
 import { EtaApp } from './apps/eta-app'
 import { GamesApp } from './apps/games-app'
+import { AnonymousApp } from './apps/anonymous-app'
 import { SpacesApp } from './apps/spaces-app'
 import { PhoneHome, phoneModeFromStorage } from './phone-home'
 import { PhoneStatusBar } from './phone-status-bar'
@@ -280,7 +281,7 @@ export function PhoneShell({
                   <div className={styles.content}>
                     <PhoneStatusBar clock={phoneClock} phone={deviceState} onApp={Boolean(appId)} />
                     {appId ? (
-                      <AppFrame appId={appId} offline={offline} onHome={goHome} bare={appId === 'messages' || appId === 'games' || appId === 'spaces' || appId === 'prodigy'}>
+                      <AppFrame appId={appId} offline={offline} onHome={goHome} bare={appId === 'messages' || appId === 'games' || appId === 'spaces' || appId === 'prodigy' || appId === 'anonymous'}>
                         {appId === 'jobs' ? <JobsApp /> : null}
                         {appId === 'bank' ? <BankApp /> : null}
                         {appId === 'gist' ? <GistApp /> : null}
@@ -322,6 +323,7 @@ export function PhoneShell({
                         {appId === 'prodigy' ? <ProdigyApp onHome={goHome} /> : null}
                         {appId === 'eta' ? <EtaApp /> : null}
                         {appId === 'games' ? <GamesApp onHome={goHome} /> : null}
+                        {appId === 'anonymous' ? <AnonymousApp onHome={goHome} /> : null}
                         {appId === 'spaces' ? (
                           <SpacesApp currentPlaceId={mobileApi.location?.placeId ?? state?.locationId ?? null} onHome={goHome} />
                         ) : null}
