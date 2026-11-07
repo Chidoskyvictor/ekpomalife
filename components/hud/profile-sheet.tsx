@@ -1,5 +1,6 @@
 'use client'
 
+import { SkillsPanel } from './skills-panel'
 import { PlayerFace } from '@/components/look/player-face'
 import { Pencil, Settings } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -303,12 +304,6 @@ function GoalsTab({ state, onChangeDream }: { state: GameState; onChangeDream: (
 
 function SkillsTab({ state }: { state: GameState }) {
   const level = levelFromXp(state.xp)
-  const traits = TRAITS.filter((t) => state.traits?.includes(t.id))
-  const stats = [
-    { label: 'Academics', value: state.academic, emoji: '📚' },
-    { label: 'Reputation', value: state.reputation, emoji: '⭐' },
-    { label: 'Health', value: state.health, emoji: '❤️' },
-  ]
   return (
     <>
       <div className={styles.card}>
@@ -323,35 +318,7 @@ function SkillsTab({ state }: { state: GameState }) {
         </div>
         <Bar value={level.progress * 100} color="#2f7cf6" />
       </div>
-      <div className={styles.card}>
-        {stats.map((s) => {
-          const value = Math.round(Math.max(0, Math.min(100, s.value)))
-          return (
-            <div key={s.label} className={styles.needRow}>
-              <span className={styles.statEmoji} aria-hidden="true">
-                {s.emoji}
-              </span>
-              <span className={styles.needLabel}>{s.label}</span>
-              <Bar value={value} color={TONE[needTone(value)]} />
-              <span className={styles.needValue}>{value}</span>
-            </div>
-          )
-        })}
-      </div>
-      <p className={styles.section}>Traits</p>
-      {traits.length ? (
-        traits.map((t) => (
-          <div key={t.id} className={styles.feeling}>
-            <img src={t.sticker} alt="" width={22} height={22} />
-            <span className={styles.feelingText}>
-              <strong>{t.label}</strong>
-              <span>{t.description}</span>
-            </span>
-          </div>
-        ))
-      ) : (
-        <p className={styles.muted}>No traits picked.</p>
-      )}
+      <SkillsPanel />
     </>
   )
 }
