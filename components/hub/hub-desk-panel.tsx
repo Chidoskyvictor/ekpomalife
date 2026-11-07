@@ -125,7 +125,7 @@ function PitchDesk({ onClose }: { onClose: () => void }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <p className={styles.muted}>
-        “Tell the investor what you’re building. If they like it, they’ll back you with ₦1M–₦5M. Not every deck gets a yes, so keep
+        “Tell the investor what you’re building. If they like it, they’ll back you. Not every deck gets a yes, so keep
         pitching.” — Sammy
       </p>
       <input

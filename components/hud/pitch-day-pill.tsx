@@ -44,7 +44,7 @@ export function PitchDayPill() {
       </span>
       <span className={styles.text}>
         <strong>Pitch Day</strong>
-        <span>Innovation Hub · pitch your tech, win ₦1M–₦5M</span>
+        <span>Innovation Hub · pitch your tech to an investor</span>
       </span>
       <button
         type="button"
