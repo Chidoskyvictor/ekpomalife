@@ -370,3 +370,12 @@
   border: 0;
   background: #0f1a14;
 }
+
+/* Snooker: out of the phone frame, edge to edge over everything */
+.fullScreen {
+  position: fixed;
+  z-index: calc(var(--z-phone) + 20);
+  inset: 0;
+  height: auto;
+  padding-top: env(safe-area-inset-top);
+}
