@@ -1,3 +1,4 @@
+import { placeLock } from './place-locks.js'
 import { pool } from '../db.js'
 import { BAD_PLACE, PHONE_ERROR_COPY, SAME_PLACE } from './economy-codes.js'
 import { requireEconomySetup } from './economy.js'
@@ -93,6 +94,8 @@ export async function trek(userId: string, toPlaceId: string) {
   if (!dest || !PLACE_UV[dest.id]) {
     return { ok: false as const, error: PHONE_ERROR_COPY.BAD_PLACE, code: BAD_PLACE, status: 400 }
   }
+  const locked = placeLock(dest.id)
+  if (locked) return { ok: false as const, error: locked, code: 'LOCKED', status: 400 }
 
   const client = await pool.connect()
   let hops = 1
