@@ -10,11 +10,9 @@ import styles from './pitch-day-pill.module.css'
 
 const HUB = 'innovation-hub'
 const KEY = 'ekpoma-pitch-pill-shown'
-/** How long the notice stays up before it slides away. */
-const SHOW_MS = 9000
 const today = () => new Date().toISOString().slice(0, 10)
 
-/** "Pitch Day" pop-up notice, once a day: Go opens Innovation Hub on the map to pick a ride; it slides away by itself after a few seconds. */
+/** "Pitch Day" pop-up notice, once a day: Go opens Innovation Hub on the map to pick a ride; it stays until you tap Go or close it. */
 export function PitchDayPill() {
   const { state, isGuest, select } = useGame()
   const router = useRouter()
@@ -32,12 +30,9 @@ export function PitchDayPill() {
     } catch {
       /* storage blocked: show this once per load */
     }
+    // Stays up until you tap Go or close it
     const show = window.setTimeout(() => setHidden(false), 1500)
-    const away = window.setTimeout(() => setHidden(true), 1500 + SHOW_MS)
-    return () => {
-      window.clearTimeout(show)
-      window.clearTimeout(away)
-    }
+    return () => window.clearTimeout(show)
   }, [eligible])
 
   const hide = () => setHidden(true)
