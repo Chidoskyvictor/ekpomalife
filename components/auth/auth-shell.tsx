@@ -6,6 +6,7 @@ import { Suspense, useState } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/arc/tabs/tabs'
 import { AuthGate } from './auth-gate'
 import { FloatingStickers } from './floating-stickers'
+import { LoginExplore } from './login-explore'
 import { LoginForm } from './login-form'
 import { SignupForm } from './signup-form'
 import styles from './auth.module.css'
@@ -125,6 +126,8 @@ export function AuthPage({ initial }: { initial: AuthMode }) {
               </svg>
             </a>
           </nav>
+
+          <LoginExplore />
         </div>
       </main>
     </AuthGate>
