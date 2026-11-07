@@ -1,5 +1,6 @@
 'use client'
 
+import { hasBuiltInterior } from '@/lib/game/interiors'
 import { isPlaceOpen, formatOpenHour } from '@/lib/game/places'
 import { Link2, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
@@ -162,6 +163,11 @@ export function MapPlaceSheet({ hidden = false }: { hidden?: boolean }) {
       </header>
 
       <div className={styles.body} ref={body}>
+        {!closed && !hasBuiltInterior(place.id) ? (
+          <p className={styles.closed} role="status">
+            <span aria-hidden="true">🚧</span> {place.label} is still under construction. You can still use what's here.
+          </p>
+        ) : null}
         {closed && hours ? (
           <p className={styles.closed} role="status">
             <span aria-hidden="true">🔒</span> {place.label} is closed. Come back at {formatOpenHour(hours.open)}.

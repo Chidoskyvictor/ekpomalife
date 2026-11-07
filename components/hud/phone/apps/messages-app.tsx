@@ -289,7 +289,22 @@ function previewText(message: ChatMessage) {
   if (message.kind === 'visit') return message.mine ? 'You visited them 🚪' : 'Visited your place 🚪'
   if (message.kind === 'money') return `💸 ${message.mine ? 'Sent' : 'Received'} ${naira(Number(message.body))}`
   if (message.kind === 'game') return message.mine ? 'You sent a 🎮 challenge' : '🎮 Challenged you'
+  if (message.kind === 'nudge') return nudgeLine(message)
   return message.body
+}
+
+/** Quick actions done in person ("@x said Hello"), shown as a slim line in the middle of the chat. */
+const NUDGE: Record<string, { emoji: string; did: string }> = {
+  hello: { emoji: '👋', did: 'said Hello' },
+  gist: { emoji: '💬', did: 'gisted with' },
+  joke: { emoji: '😂', did: 'cracked a joke for' },
+  compliment: { emoji: '🌟', did: 'complimented' },
+}
+function nudgeLine(message: ChatMessage) {
+  const n = NUDGE[message.body] ?? { emoji: '👋', did: 'said Hello' }
+  const name = message.sender?.username ? `@${message.sender.username}` : 'They'
+  if (message.body === 'hello') return message.mine ? `${n.emoji} You said Hello` : `${n.emoji} ${name} said Hello`
+  return message.mine ? `${n.emoji} You ${n.did} them` : `${n.emoji} ${name} ${n.did} you`
 }
 
 let lastChats: ChatSummary[] | null = null
@@ -846,6 +861,7 @@ function MessageRow({
     return <NoticePill message={message} onVisit={onVisit} />
   }
   if (message.kind === 'game') return <GameNotice message={message} />
+  if (message.kind === 'nudge') return <p className={styles.nudge}>{nudgeLine(message)}</p>
   const sender = message.sender
   const content = <MessageContent message={message} onVisit={onVisit} />
   const special = message.kind !== 'text'

@@ -1,3 +1,4 @@
+import { postNudge } from './chat.js'
 import { missionProgress } from './missions.js'
 import type { PoolClient } from 'pg'
 import { pool } from '../db.js'
@@ -440,6 +441,8 @@ export async function socialAtVenue(userId: string, venueId: string, kind: Socia
     if (socialSeen.size > 50_000) socialSeen.clear()
     // `announce` is assigned inside the transaction callback
     ;(announce as (() => void) | null)?.()
+    // ...and a slim notice in your chat with them, so they see it even if they missed the bubble
+    if (!target.startsWith('npc:')) void postNudge(userId, target, kind).catch(() => {})
   }
   return result
 }

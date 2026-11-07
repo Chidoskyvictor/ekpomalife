@@ -21,7 +21,7 @@ export type ChatMessage = {
   id: string
   chatId: string
   /** sticker: body = sticker id · invite: body = host username · visit: body = visited username · money: body = naira amount · game: body = JSON {matchId, game, stake} */
-  kind: 'text' | 'system' | 'sticker' | 'invite' | 'visit' | 'money' | 'game'
+  kind: 'text' | 'system' | 'sticker' | 'invite' | 'visit' | 'money' | 'game' | 'nudge'
   body: string
   createdAt: string
   sender: ChatSender | null

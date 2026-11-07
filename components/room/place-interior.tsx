@@ -159,6 +159,7 @@ function StandInInterior({ placeId }: { placeId: string }) {
         {EMOJI[place?.type ?? ''] ?? '📍'}
       </span>
       <h1 className={styles.title}>{name}</h1>
+      <p className={styles.note}>🚧 This building is still under construction. You can still use what's here.</p>
       {social.bubbles.me ? <p className={styles.bubble}>{social.bubbles.me}</p> : null}
 
       {social.talk ? (

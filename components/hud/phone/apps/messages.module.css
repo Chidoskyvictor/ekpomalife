@@ -1456,3 +1456,20 @@
   flex: none;
   margin-top: 2px;
 }
+
+/* "@x said Hello" from a quick action in person: a slim line in the middle (no reply, no swipe) */
+.nudge {
+  align-self: center;
+  max-width: 86%;
+  margin: 6px auto;
+  padding: 3px 12px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.05);
+  color: #4b5563;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
