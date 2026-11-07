@@ -8,6 +8,8 @@ const fake = vi.hoisted(() => {
   const users = [{ id: 'u1', name: 'Ada', email: 'ada@example.com' }]
   const writes: string[] = []
   const sent: string[] = []
+  const bodies: string[] = []
+  const state = { fail: false }
   const query = async (sql: string, params: unknown[] = []) => {
     const ok = (rows: unknown[]) => ({ rows, rowCount: rows.length })
     if (sql.includes('COUNT(*)::int AS count')) return ok([{ count: 0 }])
@@ -18,19 +20,21 @@ const fake = vi.hoisted(() => {
     }
     throw new Error(`unexpected query: ${sql}`)
   }
-  const sendMail = async ({ to }: { to: string }) => {
+  const sendMail = async ({ to, text }: { to: string; text: string }) => {
     await new Promise((r) => setTimeout(r, 400))
+    if (state.fail) throw new Error('Resend failed (403): domain not verified')
     sent.push(to)
+    bodies.push(text)
   }
-  return { pool: { query }, writes, sent, sendMail }
+  return { pool: { query }, writes, sent, bodies, state, sendMail }
 })
 vi.mock('../db.js', () => ({ pool: fake.pool, createPool: () => fake.pool }))
 vi.mock('../mail/send.js', () => ({ sendMail: fake.sendMail }))
 
 const { forgotRoutes } = await import('./forgot.js')
 
-async function buildApp() {
-  const app = Fastify()
+async function buildApp(logs?: string[]) {
+  const app = Fastify(logs ? { logger: { level: 'error', stream: { write: (line: string) => void logs.push(line) } } } : {})
   await app.register(cookie)
   await app.register((await import('@fastify/rate-limit')).default, { global: false })
   await app.register(forgotRoutes)
@@ -47,6 +51,8 @@ describe('POST /auth/forgot does not reveal accounts', () => {
   beforeEach(() => {
     fake.writes.length = 0
     fake.sent.length = 0
+    fake.bodies.length = 0
+    fake.state.fail = false
   })
 
   it('gives the same status and body for a known and an unknown email', async () => {
@@ -77,5 +83,27 @@ describe('POST /auth/forgot does not reveal accounts', () => {
     await settle()
     expect(fake.writes).toEqual([])
     expect(fake.sent).toEqual([])
+  })
+
+  it('still replies 200 when the email fails, and logs reset_email_failed', async () => {
+    fake.state.fail = true
+    const logs: string[] = []
+    const app = await buildApp(logs)
+    const res = await forgot(app, 'ada@example.com')
+    expect(res.statusCode).toBe(200)
+    expect(res.json()).toEqual({ ok: true })
+    await settle()
+    const line = logs.find((l) => l.includes('reset_email_failed'))
+    expect(line).toBeDefined()
+    expect(line).toContain('"userId":"u1"')
+    expect(line).toContain('domain not verified')
+  })
+
+  it('links the email to FRONTEND_URL/forgot', async () => {
+    const { env } = await import('../env.js')
+    const app = await buildApp()
+    await forgot(app, 'ada@example.com')
+    await settle()
+    expect(fake.bodies[0]).toContain(`${env.FRONTEND_URL.replace(/\/$/, '')}/forgot`)
   })
 })

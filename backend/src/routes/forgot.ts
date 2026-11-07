@@ -46,7 +46,7 @@ export async function issueResetCode(user: { id: string; name: string; email: st
     [createId(), user.id, codeHash, expiresAt],
   )
 
-  const mail = buildResetEmail({ name: user.name, code, appUrl: env.FRONTEND_ORIGIN })
+  const mail = buildResetEmail({ name: user.name, code, appUrl: env.FRONTEND_URL })
   await sendMail({ to: user.email, subject: mail.subject, text: mail.text, html: mail.html })
 }
 
@@ -86,7 +86,12 @@ export async function forgotRoutes(app: FastifyInstance) {
       // Known or unknown email: same reply, sent before any extra work, so neither the body
       // nor the timing says whether an account exists. The code is issued in the background.
       if (user) {
-        void issueResetCode(user).catch((error) => request.log.error(error))
+        void issueResetCode(user).catch((error: unknown) =>
+          request.log.error(
+            { tag: 'reset_email_failed', userId: user.id, err: error instanceof Error ? error.message : String(error) },
+            'reset_email_failed',
+          ),
+        )
       }
       return reply.send(OK)
     },

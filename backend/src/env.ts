@@ -86,3 +86,12 @@ if (env.NODE_ENV === 'production' && !env.SESSION_SECRET) {
 if (env.NODE_ENV === 'production' && env.RESET_CODE_PEPPER === DEV_RESET_CODE_PEPPER) {
   throw new Error('RESET_CODE_PEPPER must be set to a secret value when NODE_ENV=production (openssl rand -hex 32)')
 }
+
+if (env.NODE_ENV === 'production' && !env.RESEND_API_KEY && !env.SMTP_URL) {
+  throw new Error('RESEND_API_KEY or SMTP_URL is required when NODE_ENV=production (password reset emails)')
+}
+
+if (env.NODE_ENV === 'production' && /resend\.dev/i.test(env.MAIL_FROM)) {
+  // Resend's test sender only delivers to the Resend account owner's own address
+  console.warn('[env] MAIL_FROM uses resend.dev: emails only reach the Resend account owner. Set MAIL_FROM to an address on your verified domain.')
+}
