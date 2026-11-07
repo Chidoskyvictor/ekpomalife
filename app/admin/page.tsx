@@ -55,6 +55,9 @@ export default function AdminPage() {
         <Link href="/admin/spaces" className="text-[#1a6fb0] underline">
           Spaces reports
         </Link>
+        <Link href="/admin/anonymous" className="text-[#1a6fb0] underline">
+          Anonymous reports
+        </Link>
       </nav>
       <Stats />
       <Revenue />
