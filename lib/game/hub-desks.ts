@@ -72,11 +72,10 @@ export const HUB_DESKS: HubDesk[] = [
     id: 'pitch',
     title: 'Pitch Room',
     emoji: '🚀',
-    blurb: 'Pitch ideas, projects and collaborations. Coming soon.',
+    blurb: 'Pitch your tech to an investor. A yes pays ₦1M–₦5M. 5 pitches a day.',
     npc: { name: 'Sammy', role: 'Pitch Room', x: -1.75, z: BACK_CHAIR_Z, heading: Math.PI, appearance: man('#A56C3A', 'classic', 'corporate', '#3b3f8f', '#1c1c24') },
     desk: { x: -1.95, z: -0.48 },
     you: { x: -1.95, z: -1.3, heading: 0 },
-    soon: true,
   },
 ]
 

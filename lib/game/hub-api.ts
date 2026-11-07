@@ -48,3 +48,17 @@ export const fetchDevPosts = () => apiGet<{ ok: true; posts: DevPost[] }>('/hub/
 
 export const reactToPost = (id: string, emoji: string) =>
   apiPost<{ ok: true }>(`/hub/posts/${encodeURIComponent(id)}/react`, { emoji })
+
+/* Pitch Room (backend/src/game/pitch.ts) */
+export type Pitch = {
+  id: string
+  idea: string
+  readyAt: string
+  startedAt: string
+  ready: boolean
+  result: { accepted: boolean; amount: number } | null
+}
+export const fetchPitch = () => apiGet<{ ok: true; left: number; pending: Pitch | null; last: Pitch | null }>('/hub/pitch')
+export const startPitch = (idea: string) => apiPost<{ ok: true; pitch: Pitch; left: number }>('/hub/pitch', { idea })
+export const finishPitch = (id: string) =>
+  apiPost<{ ok: true; pitch: Pitch; message: string | null }>(`/hub/pitch/${encodeURIComponent(id)}/finish`, {})

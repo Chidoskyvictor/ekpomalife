@@ -4,8 +4,13 @@ import { useCallback, useEffect, useState } from 'react'
 import panel from '@/components/buildings/building-panel.module.css'
 import { BodyPortal } from '@/components/ui/body-portal'
 import { useGame } from '@/hooks/use-game'
+import { endActivity, startActivity } from '@/lib/game/activity'
 import {
   fetchDevPosts,
+  fetchPitch,
+  finishPitch,
+  startPitch,
+  type Pitch,
   fetchMySubmissions,
   fetchSuggestions,
   reactToPost,
@@ -46,17 +51,100 @@ export function HubDeskPanel({ deskId, onClose }: { deskId: HubDeskId; onClose: 
           {deskId === 'feedback' ? <FeedbackDesk /> : null}
           {deskId === 'ideas' ? <IdeasDesk /> : null}
           {deskId === 'dev' ? <DevDesk /> : null}
-          {deskId === 'pitch' ? (
-            <p className={styles.muted}>
-              “The Pitch Room opens soon. You’ll pitch your ideas, projects and collaborations here.” — Sammy
-            </p>
-          ) : null}
+          {deskId === 'pitch' ? <PitchDesk onClose={onClose} /> : null}
           <button type="button" className={panel.btn} onClick={onClose}>
             Close
           </button>
         </div>
       </div>
     </BodyPortal>
+  )
+}
+
+/** Wait out the investor's review (the pill up top counts down), then reveal and pay. Keeps going if the desk is closed. */
+const watching = new Set<string>()
+function watchPitch(pitch: Pitch, done: (message: string, good: boolean) => void) {
+  if (watching.has(pitch.id)) return
+  watching.add(pitch.id)
+  const left = Math.max(0, Date.parse(pitch.readyAt) - Date.now())
+  startActivity({ emoji: '🚀', title: 'Investor is reviewing your deck', seconds: Math.max(1, Math.round(left / 1000)) })
+  const reveal = async (tries = 0): Promise<void> => {
+    const res = await finishPitch(pitch.id)
+    if (!res.ok) {
+      // Clock skew or a blip: try again shortly
+      if (tries < 5) return void window.setTimeout(() => void reveal(tries + 1), 4000)
+      watching.delete(pitch.id)
+      endActivity()
+      return done(res.error || 'Could not reach the investor.', false)
+    }
+    watching.delete(pitch.id)
+    endActivity()
+    done(res.message ?? 'Pitch reviewed.', Boolean(res.pitch.result?.accepted))
+  }
+  window.setTimeout(() => void reveal(), left + 800)
+}
+
+function PitchDesk({ onClose }: { onClose: () => void }) {
+  const { notifyToast, refreshServer } = useGame()
+  const [status, setStatus] = useState<{ left: number; pending: Pitch | null; last: Pitch | null } | null>(null)
+  const [idea, setIdea] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const onDone = useCallback(
+    (message: string, good: boolean) => {
+      notifyToast(message, good)
+      void refreshServer()
+    },
+    [notifyToast, refreshServer],
+  )
+
+  useEffect(() => {
+    void fetchPitch().then((res) => {
+      if (!res.ok) return setError(res.error)
+      setStatus(res)
+      // A pitch still under review (you left and came back): keep watching it
+      if (res.pending) watchPitch(res.pending, onDone)
+    })
+  }, [onDone])
+
+  const pitch = async () => {
+    setBusy(true)
+    setError(null)
+    const res = await startPitch(idea)
+    setBusy(false)
+    if (!res.ok) return setError(res.error)
+    watchPitch(res.pitch, onDone)
+    onClose()
+  }
+
+  if (!status) return <p className={styles.muted}>{error ?? 'Sammy is getting the room ready…'}</p>
+  if (status.pending) {
+    return <p className={styles.muted}>“The investor is still reading your deck on {status.pending.idea}. Hang tight.” — Sammy</p>
+  }
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <p className={styles.muted}>
+        “Tell the investor what you’re building. If they like it, they’ll back you with ₦1M–₦5M. Not every deck gets a yes, so keep
+        pitching.” — Sammy
+      </p>
+      <input
+        className={styles.input}
+        value={idea}
+        maxLength={120}
+        placeholder="e.g. An app for booking keke in Ekpoma"
+        onChange={(e) => setIdea(e.target.value)}
+      />
+      <button type="button" className={panel.btn} disabled={busy || idea.trim().length < 3 || status.left <= 0} onClick={() => void pitch()}>
+        {status.left <= 0 ? 'No pitches left today' : busy ? 'Pitching…' : `🚀 Pitch your tech (${status.left} left today)`}
+      </button>
+      {error ? <p className={styles.muted}>{error}</p> : null}
+      {status.last?.result ? (
+        <p className={styles.muted}>
+          Last pitch: {status.last.result.accepted ? `backed with ₦${status.last.result.amount.toLocaleString()} 🎉` : 'the investor passed'}
+        </p>
+      ) : null}
+    </div>
   )
 }
 

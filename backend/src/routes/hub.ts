@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyReply } from 'fastify'
 import { z } from 'zod'
 import { getSessionUser } from '../auth/current-user.js'
+import { finishPitch, pitchStatus, startPitch } from '../game/pitch.js'
 import { listPosts, listSuggestions, mySubmissions, react, submit, SUBMISSION_KINDS, toggleVote } from '../game/hub.js'
 
 const submitBody = z.object({
@@ -19,6 +20,26 @@ function send(reply: FastifyReply, result: Fail | ({ ok: true } & Record<string,
 
 /** Innovation Hub for players: feedback, public suggestions + votes, the Developers' Corner feed. */
 export async function hubRoutes(app: FastifyInstance) {
+  // Pitch Room: GET status, POST start (idea), POST finish (after the review time)
+  app.get('/hub/pitch', rate(60), async (request, reply) => {
+    const user = await getSessionUser(request)
+    if (!user) return reply.code(401).send({ ok: false, error: 'Log in to play.' })
+    return send(reply, await pitchStatus(user.id))
+  })
+  app.post('/hub/pitch', rate(10), async (request, reply) => {
+    const user = await getSessionUser(request)
+    if (!user) return reply.code(401).send({ ok: false, error: 'Log in to play.' })
+    const parsed = z.object({ idea: z.string().min(1).max(200) }).safeParse(request.body)
+    if (!parsed.success) return reply.code(400).send({ ok: false, error: 'Tell the investor what you are building.' })
+    return send(reply, await startPitch(user.id, parsed.data.idea))
+  })
+  app.post('/hub/pitch/:id/finish', rate(30), async (request, reply) => {
+    const user = await getSessionUser(request)
+    if (!user) return reply.code(401).send({ ok: false, error: 'Log in to play.' })
+    const parsed = idParam.safeParse(request.params)
+    if (!parsed.success) return reply.code(400).send({ ok: false, error: 'Unknown pitch.' })
+    return send(reply, await finishPitch(user.id, parsed.data.id))
+  })
   app.post('/hub/submit', rate(10), async (request, reply) => {
     const user = await getSessionUser(request)
     if (!user) return reply.code(401).send({ ok: false, error: 'Log in first.' })
