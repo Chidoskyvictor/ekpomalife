@@ -229,9 +229,10 @@ export function Hud() {
         <div className={`${styles.safe} absolute inset-x-0 top-0`}>
           <div className={styles.topWrap}>
             <TopBar />
-            <div className="mt-2 flex justify-center px-3">
-              <LoginExplore />
-            </div>
+          </div>
+          {/* Like Lagos Life: small white pills, one centred row under the top bar */}
+          <div className="pointer-events-auto mt-2 flex justify-center px-3">
+            <LoginExplore />
           </div>
         </div>
         <div className={styles.bottomDock}>

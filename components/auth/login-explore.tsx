@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useState } from 'react'
 
 type Item = {
@@ -8,7 +9,7 @@ type Item = {
   emoji: string
   title: string
   body: string
-  tone: string
+  cta: string
 }
 
 const ITEMS: Item[] = [
@@ -17,24 +18,24 @@ const ITEMS: Item[] = [
     label: 'SUG election',
     emoji: '🗳️',
     title: 'SUG House',
-    body: 'The SUG has no Governor yet. Sign up to vote, or run for office yourself.',
-    tone: 'bg-emerald-600 text-white',
+    body: 'The SUG has no President yet. Sign up to vote, or run for office yourself.',
+    cta: 'Sign up to vote',
   },
   {
     key: 'club',
     label: 'Clubbing',
     emoji: '🎶',
-    title: 'Club at Saza',
-    body: 'Head to Club at Saza after dark. Sign up to get in and join the party.',
-    tone: 'bg-fuchsia-600 text-white',
+    title: 'Clubbing at Sazza',
+    body: 'Sazza opens after dark. Sign up to get in and join the party.',
+    cta: 'Sign up to party',
   },
   {
     key: 'space',
     label: 'Host a space',
     emoji: '🎙️',
-    title: 'Students Conference Hall',
-    body: 'Host a space in the Students Conference Hall and let a real audience attend. Sign up to start yours.',
-    tone: 'bg-sky-600 text-white',
+    title: 'Host a space',
+    body: 'Go live from the podium at Student Conference and everyone in the hall hears you. Sign up to host yours.',
+    cta: 'Sign up to host a space',
   },
 ]
 
@@ -53,7 +54,7 @@ export function LoginExplore() {
             key={item.key}
             type="button"
             onClick={() => setOpen(item)}
-            className={`inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-xs font-semibold tracking-wide shadow-sm ${item.tone}`}
+            className="inline-flex h-7 items-center gap-1 rounded-full bg-white/95 px-2.5 text-[12.5px] font-medium text-neutral-900 shadow-sm ring-1 ring-black/5"
           >
             <span aria-hidden="true">{item.emoji}</span>
             {item.label}
@@ -87,7 +88,13 @@ export function LoginExplore() {
                 ✕
               </button>
             </div>
-            <p className="mt-3 text-sm text-neutral-700 break-words">{open.body}</p>
+            <p className="mt-3 text-[15px] leading-relaxed text-neutral-700 break-words">{open.body}</p>
+            <Link
+              href="/signup"
+              className="mt-4 flex min-h-12 items-center justify-center rounded-full bg-[#2563eb] px-5 text-base font-bold text-white shadow-[0_4px_0_#1e40af]"
+            >
+              {open.cta}
+            </Link>
           </div>
         </div>
       ) : null}
