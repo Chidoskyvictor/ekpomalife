@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { z } from 'zod'
 import { getSessionUser, type SessionUser } from '../auth/current-user.js'
 import { env } from '../env.js'
+import { adminAnonAction, listAnonReports } from '../game/anonymous.js'
 import { adminBanHost, adminEndSpace, listSpaceReports, type SpacesFail } from '../game/spaces.js'
 import {
   adminDeletePost,
@@ -47,6 +48,27 @@ export async function adminRoutes(app: FastifyInstance) {
   app.get('/admin/space-reports', rate(60), async (request, reply) => {
     if (!(await requireAdmin(request, reply))) return
     return reply.send(await listSpaceReports())
+  })
+
+  app.get('/admin/anonymous/reports', rate(60), async (request, reply) => {
+    if (!(await requireAdmin(request, reply))) return
+    return reply.send(await listAnonReports())
+  })
+
+  // dismiss | remove | warn | ban on a reported Anonymous post or comment
+  app.post('/admin/anonymous/:type/:id/:action', rate(60), async (request, reply) => {
+    if (!(await requireAdmin(request, reply))) return
+    const p = z
+      .object({
+        type: z.enum(['post', 'comment']),
+        id: z.string().min(1).max(64),
+        action: z.enum(['dismiss', 'remove', 'warn', 'ban']),
+      })
+      .safeParse(request.params)
+    if (!p.success) return reply.code(400).send({ ok: false, code: 'BAD_INPUT', error: 'Bad request.' })
+    const result = await adminAnonAction(p.data.type, p.data.id, p.data.action)
+    if (result.ok === false) return reply.code(result.status).send({ ok: false, code: result.code, error: result.error })
+    return reply.send(result)
   })
 
   app.post('/admin/spaces/:id/end', rate(30), async (request, reply) => {
