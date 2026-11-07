@@ -1,4 +1,4 @@
-import { apiGet, apiPost } from '@/lib/api/client'
+import { apiGet, apiPatch, apiPost, apiPut } from '@/lib/api/client'
 import type { ApiFail } from '@/lib/api/errors'
 
 /** Hostels + hostel group chat — mirrors backend/src/routes/hostels.ts */
@@ -26,7 +26,17 @@ export type ChatMessage = {
   createdAt: string
   sender: ChatSender | null
   mine: boolean
+  /** The quoted message when this is a reply (older servers don't send it). */
+  replyTo?: { id: string; name: string; text: string; kind: ChatMessage['kind'] } | null
+  /** One reaction per player (older servers don't send it). */
+  reactions?: ChatReaction[]
 }
+
+export type ChatReaction = { emoji: string; userId: string; username: string }
+/** Tick markers for your own messages: id <= delivered → ✓✓ grey, id <= read → ✓✓ blue. */
+export type ReceiptMarkers = { delivered: string; read: string }
+
+export const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🙏'] as const
 
 export type PlayerCard = ChatSender & { username: string }
 
@@ -103,13 +113,45 @@ export function fetchMessages(chatId: string, cursor: { before?: string; after?:
   if (cursor.before) query.set('before', cursor.before)
   if (cursor.after) query.set('after', cursor.after)
   const qs = query.toString()
-  return apiGet<{ ok: true; messages: ChatMessage[]; hasMore: boolean }>(
+  return apiGet<{ ok: true; messages: ChatMessage[]; hasMore: boolean; receipts?: ReceiptMarkers }>(
     `/chats/${encodeURIComponent(chatId)}/messages${qs ? `?${qs}` : ''}`,
   )
 }
 
-export function sendChatMessage(chatId: string, body: string, kind: 'text' | 'sticker' | 'invite' | 'visit' = 'text') {
-  return apiPost<{ ok: true; message: ChatMessage }>(`/chats/${encodeURIComponent(chatId)}/messages`, { body, kind })
+export function sendChatMessage(
+  chatId: string,
+  body: string,
+  kind: 'text' | 'sticker' | 'invite' | 'visit' = 'text',
+  replyTo?: string | null,
+) {
+  return apiPost<{ ok: true; message: ChatMessage }>(`/chats/${encodeURIComponent(chatId)}/messages`, {
+    body,
+    kind,
+    ...(replyTo ? { replyTo: Number(replyTo) } : {}),
+  })
+}
+
+/** Reactions on messages from `from` on, plus the tick markers (polled while a chat is open). */
+export function fetchChatSync(chatId: string, from: string) {
+  return apiGet<{ ok: true; reactions: Record<string, ChatReaction[]>; receipts: ReceiptMarkers }>(
+    `/chats/${encodeURIComponent(chatId)}/sync?from=${encodeURIComponent(from)}`,
+  )
+}
+
+export function reactToMessage(messageId: string, emoji: string) {
+  return apiPut<{ ok: true; reactions: ChatReaction[] }>(`/chats/messages/${encodeURIComponent(messageId)}/reaction`, { emoji })
+}
+
+export function clearMessageReaction(messageId: string) {
+  return apiPost<{ ok: true; reactions: ChatReaction[] }>(`/chats/messages/${encodeURIComponent(messageId)}/reaction/clear`, {})
+}
+
+export function fetchChatSettings() {
+  return apiGet<{ ok: true; readReceipts: boolean }>('/chats/settings')
+}
+
+export function saveChatSettings(readReceipts: boolean) {
+  return apiPatch<{ ok: true; readReceipts: boolean }>('/chats/settings', { readReceipts })
 }
 
 /** Send naira to the other player in a direct chat (₦100 – ₦500,000). */

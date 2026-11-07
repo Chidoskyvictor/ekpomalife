@@ -1473,3 +1473,327 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* —— Reply, reactions, ticks —— */
+.messages {
+  overflow-x: hidden;
+}
+
+.mineWrap {
+  display: flex;
+  min-width: 0;
+  max-width: 76%;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.mineWrap .bubbleMine {
+  max-width: 100%;
+}
+
+.gesture {
+  position: relative;
+  max-width: 100%;
+  touch-action: pan-y;
+  --swipe: 0;
+}
+
+@media (pointer: coarse) {
+  .gesture {
+    -webkit-touch-callout: none;
+    user-select: none;
+  }
+}
+
+.swipeIcon {
+  position: absolute;
+  top: 50%;
+  left: -34px;
+  display: grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  border-radius: 999px;
+  background: #e5e5ea;
+  color: #3c3c43;
+  opacity: var(--swipe);
+  transform: translateY(-50%) scale(calc(0.5 + var(--swipe) * 0.5));
+  pointer-events: none;
+}
+
+/* Desktop only: reply button beside the bubble on hover */
+.hoverReply {
+  display: none;
+  flex: none;
+  align-self: center;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: #e5e5ea;
+  color: #3c3c43;
+  opacity: 0;
+  cursor: pointer;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .hoverReply {
+    display: grid;
+  }
+  .row:hover .hoverReply,
+  .hoverReply:focus-visible {
+    opacity: 1;
+  }
+}
+
+.rowReacted {
+  margin-bottom: 8px;
+}
+
+.flash {
+  animation: flashRow 1.4s ease-out;
+}
+
+@keyframes flashRow {
+  0%,
+  35% {
+    background: rgba(255, 204, 0, 0.4);
+  }
+  100% {
+    background: transparent;
+  }
+}
+
+/* Quoted message inside a bubble */
+.quote {
+  display: flex;
+  width: 100%;
+  min-width: 120px;
+  flex-direction: column;
+  gap: 1px;
+  margin: 0 0 5px;
+  padding: 4px 8px;
+  border: 0;
+  border-left: 3px solid #007aff;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.07);
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.3;
+  text-align: left;
+  cursor: pointer;
+}
+
+.quote strong {
+  overflow: hidden;
+  color: #007aff;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.quote span {
+  overflow: hidden;
+  opacity: 0.85;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bubbleMine .quote {
+  border-left-color: #fff;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.bubbleMine .quote strong {
+  color: #fff;
+}
+
+/* Composer: "Replying to …" strip */
+.replyStrip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 4px 4px 10px;
+  border-left: 3px solid #007aff;
+  border-radius: 8px;
+  background: #ececf0;
+}
+
+.replyText {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.replyText strong {
+  color: #007aff;
+}
+
+.replyText span {
+  overflow: hidden;
+  color: #3c3c43;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.replyClose {
+  display: grid;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  margin: -8px 0;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: #8e8e93;
+  cursor: pointer;
+}
+
+/* Reaction picker (under the message) */
+.pickerRow {
+  position: relative;
+  z-index: 5;
+  display: flex;
+  align-self: flex-start;
+  margin: -2px 0 2px 36px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.18);
+}
+
+.pickerMine {
+  align-self: flex-end;
+  margin: -2px 0 2px;
+}
+
+.pickEmoji {
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 0.12s;
+}
+
+.pickEmoji:active {
+  transform: scale(1.25);
+}
+
+.pickEmojiOn {
+  background: #e5f1ff;
+}
+
+/* Chip at the bubble's bottom corner */
+.chip {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  align-self: flex-start;
+  margin: -9px 0 0 10px;
+  min-height: 22px;
+  padding: 1px 7px;
+  border: 1px solid #ececf0;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.14);
+  font-size: 13px;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.chipMine {
+  align-self: flex-end;
+  margin: -9px 10px 0 0;
+}
+
+.chipCount {
+  color: #3c3c43;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.reactorList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.reactorRow {
+  display: flex;
+  width: 100%;
+  min-height: 44px;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 2px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.reactorRow:not(:disabled) {
+  cursor: pointer;
+}
+
+.reactorEmoji {
+  font-size: 22px;
+}
+
+.reactorName {
+  flex: 1;
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+}
+
+.reactorHint {
+  color: #8e8e93;
+  font-size: 12px;
+}
+
+/* Ticks */
+.bubbleTimeMine {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  opacity: 1;
+}
+
+.bubbleTimeMine > span:first-child {
+  opacity: 0.7;
+}
+
+.tick {
+  display: inline-flex;
+  color: #8e8e93;
+}
+
+.tickOnDark {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.tickRead {
+  color: #34b7f1;
+}
+
+.tickOnDark.tickRead {
+  color: #6fe3ff;
+}
+
+.tickRow {
+  margin: 1px 4px 0 0;
+  line-height: 0;
+}

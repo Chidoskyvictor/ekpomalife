@@ -4,6 +4,14 @@ import { createId } from '../ids.js'
 import { applyCash } from './game-state.js'
 import { liveSpaceMoneyBlock } from './spaces-money.js'
 import { isStickerId } from './stickers.js'
+import {
+  canInteractWith,
+  isReactionEmoji,
+  quotePreview,
+  receiptMarkers,
+  replyError,
+  type ReceiptMarkers,
+} from './chat-rules.js'
 
 /** Group chat (hostel chats today). Message ids are the `seq` column, sent as strings. */
 
@@ -39,7 +47,13 @@ export type ChatMessage = {
   /** Null for system messages. */
   sender: ChatSender | null
   mine: boolean
+  /** The message this one quotes (name + one line), if it is a reply. */
+  replyTo: { id: string; name: string; text: string; kind: MessageKind } | null
+  /** One reaction per player; the app groups them into chips. */
+  reactions: ChatReaction[]
 }
+
+export type ChatReaction = { emoji: string; userId: string; username: string }
 
 export type PlayerCard = ChatSender & { username: string }
 
@@ -74,22 +88,29 @@ type MessageRow = {
   avatar_color: string | null
   avatar_emoji: string | null
   appearance?: unknown
+  reply_id?: string | null
+  reply_kind?: MessageKind | null
+  reply_body?: string | null
+  reply_name?: string | null
 }
 
 const MESSAGE_SELECT = `
   SELECT m.seq::text AS seq, m.chat_id, m.kind, m.body, m.created_at, m.sender_id, u.username,
          u.username AS display_name,
          pp.avatar_color, pp.avatar_emoji,
-         (SELECT c.appearance FROM characters c WHERE c.user_id = m.sender_id LIMIT 1) AS appearance
+         (SELECT c.appearance FROM characters c WHERE c.user_id = m.sender_id LIMIT 1) AS appearance,
+         q.seq::text AS reply_id, q.kind AS reply_kind, q.body AS reply_body, qu.username AS reply_name
   FROM chat_messages m
   LEFT JOIN users u ON u.id = m.sender_id
-  LEFT JOIN player_profiles pp ON pp.user_id = m.sender_id`
+  LEFT JOIN player_profiles pp ON pp.user_id = m.sender_id
+  LEFT JOIN chat_messages q ON q.seq = m.reply_to
+  LEFT JOIN users qu ON qu.id = q.sender_id`
 
 /** Reported messages are hidden from the player who reported them. */
 const NOT_REPORTED_BY = (param: string) =>
   `NOT EXISTS (SELECT 1 FROM chat_reports r WHERE r.message_seq = m.seq AND r.reporter_id = ${param})`
 
-function toMessage(row: MessageRow, viewerId: string): ChatMessage {
+function toMessage(row: MessageRow, viewerId: string, reactions: ChatReaction[] = []): ChatMessage {
   return {
     id: row.seq,
     chatId: row.chat_id,
@@ -106,7 +127,39 @@ function toMessage(row: MessageRow, viewerId: string): ChatMessage {
             avatar: { color: row.avatar_color ?? '#3d9ad6', emoji: row.avatar_emoji, look: row.appearance ?? null },
           },
     mine: row.sender_id === viewerId,
+    replyTo: row.reply_id
+      ? {
+          id: row.reply_id,
+          name: row.reply_name ?? 'Player',
+          text: quotePreview(row.reply_kind ?? 'text', row.reply_body ?? ''),
+          kind: row.reply_kind ?? 'text',
+        }
+      : null,
+    reactions,
   }
+}
+
+/** Reactions for a set of messages, grouped by message id (oldest reaction first). */
+async function loadReactions(seqs: string[]): Promise<Map<string, ChatReaction[]>> {
+  const out = new Map<string, ChatReaction[]>()
+  if (seqs.length === 0) return out
+  const rows = await pool.query<{ message_id: string; emoji: string; user_id: string; username: string }>(
+    `SELECT r.message_id::text AS message_id, r.emoji, r.user_id, u.username
+     FROM chat_reactions r JOIN users u ON u.id = r.user_id
+     WHERE r.message_id = ANY($1::bigint[]) ORDER BY r.created_at`,
+    [seqs],
+  )
+  for (const row of rows.rows) {
+    const list = out.get(row.message_id) ?? []
+    list.push({ emoji: row.emoji, userId: row.user_id, username: row.username })
+    out.set(row.message_id, list)
+  }
+  return out
+}
+
+async function toMessages(rows: MessageRow[], viewerId: string): Promise<ChatMessage[]> {
+  const reactions = await loadReactions(rows.map((row) => row.seq))
+  return rows.map((row) => toMessage(row, viewerId, reactions.get(row.seq) ?? []))
 }
 
 // —— Used by hostels.ts inside its transactions ——
@@ -129,8 +182,10 @@ export async function chatIdForHostel(client: PoolClient | typeof pool, hostelId
 /** Join starts at the newest message, so a new member isn't buried in old unread. */
 export async function addChatMember(client: PoolClient, chatId: string, userId: string) {
   await client.query(
-    `INSERT INTO chat_members (chat_id, user_id, last_read_seq)
-     VALUES ($1, $2, COALESCE((SELECT MAX(seq) FROM chat_messages WHERE chat_id = $1), 0))
+    `INSERT INTO chat_members (chat_id, user_id, last_read_seq, last_delivered_seq, shared_read_seq)
+     VALUES ($1, $2, COALESCE((SELECT MAX(seq) FROM chat_messages WHERE chat_id = $1), 0),
+             COALESCE((SELECT MAX(seq) FROM chat_messages WHERE chat_id = $1), 0),
+             COALESCE((SELECT MAX(seq) FROM chat_messages WHERE chat_id = $1), 0))
      ON CONFLICT (chat_id, user_id) DO NOTHING`,
     [chatId, userId],
   )
@@ -181,6 +236,7 @@ const toPlayerCard = (row: PlayerRow): PlayerCard => ({
  * once someone has said something (opening a chat and leaving doesn't clutter their list).
  */
 export async function listChats(userId: string): Promise<ChatSummary[]> {
+  await markAllDelivered(userId)
   const rows = await pool.query<
     {
       id: string
@@ -307,7 +363,19 @@ export async function openDirectChat(
   }
 }
 
+/** The chat list / unread poll means this player's app has the newest messages (grey double tick for senders). */
+async function markAllDelivered(userId: string) {
+  await pool.query(
+    `UPDATE chat_members cm
+     SET last_delivered_seq = (SELECT MAX(seq) FROM chat_messages WHERE chat_id = cm.chat_id)
+     WHERE cm.user_id = $1
+       AND cm.last_delivered_seq < COALESCE((SELECT MAX(seq) FROM chat_messages WHERE chat_id = cm.chat_id), 0)`,
+    [userId],
+  )
+}
+
 export async function unreadTotal(userId: string): Promise<number> {
+  await markAllDelivered(userId)
   const result = await pool.query<{ total: number }>(
     `SELECT COALESCE(SUM((${UNREAD_SQL})), 0)::int AS total FROM chat_members cm WHERE cm.user_id = $1`,
     [userId],
@@ -323,7 +391,7 @@ export async function getMessages(
   userId: string,
   chatId: string,
   cursor: { before?: number; after?: number; limit?: number },
-): Promise<{ ok: true; messages: ChatMessage[]; hasMore: boolean } | Fail> {
+): Promise<{ ok: true; messages: ChatMessage[]; hasMore: boolean; receipts: ReceiptMarkers } | Fail> {
   if (!(await isMember(chatId, userId))) return fail(403, 'NOT_MEMBER', 'Join this hostel to see its chat.')
   const limit = Math.min(Math.max(cursor.limit ?? CHAT_PAGE_SIZE, 1), CHAT_PAGE_SIZE)
 
@@ -333,7 +401,9 @@ export async function getMessages(
        ORDER BY m.seq ASC LIMIT 100`,
       [chatId, cursor.after, userId],
     )
-    return { ok: true, messages: rows.rows.map((row) => toMessage(row, userId)), hasMore: false }
+    const messages = await toMessages(rows.rows, userId)
+    await markDelivered(userId, chatId, messages.at(-1)?.id)
+    return { ok: true, messages, hasMore: false, receipts: await getReceipts(userId, chatId) }
   }
 
   const params: unknown[] = [chatId, userId, limit + 1]
@@ -349,7 +419,83 @@ export async function getMessages(
   )
   const hasMore = rows.rows.length > limit
   const page = rows.rows.slice(0, limit).reverse()
-  return { ok: true, messages: page.map((row) => toMessage(row, userId)), hasMore }
+  const messages = await toMessages(page, userId)
+  await markDelivered(userId, chatId, messages.at(-1)?.id)
+  return { ok: true, messages, hasMore, receipts: await getReceipts(userId, chatId) }
+}
+
+/** The viewer's app has fetched messages up to `seq` (the grey double tick for their senders). */
+async function markDelivered(userId: string, chatId: string, seq: string | undefined) {
+  if (!seq) return
+  await pool.query(
+    `UPDATE chat_members SET last_delivered_seq = GREATEST(last_delivered_seq, $3) WHERE chat_id = $1 AND user_id = $2`,
+    [chatId, userId, seq],
+  )
+}
+
+export async function getReadReceiptsPref(userId: string): Promise<boolean> {
+  const found = await pool.query<{ read_receipts: boolean }>(`SELECT read_receipts FROM chat_prefs WHERE user_id = $1`, [userId])
+  return found.rows[0]?.read_receipts ?? true
+}
+
+export async function setReadReceiptsPref(userId: string, on: boolean): Promise<void> {
+  await pool.query(
+    `INSERT INTO chat_prefs (user_id, read_receipts) VALUES ($1, $2)
+     ON CONFLICT (user_id) DO UPDATE SET read_receipts = EXCLUDED.read_receipts, updated_at = NOW()`,
+    [userId, on],
+  )
+}
+
+/** Tick markers for the viewer's own messages in this chat (everyone else in it, see receiptMarkers). */
+export async function getReceipts(userId: string, chatId: string): Promise<ReceiptMarkers> {
+  const others = await pool.query<{ delivered: string; read: string }>(
+    `SELECT last_delivered_seq::text AS delivered, shared_read_seq::text AS read
+     FROM chat_members WHERE chat_id = $1 AND user_id <> $2`,
+    [chatId, userId],
+  )
+  return receiptMarkers(
+    others.rows.map((row) => ({ delivered: Number(row.delivered), read: Number(row.read) })),
+    await getReadReceiptsPref(userId),
+  )
+}
+
+/** Live bits for the open chat: reactions on messages from `from` on, plus the tick markers. */
+export async function getChatSync(
+  userId: string,
+  chatId: string,
+  from: number,
+): Promise<{ ok: true; reactions: Record<string, ChatReaction[]>; receipts: ReceiptMarkers } | Fail> {
+  if (!(await isMember(chatId, userId))) return fail(403, 'NOT_MEMBER', 'You are not in this chat.')
+  const seqs = await pool.query<{ seq: string }>(
+    `SELECT seq::text AS seq FROM chat_messages WHERE chat_id = $1 AND seq >= $2 ORDER BY seq LIMIT 200`,
+    [chatId, from],
+  )
+  const reactions = await loadReactions(seqs.rows.map((row) => row.seq))
+  return { ok: true, reactions: Object.fromEntries(reactions), receipts: await getReceipts(userId, chatId) }
+}
+
+/** Set (or replace) your one reaction on a message. Members only; not on system / nudge lines. */
+export async function setReaction(userId: string, seq: number, emoji: string): Promise<{ ok: true; reactions: ChatReaction[] } | Fail> {
+  if (!isReactionEmoji(emoji)) return fail(400, 'BAD_EMOJI', 'Pick one of the reactions.')
+  const found = await pool.query<{ chat_id: string; kind: string }>(`SELECT chat_id, kind FROM chat_messages WHERE seq = $1`, [seq])
+  const message = found.rows[0]
+  if (!message || !(await isMember(message.chat_id, userId))) return fail(404, 'NOT_FOUND', 'Message not found.')
+  if (!canInteractWith(message.kind)) return fail(400, 'NOT_REACTABLE', 'You can’t react to that.')
+  await pool.query(
+    `INSERT INTO chat_reactions (message_id, user_id, emoji) VALUES ($1, $2, $3)
+     ON CONFLICT (message_id, user_id) DO UPDATE SET emoji = EXCLUDED.emoji, created_at = NOW()`,
+    [seq, userId, emoji],
+  )
+  return { ok: true, reactions: (await loadReactions([String(seq)])).get(String(seq)) ?? [] }
+}
+
+/** Remove your reaction (no-op if you have none). */
+export async function clearReaction(userId: string, seq: number): Promise<{ ok: true; reactions: ChatReaction[] } | Fail> {
+  const found = await pool.query<{ chat_id: string }>(`SELECT chat_id FROM chat_messages WHERE seq = $1`, [seq])
+  const message = found.rows[0]
+  if (!message || !(await isMember(message.chat_id, userId))) return fail(404, 'NOT_FOUND', 'Message not found.')
+  await pool.query(`DELETE FROM chat_reactions WHERE message_id = $1 AND user_id = $2`, [seq, userId])
+  return { ok: true, reactions: (await loadReactions([String(seq)])).get(String(seq)) ?? [] }
 }
 
 async function chatKindOf(chatId: string) {
@@ -363,14 +509,16 @@ async function insertMessage(
   chatId: string,
   kind: MessageKind,
   body: string,
+  replyTo: number | null = null,
 ) {
   const inserted = await client.query<{ seq: string }>(
-    `INSERT INTO chat_messages (chat_id, sender_id, kind, body) VALUES ($1, $2, $3, $4) RETURNING seq::text AS seq`,
-    [chatId, userId, kind, body],
+    `INSERT INTO chat_messages (chat_id, sender_id, kind, body, reply_to) VALUES ($1, $2, $3, $4, $5) RETURNING seq::text AS seq`,
+    [chatId, userId, kind, body, replyTo],
   )
   const seq = inserted.rows[0]!.seq
   await client.query(
-    `UPDATE chat_members SET last_read_seq = GREATEST(last_read_seq, $3) WHERE chat_id = $1 AND user_id = $2`,
+    `UPDATE chat_members SET last_read_seq = GREATEST(last_read_seq, $3), last_delivered_seq = GREATEST(last_delivered_seq, $3)
+     WHERE chat_id = $1 AND user_id = $2`,
     [chatId, userId, seq],
   )
   return seq
@@ -385,6 +533,7 @@ export async function sendMessage(
   chatId: string,
   rawBody: string,
   kind: 'text' | 'sticker' | 'invite' | 'visit' = 'text',
+  replyTo?: number | null,
 ): Promise<{ ok: true; message: ChatMessage } | Fail> {
   let body = rawBody.replace(/\r\n/g, '\n').trim()
   if (kind === 'sticker' && !isStickerId(body)) return fail(400, 'BAD_STICKER', 'Pick a sticker from the list.')
@@ -395,6 +544,11 @@ export async function sendMessage(
     }
   }
   if (!(await isMember(chatId, userId))) return fail(403, 'NOT_MEMBER', 'Join this hostel to chat.')
+  if (replyTo != null) {
+    const original = await pool.query<{ chat_id: string; kind: string }>(`SELECT chat_id, kind FROM chat_messages WHERE seq = $1`, [replyTo])
+    const problem = replyError(original.rows[0], chatId)
+    if (problem) return fail(400, 'BAD_REPLY', problem)
+  }
   if (kind === 'invite') {
     if ((await chatKindOf(chatId)) !== 'direct') return fail(400, 'DIRECT_ONLY', 'Invites work in one-to-one chats.')
     const me = await pool.query<{ username: string }>(`SELECT username FROM users WHERE id = $1`, [userId])
@@ -419,7 +573,7 @@ export async function sendMessage(
     return fail(429, 'SLOW_DOWN', 'You’re sending messages quickly — wait a moment and try again.')
   }
 
-  const seq = await insertMessage(pool, userId, chatId, kind, body)
+  const seq = await insertMessage(pool, userId, chatId, kind, body, replyTo ?? null)
   const row = await pool.query<MessageRow>(`${MESSAGE_SELECT} WHERE m.seq = $1`, [seq])
   return { ok: true, message: toMessage(row.rows[0]!, userId) }
 }
@@ -547,10 +701,15 @@ export async function getHostCard(username: string) {
   }
 }
 
+/** Opening the chat: unread clears; with read receipts on, your senders see blue ticks too. */
 export async function markRead(userId: string, chatId: string, seq: number) {
+  const share = await getReadReceiptsPref(userId)
   await pool.query(
-    `UPDATE chat_members SET last_read_seq = GREATEST(last_read_seq, $3) WHERE chat_id = $1 AND user_id = $2`,
-    [chatId, userId, seq],
+    `UPDATE chat_members SET last_read_seq = GREATEST(last_read_seq, $3),
+            last_delivered_seq = GREATEST(last_delivered_seq, $3),
+            shared_read_seq = CASE WHEN $4::boolean THEN GREATEST(shared_read_seq, $3) ELSE shared_read_seq END
+     WHERE chat_id = $1 AND user_id = $2`,
+    [chatId, userId, seq, share],
   )
 }
 

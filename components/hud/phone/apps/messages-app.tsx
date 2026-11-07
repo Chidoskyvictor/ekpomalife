@@ -1,16 +1,17 @@
 'use client'
 
 import { PlayerFace } from '@/components/look/player-face'
-import { Bell, Check, ChevronLeft, DoorOpen, Home, MoreHorizontal, Search, Send, Smile, SquarePen, User, Users, X, Lock } from 'lucide-react'
+import { Bell, Check, CheckCheck, ChevronLeft, DoorOpen, Home, MoreHorizontal, Reply, Search, Send, Smile, SquarePen, User, Users, X, Lock } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { PlayerProfilePanel } from '@/components/profile/player-profile-panel'
-import { useChat } from '@/hooks/use-chat'
+import { tickFor, useChat, type Tick } from '@/hooks/use-chat'
 import { useGame } from '@/hooks/use-game'
 import { useChatUnread } from '@/hooks/use-chat-unread'
 import { useMyHostel } from '@/hooks/use-hostel'
 import {
   CHAT_MESSAGE_MAX,
+  REACTION_EMOJIS,
   TRANSFER_MAX,
   TRANSFER_MIN,
   fetchChats,
@@ -18,6 +19,7 @@ import {
   openDirectChat,
   searchPlayers,
   type ChatMessage,
+  type ChatReaction,
   type ChatSender,
   type ChatSummary,
   type Neighbour,
@@ -538,7 +540,7 @@ function ChatView({
 }) {
   const router = useRouter()
   const { state, refreshServer } = useGame()
-  const { messages, hasMore, loading, loadingOlder, error, loadOlder, send, sendMoney, report } = useChat(
+  const { messages, hasMore, loading, loadingOlder, error, receipts, loadOlder, send, sendMoney, report, react } = useChat(
     chat.id,
     true,
     () => void refreshServer(),
@@ -551,6 +553,12 @@ function ChatView({
   const [sendError, setSendError] = useState<string | null>(null)
   const [menuFor, setMenuFor] = useState<string | null>(null)
   const [moreOpen, setMoreOpen] = useState(false)
+  const [replyTo, setReplyTo] = useState<ChatMessage | null>(null)
+  const [pickerFor, setPickerFor] = useState<string | null>(null)
+  const [reactorsFor, setReactorsFor] = useState<string | null>(null)
+  const [flashId, setFlashId] = useState<string | null>(null)
+  const draftBox = useRef<HTMLTextAreaElement>(null)
+  const myName = state?.username ?? ''
   const scroller = useRef<HTMLDivElement>(null)
   const stickToBottom = useRef(true)
   const prevHeight = useRef(0)
@@ -584,10 +592,11 @@ function ChatView({
     if (!body || sending) return
     setSending(true)
     setSendError(null)
-    const res = await send(body)
+    const res = await send(body, 'text', replyTo?.id)
     setSending(false)
     if (res.ok) {
       setDraft('')
+      setReplyTo(null)
       stickToBottom.current = true
     } else {
       setSendError(res.error)
@@ -597,9 +606,34 @@ function ChatView({
   const sendExtra = async (body: string, kind: 'sticker' | 'invite' | 'visit') => {
     setSendError(null)
     stickToBottom.current = true
-    const res = await send(body, kind)
+    const quoted = kind === 'sticker' ? replyTo?.id : undefined
+    const res = await send(body, kind, quoted)
     if (!res.ok) setSendError(res.error)
+    else if (quoted) setReplyTo(null)
     return res.ok
+  }
+
+  const startReply = (message: ChatMessage) => {
+    setReplyTo(message)
+    setPickerFor(null)
+    window.setTimeout(() => draftBox.current?.focus({ preventScroll: true }), 0)
+  }
+
+  // Tap a quote: scroll to the original and flash it
+  const jumpTo = (id: string) => {
+    const el = scroller.current?.querySelector<HTMLElement>(`[data-mid="${id}"]`)
+    if (!el) return
+    stickToBottom.current = false
+    el.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    setFlashId(null)
+    window.setTimeout(() => setFlashId(id), 20)
+    window.setTimeout(() => setFlashId((cur) => (cur === id ? null : cur)), 1500)
+  }
+
+  const reactTo = (message: ChatMessage, emoji: string) => {
+    setPickerFor(null)
+    setReactorsFor(null)
+    void react(message.id, emoji, myName)
   }
 
   // Leaves a "You visited @x" pill in the chat, then goes over
@@ -740,6 +774,19 @@ function ChatView({
               }}
               onProfile={onProfile}
               onVisit={visit}
+              tick={message.mine ? tickFor(message.id, receipts) : null}
+              flash={flashId === message.id}
+              pickerOpen={pickerFor === message.id}
+              myName={myName}
+              onReply={() => startReply(message)}
+              onOpenPicker={() => {
+                setMenuFor(null)
+                setPickerFor(message.id)
+              }}
+              onClosePicker={() => setPickerFor(null)}
+              onReact={(emoji) => reactTo(message, emoji)}
+              onShowReactors={() => setReactorsFor(message.id)}
+              onJump={jumpTo}
             />
           )
         })}
@@ -762,6 +809,15 @@ function ChatView({
             </button>
           ))}
         </div>
+      ) : null}
+
+      {reactorsFor ? (
+        <ReactorsSheet
+          message={messages.find((m) => m.id === reactorsFor) ?? null}
+          myName={myName}
+          onClose={() => setReactorsFor(null)}
+          onRemove={(message, emoji) => reactTo(message, emoji)}
+        />
       ) : null}
 
       {moneyOpen && chat.peer ? (
@@ -793,6 +849,17 @@ function ChatView({
             {sendError}
           </p>
         ) : null}
+        {replyTo ? (
+          <div className={styles.replyStrip}>
+            <span className={styles.replyText}>
+              <strong>Replying to {replyTo.mine ? 'yourself' : replyTo.sender?.username ? `@${replyTo.sender.username}` : (replyTo.sender?.displayName ?? 'them')}</strong>
+              <span>{previewText(replyTo).split('\n')[0]}</span>
+            </span>
+            <button type="button" className={styles.replyClose} onClick={() => setReplyTo(null)} aria-label="Cancel reply">
+              <X size={16} aria-hidden="true" />
+            </button>
+          </div>
+        ) : null}
         <div className={styles.composerRow}>
           <button
             type="button"
@@ -804,6 +871,7 @@ function ChatView({
             <Smile size={20} aria-hidden="true" />
           </button>
           <textarea
+            ref={draftBox}
             className={styles.input}
             value={draft}
             maxLength={CHAT_MESSAGE_MAX}
@@ -843,6 +911,16 @@ function MessageRow({
   onReport,
   onProfile,
   onVisit,
+  tick,
+  flash,
+  pickerOpen,
+  myName,
+  onReply,
+  onOpenPicker,
+  onClosePicker,
+  onReact,
+  onShowReactors,
+  onJump,
 }: {
   message: ChatMessage
   grouped: boolean
@@ -853,6 +931,17 @@ function MessageRow({
   onReport: () => void
   onProfile: (userId: string) => void
   onVisit: (username: string | undefined) => void
+  /** Ticks on your own messages (null on theirs). */
+  tick: Tick | null
+  flash: boolean
+  pickerOpen: boolean
+  myName: string
+  onReply: () => void
+  onOpenPicker: () => void
+  onClosePicker: () => void
+  onReact: (emoji: string) => void
+  onShowReactors: () => void
+  onJump: (id: string) => void
 }) {
   if (message.kind === 'system' || !message.sender) {
     return <p className={styles.system}>{message.body}</p>
@@ -865,57 +954,315 @@ function MessageRow({
   const sender = message.sender
   const content = <MessageContent message={message} onVisit={onVisit} />
   const special = message.kind !== 'text'
+  const reactions = message.reactions ?? []
+  const quote = message.replyTo ? (
+    <button
+      type="button"
+      className={styles.quote}
+      onClick={(e) => {
+        e.stopPropagation()
+        onJump(message.replyTo!.id)
+      }}
+    >
+      <strong>{message.replyTo.name === myName ? 'You' : `@${message.replyTo.name}`}</strong>
+      <span>{message.replyTo.text}</span>
+    </button>
+  ) : null
+  const chip = reactions.length ? (
+    <ReactionChip reactions={reactions} mine={message.mine} onOpen={onShowReactors} />
+  ) : null
+  const hoverReply = (
+    <button type="button" className={styles.hoverReply} onClick={onReply} aria-label="Reply">
+      <Reply size={15} aria-hidden="true" />
+    </button>
+  )
+  const rowClass = `${styles.row} ${grouped ? styles.rowGrouped : ''} ${reactions.length ? styles.rowReacted : ''} ${flash ? styles.flash : ''}`
+  const picker = pickerOpen ? (
+    <>
+      <button type="button" className={styles.moreScrim} aria-label="Close reactions" onClick={onClosePicker} />
+      <div className={`${styles.pickerRow} ${message.mine ? styles.pickerMine : ''}`} role="group" aria-label="React">
+        {REACTION_EMOJIS.map((emoji) => (
+          <button
+            key={emoji}
+            type="button"
+            className={`${styles.pickEmoji} ${reactions.some((r) => r.username === myName && r.emoji === emoji) ? styles.pickEmojiOn : ''}`}
+            onClick={() => onReact(emoji)}
+            aria-label={`React ${emoji}`}
+          >
+            {emoji}
+          </button>
+        ))}
+      </div>
+    </>
+  ) : null
+
   if (message.mine) {
     return (
-      <div className={`${styles.row} ${styles.rowMine} ${grouped ? styles.rowGrouped : ''}`}>
-        {special ? (
-          <div title={clockTime(message.createdAt)}>{content}</div>
-        ) : (
-          <div className={`${styles.bubble} ${styles.bubbleMine}`} title={clockTime(message.createdAt)}>
-            {content}
-            {message.kind === 'text' ? <span className={styles.bubbleTime}>{clockTime(message.createdAt)}</span> : null}
+      <>
+        <div className={`${rowClass} ${styles.rowMine}`} data-mid={message.id}>
+          {hoverReply}
+          <div className={styles.mineWrap}>
+            <Gesture onReply={onReply} onPicker={onOpenPicker}>
+              {special ? (
+                <div title={clockTime(message.createdAt)}>{content}</div>
+              ) : (
+                <div className={`${styles.bubble} ${styles.bubbleMine}`} title={clockTime(message.createdAt)}>
+                  {quote}
+                  {content}
+                  <span className={`${styles.bubbleTime} ${styles.bubbleTimeMine}`}>
+                    <span>{clockTime(message.createdAt)}</span>
+                    {tick ? <Ticks tick={tick} onDark /> : null}
+                  </span>
+                </div>
+              )}
+            </Gesture>
+            {special && tick ? (
+              <span className={styles.tickRow}>
+                <Ticks tick={tick} />
+              </span>
+            ) : null}
+            {chip}
           </div>
-        )}
-      </div>
+        </div>
+        {picker}
+      </>
     )
   }
   return (
-    <div className={`${styles.row} ${grouped ? styles.rowGrouped : ''}`}>
-      {showSender ? (
-        grouped ? (
-          <span className={styles.avatarSpacer} />
-        ) : (
-          <button type="button" className={styles.avatarBtn} onClick={() => onProfile(sender.userId)} aria-label={`${sender.displayName}'s profile`}>
-            <Avatar person={sender} size={28} />
-          </button>
-        )
-      ) : null}
-      <div className={styles.bubbleWrap}>
-        {showSender && !grouped ? (
-          <button type="button" className={styles.senderName} onClick={() => onProfile(sender.userId)}>
-            {sender.username ? `@${sender.username}` : sender.displayName}
-          </button>
-        ) : null}
-        <div
-          className={special ? undefined : styles.bubble}
-          title={clockTime(message.createdAt)}
-          onClick={onToggleMenu}
-          onContextMenu={(e) => {
-            e.preventDefault()
-            onToggleMenu()
-          }}
-        >
-          {content}
-          {message.kind === 'text' ? <span className={styles.bubbleTime}>{clockTime(message.createdAt)}</span> : null}
-        </div>
-        {menuOpen ? (
-          <div className={styles.menu}>
-            <span className={styles.menuTime}>{stamp(message.createdAt)} · {clockTime(message.createdAt)}</span>
-            <button type="button" className={styles.report} onClick={onReport}>
-              Report message
+    <>
+      <div className={rowClass} data-mid={message.id}>
+        {showSender ? (
+          grouped ? (
+            <span className={styles.avatarSpacer} />
+          ) : (
+            <button type="button" className={styles.avatarBtn} onClick={() => onProfile(sender.userId)} aria-label={`${sender.displayName}'s profile`}>
+              <Avatar person={sender} size={28} />
             </button>
-          </div>
+          )
         ) : null}
+        <div className={styles.bubbleWrap}>
+          {showSender && !grouped ? (
+            <button type="button" className={styles.senderName} onClick={() => onProfile(sender.userId)}>
+              {sender.username ? `@${sender.username}` : sender.displayName}
+            </button>
+          ) : null}
+          <Gesture onReply={onReply} onPicker={onOpenPicker}>
+            <div
+              className={special ? undefined : styles.bubble}
+              title={clockTime(message.createdAt)}
+              onClick={onToggleMenu}
+              onContextMenu={(e) => {
+                e.preventDefault()
+                onToggleMenu()
+              }}
+            >
+              {quote}
+              {content}
+              {message.kind === 'text' ? <span className={styles.bubbleTime}>{clockTime(message.createdAt)}</span> : null}
+            </div>
+          </Gesture>
+          {chip}
+          {menuOpen ? (
+            <div className={styles.menu}>
+              <span className={styles.menuTime}>{stamp(message.createdAt)} · {clockTime(message.createdAt)}</span>
+              <button type="button" className={styles.report} onClick={onReport}>
+                Report message
+              </button>
+            </div>
+          ) : null}
+        </div>
+        {hoverReply}
+      </div>
+      {picker}
+    </>
+  )
+}
+
+/**
+ * Touch gestures on a bubble: swipe right ~60px to reply (springs back), long-press ~450ms to react.
+ * On desktop: hover reply button and double-click to react (no drag, so text can still be selected).
+ */
+function Gesture({ onReply, onPicker, children }: { onReply: () => void; onPicker: () => void; children: ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const st = useRef({ x: 0, y: 0, dx: 0, down: false, swiping: false, suppress: false, timer: 0, armed: false })
+  const SWIPE_AT = 60
+
+  const setOffset = (dx: number) => {
+    const el = ref.current
+    if (!el) return
+    const shown = Math.min(Math.max(dx, 0), 100) * 0.6
+    el.style.transition = 'none'
+    el.style.transform = shown ? `translateX(${shown}px)` : ''
+    el.style.setProperty('--swipe', String(Math.min(shown / (SWIPE_AT * 0.6), 1)))
+  }
+  const springBack = () => {
+    const el = ref.current
+    if (!el) return
+    el.style.transition = 'transform 0.22s cubic-bezier(0.2, 1.3, 0.4, 1)'
+    el.style.transform = ''
+    el.style.setProperty('--swipe', '0')
+  }
+  const cancelPress = () => window.clearTimeout(st.current.timer)
+
+  return (
+    <div
+      ref={ref}
+      className={styles.gesture}
+      onDoubleClick={(e) => {
+        e.preventDefault()
+        onPicker()
+      }}
+      onClickCapture={(e) => {
+        if (st.current.suppress) {
+          e.stopPropagation()
+          e.preventDefault()
+          st.current.suppress = false
+        }
+      }}
+      onPointerDown={(e) => {
+        if (e.pointerType === 'mouse') return
+        const cur = st.current
+        cur.x = e.clientX
+        cur.y = e.clientY
+        cur.dx = 0
+        cur.down = true
+        cur.swiping = false
+        cur.armed = false
+        cur.suppress = false
+        cancelPress()
+        cur.timer = window.setTimeout(() => {
+          cur.suppress = true
+          cur.down = false
+          if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate(10)
+          onPicker()
+        }, 450)
+      }}
+      onPointerMove={(e) => {
+        const cur = st.current
+        if (!cur.down) return
+        const dx = e.clientX - cur.x
+        const dy = e.clientY - cur.y
+        if (!cur.swiping && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
+          cancelPress()
+          if (Math.abs(dx) > Math.abs(dy) * 1.2 && dx > 0) {
+            cur.swiping = true
+            try {
+              e.currentTarget.setPointerCapture(e.pointerId)
+            } catch {}
+          } else {
+            cur.down = false
+            return
+          }
+        }
+        if (!cur.swiping) return
+        cur.dx = dx
+        setOffset(dx)
+        if (dx >= SWIPE_AT && !cur.armed) {
+          cur.armed = true
+          if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate(10)
+        } else if (dx < SWIPE_AT) {
+          cur.armed = false
+        }
+      }}
+      onPointerUp={() => {
+        const cur = st.current
+        cancelPress()
+        if (cur.swiping) {
+          cur.suppress = true
+          window.setTimeout(() => (cur.suppress = false), 60)
+          if (cur.dx >= SWIPE_AT) onReply()
+        }
+        cur.down = false
+        cur.swiping = false
+        springBack()
+      }}
+      onPointerCancel={() => {
+        cancelPress()
+        st.current.down = false
+        st.current.swiping = false
+        springBack()
+      }}
+    >
+      <span className={styles.swipeIcon} aria-hidden="true">
+        <Reply size={16} />
+      </span>
+      {children}
+    </div>
+  )
+}
+
+/** ✓ sent · ✓✓ delivered · ✓✓ blue read. `onDark` = on the blue bubble. */
+function Ticks({ tick, onDark = false }: { tick: Tick; onDark?: boolean }) {
+  const Icon = tick === 'sent' ? Check : CheckCheck
+  const label = tick === 'read' ? 'Read' : tick === 'delivered' ? 'Delivered' : 'Sent'
+  return (
+    <span
+      role="img"
+      aria-label={label}
+      className={`${styles.tick} ${onDark ? styles.tickOnDark : ''} ${tick === 'read' ? styles.tickRead : ''}`}
+    >
+      <Icon size={15} strokeWidth={2.6} aria-hidden="true" />
+    </span>
+  )
+}
+
+/** Small pill at the bubble's bottom corner: the emojis used (and how many people if more than one). */
+function ReactionChip({ reactions, mine, onOpen }: { reactions: ChatReaction[]; mine: boolean; onOpen: () => void }) {
+  const emojis = [...new Set(reactions.map((r) => r.emoji))].slice(0, 3)
+  return (
+    <button
+      type="button"
+      className={`${styles.chip} ${mine ? styles.chipMine : ''}`}
+      onClick={onOpen}
+      aria-label={`${reactions.length} reaction${reactions.length === 1 ? '' : 's'}: who reacted`}
+    >
+      <span>{emojis.join('')}</span>
+      {reactions.length > 1 ? <span className={styles.chipCount}>{reactions.length}</span> : null}
+    </button>
+  )
+}
+
+/** Who reacted with what. Tap your own line to take your reaction back. */
+function ReactorsSheet({
+  message,
+  myName,
+  onClose,
+  onRemove,
+}: {
+  message: ChatMessage | null
+  myName: string
+  onClose: () => void
+  onRemove: (message: ChatMessage, emoji: string) => void
+}) {
+  const reactions = message?.reactions ?? []
+  return (
+    <div className={styles.sheetBackdrop} onClick={onClose}>
+      <div className={styles.sheet} role="dialog" aria-label="Reactions" onClick={(e) => e.stopPropagation()}>
+        <div className={styles.sheetHead}>
+          <strong>Reactions · {reactions.length}</strong>
+          <button type="button" className={styles.iconBtn} onClick={onClose} aria-label="Close">
+            <X size={16} aria-hidden="true" />
+          </button>
+        </div>
+        <ul className={styles.reactorList}>
+          {reactions.map((r) => {
+            const you = r.username === myName
+            return (
+              <li key={r.userId + r.emoji}>
+                <button
+                  type="button"
+                  className={styles.reactorRow}
+                  disabled={!you || !message}
+                  onClick={() => message && onRemove(message, r.emoji)}
+                >
+                  <span className={styles.reactorEmoji}>{r.emoji}</span>
+                  <span className={styles.reactorName}>{you ? 'You' : `@${r.username}`}</span>
+                  {you ? <span className={styles.reactorHint}>Tap to remove</span> : null}
+                </button>
+              </li>
+            )
+          })}
+        </ul>
       </div>
     </div>
   )

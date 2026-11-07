@@ -1,7 +1,7 @@
 'use client'
 
 import NumberFlow from '@number-flow/react'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   DATA_BUNDLES,
   WALLPAPERS,
@@ -9,6 +9,7 @@ import {
   type PhoneState,
   type WallpaperId,
 } from '@/lib/game/phone'
+import { fetchChatSettings, saveChatSettings } from '@/lib/game/hostels-api'
 import { notificationsSupported, setNotifications, useNotificationsOn } from '@/lib/notify'
 import styles from '../phone.module.css'
 
@@ -92,6 +93,9 @@ export function SettingsApp({
       <h3 className={styles.sectionTitle}>Notifications</h3>
       <NotificationsToggle onMessage={setMsg} />
 
+      <h3 className={styles.sectionTitle}>Privacy</h3>
+      <ReadReceiptsToggle onMessage={setMsg} />
+
       {msg ? <p className={styles.listMeta}>{msg}</p> : null}
 
       <h3 className={styles.sectionTitle}>Credits</h3>
@@ -135,6 +139,52 @@ function NotificationsToggle({ onMessage }: { onMessage: (msg: string | null) =>
           }}
         >
           {on ? 'On' : 'Off'}
+        </button>
+      </li>
+    </ul>
+  )
+}
+
+/** Blue ticks in Messages. Off = nobody sees when you read, and you don't see when they read yours. Saved on the server. */
+function ReadReceiptsToggle({ onMessage }: { onMessage: (msg: string | null) => void }) {
+  const [on, setOn] = useState<boolean | null>(null)
+  const [busy, setBusy] = useState(false)
+  useEffect(() => {
+    let cancelled = false
+    void fetchChatSettings().then((res) => {
+      if (!cancelled) setOn(res.ok ? res.readReceipts : true)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+  return (
+    <ul className={styles.list}>
+      <li className={styles.listItem}>
+        <div>
+          <p className={styles.promoTitle} style={{ color: '#111', margin: 0 }}>
+            Read receipts
+          </p>
+          <p className={styles.listMeta}>If off, you won’t send or see blue ticks. Delivered still shows.</p>
+        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={on ?? true}
+          className={styles.smallPill}
+          disabled={busy || on === null}
+          onClick={() => {
+            void (async () => {
+              const next = !(on ?? true)
+              setBusy(true)
+              const res = await saveChatSettings(next)
+              if (res.ok) setOn(res.readReceipts)
+              else onMessage(res.error)
+              setBusy(false)
+            })()
+          }}
+        >
+          {on === null ? '…' : on ? 'On' : 'Off'}
         </button>
       </li>
     </ul>
