@@ -14,7 +14,6 @@ function GoldBadge() {
 const ACCOUNTS = [
   {
     name: 'X',
-    handle: '@EkpomaLifeApp',
     href: 'https://x.com/EkpomaLifeApp',
     icon: (
       <path
@@ -25,7 +24,6 @@ const ACCOUNTS = [
   },
   {
     name: 'TikTok',
-    handle: '@ekpomalife.app',
     href: 'https://www.tiktok.com/@ekpomalife.app',
     icon: (
       <path
@@ -36,7 +34,6 @@ const ACCOUNTS = [
   },
   {
     name: 'Instagram',
-    handle: '@ekpomalife.app',
     href: 'https://www.instagram.com/ekpomalife.app/',
     icon: (
       <g fill="none" stroke="currentColor" strokeWidth="2">
@@ -48,31 +45,28 @@ const ACCOUNTS = [
   },
 ]
 
-/** Our official accounts, each with its handle and a golden verified badge. */
+/** One small row: an "✓ Official" chip, then the X, TikTok and Instagram icons (each opens that account). */
 export function SocialRow() {
   return (
-    <nav aria-label="Ekpoma Life official accounts" className="mt-3 flex flex-col items-center gap-1.5 font-sans">
-      <span className="inline-flex items-center gap-1 text-[11px] font-semibold tracking-wide text-neutral-500 uppercase">
-        Official <GoldBadge />
+    <nav aria-label="Ekpoma Life official accounts" className="mt-3 flex items-center justify-center gap-2 font-sans">
+      <span className="inline-flex h-6 items-center gap-1 rounded-full bg-neutral-100 px-2 text-[11px] font-semibold text-neutral-700">
+        <GoldBadge />
+        Official
       </span>
-      <div className="flex flex-wrap items-center justify-center gap-1.5">
-        {ACCOUNTS.map((a) => (
-          <a
-            key={a.name}
-            href={a.href}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label={`Ekpoma Life on ${a.name} (official): ${a.handle}`}
-            className="inline-flex h-8 items-center gap-1.5 rounded-full bg-neutral-100 px-2.5 text-[12px] font-semibold text-neutral-900"
-          >
-            <svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true">
-              {a.icon}
-            </svg>
-            {a.handle}
-            <GoldBadge />
-          </a>
-        ))}
-      </div>
+      {ACCOUNTS.map((a) => (
+        <a
+          key={a.name}
+          href={a.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={`Ekpoma Life on ${a.name} (official)`}
+          className="inline-flex h-7 w-7 items-center justify-center rounded-full text-neutral-900 hover:bg-neutral-100"
+        >
+          <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">
+            {a.icon}
+          </svg>
+        </a>
+      ))}
     </nav>
   )
 }
