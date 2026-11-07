@@ -15,9 +15,12 @@ export function homePlaceFor(_lodgingId: string | null | undefined): string {
 }
 
 /** Places you can step inside (parks and the like stay on the map). */
+/** Places you arrive at on the map (zoomed in) rather than inside a room. */
+export const MAP_ONLY_PLACES = new Set(['aau-gate'])
+
 export function hasInterior(placeId: string | null | undefined): boolean {
   const place = getPlace(placeId)
-  return Boolean(place) && place!.type !== 'transport'
+  return Boolean(place) && place!.type !== 'transport' && !MAP_ONLY_PLACES.has(place!.id)
 }
 
 /** The place whose interior the Home tab should show, or null when it should show your own room. */

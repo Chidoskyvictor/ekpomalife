@@ -521,7 +521,7 @@ const SOUTH_ZONES: MapZone[] = [
   // Pay-to-play football pitch (open plot with markings and goals)
   southZone('playchill-climax', 'Play and Chill', 0.72, 0.66, 'open', [26, 16], { open: 'pitch' }),
   // Your house (the plot below Spot Rite): only signed-in players with a home see it (WorldZones hides it otherwise)
-  { ...southZone('home', 'My Home', 0.8, 0.52, 'hostel-block', [11.5, 9], { scale: 5.1, rotation: 0 }), homeOnly: true },
+  { ...southZone('home', 'My Home', 0.8, 0.4, 'hostel-block', [11.5, 9], { scale: 5.1, rotation: 0 }), homeOnly: true },
 ]
 
 /** Name painted near the south edge of the empty Market Hub slab. */

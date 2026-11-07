@@ -1,5 +1,6 @@
 'use client'
 
+import { MAP_ONLY_PLACES } from '@/lib/game/home-place'
 import { ContextRestore } from '@/components/three/context-restore'
 import { MapControls, PerformanceMonitor } from '@react-three/drei'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
@@ -106,6 +107,8 @@ function CameraRig({ focusId }: { focusId: string | null }) {
   const camera = useThree((state) => state.camera)
   const size = useThree((state) => state.size)
   const goal = useRef<Vector3 | null>(null)
+  /** Zoom-in for places you arrive at on the map (AAU gate): camera distance to reach, then null. */
+  const zoomTo = useRef<number | null>(null)
 
   // A place's sheet covers the bottom of a phone (or the right side of a wide screen): slide the
   // picture so the building the camera glides to stays in the part you can still see
@@ -130,7 +133,11 @@ function CameraRig({ focusId }: { focusId: string | null }) {
     const place = getPlace(focusId) ?? getPlaceByZone(focusId)
     const zone = MAP_ZONES.find((entry) => entry.id === (place?.zoneId ?? focusId))
     goal.current = zone ? new Vector3(zone.position[0], 0, zone.position[1] + 4) : null
-  }, [focusId])
+    // At the AAU gate the map is the place: glide in close on the gate and the campus around it
+    if (place && MAP_ONLY_PLACES.has(place.id) && controls) {
+      zoomTo.current = Math.max(18, camera.position.distanceTo(controls.target) * 0.5)
+    }
+  }, [focusId, camera, controls])
 
   useFrame((_, delta) => {
     if (!controls) return
@@ -140,6 +147,13 @@ function CameraRig({ focusId }: { focusId: string | null }) {
       controls.target.add(move)
       camera.position.add(move)
       if (controls.target.distanceTo(goal.current) < 0.05) goal.current = null
+    }
+    if (zoomTo.current !== null) {
+      const offset = camera.position.clone().sub(controls.target)
+      const len = offset.length()
+      const next = len + (zoomTo.current - len) * Math.min(1, delta * 2.5)
+      camera.position.copy(controls.target).add(offset.setLength(next))
+      if (Math.abs(next - zoomTo.current) < 0.2) zoomTo.current = null
     }
     const minX = WORLD.x - WORLD.w / 2 + TARGET_PAD
     const maxX = WORLD.x + WORLD.w / 2 - TARGET_PAD
