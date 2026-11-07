@@ -1,6 +1,7 @@
 'use client'
 
 import { hasBuiltInterior } from '@/lib/game/interiors'
+import { placeLock } from '@/lib/game/place-locks'
 import { isPlaceOpen, formatOpenHour } from '@/lib/game/places'
 import { Link2, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
@@ -115,7 +116,8 @@ export function MapPlaceSheet({ hidden = false }: { hidden?: boolean }) {
   const gameTime = state?.gameTime ?? 12 * 60
   const hours = place.openHours
   const open = isPlaceOpen(place, gameTime)
-  const closed = !open && place.id !== 'home'
+  const locked = placeLock(place.id)
+  const closed = Boolean(locked) || (!open && place.id !== 'home')
   const fare = option ? fareOf(option, mode) : 0
   const cash = state?.cash ?? 0
   const short = fare > cash
@@ -168,7 +170,11 @@ export function MapPlaceSheet({ hidden = false }: { hidden?: boolean }) {
             <span aria-hidden="true">🚧</span> {place.label} is still under construction. You can still use what's here.
           </p>
         ) : null}
-        {closed && hours ? (
+        {locked ? (
+          <p className={styles.closed} role="status">
+            <span aria-hidden="true">🔒</span> {locked}
+          </p>
+        ) : closed && hours ? (
           <p className={styles.closed} role="status">
             <span aria-hidden="true">🔒</span> {place.label} is closed. Come back at {formatOpenHour(hours.open)}.
           </p>
@@ -261,7 +267,7 @@ export function MapPlaceSheet({ hidden = false }: { hidden?: boolean }) {
             disabled={!options || !option || travelling || short || closed}
             onClick={() => options && option && void go(options, option, mode, () => select(null))}
           >
-            {closed && hours ? `Closed · opens ${formatOpenHour(hours.open)}` : short ? `Need ${naira(fare)}` : `${isHome ? 'Go home' : 'Go'} · ${fare ? naira(fare) : 'Free'}`}
+            {locked ? 'Opens tonight at 10pm' : closed && hours ? `Closed · opens ${formatOpenHour(hours.open)}` : short ? `Need ${naira(fare)}` : `${isHome ? 'Go home' : 'Go'} · ${fare ? naira(fare) : 'Free'}`}
           </button>
         </footer>
       ) : null}
