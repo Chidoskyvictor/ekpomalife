@@ -1,5 +1,6 @@
 'use client'
 
+import { EAT_SECONDS, TAKEAWAY_PLACES, carryFood } from '@/lib/game/takeaway'
 import { actionSeconds } from '@/lib/game/action-seconds'
 import { BookOpen, Map as MapIcon, Mic, Users, UtensilsCrossed } from 'lucide-react'
 import dynamic from 'next/dynamic'
@@ -139,19 +140,52 @@ export function HallScreen({ hallId }: { hallId: string }) {
   }
 
   /** Buy and eat in one go (as Wise Gourmet). */
-  const order = async (item: ShopItem) => {
+  // Spot Rite: eat here or take out (the bukka and the rest are sit-down only)
+  const [choosing, setChoosing] = useState<ShopItem | null>(null)
+  const canTakeOut = TAKEAWAY_PLACES.has(hallId)
+
+  /**
+   * Buy at the counter. Eat here: you carry the plate to the nearest free seat, sit, and the food
+   * counts once you've eaten it. Take out: it stays in your hand (the 🥡 pill) until you eat it.
+   */
+  const order = async (item: ShopItem, how: 'here' | 'out' = 'here') => {
     if ((state?.cash ?? 0) < item.price) {
       notifyToast('Not enough cash for that', false)
       return
     }
+    setChoosing(null)
     setOrdering(item.id)
     try {
       const bought = await buy(item.id, 1)
       if (!bought) return
-      if (await useItem(item.id)) {
-        notifyToast(`${item.emoji} ${item.name}: enjoy!`, true)
-        social.showBubble('me', `${item.emoji} Yum!`)
+      const food = { itemId: item.id, name: item.name, emoji: item.emoji }
+      if (how === 'out') {
+        carryFood(food)
+        setMenuOpen(false)
+        social.showBubble('me', `🥡 ${item.name}`)
+        notifyToast(`🥡 ${item.name} packed. Eat it whenever you like.`, true)
+        return
       }
+      setMenuOpen(false)
+      social.showBubble('me', `${item.emoji} Carrying my plate`)
+      let ate = false
+      sit(
+        { emoji: item.emoji, title: `Eating ${item.name.toLowerCase()}`, seconds: EAT_SECONDS },
+        undefined,
+        {
+          onDone: async () => {
+            ate = true
+            if (await useItem(item.id)) {
+              notifyToast(`${item.emoji} ${item.name}: enjoy!`, true)
+              social.showBubble('me', `${item.emoji} Yum!`)
+            }
+          },
+          // Got up before finishing (or no seat): the plate stays in your hand
+          onAbort: () => {
+            if (!ate) carryFood(food)
+          },
+        },
+      )
     } finally {
       setOrdering(null)
     }
@@ -317,11 +351,16 @@ export function HallScreen({ hallId }: { hallId: string }) {
       .sort((a, b) => Math.hypot(a.x - x, a.z - z) - Math.hypot(b.x - x, b.z - z))[0]
   }
 
-  const sit = (what: { emoji: string; title: string; seconds: number } = { emoji: '🪑', title: 'Seated', seconds: SIT_SECONDS }, seatId?: string) => {
+  const sit = (
+    what: { emoji: string; title: string; seconds: number } = { emoji: '🪑', title: 'Seated', seconds: SIT_SECONDS },
+    seatId?: string,
+    after?: { onDone?: () => void; onAbort?: () => void },
+  ) => {
     // A tapped chair (if nobody's on it), else the nearest free one
     const seat = (seatId ? seats.find((s) => s.id === seatId) : undefined) ?? freeSeat()
     if (!seat) {
       notifyToast(hall?.office ? 'Every seat is taken.' : 'Every seat is taken. Stand at the back for now.', false)
+      after?.onAbort?.()
       return
     }
     setExpanded(false)
@@ -331,8 +370,14 @@ export function HallScreen({ hallId }: { hallId: string }) {
       {
         onStart: () =>
           startActivity({ emoji: what.emoji, title: `${what.title} · ${seat.label ?? `row ${seat.row}`}`, seconds: what.seconds, onCancel: () => control.stop?.() }),
-        onDone: endActivity,
-        onAbort: endActivity,
+        onDone: () => {
+          endActivity()
+          after?.onDone?.()
+        },
+        onAbort: () => {
+          endActivity()
+          after?.onAbort?.()
+        },
       },
     )
   }
@@ -426,10 +471,16 @@ export function HallScreen({ hallId }: { hallId: string }) {
                     .map(([k]) => ({ text: `+${k === 'hunger' ? 'Food' : k[0]!.toUpperCase() + k.slice(1)}`, tone: 'good' as const }))}
                   note={(state?.cash ?? 0) < item.price ? 'Not enough cash' : undefined}
                   disabled={shopBusy || ordering !== null || (state?.cash ?? 0) < item.price}
-                  onClick={() => void order(item)}
+                  onClick={() => (canTakeOut ? setChoosing(item) : void order(item))}
                 />
               ))
             )}
+          </PlaceActions>
+        ) : null}
+        {choosing ? (
+          <PlaceActions>
+            <PlaceAction emoji="🍽️" title="Eat here" price={`₦${choosing.price.toLocaleString()}`} note={`Take your ${choosing.name.toLowerCase()} to a seat`} onClick={() => void order(choosing, 'here')} />
+            <PlaceAction emoji="🥡" title="Take out" price={`₦${choosing.price.toLocaleString()}`} note="Carry it with you, eat it anywhere" onClick={() => void order(choosing, 'out')} />
           </PlaceActions>
         ) : null}
         {stage && (stageOpen || stageLive) ? <StagePanel live={stageLive} inside={inside} busy={goingLive} hearing={stageJoin !== null} title={stageTitle} onTitle={(t) => { setStageTitle(t); setStageError(null) }} error={stageError} onHost={hostSpace} onListen={() => void listenStage()} /> : null}
