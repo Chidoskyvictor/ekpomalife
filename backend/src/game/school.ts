@@ -1,3 +1,4 @@
+import { awardSkill } from './skills.js'
 import type { PoolClient } from 'pg'
 import { pool } from '../db.js'
 import { getCourse } from './aau-courses.js'
@@ -155,6 +156,10 @@ export async function schoolAction(
     const now = schoolNow()
     const place = ch.location_id ?? ''
     const done = async (message: string, result?: SemesterResult) => {
+      // Lectures, tutorials and exams train Academics
+      const xp = action === 'lecture' ? 8 : action === 'tutorial' ? 6 : action === 'exam' ? 12 : 0
+      const levelUp = xp ? await awardSkill(client, ch.id, 'academics', xp, (ch as { character_type?: string | null }).character_type) : null
+      if (levelUp) message = `${message} ${levelUp}`
       await client.query('COMMIT')
       const fresh = await loadRow(client, ch.id, false)
       const cash = await client.query<{ cash: string }>(`SELECT cash FROM game_state WHERE character_id = $1`, [ch.id])

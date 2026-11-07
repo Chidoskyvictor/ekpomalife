@@ -1,3 +1,4 @@
+import { awardSkill, skillGate } from './skills.js'
 import { randomBytes } from 'node:crypto'
 import type { PoolClient } from 'pg'
 import { pool } from '../db.js'
@@ -190,6 +191,10 @@ export async function createSpace(userId: string, input: CreateInput) {
   const gate = await requireEconomySetup(userId)
   if (!gate.ok) return fail(gate.code, 'SETUP_INCOMPLETE', gate.error)
 
+  // Hosting takes a little confidence: Charisma 1 (a couple of hangouts)
+  const shy = await skillGate(pool, gate.character.id, 'charisma', 1)
+  if (shy) return fail(403, 'SKILL_LOW', `${shy} Hang out and gist with people to raise it.`)
+
   const barred = await pool.query(`SELECT 1 FROM space_host_bans WHERE user_id = $1`, [userId])
   if (barred.rowCount) return fail(403, 'HOST_BANNED', 'You can’t host Spaces anymore. You can still listen.')
 
@@ -226,6 +231,8 @@ export async function createSpace(userId: string, input: CreateInput) {
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'scheduled')`,
     [id, userId, title.title, placeId, input.visibility, await newJoinCode(), scheduledAt, maxListeners, input.askToSpeak ?? true],
   )
+  // Hosting trains Charisma
+  await awardSkill(pool, gate.character.id, 'charisma', 10, gate.character.character_type)
 
   if (scheduledAt) {
     const space = await getSpace(userId, id)

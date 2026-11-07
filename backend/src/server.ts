@@ -2,6 +2,7 @@ import { houseRoutes } from './routes/houses.js'
 import { hubRoutes } from './routes/hub.js'
 import { rentalsRoutes } from './routes/rentals.js'
 import { schoolRoutes } from './routes/school.js'
+import { skillRoutes } from './routes/skills.js'
 import { missionRoutes } from './routes/missions.js'
 import Fastify from 'fastify'
 import cookie from '@fastify/cookie'
@@ -180,6 +181,7 @@ await app.register(rentalsRoutes)
 await app.register(walletRoutes)
 await app.register(houseRoutes)
 await app.register(schoolRoutes)
+await app.register(skillRoutes)
 await app.register(missionRoutes)
 
 const shutdown = async () => {

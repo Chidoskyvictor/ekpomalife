@@ -1,3 +1,4 @@
+import { awardSkill, skillForAction } from './skills.js'
 import type { PoolClient } from 'pg'
 import { pool } from '../db.js'
 import { createId } from '../ids.js'
@@ -581,6 +582,9 @@ export async function performGameAction(
        WHERE character_id = $1`,
       [character.id, JSON.stringify(needs), locationId, nextTime],
     )
+    // Studying, cooking and hanging out train a skill (where you hang out decides which)
+    const trains = skillForAction(action.id, input.atHome ? null : locationId)
+    const levelUp = trains ? await awardSkill(client, character.id, trains.skill, trains.xp, character.character_type) : null
 
     await client.query('COMMIT')
 
@@ -600,7 +604,7 @@ export async function performGameAction(
 
     return {
       ok: true,
-      message,
+      message: levelUp ? `${message} ${levelUp}` : message,
       state: {
         cash: nextCash,
         needs,

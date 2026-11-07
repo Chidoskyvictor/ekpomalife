@@ -23,6 +23,7 @@ import { checkTraits, type TraitId } from './traits.js'
 import { ensureRentRow, markRentPaid } from './rent-ladder.js'
 import { processWeeklyEconomy } from './weekly.js'
 import { getHustle, listHustleDefs, rollHustleOutcome } from './hustles.js'
+import { SKILL_LABEL, awardSkill, getSkills, isSkill, skillForJob, type SkillId } from './skills.js'
 
 export type JobRequirements = {
   skill?: string
@@ -190,20 +191,21 @@ async function ownedItemIds(client: PoolClient, characterId: string) {
 
 function jobEligibility(
   requirements: JobRequirements,
-  opts: { traits: TraitId[]; needs: Needs; items: Set<string>; level: number },
+  opts: { traits: TraitId[]; needs: Needs; items: Set<string>; level: number; skills: Map<SkillId, number> },
 ): { ok: true } | { ok: false; reason: string } {
   if (requirements.trait && !opts.traits.includes(requirements.trait as TraitId)) {
     return { ok: false, reason: `You need the ${requirements.trait} trait` }
   }
-  if (requirements.item && !opts.items.has(requirements.item)) {
-    return { ok: false, reason: `You need a ${requirements.item.replace(/-/g, ' ')}` }
-  }
-  if (requirements.skill === 'study' && typeof requirements.level === 'number') {
-    if (opts.needs.study < requirements.level) {
-      return { ok: false, reason: `Study need must be ${requirements.level}+` }
+  if (isSkill(requirements.skill) && typeof requirements.level === 'number') {
+    const have = opts.skills.get(requirements.skill) ?? 0
+    if (have < requirements.level) {
+      return { ok: false, reason: `Needs ${SKILL_LABEL[requirements.skill]} ${requirements.level} (you're ${have})` }
     }
   } else if (typeof requirements.level === 'number' && opts.level < requirements.level) {
     return { ok: false, reason: `Reach level ${requirements.level} first` }
+  }
+  if (requirements.item && !opts.items.has(requirements.item)) {
+    return { ok: false, reason: `You need a ${requirements.item.replace(/-/g, ' ')}` }
   }
   if (typeof requirements.energy === 'number' && opts.needs.energy < requirements.energy) {
     return { ok: false, reason: NO_ENERGY }
@@ -251,6 +253,7 @@ export async function listJobs(userId: string, placeId?: string | null) {
     const currentJobId = jobRow.rows[0]?.job_id ?? null
     const currentLevel = jobRow.rows[0]?.level ?? 1
     const needs = parseNeeds(row.needs)
+    const skills = new Map((await getSkills(gate.character.id, client)).map((k) => [k.id, k.level]))
 
     const jobsQuery = placeId
       ? await client.query<JobRow>(`SELECT * FROM jobs WHERE place_id = $1 ORDER BY title`, [placeId])
@@ -263,6 +266,7 @@ export async function listJobs(userId: string, placeId?: string | null) {
         needs,
         items,
         level: 1,
+        skills,
       })
       return mapJob(job, {
         currentJobId,
@@ -297,15 +301,17 @@ export async function applyForJob(userId: string, jobId: string) {
       return { ok: false as const, error: 'That job is gone.', code: 404 }
     }
     const items = await ownedItemIds(client, gate.character.id)
+    const skills = new Map((await getSkills(gate.character.id, client)).map((k) => [k.id, k.level]))
     const eligible = jobEligibility(parseJson(job.requirements, {}), {
       traits: gate.traits,
       needs: parseNeeds(row.needs),
       items,
       level: 1,
+      skills,
     })
     if (!eligible.ok) {
       await client.query('ROLLBACK')
-      return { ok: false as const, error: NOT_ELIGIBLE, code: 400 }
+      return { ok: false as const, error: eligible.reason || NOT_ELIGIBLE, code: 400 }
     }
     await client.query(
       `INSERT INTO player_jobs (character_id, job_id, level)
@@ -405,6 +411,8 @@ export async function workShift(userId: string) {
        WHERE character_id = $1`,
       [gate.character.id, JSON.stringify(clampNeeds(needs)), wrote.version],
     )
+    // Every shift trains the job's skill (cooking at the bukka, tech at the cyber café, hustle elsewhere)
+    const levelUp = await awardSkill(client, gate.character.id, skillForJob(job.id), 6, gate.character.character_type)
 
     await client.query('COMMIT')
     const state = await getPublicState(userId)
@@ -415,7 +423,7 @@ export async function workShift(userId: string) {
       earned: totalPay,
       xp: 12,
       levelUp: false,
-      message: `Shift done. +₦${totalPay.toLocaleString()}`,
+      message: `Shift done. +₦${totalPay.toLocaleString()}${levelUp ? ` ${levelUp}` : ''}`,
     }
   } catch (error) {
     await client.query('ROLLBACK')
