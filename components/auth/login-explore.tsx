@@ -39,13 +39,13 @@ export function LoginExplore() {
 
   return (
     <>
-      <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+      <div className="mb-2 flex flex-wrap items-center justify-center gap-1.5">
         {ITEMS.map((item) => (
           <button
             key={item.key}
             type="button"
             onClick={() => setOpen(item)}
-            className="inline-flex min-h-10 items-center gap-1.5 rounded-full bg-white/80 px-3 text-sm font-medium text-neutral-800"
+            className="inline-flex h-7 items-center gap-1 rounded-full bg-white/80 px-2.5 text-xs font-medium text-neutral-800"
           >
             <span aria-hidden="true">{item.emoji}</span>
             {item.label}
