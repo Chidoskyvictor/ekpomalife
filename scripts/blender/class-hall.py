@@ -1,8 +1,8 @@
 """
 Class hall (every lecture hall / class uses it): a lecture room with a grey terrazzo floor, cream
 walls over a painted dado (the hall's own colour, swapped at runtime: materials Wall.001 / Wall),
-a green chalkboard on a low platform, the lecturer's table, chair and lectern, louvre windows and
-fluorescent tubes that light up at night (ClassWindowGlow / ClassTube), and separate wooden chairs
+a white marker board on a low platform, the lecturer's table, chair and lectern, louvre windows and
+fluorescent tubes that light up at night (ClassWindowGlow / ClassTube), and separate red-painted wooden chairs
 with writing arms. Outside: ring road, cement-grey interlocking pavers, white campus blocks with
 two blank sign boards (SignBoard0 faces +z, SignBoard1 faces -x) that the game writes the
 neighbouring halls' names on. -> public/models/class-hall.glb
@@ -109,10 +109,18 @@ def wood_grain(x, y, s):
     return (0.52 + g + n * 0.5, 0.33 + g * 0.8 + n * 0.5, 0.18 + g * 0.5)
 
 
-def chalk(x, y, s):
+def marker_board(x, y, s):
+    # white marker board with faint grey wipe marks
+    n = noise(0.012)
+    wipe = 0.025 * max(0.0, math.sin(x * 0.04 + y * 0.02)) * max(0.0, math.sin(y * 0.07))
+    return (0.95 - wipe + n, 0.96 - wipe + n, 0.97 - wipe + n)
+
+
+def red_paint(x, y, s):
+    # red painted chair wood: the grain still shows a little through the paint
     n = noise(0.03)
-    smudge = 0.03 * math.sin(x * 0.05) * math.sin(y * 0.09)
-    return (0.10 + n + smudge, 0.27 + n + smudge, 0.20 + n + smudge)
+    g = 0.03 * math.sin(x * 0.9 + math.sin(y * 0.04) * 1.5)
+    return (0.62 + g + n, 0.08 + g * 0.3 + n * 0.3, 0.08 + n * 0.3)
 
 
 def asphalt(x, y, s):
@@ -144,8 +152,10 @@ terrazzo_m = mat("Terrazzo", img=texture("terrazzo", S, terrazzo), rough=0.3)
 pavers_m = mat("CementPavers", img=texture("cementpavers", 128, cement_pavers), rough=0.9)
 facade_m = mat("WhiteFacade", img=texture("whitefacade", 64, white_facade), rough=0.85)
 asphalt_m = mat("Asphalt", img=texture("asphalt", 64, asphalt), rough=0.95)
-wood_m = mat("ChairWood", img=texture("chairwood", 64, wood_grain), rough=0.6)
-chalk_m = mat("Chalkboard", img=texture("chalkboard", 64, chalk), rough=0.9)
+wood_m = mat("ChairRed", img=texture("chairred", 64, red_paint), rough=0.45)
+chalk_m = mat("MarkerBoard", img=texture("markerboard", 64, marker_board), rough=0.2)
+alu_m = mat("BoardAlu", (0.75, 0.76, 0.78), rough=0.3, metal=0.8)
+marker_m = mat("Markers", (0.10, 0.25, 0.70), rough=0.4)
 plaster_m = mat("ClassPlaster", (0.92, 0.90, 0.84), rough=0.9)
 paint_full = mat("Wall.001", (0.30, 0.45, 0.60), rough=0.8)   # window-wall dado (the hall colour)
 paint_shade = mat("Wall", (0.26, 0.40, 0.54), rough=0.8)      # board-wall dado (a shade darker)
@@ -266,9 +276,11 @@ for i, z in enumerate((-3.3, 0.3, 3.9)):
 PY = 0.22
 box("Platform", -5.6, HZ0, 4.6, -4.3, 0.0, PY, terrazzo_m, tile=(2.0, 2.0))
 box("PlatformNose", -5.6, -4.33, 4.6, -4.27, 0.0, PY + 0.01, step_m)
-box("BoardFrame", -4.2, HZ0, 3.2, HZ0 + 0.06, 1.0, 2.75, timber_m)
-box("Board", -4.1, HZ0 + 0.06, 3.1, HZ0 + 0.08, 1.08, 2.67, chalk_m)
-box("ChalkLedge", -4.1, HZ0 + 0.06, 3.1, HZ0 + 0.16, 1.02, 1.06, timber_m)
+box("BoardFrame", -4.2, HZ0, 3.2, HZ0 + 0.06, 1.0, 2.75, alu_m)
+box("Board", -4.12, HZ0 + 0.06, 3.12, HZ0 + 0.08, 1.06, 2.69, chalk_m)
+box("MarkerTray", -4.1, HZ0 + 0.06, 3.1, HZ0 + 0.18, 0.98, 1.02, alu_m)
+for i, x in enumerate((-3.6, -3.4, -3.25)):
+    box(f"Marker{i}", x - 0.07, HZ0 + 0.1, x + 0.07, HZ0 + 0.13, 1.02, 1.045, marker_m)
 # the lecturer's table, chair and lectern
 box("DeskTop", -1.6, -5.4, 0.4, -4.6, PY + 0.74, PY + 0.78, timber_m)
 box("DeskFront", -1.6, -4.66, 0.4, -4.6, PY + 0.2, PY + 0.74, timber_m)

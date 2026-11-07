@@ -19,7 +19,7 @@ export const CLASS_SEATS: HallSeat[] = ROWS.flatMap((z, r) =>
 export const CLASS_HALL: RoomLayout = {
   id: 'lecture-hall',
   label: 'Lecture hall',
-  glb: '/models/class-hall.glb?v=1',
+  glb: '/models/class-hall.glb?v=2',
   floors: [[-7, -6, 6, 6]],
   blocks: [
     [-5.6, -6.2, 4.6, -4.25], // platform, board and the lecturer's table
