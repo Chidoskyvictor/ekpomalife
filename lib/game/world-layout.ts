@@ -437,7 +437,7 @@ const FIRST_ZONES: MapZone[] = [
   zone('billboard-1', 'Billboard 1', 0.155, 0.4985, 'billboard-pack', [7, 3], 0, undefined, undefined, { modelY: 0.5, scaleMul: 1.8 }),
   zone('billboard-2', 'Billboard 2', 0.3983, 0.4139, 'billboard1', [7, 3], -3.1416, undefined, undefined, { modelY: 0.5, scaleMul: 1.8 }),
   zone('billboard-3', 'Billboard 3', 0.605, 0.6468, 'billboard-pack', [7, 3], -3.1416, undefined, undefined, { modelY: 0, scaleMul: 1.9 }),
-  zone('billboard-4', 'Billboard 4', 0.145, 0.83, 'billboard1', [7, 3], -3.1416, undefined, undefined, { modelY: 0, scaleMul: 1.9 }),
+  zone('billboard-4', 'Billboard 4', 0.064, 0.83, 'billboard1', [7, 3], -3.1416, undefined, undefined, { modelY: 0, scaleMul: 1.9 }),
   zone('billboard-5', 'Billboard 5', 0.8768, 0.875, 'billboard-pack', [7, 3], 0, undefined, undefined, { modelY: 0, scaleMul: 2.3 }),
   zone('billboard-6', 'Billboard 6', 0.2016, 0.8111, 'billboard-pack', [7, 3], 0, undefined, undefined, { modelY: 0, scaleMul: 1.9 }),
   zone('billboard-7', 'Billboard 7', 0.3361, 0.8198, 'billboard1', [7, 3], -3.1416, undefined, undefined, { modelY: 0, scaleMul: 1.9 }),

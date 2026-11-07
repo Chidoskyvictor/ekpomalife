@@ -1,5 +1,6 @@
 'use client'
 
+import { useLowPerf } from '@/hooks/use-low-perf'
 import { MAP_ONLY_PLACES } from '@/lib/game/home-place'
 import { ContextRestore } from '@/components/three/context-restore'
 import { MapControls, PerformanceMonitor } from '@react-three/drei'
@@ -231,6 +232,8 @@ function MobileDprMonitor({
 
 export function WorldCanvas() {
   const { state, selectedId, select } = useGame()
+  // Slow phones get fewer cars on the highway
+  const lowPerf = useLowPerf()
   // The map always shows daylight, whatever the real time is
   const period = 'afternoon' as const
   const night = false
@@ -346,7 +349,7 @@ export function WorldCanvas() {
         <WorldGround />
         <WorldRoads />
         <Suspense fallback={null}>
-          <WorldHighway />
+          <WorldHighway cars={lowPerf ? 4 : 10} />
         </Suspense>
         <WorldTrees mobile={mobile} />
         <WorldScenery mobile={mobile} night={night} />
