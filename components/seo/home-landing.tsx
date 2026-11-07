@@ -49,7 +49,7 @@ export function HomeLanding({ crawlOnly = false }: { crawlOnly?: boolean }) {
         />
         <h1 className={styles.title}>Ekpoma Life</h1>
         <p className={styles.lead}>
-          Live your AAU story in the browser — study, hustle, eat at the bukka, pay Baba Landlord, and
+          Live your AAU story in the browser — study, hustle, eat at the bukka, pay the caretaker, and
           chase the dream you picked on signup.
         </p>
         <div className={styles.ctaRow}>

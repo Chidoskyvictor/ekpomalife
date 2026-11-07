@@ -23,7 +23,7 @@
 
 ## 1. Game overview
 
-**Ekpoma Life** is a mobile-first browser life-sim set in Ekpoma, Edo State, around Ambrose Alli University (AAU). You sign up, build your character (look → traits → dream → where you live), spin your starting money, and drop onto a 3D isometric AAU campus. From there you manage needs (hunger, energy, fun, social, hygiene, study), hustle for naira, pay rent to Baba Landlord, chase your dream, and — at launch — share the town with other players.
+**Ekpoma Life** is a mobile-first browser life-sim set in Ekpoma, Edo State, around Ambrose Alli University (AAU). You sign up, build your character (look → traits → dream → where you live), spin your starting money, and drop onto a 3D isometric AAU campus. From there you manage needs (hunger, energy, fun, social, hygiene, study), hustle for naira, pay rent to Caretaker, chase your dream, and — at launch — share the town with other players.
 
 Tone: lively, funny, broke-but-hopeful, Naija campus vernacular ("You dey hungry, find mama put", "NEPA don take light"). Competitor reference: **Lagos Life** — we copy its lessons (no client-trusted money, chat by area, low data, ads/billboards, naira top-ups) but not its UI voice.
 

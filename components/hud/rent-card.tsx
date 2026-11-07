@@ -28,7 +28,7 @@ export function RentCard({ compact = false }: { compact?: boolean }) {
         <div>
           <p className={styles.cardTitle}>
             <span aria-hidden="true">🏠 </span>
-            {rent.label ?? 'Baba Landlord'}
+            {rent.label ?? 'Caretaker'}
           </p>
           <p className={styles.cardMeta}>{meta}</p>
         </div>

@@ -35,7 +35,7 @@ export const QUIZ_BANKS: Record<string, QuizQuestion[]> = {
     },
     {
       id: 'g5',
-      prompt: 'Baba Landlord collects…',
+      prompt: 'The caretaker collects…',
       choices: ['School fees', 'Rent', 'Matric gown', 'Exam scripts'],
       answerIndex: 1,
     },

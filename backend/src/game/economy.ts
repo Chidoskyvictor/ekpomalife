@@ -688,7 +688,7 @@ export async function payRent(userId: string) {
       ok: true as const,
       state: { ok: true as const, ...state.state },
       rent: rentInfo,
-      message: 'Rent paid. Baba Landlord is smiling. Warnings cleared.',
+      message: 'Rent paid. The caretaker is happy. Warnings cleared.',
     }
   } catch (error) {
     await client.query('ROLLBACK')

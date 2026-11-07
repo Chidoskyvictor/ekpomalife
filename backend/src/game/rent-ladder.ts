@@ -68,7 +68,7 @@ export function mapRentPublic(row: RentRow): RentPublic {
     dueAt: displayDateForGameDay(dueDay),
     paidUntil: displayDateForGameDay(paidDay),
     status: (row.status as RentStatus) || 'due',
-    label: row.label || 'Baba Landlord',
+    label: row.label || 'Caretaker',
     warnings: row.warnings ?? 0,
     lastWarnedAt: iso(row.last_warned_at),
     evictedAt: iso(row.evicted_at),
@@ -125,7 +125,7 @@ export async function ensureRentRow(
        character_id, lodging_id, amount, due_at, paid_until, status, label,
        warnings, due_game_day, paid_until_game_day, message
      ) VALUES (
-       $1, $2, $3, $4::timestamptz, $5::timestamptz, 'due', 'Baba Landlord',
+       $1, $2, $3, $4::timestamptz, $5::timestamptz, 'due', 'Caretaker',
        0, $6, $7, NULL
      )`,
     [
@@ -232,8 +232,8 @@ export async function advanceRentLadder(
     lastWarned = new Date()
     message =
       warnings === 1
-        ? 'Baba Landlord warning 1: rent is late. Pay before it gets worse.'
-        : 'Baba Landlord warning 2: last chance before eviction.'
+        ? 'Caretaker warning 1: rent is late. Pay before it gets worse.'
+        : 'Caretaker warning 2: last chance before eviction.'
     notices.push(message)
   }
 

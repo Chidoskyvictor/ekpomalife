@@ -51,7 +51,7 @@ export function HousesApp() {
 
   const cash = state?.cash ?? 0
   const blocked = data.owesRent
-    ? 'Pay Baba Landlord what you owe before you move.'
+    ? 'Pay the caretaker what you owe before you move.'
     : data.nextMoveAt
       ? `You moved recently. You can move again on ${new Date(data.nextMoveAt).toLocaleDateString('en-NG', { day: 'numeric', month: 'short' })}.`
       : null

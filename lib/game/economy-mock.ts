@@ -158,7 +158,7 @@ let rent: RentInfo = {
   dueAt: new Date(Date.now() + 2 * 86400000).toISOString(),
   paidUntil: new Date(Date.now() - 5 * 86400000).toISOString(),
   status: 'due',
-  label: 'Baba Landlord',
+  label: 'Caretaker',
   warnings: 0,
   lastWarnedAt: null,
   evictedAt: null,
@@ -297,7 +297,7 @@ export function mockRent() {
 
 export function mockPayRent() {
   if (cash < rent.amount) return { ok: false as const, error: 'You no get money reach.' }
-  pushLedger(-rent.amount, 'Rent to Baba Landlord', 'rent')
+  pushLedger(-rent.amount, 'Rent to the caretaker', 'rent')
   rent = {
     ...rent,
     status: 'ok',
@@ -312,7 +312,7 @@ export function mockPayRent() {
     ok: true as const,
     state: snapshotState(),
     rent: { ...rent },
-    message: 'Rent paid. Baba Landlord is smiling. Warnings cleared.',
+    message: 'Rent paid. The caretaker is happy. Warnings cleared.',
   }
 }
 
@@ -375,7 +375,7 @@ export function resetEconomyMock() {
     dueAt: new Date(Date.now() + 2 * 86400000).toISOString(),
     paidUntil: new Date(Date.now() - 5 * 86400000).toISOString(),
     status: 'due',
-    label: 'Baba Landlord',
+    label: 'Caretaker',
     warnings: 0,
     lastWarnedAt: null,
     evictedAt: null,

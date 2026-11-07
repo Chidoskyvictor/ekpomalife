@@ -37,7 +37,7 @@ export function taskPillsFor(state: GameState): QuestPill[] {
       kind: 'task',
       emoji: '/emoji/house.png',
       title: 'Pay rent',
-      hint: 'Baba Landlord comes Saturday',
+      hint: 'The caretaker comes Saturday',
       locationId: state.locationId,
     })
   }
@@ -113,7 +113,7 @@ export function rentPill(rent: RentInfo | null | undefined): QuestPill | null {
       ? `${amount} · Off-campus Hostels`
       : rent.status === 'late'
         ? `${amount} · a bit late, pay when you can`
-        : `${amount} · Baba Landlord`
+        : `${amount} · Caretaker`
   return {
     id: 'task-rent-due',
     kind: 'task',

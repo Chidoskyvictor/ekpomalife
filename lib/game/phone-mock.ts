@@ -300,7 +300,7 @@ export function mockListNotifications() {
       id: 'n-rent',
       appId: 'calendar',
       title: 'Rent reminder',
-      body: 'Baba Landlord due soon',
+      body: 'Caretaker coming soon for rent',
       createdAt: new Date().toISOString(),
     })
   }

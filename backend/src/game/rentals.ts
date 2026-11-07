@@ -10,7 +10,7 @@ import { realGameTime } from './time.js'
  * The phone's Houses app: rent another place and move there. You pay the new place's move-in fee
  * (as at sign-up; the hostel is free), its weekly rent starts fresh from today, your starter
  * furniture swaps for the new home's and what you bought moves with you (rehomeFurniture).
- * One move per 7 days, and not while you owe Baba Landlord.
+ * One move per 7 days, and not while you owe the caretaker.
  */
 
 export const MOVE_COOLDOWN_DAYS = 7
@@ -84,7 +84,7 @@ export async function moveToRental(userId: string, lodgingId: string) {
     const status = rent.rows[0]?.status
     if (status === 'late' || status === 'evicted') {
       await client.query('ROLLBACK')
-      return fail('Pay Baba Landlord what you owe before you move.', 409)
+      return fail('Pay the caretaker what you owe before you move.', 409)
     }
     if (fee > 0) {
       const paid = await applyCash(client, characterId, -fee, `Move-in fee: ${house.name}, ${house.address}`, 'rent')
