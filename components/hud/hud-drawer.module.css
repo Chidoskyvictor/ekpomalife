@@ -75,6 +75,16 @@
   color: #6e6e73;
 }
 
+/* Tall sheets always open at the same full height, whatever the tab's content */
+.contentTall {
+  height: 92dvh;
+}
+
+.contentTall .body {
+  flex: 1;
+  min-height: 0;
+}
+
 .body {
   overflow-y: auto;
   overscroll-behavior: contain;
