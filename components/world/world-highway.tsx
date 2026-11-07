@@ -3,7 +3,7 @@
 import { useGLTF } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
-import { Matrix4, Object3D, type InstancedMesh, type Material } from 'three'
+import { Color, Matrix4, Object3D, type InstancedMesh, type Material } from 'three'
 import { FIRST_SLAB, FRONT_SLAB, FRONT_SLAB_EXT } from '@/lib/game/world-layout'
 import { bakeStaticParts, type StaticPart } from './bake-static'
 
@@ -29,6 +29,8 @@ const CAR_URL = '/models/npc-car.glb?v=1'
 const LANES = [4.9, 8.7, -4.9, -8.7]
 /** Car speed along the map (world units / s), before the per-car jitter. */
 const CAR_SPEED = 9
+/** Paint colours for the cars (tints the same model so the traffic isn't all one colour). */
+const CAR_COLORS = ['#ffffff', '#d62828', '#1d4ed8', '#111827', '#f2c94c', '#9ca3af', '#15803d', '#ea580c', '#7c3aed', '#e5e7eb']
 
 function HighwayPart({ part, matrices }: { part: StaticPart; matrices: Matrix4[] }) {
   const ref = useRef<InstancedMesh>(null)
@@ -92,6 +94,14 @@ function HighwayTraffic({ count }: { count: number }) {
   )
   const refs = useRef<(InstancedMesh | null)[]>([])
   const dummy = useMemo(() => new Object3D(), [])
+  useLayoutEffect(() => {
+    const color = new Color()
+    for (const mesh of refs.current) {
+      if (!mesh) continue
+      cars.forEach((_, i) => mesh.setColorAt(i, color.set(CAR_COLORS[i % CAR_COLORS.length]!)))
+      if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true
+    }
+  }, [cars, parts])
   useFrame((_, delta) => {
     const dt = Math.min(delta, 0.05)
     cars.forEach((car, i) => {
