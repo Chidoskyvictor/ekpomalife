@@ -68,12 +68,11 @@ const TOPICS: Topic[] = [
     id: 'food',
     emoji: '🍛',
     title: 'Food & Energy',
-    blurb: 'Eat here or take out',
+    blurb: 'Order and eat',
     tint: '#fef9c3',
     steps: [
       { title: 'Order at the counter', text: 'Spot Rite, Wise Gourmet and the bukkas sell plates. Pick what you can afford.', show: { place: 'spot-rite' }, showLabel: 'Go to Spot Rite' },
-      { title: 'Eat here', text: 'You carry your plate to a free seat, sit and eat. The food counts when you finish.' },
-      { title: 'Take out', text: 'At Spot Rite and Wise Gourmet you can take it away. It stays in your hand until you tap Eat.' },
+      { title: 'Eat', text: 'You eat right away: a short bar fills, and the food counts when it finishes.' },
     ],
   },
   {
@@ -129,7 +128,7 @@ const TOPICS: Topic[] = [
     tint: '#d1fae5',
     steps: [
       { title: 'Go to the Innovation Hub', text: 'Pitch your startup to the judges in the Pitch Room.', show: { place: 'innovation-hub' }, showLabel: 'Go to the Hub' },
-      { title: 'Wait for the review', text: 'The judges take a minute or two. You can pitch a few times a day.' },
+      { title: 'Wait for the review', text: 'The judges take about 20 seconds. You can pitch a few times a day.' },
     ],
   },
   {

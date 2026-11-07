@@ -18,7 +18,7 @@ const ITEMS: Item[] = [
     label: 'SUG election',
     emoji: '🗳️',
     title: 'SUG House',
-    body: 'The SUG has no President yet. Sign up to vote, or run for office yourself.',
+    body: 'AAU has no SUG President yet. Sign up to vote, or run for office yourself.',
     cta: 'Sign up to vote',
   },
   {

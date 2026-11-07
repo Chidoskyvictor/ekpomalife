@@ -8,6 +8,7 @@ import { openDirectChat } from '@/lib/game/hostels-api'
 import { requestOpenChat } from '@/lib/game/open-chat'
 import { bubbleFor, REACTIONS, SOCIALS, type SocialId } from '@/lib/game/quick-lines'
 import { socialAtVenue } from '@/lib/game/venues-api'
+import { runTimed } from '@/lib/game/activity'
 import { refreshMissions } from '@/lib/game/missions-api'
 import styles from './place-social.module.css'
 
@@ -94,6 +95,14 @@ export function usePlaceSocial(placeId: string, live: Live) {
     setTalk(null)
     setActing(true)
     if (kind === 'gist') showBubble('me', '*gisting*')
+    // With an NPC it takes a moment: a 5 s activity bar, then the result lands
+    if (current.kind === 'npc') {
+      const finished = await runTimed({ emoji: def.emoji, title: `${def.label} · ${current.npc.name}`, seconds: 5 }, () => {})
+      if (!finished) {
+        setActing(false)
+        return
+      }
+    }
     try {
       const res = await socialAtVenue(placeId, kind, target)
       if (!res.ok) {

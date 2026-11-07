@@ -1,7 +1,6 @@
 'use client'
 
-import { endActivity, startActivity } from '@/lib/game/activity'
-import { EAT_SECONDS, carryFood } from '@/lib/game/takeaway'
+import { runTimed } from '@/lib/game/activity'
 import { Map as MapIcon, UtensilsCrossed } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
@@ -105,49 +104,22 @@ export function WiseInterior() {
   // The server falls back to the corner shop's list when a place has no menu yet: only show ours
   const menu = shopPlaceId === PLACE_ID ? shopItems.filter((item) => item.category === 'food') : []
 
-  const [choosing, setChoosing] = useState<ShopItem | null>(null)
-
-  /** Eat here: carry the plate to a stool and eat there. Take out: it stays in your hand (🥡) until you eat it. */
-  const order = async (item: ShopItem, how: 'here' | 'out') => {
+  const order = async (item: ShopItem) => {
     if (cash < item.price) {
       notifyToast('Not enough cash for that', false)
       return
     }
-    setChoosing(null)
     setOrdering(item.id)
     try {
       const bought = await buy(item.id, 1)
       if (!bought) return
-      const food = { itemId: item.id, name: item.name, emoji: item.emoji }
-      setMenuOpen(false)
-      if (how === 'out') {
-        carryFood(food)
-        social.showBubble('me', `🥡 ${item.name}`)
-        notifyToast(`🥡 ${item.name} packed. Eat it whenever you like.`, true)
-        return
-      }
-      social.showBubble('me', `${item.emoji} Carrying my plate`)
-      const seat = SEATS[Math.floor(Math.random() * SEATS.length)]
-      if (seat) sitAt(seat)
-      let stopped = false
-      startActivity({
-        emoji: item.emoji,
-        title: `Eating ${item.name.toLowerCase()}`,
-        seconds: EAT_SECONDS,
-        // Got up before finishing: the plate stays in your hand
-        onCancel: () => {
-          stopped = true
-          carryFood(food)
-        },
-      })
-      window.setTimeout(async () => {
-        if (stopped) return
-        endActivity()
+      // Eat on the spot: a 5 s activity bar, the food counts when it finishes
+      await runTimed({ emoji: item.emoji, title: `Eating ${item.name.toLowerCase()}`, seconds: 5 }, async () => {
         if (await useItem(item.id)) {
           notifyToast(`${item.emoji} ${item.name}: enjoy!`, true)
           social.showBubble('me', `${item.emoji} Yum!`)
         }
-      }, EAT_SECONDS * 1000)
+      })
     } finally {
       setOrdering(null)
     }
@@ -259,16 +231,10 @@ export function WiseInterior() {
                     tags={tagsFor(item)}
                     note={cash < item.price ? 'Not enough cash' : undefined}
                     disabled={busy || ordering !== null || cash < item.price}
-                    onClick={() => setChoosing(item)}
+                    onClick={() => void order(item)}
                   />
                 ))
               )}
-              {choosing ? (
-                <>
-                  <PlaceAction emoji="🍽️" title="Eat here" price={`₦${choosing.price.toLocaleString()}`} note={`Take your ${choosing.name.toLowerCase()} to a seat`} onClick={() => void order(choosing, 'here')} />
-                  <PlaceAction emoji="🥡" title="Take out" price={`₦${choosing.price.toLocaleString()}`} note="Carry it with you, eat it anywhere" onClick={() => void order(choosing, 'out')} />
-                </>
-              ) : null}
             </PlaceActions>
           ) : (
             <>

@@ -50,6 +50,7 @@ import { useChatUnread } from '@/hooks/use-chat-unread'
 import { TravelControl } from '@/components/travel/travel-control'
 import travelStyles from '@/components/travel/travel.module.css'
 import { openTravel } from '@/lib/game/trip'
+import { cancelActivity } from '@/lib/game/activity'
 import { STREET_AND_TRAVEL } from '@/lib/flags'
 
 export function Hud() {
@@ -77,6 +78,11 @@ export function Hud() {
   const homeBuy = useBuyUi()
   const router = useRouter()
   const pathname = usePathname()
+  // Leaving the place (to the map or another building) stops whatever you were doing there
+  const locationId = state?.locationId
+  useEffect(() => {
+    cancelActivity()
+  }, [pathname, locationId])
   const hasPhone = playerHasPhone(state?.hasPhone)
   // Hostel chat unread counts toward the phone badge too
   const chatUnread = useChatUnread(!guest && Boolean(state))
@@ -284,7 +290,8 @@ export function Hud() {
           {!phoneOpen ? <SettingsMenu /> : null}
         </div>
         {/* At a school building: level, CGPA, exam prep and today's classes */}
-        {!phoneOpen && !buyOpen ? <SchoolCard /> : null}
+        {/* Only inside the class itself, not on the map after you walk out */}
+        {!phoneOpen && !buyOpen && pathname === '/room' ? <SchoolCard /> : null}
         {/* Home (My Room): find / join your real hostel — not while visiting someone (/room/[username]) */}
         {state && pathname === '/room' && !interiorPlaceId(state.locationId, state.lodgingId) ? (
           <div className={styles.topWrap}>

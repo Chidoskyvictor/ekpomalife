@@ -5,7 +5,7 @@ import { awardSkill } from './skills.js'
 import { lagosDayStart } from './spaces-rules.js'
 
 /*
- * Innovation Hub Pitch Room. You pitch, the investor reviews your deck for 1–2 minutes, then says
+ * Innovation Hub Pitch Room. You pitch, the investor reviews your deck for 20 seconds, then says
  * yes (₦1M–₦5M) or no. Five pitches a day. Each pitch is a coin toss, but anyone still without a
  * yes on their 5th pitch of the day gets one, so a full day of trying always pays. The server
  * decides the outcome when you start and only reveals (and pays) once the review time is up.
@@ -15,8 +15,8 @@ export const PITCHES_PER_DAY = 5
 const ACCEPT_CHANCE = 0.3
 const MIN_REWARD = 1_000_000
 const MAX_REWARD = 5_000_000
-const REVIEW_MIN_S = 60
-const REVIEW_MAX_S = 120
+const REVIEW_MIN_S = 20
+const REVIEW_MAX_S = 20
 
 type Fail = { ok: false; error: string; code: number }
 const fail = (code: number, error: string): Fail => ({ ok: false, error, code })
