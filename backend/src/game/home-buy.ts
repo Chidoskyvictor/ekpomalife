@@ -9,12 +9,13 @@ import { requireEconomySetup } from './economy.js'
 import { HOME_GRID } from './home-grid.js'
 import {
   checkHomePlacement,
+  firstFreeHomeSpot,
   sellBackPrice,
   type HomeRotation,
   type HomeShape,
 } from './home-buy-rules.js'
 import { liveSpaceMoneyBlock } from './spaces-money.js'
-import { STARTERS, starterSeedSpot } from './home-starters.js'
+import { FIRST_STARTERS, STARTERS, starterSeedSpot, startersToAdd } from './home-starters.js'
 import { cleanDecor, decorName, decorPrice, decorZones, type DecorZone } from './home-decor.js'
 
 /*
@@ -133,17 +134,28 @@ async function ensureStarters(characterId: string, lodgingId: string | null) {
   const grid = HOME_GRID[key]
   const defs = STARTERS[key]
   if (!grid || !defs) return
-  const seen = await pool.query<{ lodging_id: string }>(`SELECT lodging_id FROM home_starters WHERE character_id = $1`, [characterId])
-  if (seen.rows[0]?.lodging_id === key) return
+  const seen = await pool.query<{ lodging_id: string; items: string[] | null }>(
+    `SELECT lodging_id, items FROM home_starters WHERE character_id = $1`,
+    [characterId],
+  )
+  if (seen.rows[0]?.lodging_id === key) {
+    // Same home: only starters added since they were seeded (bath and kitchen pieces), if any
+    const placed = await pool.query<{ item_id: string }>(
+      `SELECT item_id FROM home_placements WHERE character_id = $1 AND item_id LIKE 'starter-%'`,
+      [characterId],
+    )
+    if (startersToAdd(defs, seen.rows[0].items, placed.rows.map((r) => r.item_id)).length === 0) return
+  }
   const client = await pool.connect()
   try {
     await client.query('BEGIN')
-    const locked = await client.query<{ lodging_id: string }>(
-      `SELECT lodging_id FROM home_starters WHERE character_id = $1 FOR UPDATE`,
+    const locked = await client.query<{ lodging_id: string; items: string[] | null }>(
+      `SELECT lodging_id, items FROM home_starters WHERE character_id = $1 FOR UPDATE`,
       [characterId],
     )
     if (locked.rows[0]?.lodging_id === key) {
-      await client.query('ROLLBACK')
+      await addNewStarters(client, characterId, grid, defs, locked.rows[0].items)
+      await client.query('COMMIT')
       return
     }
     await client.query(`DELETE FROM home_placements WHERE character_id = $1 AND item_id LIKE 'starter-%'`, [characterId])
@@ -155,9 +167,9 @@ async function ensureStarters(characterId: string, lodgingId: string | null) {
       )
     }
     await client.query(
-      `INSERT INTO home_starters (character_id, lodging_id) VALUES ($1, $2)
-       ON CONFLICT (character_id) DO UPDATE SET lodging_id = EXCLUDED.lodging_id, seeded_at = NOW()`,
-      [characterId, key],
+      `INSERT INTO home_starters (character_id, lodging_id, items) VALUES ($1, $2, $3)
+       ON CONFLICT (character_id) DO UPDATE SET lodging_id = EXCLUDED.lodging_id, items = EXCLUDED.items, seeded_at = NOW()`,
+      [characterId, key, defs.map((d) => d.item)],
     )
     await client.query('COMMIT')
   } catch (error) {
@@ -166,6 +178,44 @@ async function ensureStarters(characterId: string, lodgingId: string | null) {
   } finally {
     client.release()
   }
+}
+
+/**
+ * A home seeded before some starters existed: add the ones never given (where they stand in the
+ * room, or the first free spot if something is there now). Nothing already placed is touched.
+ */
+async function addNewStarters(
+  client: PoolClient,
+  characterId: string,
+  grid: (typeof HOME_GRID)[string],
+  defs: (typeof STARTERS)[string],
+  given: string[] | null,
+) {
+  const placements = await loadPlacements(client, characterId)
+  const missing = startersToAdd(defs, given, placements.map((p) => p.itemId))
+  if (missing.length === 0) return
+  const shapes = shapesOf(await loadCatalog(client))
+  const added: string[] = []
+  for (const def of missing) {
+    if (!shapes.has(def.item)) continue // catalogue row not there yet
+    const seed = starterSeedSpot(grid, def)
+    const spot = checkHomePlacement(grid, shapes, placements, def.item, seed).ok
+      ? seed
+      : firstFreeHomeSpot(grid, shapes, placements, def.item)
+    if (!spot) continue // no room: try again next time
+    const id = `hp_${createId()}`
+    await client.query(
+      `INSERT INTO home_placements (id, character_id, item_id, x, z, rot, paid) VALUES ($1, $2, $3, $4, $5, $6, 0)`,
+      [id, characterId, def.item, spot.x, spot.z, spot.rot],
+    )
+    placements.push({ id, itemId: def.item, x: spot.x, z: spot.z, rot: spot.rot, paid: 0 })
+    added.push(def.item)
+  }
+  if (added.length === 0) return
+  await client.query(`UPDATE home_starters SET items = $2 WHERE character_id = $1`, [
+    characterId,
+    [...new Set([...(given ?? FIRST_STARTERS), ...added])],
+  ])
 }
 
 /** Apps from before starter furniture don't know how to draw it: leave it out for them. */
