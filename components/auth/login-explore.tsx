@@ -8,6 +8,7 @@ type Item = {
   emoji: string
   title: string
   body: string
+  tone: string
 }
 
 const ITEMS: Item[] = [
@@ -17,6 +18,7 @@ const ITEMS: Item[] = [
     emoji: '🗳️',
     title: 'SUG House',
     body: 'The SUG has no Governor yet. Sign up to vote, or run for office yourself.',
+    tone: 'bg-emerald-600 text-white',
   },
   {
     key: 'club',
@@ -24,6 +26,7 @@ const ITEMS: Item[] = [
     emoji: '🎶',
     title: 'Club at Saza',
     body: 'Head to Club at Saza after dark. Sign up to get in and join the party.',
+    tone: 'bg-fuchsia-600 text-white',
   },
   {
     key: 'space',
@@ -31,6 +34,7 @@ const ITEMS: Item[] = [
     emoji: '🎙️',
     title: 'Students Conference Hall',
     body: 'Host a space in the Students Conference Hall and let a real audience attend. Sign up to start yours.',
+    tone: 'bg-sky-600 text-white',
   },
 ]
 
@@ -39,13 +43,17 @@ export function LoginExplore() {
 
   return (
     <>
-      <div className="mb-2 flex flex-wrap items-center justify-center gap-1.5">
+      <div
+        role="group"
+        aria-label="Explore Ekpoma Life"
+        className="flex flex-wrap items-center justify-center gap-1.5 font-sans"
+      >
         {ITEMS.map((item) => (
           <button
             key={item.key}
             type="button"
             onClick={() => setOpen(item)}
-            className="inline-flex h-7 items-center gap-1 rounded-full bg-white/80 px-2.5 text-xs font-medium text-neutral-800"
+            className={`inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-xs font-semibold tracking-wide shadow-sm ${item.tone}`}
           >
             <span aria-hidden="true">{item.emoji}</span>
             {item.label}
@@ -63,7 +71,7 @@ export function LoginExplore() {
             aria-modal="true"
             aria-label={open.title}
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-md rounded-t-3xl bg-white px-5 pt-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] text-neutral-900 shadow-xl"
+            className="w-full max-w-md rounded-t-3xl bg-white px-5 pt-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] font-sans text-neutral-900 shadow-xl"
           >
             <div className="flex items-start justify-between gap-3">
               <h2 className="text-lg font-semibold break-words">

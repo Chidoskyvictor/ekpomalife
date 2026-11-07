@@ -4,7 +4,6 @@ import { motion, useReducedMotion } from 'motion/react'
 import { AuthLinks } from '@/components/hud/auth-links'
 import { motionTokens } from '@/components/arc/lib/motion-tokens'
 import { usePlayerStats } from '@/hooks/use-player-stats'
-import { LoginExplore } from '@/components/auth/login-explore'
 import { SocialRow } from '@/components/seo/social-row'
 import styles from './welcome-card.module.css'
 
@@ -27,7 +26,6 @@ export function WelcomeCard() {
       animate={{ opacity: 1, y: 0 }}
       transition={reduceMotion ? { duration: 0 } : motionTokens.spring.smooth}
     >
-      <LoginExplore />
       <p className={styles.proof}>
         {showProof ? (
           <>

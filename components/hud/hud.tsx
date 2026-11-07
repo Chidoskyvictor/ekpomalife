@@ -27,6 +27,7 @@ import { StatusBar } from '@/components/hud/status-bar'
 import { ToastLayer } from '@/components/hud/toast-layer'
 import { TopBar } from '@/components/hud/top-bar'
 import { WelcomeCard } from '@/components/hud/welcome-card'
+import { LoginExplore } from '@/components/auth/login-explore'
 import { useGame } from '@/hooks/use-game'
 import { useLowPerf } from '@/hooks/use-low-perf'
 import { takeNavIntent } from '@/lib/game/nav-intent'
@@ -227,6 +228,9 @@ export function Hud() {
         <div className={`${styles.safe} absolute inset-x-0 top-0`}>
           <div className={styles.topWrap}>
             <TopBar />
+            <div className="mt-2 flex justify-center px-3">
+              <LoginExplore />
+            </div>
           </div>
         </div>
         <div className={styles.bottomDock}>
