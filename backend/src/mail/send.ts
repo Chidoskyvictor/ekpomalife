@@ -25,9 +25,13 @@ export async function sendMail(input: SendMailInput) {
     })
     if (!response.ok) {
       const body = await response.text()
+      // Status and Resend's reply only: never the API key or the email body (it holds the code)
+      console.error('[mail] resend failed', { status: response.status, body })
       throw new Error(`Resend failed (${response.status}): ${body}`)
     }
-    return { provider: 'resend' as const }
+    const data = (await response.json().catch(() => ({}))) as { id?: string }
+    console.info('[mail] sent', { provider: 'resend', id: data.id ?? null })
+    return { provider: 'resend' as const, id: data.id ?? null }
   }
 
   if (env.SMTP_URL) {
@@ -40,7 +44,13 @@ export async function sendMail(input: SendMailInput) {
       text: input.text,
       html: input.html ?? input.text,
     })
+    console.info('[mail] sent', { provider: 'smtp' })
     return { provider: 'smtp' as const }
+  }
+
+  if (env.NODE_ENV === 'production') {
+    // Never pretend an email went out in production
+    throw new Error('No mail provider configured (RESEND_API_KEY or SMTP_URL)')
   }
 
   // Local / LAN testing without a mail provider.
