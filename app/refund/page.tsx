@@ -15,9 +15,6 @@ export default function RefundPage() {
         Back
       </Link>
       <h1 className="mt-6 text-[clamp(1.35rem,5vw,1.5rem)] font-medium break-words">Refund policy</h1>
-      <p className="mt-2 text-sm text-amber-800">
-        Draft for review — not legal advice. Have a lawyer approve before marketing this page.
-      </p>
       <div className="mt-4 space-y-4 break-words text-neutral-700">
         <p>
           Ekpoma Life is free to play. Top-ups buy in-game money, which is used only inside the game and
