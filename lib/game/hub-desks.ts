@@ -46,7 +46,7 @@ export const HUB_DESKS: HubDesk[] = [
     title: 'Feedback Centre',
     emoji: '📝',
     blurb: 'Reviews, complaints, bug reports and your experience.',
-    npc: { name: 'Francis', role: 'Feedback Desk', x: -3.95, z: FRONT_CHAIR_Z, heading: Math.PI, appearance: man('#8D4E2A', 'lowcut', 'office', '#1f6b8f', '#2b2f3a') },
+    npc: { name: 'Prodigy', role: 'Feedback Desk', x: -3.95, z: FRONT_CHAIR_Z, heading: Math.PI, appearance: man('#8D4E2A', 'lowcut', 'office', '#1f6b8f', '#2b2f3a') },
     desk: { x: -4.15, z: 1.92 },
     you: { x: -4.15, z: 1.12, heading: 0 },
   },

@@ -192,7 +192,7 @@ function FeedbackDesk() {
 
   return (
     <div className={styles.body}>
-      <p className={styles.say}>“Tell me anything about the game. It goes straight to the team.” — Francis</p>
+      <p className={styles.say}>“Tell me anything about the game. It goes straight to the team.” — Prodigy</p>
       <div className={styles.chips} role="radiogroup" aria-label="Type">
         {FEEDBACK_KINDS.map((k) => (
           <button

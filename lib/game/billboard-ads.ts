@@ -51,11 +51,61 @@ export const ADS: Record<string, BillboardAd> = {
     group: 'https://chat.whatsapp.com/CJ93ONY9CAWGYlgfryoIuT?s=cl&p=a&mlu=4&ilr=4&iam=2',
     phone: '08136652445',
   },
+  'prodigy-markethub': {
+    id: 'prodigy-markethub',
+    advertiser: 'Prodigy Markethub',
+    tagline: 'Quality products, great prices, all in one place',
+    image: '/ads/prodigy-markethub.webp',
+    imageAspect: 853 / 1280,
+    board: {
+      background: '#1f3349',
+      accent: '#22c55e',
+      headline: 'PRODIGY MARKETHUB',
+      lines: ['Groceries · Gadgets · Fashion', 'Home, Beauty, Kids and more', 'Shop smart, live better!'],
+      contact: 'WhatsApp / Call 0813 665 2445',
+    },
+    whatsapp: 'https://wa.me/2348136652445',
+    group: 'https://chat.whatsapp.com/Gai8In9DMlF3G2vW9UzQvI?s=cl&p=a&iam=2',
+    phone: '08136652445',
+  },
+  'prodigy-media': {
+    id: 'prodigy-media',
+    advertiser: '(AAU) Prodigy Media',
+    tagline: 'AAU news, gist and updates in one group',
+    image: '/ads/prodigy-media.jpg',
+    imageAspect: 1,
+    board: {
+      background: '#14532d',
+      accent: '#ffd21f',
+      headline: 'PRODIGY MEDIA',
+      lines: ['AAU news and gist', 'First to know, every day', 'Join the group'],
+      contact: 'WhatsApp / Call 0813 665 2445',
+    },
+    group: 'https://chat.whatsapp.com/EVfZ9Y3UmMa4devC5aV6Rw?s=cl&p=a&mlu=4&ilr=4&iam=2',
+    phone: '08136652445',
+  },
+  'prodigy-story-lovers': {
+    id: 'prodigy-story-lovers',
+    advertiser: 'Prodigy Story Lovers',
+    tagline: 'Stories you can’t put down',
+    image: '/ads/prodigy-story-lovers.jpg',
+    imageAspect: 1,
+    board: {
+      background: '#1f3349',
+      accent: '#22c55e',
+      headline: 'PRODIGY STORY LOVERS',
+      lines: ['New stories every week', 'Read, share, discuss', 'Join the group'],
+      contact: 'WhatsApp / Call 0813 665 2445',
+    },
+    group: 'https://chat.whatsapp.com/Cxb0ZQ2U2h16Ula4qSfEW2?s=cl&p=a&mlu=4&ilr=4&iam=2',
+    phone: '08136652445',
+  },
 }
 
-/** Which ad runs on each numbered board. Every board shows the Prodigy ad for now. */
+/** Which ad runs on each numbered board: the four ads take turns, so neighbours differ. */
+const ROTATION = ['prodigy-nysc', 'prodigy-markethub', 'prodigy-media', 'prodigy-story-lovers']
 export const BOARD_ADS: Record<number, string> = Object.fromEntries(
-  Array.from({ length: 12 }, (_, i) => [i + 1, 'prodigy-nysc']),
+  Array.from({ length: 12 }, (_, i) => [i + 1, ROTATION[i % ROTATION.length]!]),
 )
 
 /** Where each board stands, for the pop-up subtitle. */
