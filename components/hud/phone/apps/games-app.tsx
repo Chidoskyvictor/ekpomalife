@@ -30,6 +30,7 @@ import {
   startWhotTable,
   type WhotTable,
 } from '@/lib/game/whot-api'
+import { BodyPortal } from '@/components/ui/body-portal'
 import styles from './games.module.css'
 
 /*
@@ -864,9 +865,11 @@ function PlayView({ setup, onExit, notify }: { setup: PlaySetup; onExit: () => v
   }, [opponentAway])
   const awaySeconds = opponentAway == null ? 0 : Math.max(0, Math.floor((now - opponentAway) / 1000))
 
-  // The game draws its own header (title, pot, close / restart) so the table gets the whole screen
+  // The game draws its own header (title, pot, close / restart). It leaves the phone frame and
+  // fills the whole screen while you play, so the table is as big as it can be.
   return (
-    <div className={styles.playScreen}>
+    <BodyPortal>
+    <div className={`${styles.playScreen} ${styles.fullScreen}`}>
       {online && opponentAway != null && !result ? (
         <div className={styles.banner}>
           @{online.opponent} {opponentSeen ? 'left the table' : 'isn’t at the table yet'} ·{' '}
@@ -881,5 +884,6 @@ function PlayView({ setup, onExit, notify }: { setup: PlaySetup; onExit: () => v
       {result ? <div className={styles.banner}>{result}</div> : null}
       <iframe ref={frame} className={styles.frame} src="/games/snooker/index.html" title="Snooker" onLoad={init} />
     </div>
+    </BodyPortal>
   )
 }

@@ -74,26 +74,25 @@ body {
 .status #target { flex:none; color:#9fb8a8; }
 .status b { color:#ffd93d; font-weight:700; }
 .stage {
-  position:relative; flex:1; min-height:0; display:flex; align-items:center; justify-content:center;
+  position:relative; flex:1; min-height:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
   gap:8px; padding:4px 8px max(8px, env(safe-area-inset-bottom));
 }
 canvas { display:block; border-radius:12px; touch-action:none; }
-/* Power: a tall bar left of the table; drag up, let go to shoot */
+/* Controls under the table: aim left, power bar (drag right, let go to shoot), aim right */
 .power {
-  position:relative; width:44px; height:min(70%, 320px); flex:none; border-radius:14px; overflow:hidden;
+  position:relative; flex:1; height:44px; border-radius:14px; overflow:hidden;
   background:rgba(255,255,255,0.08); touch-action:none;
 }
 .power-fill {
-  position:absolute; inset:auto 0 0 0; height:0%;
-  background:linear-gradient(0deg,#2ed573,#ffd93d 45%,#ff9f43 70%,#ff4757);
+  position:absolute; inset:0 auto 0 0; width:0%;
+  background:linear-gradient(90deg,#2ed573,#ffd93d 45%,#ff9f43 70%,#ff4757);
 }
 .power-label {
   position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
-  writing-mode:vertical-rl; transform:rotate(180deg);
-  font-size:11px; font-weight:700; color:rgba(255,255,255,0.85); text-shadow:0 1px 2px rgba(0,0,0,0.5);
+  font-size:12px; font-weight:700; color:rgba(255,255,255,0.85); text-shadow:0 1px 2px rgba(0,0,0,0.5);
   pointer-events:none;
 }
-.aim { display:flex; flex-direction:column; gap:8px; flex:none; }
+.aim { display:flex; flex-direction:row; align-items:center; gap:8px; flex:none; width:100%; max-width:520px; }
 .fine {
   width:44px; height:44px; flex:none; border:0; border-radius:14px;
   background:rgba(255,255,255,0.1); color:#fff; font-size:18px; font-weight:700;
@@ -135,10 +134,10 @@ canvas { display:block; border-radius:12px; touch-action:none; }
 </div>
 <div class="status"><span id="lastShot">Break off from the D</span><span id="target">On: <b>red</b></span></div>
 <div class="stage" id="stage">
-  <div class="power" id="power" aria-label="Power: drag up, let go to shoot"><div class="power-fill" id="powerFill"></div><div class="power-label" id="powerLabel">Drag up to shoot</div></div>
   <canvas id="gc"></canvas>
   <div class="aim" id="aimBox">
     <button class="fine" id="aimLeft" aria-label="Aim left">◀</button>
+    <div class="power" id="power" aria-label="Power: drag right, let go to shoot"><div class="power-fill" id="powerFill"></div><div class="power-label" id="powerLabel">Drag right to shoot</div></div>
     <button class="fine" id="aimRight" aria-label="Aim right">▶</button>
   </div>
   <div class="msg"><div class="msg-box" id="msgBox"><div class="msg-title" id="msgTitle"></div><div class="msg-sub" id="msgSub"></div></div></div>
@@ -674,8 +673,9 @@ let viewScale = 1;
 // Table (x, y) -> canvas (y, W - x).
 function layout() {
   const stage = $('stage').getBoundingClientRect();
-  const side = els.power.offsetWidth + els.aimBox.offsetWidth + 16 + 16;
-  viewScale = Math.min((stage.width - side) / H, (stage.height - 12) / W);
+  // Controls sit under the table now: the table gets the full width
+  const below = els.aimBox.offsetHeight + 8;
+  viewScale = Math.min((stage.width - 16) / H, (stage.height - 12 - below) / W);
   canvas.width = H; canvas.height = W;
   canvas.style.width = `${H * viewScale}px`; canvas.style.height = `${W * viewScale}px`;
 }
@@ -783,8 +783,8 @@ function drawAim() {
 function setPower(p) {
   power = Math.max(0, Math.min(MAX_POWER, p));
   const pct = Math.round(power / MAX_POWER * 100);
-  els.powerFill.style.height = pct + '%';
-  els.powerLabel.textContent = pct > 0 ? `${pct}% · let go` : 'Drag up to shoot';
+  els.powerFill.style.width = pct + '%';
+  els.powerLabel.textContent = pct > 0 ? `${pct}% · let go` : 'Drag right to shoot';
 }
 canvas.addEventListener('pointerdown', (e) => {
   if (!canControl()) return;
@@ -803,7 +803,7 @@ canvas.addEventListener('pointerup', () => { draggingCue = false; });
 
 function powerFrom(e) {
   const r = els.power.getBoundingClientRect();
-  return ((r.bottom - e.clientY) / r.height) * MAX_POWER;
+  return ((e.clientX - r.left) / r.width) * MAX_POWER;
 }
 els.power.addEventListener('pointerdown', (e) => { if (!canControl()) return; els.power.setPointerCapture(e.pointerId); state = 'powering'; setPower(powerFrom(e)); });
 els.power.addEventListener('pointermove', (e) => { if (state === 'powering') setPower(powerFrom(e)); });
@@ -837,7 +837,7 @@ function resetGame() {
   pottedRedThisTurn = false; firstContact = null; pottedThisShot = []; pendingSync = null;
   isRespottedBlack = gameMode === 'black'; ballInHand = true; draggingCue = false;
   initBalls(); if (needRed) separateBalls(); resetAim(); startTurnClock();
-  const intro = { classic: ['🎱 New frame', '15 reds. Drag to aim, pull the bar up to shoot.'], six: ['🎱 Six reds', 'A quick frame. Drag to aim, pull the bar up to shoot.'], clearance: ['🎯 Colours', 'Yellow → green → brown → blue → pink → black'], black: ['⚫ Black ball', 'First to pot the black wins'] }[gameMode];
+  const intro = { classic: ['🎱 New frame', '15 reds. Drag to aim, drag the bar right to shoot.'], six: ['🎱 Six reds', 'A quick frame. Drag to aim, drag the bar right to shoot.'], clearance: ['🎯 Colours', 'Yellow → green → brown → blue → pink → black'], black: ['⚫ Black ball', 'First to pot the black wins'] }[gameMode];
   showMsg(intro[0], intro[1], 2600);
   updateHUD();
 }
