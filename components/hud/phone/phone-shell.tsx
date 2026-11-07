@@ -42,6 +42,7 @@ import { GamesApp } from './apps/games-app'
 import { AnonymousApp } from './apps/anonymous-app'
 import { SpacesApp } from './apps/spaces-app'
 import { GuideApp } from './apps/guide-app'
+import { SupportApp } from './apps/support-app'
 import { PhoneHome, phoneModeFromStorage } from './phone-home'
 import { PhoneStatusBar } from './phone-status-bar'
 import { WallpaperSkyline } from './wallpaper-skyline'
@@ -329,6 +330,7 @@ export function PhoneShell({
                         {appId === 'spaces' ? (
                           <SpacesApp currentPlaceId={mobileApi.location?.placeId ?? state?.locationId ?? null} onHome={goHome} />
                         ) : null}
+                        {appId === 'support' ? <SupportApp /> : null}
                         {appId === 'guide' ? (
                           <GuideApp
                             onOpenApp={(id) => void openApp(id)}

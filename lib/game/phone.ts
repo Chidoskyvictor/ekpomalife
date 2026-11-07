@@ -21,6 +21,7 @@ export type PhoneAppId =
   | 'houses'
   | 'anonymous'
   | 'guide'
+  | 'support'
 
 export type WallpaperId = 'aau-dusk' | 'ekpoma-night' | 'harmattan' | 'green-white'
 
@@ -127,6 +128,7 @@ export const PHONE_APPS: PhoneAppMeta[] = [
   { id: 'spaces', label: 'Spaces', emoji: '🎙️', status: 'live', tint: '#7c3aed' },
   { id: 'anonymous', label: 'Anonymous', emoji: '🎭', status: 'live', tint: '#4c1d95' },
   { id: 'guide', label: 'Guide', emoji: '📖', status: 'live', tint: '#16a34a' },
+  { id: 'support', label: 'Support', emoji: '🛟', status: 'live', tint: '#2563eb' },
   { id: 'settings', label: 'Settings', emoji: '⚙️', status: 'live', tint: '#64748b' },
   { id: 'portal', label: 'Results', emoji: '🎓', status: 'soon', tint: '#7c3aed' },
   { id: 'music', label: 'Music', emoji: '🎧', status: 'soon', tint: '#e11d48' },
@@ -174,6 +176,7 @@ export const COMING_SOON_COPY: Record<PhoneAppId, string> = {
   houses: '',
   anonymous: '',
   guide: '',
+  support: '',
 }
 
 export const PHONE_MODE_KEY = 'ekpoma-phone-mode'

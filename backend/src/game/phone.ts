@@ -54,6 +54,8 @@ export type PhoneAppId =
   | 'prodigy'
   | 'houses'
   | 'anonymous'
+  | 'guide'
+  | 'support'
 
 export type WallpaperId = 'aau-dusk' | 'ekpoma-night' | 'harmattan' | 'green-white'
 
@@ -139,6 +141,8 @@ export const PHONE_APP_IDS = [
   'prodigy',
   'houses',
   'anonymous',
+  'guide',
+  'support',
 ] as const satisfies readonly PhoneAppId[]
 
 export const WALLPAPER_IDS = [
