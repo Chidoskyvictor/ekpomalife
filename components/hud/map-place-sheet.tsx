@@ -29,7 +29,7 @@ const TYPE_EMOJI: Record<string, string> = {
 /** Keke and okada are the only paid rides for now; big-boy jeep comes when players can own cars. */
 const MODES: { id: TripMode; emoji: string; label: string }[] = [
   { id: 'trek', emoji: '🚶', label: 'Trek' },
-  { id: 'keke', emoji: '🛺', label: 'Keke' },
+  { id: 'keke', emoji: '🛺', label: 'Shuttle' },
   { id: 'okada', emoji: '🏍️', label: 'Okada' },
 ]
 

@@ -10,7 +10,7 @@ import styles from './travel.module.css'
 
 const MODES: { id: TripMode; emoji: string; label: string }[] = [
   { id: 'trek', emoji: '🚶', label: 'Trek' },
-  { id: 'keke', emoji: '🛺', label: 'Keke' },
+  { id: 'keke', emoji: '🛺', label: 'Shuttle' },
   { id: 'okada', emoji: '🏍️', label: 'Okada' },
 ]
 

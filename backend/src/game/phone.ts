@@ -445,7 +445,7 @@ const PROMOS: PhonePromo[] = [
   },
   {
     id: 'promo-ride',
-    title: 'Keke ready',
+    title: 'Shuttle ready',
     subtitle: 'Beat the sun — book a ride',
     cta: 'Open Ride',
     emoji: '🛺',
@@ -920,7 +920,7 @@ export async function takeRide(
           }
         }
         const dest = getPlace(toPlaceId)!
-        const reason = `${mode === 'keke' ? 'Keke' : 'Okada'} to ${dest.label}`
+        const reason = `${mode === 'keke' ? 'Shuttle' : 'Okada'} to ${dest.label}`
         const wrote = await applyCash(client, gate.character.id, -quote.fare, reason, 'ride')
         if (!wrote.ok) {
           return {

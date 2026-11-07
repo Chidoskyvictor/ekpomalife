@@ -102,7 +102,7 @@ export function RideApp({
             >
               <div>
                 <p className={styles.promoTitle} style={{ color: '#111', margin: 0 }}>
-                  {q.mode === 'keke' ? '🛺 Keke' : '🏍️ Okada'}
+                  {q.mode === 'keke' ? '🛺 Shuttle' : '🏍️ Okada'}
                 </p>
                 <p className={styles.listMeta}>{q.minutes} min</p>
               </div>

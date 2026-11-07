@@ -80,10 +80,10 @@ const TOPICS: Topic[] = [
     id: 'rides',
     emoji: '🛺',
     title: 'Rides',
-    blurb: 'Keke and okada',
+    blurb: 'Shuttle and okada',
     tint: '#fef3c7',
     steps: [
-      { title: 'Book a ride', text: 'Open Ride, pick where you are going and choose keke or okada.', show: { app: 'ride' }, showLabel: 'Open Ride' },
+      { title: 'Book a ride', text: 'Open Ride, pick where you are going and choose shuttle or okada.', show: { app: 'ride' }, showLabel: 'Open Ride' },
       { title: 'Fares follow real roads', text: 'Prices and trip times use real Ekpoma road distances. Okada is faster but costs more.' },
     ],
   },

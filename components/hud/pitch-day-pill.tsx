@@ -60,7 +60,7 @@ export function PitchDayPill() {
       </span>
       <span className={styles.text}>
         <strong>Pitch Day</strong>
-        <span>Innovation Hub · pitch your tech to an investor</span>
+        <span>Innovation Hub</span>
       </span>
       <button
         type="button"
@@ -74,7 +74,7 @@ export function PitchDayPill() {
         Go
       </button>
       <button type="button" className={styles.close} aria-label="Close" onClick={hide}>
-        <X size={14} />
+        <X size={12} />
       </button>
     </motion.div>
       ) : null}

@@ -377,7 +377,7 @@ export function mockTakeRide(to: string, mode: RideMode, idempotencyKey: string)
     fare: picked.fare,
     cash: getMockCash(),
     ledgerId: `lg-ride-${idempotencyKey.slice(0, 8)}`,
-    message: `${mode === 'keke' ? 'Keke' : 'Okada'} to ${dest?.label ?? to}`,
+    message: `${mode === 'keke' ? 'Shuttle' : 'Okada'} to ${dest?.label ?? to}`,
     replayed: false,
   }
   idemStore.set(`ride:${idempotencyKey}`, { status: 200, body })

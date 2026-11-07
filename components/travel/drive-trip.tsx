@@ -1,7 +1,7 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { hapticTap } from '@/components/hud/haptic'
 import { type Trip, tripShown } from '@/lib/game/trip'
 import type { DriveMode, DriveView } from './drive-scene'
@@ -45,6 +45,46 @@ function useHorn() {
   }
 }
 
+/** Play a one-off sound, then fade it out over `fadeMs` after `holdMs`. */
+function playFading(src: string, volume: number, holdMs: number, fadeMs: number) {
+  const audio = new Audio(src)
+  audio.volume = volume
+  void audio.play().catch(() => {})
+  const start = performance.now() + holdMs
+  const timer = window.setInterval(() => {
+    const t = (performance.now() - start) / fadeMs
+    if (t < 0) return
+    audio.volume = Math.max(0, volume * (1 - t))
+    if (t >= 1) {
+      audio.pause()
+      window.clearInterval(timer)
+    }
+  }, 60)
+  return () => {
+    window.clearInterval(timer)
+    audio.pause()
+  }
+}
+
+/** Road sound looping under the whole ride, plus the start sound when the ride begins and again as it ends. */
+function useRideSounds(nearEnd: boolean) {
+  useEffect(() => {
+    const road = new Audio('/audio/ride/traffic.mp3')
+    road.loop = true
+    road.volume = 0.35
+    void road.play().catch(() => {})
+    const stopStart = playFading('/audio/ride/start.mp3', 0.7, 1200, 1800)
+    return () => {
+      road.pause()
+      stopStart()
+    }
+  }, [])
+  useEffect(() => {
+    if (!nearEnd) return
+    return playFading('/audio/ride/start.mp3', 0.7, 1200, 1800)
+  }, [nearEnd])
+}
+
 /**
  * The ride to a place: a looping highway drive with a camera switch, Horn and Map. It stays
  * up until the server has moved you and the next scene is ready, same as the plain trip card.
@@ -61,6 +101,7 @@ export function DriveTrip({ trip }: { trip: Trip }) {
   const progress = tripProgress(trip, now)
   const pct = Math.round(progress * 100)
   const left = Math.max(0, Math.ceil((trip.startedAt + trip.minMs - now) / 1000))
+  useRideSounds(progress >= 0.9)
   const waiting = progress >= 0.9 && !trip.ready && trip.minMs <= now - trip.startedAt
 
   return (

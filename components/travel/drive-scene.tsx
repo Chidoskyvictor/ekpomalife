@@ -841,7 +841,7 @@ function useCarGeometry(url: string) {
 /** Closest two cars in one lane may get, front to back (m). */
 const CAR_GAP = 7.5
 
-function Traffic({ plan, rate }: { plan: Plan; rate: Offset }) {
+function Traffic({ plan, rate, pose }: { plan: Plan; rate: Offset; pose: { x: number } }) {
   const g0 = useCarGeometry(CAR_URLS[0]!)
   const g1 = useCarGeometry(CAR_URLS[1]!)
   const g2 = useCarGeometry(CAR_URLS[2]!)
@@ -867,12 +867,10 @@ function Traffic({ plan, rate }: { plan: Plan; rate: Offset }) {
     // Outer lane: a mix of slower cars (we pass) and a couple of fast ones that come past us
     for (let i = 0; i < 3; i++) out.push({ ...make(LANE.other, -20 - i * 80 - rand() * 20, speed * (0.55 + rand() * 0.2)), home: LANE.other })
     for (let i = 0; i < 2; i++) out.push({ ...make(LANE.other, 25 + i * 120, speed * (1.3 + rand() * 0.15)), home: LANE.other })
-    // Oncoming traffic, steady; none where we cross the median
-    if (plan.gapAt === null) {
-      LANE.oncoming.forEach((x, lane) => {
-        for (let i = 0; i < 5; i++) out.push({ ...make(x, -20 - i * 55 - lane * 25 - rand() * 20, -(16 + rand() * 12)), home: x })
-      })
-    }
+    // Oncoming traffic, steady, on every ride (while we cross the median they keep clear of us, below)
+    LANE.oncoming.forEach((x, lane) => {
+      for (let i = 0; i < 5; i++) out.push({ ...make(x, -20 - i * 55 - lane * 25 - rand() * 20, -(16 + rand() * 12)), home: x })
+    })
     return out
   }, [plan])
   const byModel = useMemo(() => CAR_URLS.map((_, m) => list.filter((car) => car.model === m)), [list])
@@ -938,7 +936,9 @@ function Traffic({ plan, rate }: { plan: Plan; rate: Offset }) {
         const steer = car.home !== undefined && car.ws > 0 ? Math.max(-0.15, Math.min(0.15, (car.x - (car.lastX ?? car.x)) * -4)) : 0
         car.lastX = car.x
         dummy.rotation.set(0, (car.ws > 0 ? Math.PI : 0) + steer, 0)
-        dummy.scale.setScalar(1)
+        // While we cut across the oncoming side, an oncoming car right at us is hidden, never driven through
+        const inOurWay = pose.x < 2.8 && car.ws < 0 && Math.abs(car.z) < 9
+        dummy.scale.setScalar(inOurWay ? 0 : 1)
         dummy.updateMatrix()
         mesh.setMatrixAt(i, dummy.matrix)
         mesh.setColorAt(i, car.color)
@@ -1330,7 +1330,7 @@ function World({ mode, view, route, plannedMs, appearance, onShown }: DriveProps
       <Roadside offset={offset} edge={campus ? CAMPUS_EDGE : ROAD_EDGE} campus={campus} gateLocal={gateLocal} />
       {campus ? null : (
         <Suspense fallback={null}>
-          <Traffic plan={plan} rate={rate} />
+          <Traffic plan={plan} rate={rate} pose={pose} />
         </Suspense>
       )}
       <Walkers rate={rate} campus={campus} />
