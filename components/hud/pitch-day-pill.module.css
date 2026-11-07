@@ -1,0 +1,60 @@
+.pill {
+  display: flex;
+  width: min(92vw, 380px);
+  margin: 8px auto 0;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 6px 6px 8px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.14);
+  pointer-events: auto;
+}
+.icon {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex: none;
+  place-items: center;
+  border-radius: 999px;
+  background: #eef2ff;
+  font-size: 17px;
+}
+.text {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  line-height: 1.25;
+}
+.text strong {
+  font-size: 14px;
+}
+.text span {
+  overflow: hidden;
+  color: #6b7280;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.go {
+  min-height: 36px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 12px;
+  background: #c7b8ff;
+  color: #1e1b4b;
+  font-size: 14px;
+  font-weight: 800;
+}
+.close {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  flex: none;
+  place-items: center;
+  border: none;
+  border-radius: 999px;
+  background: #111;
+  color: #fff;
+}
