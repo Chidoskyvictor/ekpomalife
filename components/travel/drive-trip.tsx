@@ -69,36 +69,19 @@ export function DriveTrip({ trip }: { trip: Trip }) {
         <DriveCanvas mode={mode} view={view} route={trip.route} plannedMs={plannedMs} appearance={trip.appearance} onShown={() => tripShown(trip.id)} />
       </div>
 
-      <div className={styles.top}>
-        <div className={styles.card}>
-          <p className={styles.title}>
-            <span aria-hidden="true">{VEHICLE[trip.mode]}</span> On the way to {trip.label}…
-          </p>
-          <div className={styles.bar} role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}>
-            <span className={styles.fill} style={{ width: `${pct}%` }} />
-          </div>
-          <p className={styles.eta}>
-            {waiting ? 'Almost there…' : pct >= 100 ? 'Arrived' : `About 0:${String(left).padStart(2, '0')} to go`}
-          </p>
-          {mode === 'okada' && trip.route === 'in' ? (
-            <p className={styles.eta}>Okada can’t go into campus. It drops you at the gate.</p>
-          ) : null}
-        </div>
-        <div className={styles.views} role="radiogroup" aria-label="Camera">
-          {VIEWS.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              role="radio"
-              aria-checked={view === item.id}
-              className={styles.view}
-              onClick={() => setView(item.id)}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
+      <div className={styles.glass}>
+        <span className={styles.glassIcon} aria-hidden="true">{VEHICLE[trip.mode]}</span>
+        <span className={styles.glassTo}>{trip.label}</span>
+        <span className={styles.glassTime}>
+          {waiting ? '…' : pct >= 100 ? 'Here' : `0:${String(left).padStart(2, '0')}`}
+        </span>
+        <span className={styles.glassBar} role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}>
+          <span style={{ width: `${pct}%` }} />
+        </span>
       </div>
+      {mode === 'okada' && trip.route === 'in' ? (
+        <p className={styles.note}>Okada drops you at the gate</p>
+      ) : null}
 
       {showMap ? (
         <div className={styles.map}>
@@ -106,19 +89,31 @@ export function DriveTrip({ trip }: { trip: Trip }) {
         </div>
       ) : null}
 
-      <div className={styles.actions}>
+      <div className={styles.round}>
         <button
           type="button"
-          className={styles.action}
+          className={styles.roundBtn}
+          aria-label={`Camera: ${VIEWS.find((v) => v.id === view)?.label}. Tap to switch`}
+          onClick={() => {
+            const i = VIEWS.findIndex((v) => v.id === view)
+            setView(VIEWS[(i + 1) % VIEWS.length]!.id)
+          }}
+        >
+          🎥
+        </button>
+        <button
+          type="button"
+          className={styles.roundBtn}
+          aria-label="Horn"
           onClick={() => {
             hapticTap()
             horn()
           }}
         >
-          📣 Horn
+          📣
         </button>
-        <button type="button" className={styles.action} aria-pressed={showMap} onClick={() => setShowMap((on) => !on)}>
-          🗺️ Map
+        <button type="button" className={styles.roundBtn} aria-label="Map" aria-pressed={showMap} onClick={() => setShowMap((on) => !on)}>
+          🗺️
         </button>
       </div>
     </div>

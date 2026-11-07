@@ -26,12 +26,18 @@ export function PitchDayPill() {
     if (!eligible) return
     try {
       if (localStorage.getItem(KEY) === today()) return
-      localStorage.setItem(KEY, today())
     } catch {
       /* storage blocked: show this once per load */
     }
-    // Stays up until you tap Go or close it
-    const show = window.setTimeout(() => setHidden(false), 1500)
+    // Stays up until you tap Go or close it. Only counts as shown once it's actually on screen.
+    const show = window.setTimeout(() => {
+      setHidden(false)
+      try {
+        localStorage.setItem(KEY, today())
+      } catch {
+        /* ignore */
+      }
+    }, 1500)
     return () => window.clearTimeout(show)
   }, [eligible])
 

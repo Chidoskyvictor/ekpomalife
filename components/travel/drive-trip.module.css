@@ -118,8 +118,8 @@
 
 .map {
   position: absolute;
-  right: max(12px, env(safe-area-inset-right));
-  bottom: calc(76px + env(safe-area-inset-bottom));
+  right: calc(68px + env(safe-area-inset-right));
+  bottom: calc(16px + env(safe-area-inset-bottom));
   width: min(260px, 60vw);
   padding: 8px;
   border-radius: 20px;
@@ -173,4 +173,100 @@
   .drive {
     animation: none;
   }
+}
+
+/* Minimal glass: one slim pill on top, three small round buttons bottom-right */
+.glass {
+  position: absolute;
+  top: max(12px, env(safe-area-inset-top));
+  left: 50%;
+  display: flex;
+  width: min(86vw, 340px);
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+  padding: 8px 14px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.28);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  color: #111;
+  font-family: var(--font-jakarta), system-ui, sans-serif;
+  transform: translateX(-50%);
+}
+.glassIcon {
+  font-size: 16px;
+}
+.glassTo {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.glassTime {
+  font-size: 14px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.glassBar {
+  position: absolute;
+  right: 14px;
+  bottom: 4px;
+  left: 14px;
+  height: 3px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.12);
+}
+.glassBar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #16a34a;
+  transition: width 0.2s linear;
+}
+.note {
+  position: absolute;
+  top: calc(max(12px, env(safe-area-inset-top)) + 50px);
+  left: 50%;
+  margin: 0;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(17, 24, 39, 0.55);
+  color: #fff;
+  font-size: 11.5px;
+  font-weight: 700;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+.round {
+  position: absolute;
+  right: max(12px, env(safe-area-inset-right));
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.roundBtn {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  font-size: 19px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.roundBtn[aria-pressed='true'] {
+  background: rgba(255, 255, 255, 0.9);
 }
