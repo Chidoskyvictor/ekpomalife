@@ -343,8 +343,9 @@
   min-width: 0;
   flex-direction: column;
   align-items: flex-start;
-  gap: 2px;
-  padding: 8px;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
   border: 1px solid #e5e7eb;
   border-radius: 16px;
   background: #fff;
@@ -354,20 +355,46 @@
   cursor: pointer;
 }
 
+/* The picture fills the top of the card edge to edge, on a pastel tile */
+.tile {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 6 / 5;
+  background: #eef0f3;
+}
+
 .sizeBadge {
+  position: absolute;
+  z-index: 1;
+  top: 6px;
+  left: 6px;
   padding: 2px 8px;
   border-radius: 999px;
-  background: #eef2ff;
+  background: rgba(255, 255, 255, 0.85);
   color: #1f2a5a;
   font-size: 12px;
   font-weight: 800;
 }
 
 .cardEmoji {
-  align-self: center;
-  margin: 4px 0;
-  font-size: 34px;
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 44px;
   line-height: 1.1;
+}
+
+.cardBody {
+  display: flex;
+  min-width: 0;
+  width: 100%;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 8px;
 }
 
 .cardName {

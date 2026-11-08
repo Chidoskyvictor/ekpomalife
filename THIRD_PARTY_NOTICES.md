@@ -18,3 +18,14 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 - Source: https://kenney.nl/assets/furniture-kit (version 2.0)
 - Files: `public/models/furniture/kenney/` (selected `.glb` models and their preview images)
 - License: Creative Commons CC0 1.0 (public domain). Credit is not required; we credit it anyway: "Furniture Kit by Kenney (www.kenney.nl)".
+
+## Textured furniture models (Buy mode, `public/models/furniture/pro/`)
+
+Low-poly textured pieces; each was resized, simplified and compressed (glTF-Transform, webp textures, meshopt) and fitted to the game's tile grid. Rebuild with `scripts/models/build-pro.mjs`; the list of pieces and their sources is `scripts/models/pro-specs.json`.
+
+- **Poly Haven models** (https://polyhaven.com), license CC0 1.0 (public domain, no credit required; credited anyway): Arm Chair 01, Mid Century Lounge Chair, Sofa 01, Sofa 02, Sofa 03, Dining Table, Dining Chair 02, Modern Wooden Cabinet, Metal Office Desk, Wooden Bookshelf Worn, Painted Wooden Shelves, Shelf 01, Painted Wooden Cabinet, Modern Coffee Table 01, Side Table 01, Ottoman 01, Painted Wooden Nightstand.
+- **ambientCG textures** (https://ambientcg.com), license CC0 1.0: Fabric036 and Wood066 (colour maps) on the beds built in Blender (`scripts/models/blender/build-pro.py`, which also builds the fridges, gas cooker, standing fan and flat TV from plain shapes).
+
+## Catalogue thumbnails (`public/models/furniture/thumbs/`)
+
+Rendered from the models above and the other furniture models by `scripts/thumbs/render-thumbs.mjs` (three.js studio setup). They contain no third-party artwork beyond those models.

@@ -102,6 +102,8 @@ function ModelPiece({
       if (tint && mesh.isMesh) {
         // Materials are shared with the loaded scene: tint a copy, never the original
         const tinted = (Array.isArray(mesh.material) ? mesh.material : [mesh.material]).map((m) => {
+          // Parts flagged notint in the GLB (wood, metal, screens) keep their own colour
+          if (m.userData?.notint) return m
           const c = m.clone() as MeshStandardMaterial
           if (c.color) c.color.multiply(tint)
           return c

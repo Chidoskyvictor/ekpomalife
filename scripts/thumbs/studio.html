@@ -1,0 +1,125 @@
+<!doctype html>
+<meta charset="utf-8">
+<style>html,body{margin:0;background:transparent}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"/three/build/three.module.js","three/addons/":"/three/examples/jsm/"}}</script>
+<canvas id="c" width="640" height="640"></canvas>
+<script type="module">
+import * as THREE from 'three'
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js'
+
+const SIZE = 640
+const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('c'), antialias: true, alpha: true, preserveDrawingBuffer: true })
+renderer.setPixelRatio(1)
+renderer.setSize(SIZE, SIZE)
+renderer.setClearColor(0x000000, 0)
+renderer.outputColorSpace = THREE.SRGBColorSpace
+renderer.toneMapping = THREE.ACESFilmicToneMapping
+renderer.toneMappingExposure = 1.05
+renderer.shadowMap.enabled = true
+renderer.shadowMap.type = THREE.VSMShadowMap
+
+const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder)
+
+/** Same rule as the game (components/room/placed-furniture.tsx): multiply the finish onto every material not flagged notint. */
+function tintScene(root, finish) {
+  const tint = finish ? new THREE.Color(finish) : null
+  root.traverse((o) => {
+    if (!o.isMesh) return
+    if (tint) {
+      const mats = (Array.isArray(o.material) ? o.material : [o.material]).map((m) => {
+        if (m.userData && m.userData.notint) return m
+        const c = m.clone()
+        if (c.color) c.color.multiply(tint)
+        return c
+      })
+      o.material = Array.isArray(o.material) ? mats : mats[0]
+    }
+    o.castShadow = true
+    o.receiveShadow = true
+  })
+}
+
+window.renderItem = async ({ model, finish, height, wall }) => {
+  const gltf = await loader.loadAsync(model)
+  const root = gltf.scene
+  tintScene(root, finish)
+  const scene = new THREE.Scene()
+  const holder = new THREE.Group()
+  holder.add(root)
+  // Kenney models come in their own scale: fit to the item height (as the game does)
+  if (model.includes('/furniture/kenney/') && height) {
+    const s = new THREE.Box3().setFromObject(holder).getSize(new THREE.Vector3())
+    if (s.y > 0) holder.scale.multiplyScalar(height / s.y)
+  }
+  holder.updateMatrixWorld(true)
+  let box = new THREE.Box3().setFromObject(holder)
+  const c = box.getCenter(new THREE.Vector3())
+  holder.position.set(-c.x, -box.min.y, -c.z)
+  holder.updateMatrixWorld(true)
+  box = new THREE.Box3().setFromObject(holder)
+  scene.add(holder)
+  const size = box.getSize(new THREE.Vector3())
+
+  // Soft light: sky/ground fill + a warm key from the front-left with a soft shadow + a cool side fill
+  scene.add(new THREE.HemisphereLight(0xffffff, 0xb9b2c8, 1.35))
+  const key = new THREE.DirectionalLight(0xfff1de, 2.1)
+  const r = Math.max(size.x, size.y, size.z)
+  key.position.set(-r * 1.6, r * 2.4, r * 1.8)
+  key.castShadow = true
+  key.shadow.mapSize.set(2048, 2048)
+  key.shadow.radius = 9
+  key.shadow.blurSamples = 20
+  key.shadow.bias = -0.0004
+  const sc = r * 1.8
+  Object.assign(key.shadow.camera, { left: -sc, right: sc, top: sc, bottom: -sc, near: 0.1, far: r * 10 })
+  scene.add(key)
+  const fill = new THREE.DirectionalLight(0xdfe8ff, 0.75)
+  fill.position.set(r * 2, r * 0.9, r * 0.6)
+  scene.add(fill)
+
+  // Soft contact shadow: shadow catcher + a blurred dark blob under the footprint
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(r * 8, r * 8), new THREE.ShadowMaterial({ opacity: 0.26 }))
+  ground.rotation.x = -Math.PI / 2
+  ground.receiveShadow = true
+  scene.add(ground)
+  const cv = document.createElement('canvas'); cv.width = cv.height = 128
+  const g = cv.getContext('2d'); const grd = g.createRadialGradient(64, 64, 6, 64, 64, 64)
+  grd.addColorStop(0, 'rgba(40,30,60,0.55)'); grd.addColorStop(0.55, 'rgba(40,30,60,0.22)'); grd.addColorStop(1, 'rgba(40,30,60,0)')
+  g.fillStyle = grd; g.fillRect(0, 0, 128, 128)
+  const blob = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cv), transparent: true, depthWrite: false }))
+  blob.rotation.x = -Math.PI / 2
+  blob.scale.set(size.x * 1.35 + 0.1, size.z * 1.35 + 0.1, 1)
+  blob.position.y = 0.002
+  if (!wall) scene.add(blob)
+
+  // 3/4 view: turned 38 degrees from the front, looking down 27 degrees; orthographic, fitted to ~80% of the frame
+  const az = THREE.MathUtils.degToRad(38), el = THREE.MathUtils.degToRad(27)
+  const dir = new THREE.Vector3(Math.sin(az) * Math.cos(el), Math.sin(el), Math.cos(az) * Math.cos(el))
+  const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.01, 100)
+  const mid = box.getCenter(new THREE.Vector3())
+  cam.position.copy(mid).addScaledVector(dir, r * 6)
+  cam.lookAt(mid)
+  cam.updateMatrixWorld(true)
+  const inv = cam.matrixWorldInverse
+  let minx = 1e9, maxx = -1e9, miny = 1e9, maxy = -1e9
+  const v = new THREE.Vector3()
+  holder.traverse((o) => {
+    if (!o.isMesh) return
+    const pos = o.geometry.attributes.position
+    for (let i = 0; i < pos.count; i += 1) {
+      v.fromBufferAttribute(pos, i).applyMatrix4(o.matrixWorld).applyMatrix4(inv)
+      minx = Math.min(minx, v.x); maxx = Math.max(maxx, v.x); miny = Math.min(miny, v.y); maxy = Math.max(maxy, v.y)
+    }
+  })
+  const half = Math.max(maxx - minx, maxy - miny) / 2 / 0.8
+  const cx = (minx + maxx) / 2, cy = (miny + maxy) / 2 - half * 0.03
+  cam.left = cx - half; cam.right = cx + half; cam.top = cy + half; cam.bottom = cy - half
+  cam.updateProjectionMatrix()
+  renderer.render(scene, cam)
+  const url = document.getElementById('c').toDataURL('image/png')
+  scene.traverse((o) => { if (o.isMesh) o.geometry.dispose() })
+  return url
+}
+window.studioReady = true
+</script>

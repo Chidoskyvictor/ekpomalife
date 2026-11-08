@@ -542,22 +542,26 @@ export function BuyPanel({
                 {items.length === 0 ? <p className={styles.hint}>Nothing like that. Try another word.</p> : null}
                 {items.map((item) => (
                   <button key={item.id} type="button" className={styles.card} onClick={() => pick(item)}>
-                    <span className={styles.sizeBadge}>
-                      {item.w}×{item.d}
-                      {item.wall ? ' · wall' : ''}
+                    <span className={styles.tile} style={{ background: TILE_TINT[item.category] }}>
+                      <span className={styles.sizeBadge}>
+                        {item.w}×{item.d}
+                        {item.wall ? ' · wall' : ''}
+                      </span>
+                      <span className={styles.cardEmoji} aria-hidden="true">
+                        <ItemPic item={item} size={160} fill />
+                      </span>
                     </span>
-                    <span className={styles.cardEmoji} aria-hidden="true">
-                      <ItemPic item={item} size={64} />
-                    </span>
-                    <strong className={styles.cardName}>{item.name}</strong>
-                    <span className={item.price > cash ? styles.priceShort : styles.price}>{formatNaira(item.price)}</span>
-                    <span className={styles.tags}>
-                      {item.finishes?.length ? <span className={styles.tag}>{item.finishes.length + 1} colours</span> : null}
-                      {item.helps.slice(0, 2).map((need) => (
-                        <span key={need} className={styles.tag}>
-                          +{need}
-                        </span>
-                      ))}
+                    <span className={styles.cardBody}>
+                      <strong className={styles.cardName}>{item.name}</strong>
+                      <span className={item.price > cash ? styles.priceShort : styles.price}>{formatNaira(item.price)}</span>
+                      <span className={styles.tags}>
+                        {item.finishes?.length ? <span className={styles.tag}>{item.finishes.length + 1} colours</span> : null}
+                        {item.helps.slice(0, 2).map((need) => (
+                          <span key={need} className={styles.tag}>
+                            +{need}
+                          </span>
+                        ))}
+                      </span>
                     </span>
                   </button>
                 ))}
@@ -570,17 +574,31 @@ export function BuyPanel({
   )
 }
 
-/** A picture of the item's own 3D model (rendered in Blender, or Kenney's own preview); emoji if it has none. */
-function ItemPic({ item, size }: { item: { emoji: string; model?: string | null }; size: number }) {
+/** Pastel tile behind each catalogue picture, by category. */
+const TILE_TINT: Record<HomeCategory, string> = {
+  sleep: 'linear-gradient(160deg, #ece7fb, #ddd5f6)',
+  comfort: 'linear-gradient(160deg, #fdeee1, #f8dcc6)',
+  kitchen: 'linear-gradient(160deg, #e2f5ea, #cdeadb)',
+  study: 'linear-gradient(160deg, #e1edfd, #cfe0f8)',
+  bath: 'linear-gradient(160deg, #def3f6, #c9e8ee)',
+  light: 'linear-gradient(160deg, #fdf5d3, #f7ebb6)',
+  deco: 'linear-gradient(160deg, #fce6ee, #f7d3e1)',
+}
+
+/**
+ * The studio picture of the item's own 3D model (made by scripts/thumbs/render-thumbs.mjs: 3/4 view,
+ * soft light and shadow, see-through background); emoji if it has none. `fill`: as big as its box.
+ */
+function ItemPic({ item, size, fill }: { item: { emoji: string; model?: string | null }; size: number; fill?: boolean }) {
+  const [failed, setFailed] = useState(false)
   const model = item.model ?? ''
-  const thumb = model.startsWith('/models/furniture/kenney/')
-    ? model.replace('/models/furniture/kenney/', '/models/furniture/kenney/thumbs/').replace(/\.glb(\?.*)?$/, '.png')
-    : model.startsWith('/models/furniture/')
-      ? model.replace('/models/furniture/', '/models/furniture/thumbs/').replace(/\.glb(\?.*)?$/, '.webp')
-      : null
-  if (!thumb) return <>{item.emoji}</>
+  const thumb = model.startsWith('/models/furniture/')
+    ? `/models/furniture/thumbs/${model.slice('/models/furniture/'.length).replace(/\.glb(\?.*)?$/, '').replace(/\//g, '__')}.webp`
+    : null
+  if (!thumb || failed) return <>{item.emoji}</>
+  const px = fill ? '100%' : size
   // eslint-disable-next-line @next/next/no-img-element -- tiny static render, no optimisation needed
-  return <img src={thumb} alt="" width={size} height={size} draggable={false} style={{ width: size, height: size, objectFit: 'contain', display: 'block' }} />
+  return <img src={thumb} alt="" width={size} height={size} draggable={false} loading="lazy" onError={() => setFailed(true)} style={{ width: px, height: px, objectFit: 'contain', display: 'block' }} />
 }
 
 /** Colour swatches for an item sold in several finishes: "Original" first, then each finish. */
