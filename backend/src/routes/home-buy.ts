@@ -112,10 +112,10 @@ export async function homeBuyRoutes(app: FastifyInstance) {
     if (!user) return reply.code(401).send({ ok: false, error: 'Log in to play.' })
     const key = requireIdemKey(request, reply)
     if (!key) return
-    const parsed = z.object({ styleId: z.string().min(1).max(60) }).safeParse(request.body)
+    const parsed = z.object({ styleId: z.string().min(1).max(60), scope: z.enum(['home', 'bedroom', 'sitting', 'kitchen', 'bath']).default('home') }).safeParse(request.body)
     if (!parsed.success) return reply.code(400).send({ ok: false, error: 'Pick a style.' })
     try {
-      return send(reply, await buyHomeStyle(user.id, parsed.data.styleId, key))
+      return send(reply, await buyHomeStyle(user.id, parsed.data.styleId, parsed.data.scope, key))
     } catch (error) {
       request.log.error(error)
       return reply.code(500).send({ ok: false, error: 'Could not buy that style.' })

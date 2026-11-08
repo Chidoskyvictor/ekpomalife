@@ -317,6 +317,8 @@ export function RoomScreen() {
             catalog={furnishing.catalog}
             placements={home.placements}
             styles={home.styles}
+            stored={home.stored}
+            onStored={home.setStored}
             view={layout.view}
             onPlacements={home.setPlacements}
           />
@@ -501,6 +503,7 @@ function useHomeFurniture(who: string | null, hasGrid: boolean) {
   const [placements, setPlacements] = useState<OwnedPiece[]>([])
   const [decor, setDecor] = useState<HomeDecor>({})
   const [styles, setStyles] = useState<HomeStyle[]>([])
+  const [stored, setStored] = useState<OwnedPiece[]>([])
   const [loaded, setLoaded] = useState(false)
   const [enabled, setEnabled] = useState(false)
   const [failed, setFailed] = useState(false)
@@ -519,6 +522,7 @@ function useHomeFurniture(who: string | null, hasGrid: boolean) {
       setPlacements(res.placements)
       setDecor(res.decor ?? {})
       setStyles((res as { styles?: HomeStyle[] }).styles ?? [])
+      setStored((res as { stored?: OwnedPiece[] }).stored ?? [])
       if (who === '') setOwnedDecor(res.decor ?? {}, 'decorZones' in res ? res.decorZones : [])
       setEnabled('enabled' in res ? res.enabled : false)
       setLoaded(true)
@@ -527,5 +531,5 @@ function useHomeFurniture(who: string | null, hasGrid: boolean) {
       cancelled = true
     }
   }, [who, hasGrid, attempt])
-  return { catalog, placements, setPlacements, styles, decor, loaded, enabled, failed, retry: () => setAttempt((n) => n + 1) }
+  return { catalog, placements, setPlacements, styles, stored, setStored, decor, loaded, enabled, failed, retry: () => setAttempt((n) => n + 1) }
 }

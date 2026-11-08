@@ -15,6 +15,7 @@ import {
   Paintbrush,
   Rotate3d,
   RotateCw,
+  Package,
   Search,
   ShowerHead,
   Sparkles,
@@ -61,6 +62,9 @@ import { DesignTab } from './design-tab'
 import { quoteStyle, type StyleQuote } from '@/lib/game/home-style'
 import { setOwnedDecor, tryStyleDecor, useDecorUi } from '@/lib/game/home-decor-store'
 import { StylePreview, StylesGrid } from './styles-tab'
+import { ItemPic } from './item-pic'
+import { scopesFor, type StyleScope } from '@/lib/game/home-style-layout'
+import { normalizeLodging } from '@/lib/game/home-lodging'
 
 /** "Any price" cycles through these caps. */
 const PRICE_STEPS = [
@@ -105,14 +109,19 @@ export function BuyPanel({
   placements,
   view,
   styles: styleList,
+  stored,
   onPlacements,
+  onStored,
 }: {
   spec: HomeSpec
   catalog: HomeItem[]
   placements: OwnedPiece[]
   view: RoomView
   styles: HomeStyle[]
+  /** Pieces put away in storage (a whole-home style does that with the ones it doesn't use). */
+  stored: OwnedPiece[]
   onPlacements: (next: OwnedPiece[]) => void
+  onStored: (next: OwnedPiece[]) => void
 }) {
   const { state, applyServerState, refreshServer } = useGame()
   const ui = useBuyUi()
@@ -123,6 +132,8 @@ export function BuyPanel({
   /** The Styles tab (ready-made looks) and the one being tried on */
   const [stylesOpen, setStylesOpen] = useState(false)
   const [tryStyle, setTryStyle] = useState<HomeStyle | null>(null)
+  const [scope, setScope] = useState<StyleScope>('home')
+  const [storageOpen, setStorageOpen] = useState(false)
   const decorUi = useDecorUi()
   const [query, setQuery] = useState('')
   const [busy, setBusy] = useState(false)
@@ -144,21 +155,29 @@ export function BuyPanel({
   const picked = ui.pickedId ? placements.find((p) => p.id === ui.pickedId) : undefined
   const pickedItem = picked ? byId.get(picked.itemId) : undefined
 
+  /** The Styles grid: what each style would cost as a whole-home look right now. */
   const quotes = useMemo(() => {
     const map = new Map<string, StyleQuote>()
-    if (!stylesOpen && !tryStyle) return map
-    for (const st of styleList) map.set(st.id, quoteStyle(st, spec, catalog, placements, state?.lodgingId, decorUi.owned))
+    if (!stylesOpen) return map
+    for (const st of styleList) map.set(st.id, quoteStyle(st, spec, catalog, placements, stored, state?.lodgingId, decorUi.owned))
     return map
-  }, [stylesOpen, tryStyle, styleList, spec, catalog, placements, state?.lodgingId, decorUi.owned])
+  }, [stylesOpen, styleList, spec, catalog, placements, stored, state?.lodgingId, decorUi.owned])
+  /** The style being tried on, in the chosen scope (whole home or one room). */
+  const previewQuote = useMemo(
+    () => (tryStyle ? quoteStyle(tryStyle, spec, catalog, placements, stored, state?.lodgingId, decorUi.owned, scope) : null),
+    [tryStyle, scope, spec, catalog, placements, stored, state?.lodgingId, decorUi.owned],
+  )
+  // The room shows the try-on (pieces, walls and floor) until you Use it or go Back
+  useEffect(() => {
+    setStylePreview(previewQuote ? previewQuote.plan.result : null)
+    tryStyleDecor(previewQuote ? previewQuote.decor : null)
+  }, [previewQuote])
 
-  /** Try a style on: the room shows it (nothing is bought) until you Buy or Cancel. */
+  /** Try a style on: nothing is bought until you tap Use. */
   const startTry = (st: HomeStyle) => {
-    const quote = quotes.get(st.id)
-    if (!quote) return
     setNote(null)
+    setScope('home')
     setTryStyle(st)
-    setStylePreview(quote.plan.result)
-    tryStyleDecor(quote.decor)
   }
   const stopTry = useCallback(() => {
     setTryStyle(null)
@@ -233,6 +252,7 @@ export function BuyPanel({
       return false
     }
     onPlacements(res.placements)
+    if ('stored' in res && Array.isArray(res.stored)) onStored(res.stored as OwnedPiece[])
     applyServerState(res.state)
     setNote({ text: res.message })
     return true
@@ -244,6 +264,7 @@ export function BuyPanel({
     if (!res.ok) return false
     const changed = res.placements.length !== placements.length || res.placements.some((p, i) => p.id !== placements[i]?.id)
     onPlacements(res.placements)
+    if ('stored' in res && Array.isArray(res.stored)) onStored(res.stored as OwnedPiece[])
     void refreshServer()
     setNote(changed ? { text: 'Done. The connection was slow.' } : { text: 'Could not confirm that. Check your wallet.', bad: true })
     return changed
@@ -283,11 +304,22 @@ export function BuyPanel({
     }
   }
 
+  /** Take a stored piece back out: it starts on the first free spot, like moving one you own. */
+  const putOut = (piece: OwnedPiece, item: HomeItem) => {
+    const spot = firstFreeHomeSpot(spec, shapes, placements, item.id)
+    if (!spot) {
+      setNote({ text: 'No free spot left for that. Sell or move something.', bad: true })
+      return
+    }
+    setNote(null)
+    startPlacing(item, spot, piece.id, piece.finish ?? null)
+  }
+
   const buyStyle = async () => {
     if (!tryStyle || busy) return
     setBusy(true)
     try {
-      const res = await buyHomeStyle(tryStyle.id, newIdempotencyKey())
+      const res = await buyHomeStyle(tryStyle.id, scope, newIdempotencyKey())
       if (res.ok) setOwnedDecor(res.decor)
       if (finish(res) || (isNetwork(res) && (await resync()))) stopTry()
     } finally {
@@ -348,16 +380,19 @@ export function BuyPanel({
       ) : (
         <section className={`${styles.sheet} ${placing || picked || tryStyle ? styles.sheetCompact : ''}`} aria-label="Shop items">
           <span className={styles.handle} aria-hidden="true" />
-          {tryStyle && quotes.get(tryStyle.id) ? (
+          {tryStyle && previewQuote ? (
             <StylePreview
               style={tryStyle}
-              quote={quotes.get(tryStyle.id)!}
+              quote={previewQuote}
               catalog={catalog}
               cash={cash}
               busy={busy}
+              scope={scope}
+              scopes={scopesFor(normalizeLodging(state?.lodgingId))}
+              onScope={setScope}
               note={note?.bad ? note.text : undefined}
-              onBuy={() => void buyStyle()}
-              onCancel={stopTry}
+              onUse={() => void buyStyle()}
+              onBack={stopTry}
             />
           ) : placing && ui.item ? (
             <div className={styles.placing}>
@@ -478,6 +513,7 @@ export function BuyPanel({
                   onClick={() => {
                     closeSearch()
                     setDesign(false)
+                    setStorageOpen(false)
                     setStylesOpen(true)
                   }}
                 >
@@ -491,6 +527,7 @@ export function BuyPanel({
                   onClick={() => {
                     closeSearch()
                     setStylesOpen(false)
+                    setStorageOpen(false)
                     setDesign(true)
                   }}
                 >
@@ -501,12 +538,13 @@ export function BuyPanel({
                     key={id}
                     type="button"
                     role="tab"
-                    aria-selected={!design && !stylesOpen && !query && category === id}
-                    className={`${styles.chip} ${!design && !stylesOpen && !query && category === id ? styles.chipOn : ''}`}
+                    aria-selected={!design && !stylesOpen && !storageOpen && !query && category === id}
+                    className={`${styles.chip} ${!design && !stylesOpen && !storageOpen && !query && category === id ? styles.chipOn : ''}`}
                     onClick={() => {
                       closeSearch()
                       setDesign(false)
                       setStylesOpen(false)
+                      setStorageOpen(false)
                       setCategory(id)
                     }}
                   >
@@ -520,6 +558,22 @@ export function BuyPanel({
                 >
                   <SlidersHorizontal size={16} aria-hidden="true" /> {price.label}
                 </button>
+                {stored.length > 0 ? (
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={storageOpen && !query}
+                    className={`${styles.chip} ${storageOpen && !query ? styles.chipOn : ''}`}
+                    onClick={() => {
+                      closeSearch()
+                      setDesign(false)
+                      setStylesOpen(false)
+                      setStorageOpen(true)
+                    }}
+                  >
+                    <Package size={16} aria-hidden="true" /> Storage · {stored.length}
+                  </button>
+                ) : null}
               </div>
               {last ? (
                 <div className={styles.again}>
@@ -537,8 +591,25 @@ export function BuyPanel({
                 </p>
               ) : null}
               {design && !query ? <DesignTab /> : null}
-              {stylesOpen && !query ? <StylesGrid list={styleList} catalog={catalog} quotes={quotes} cash={cash} onTry={startTry} /> : null}
-              <div className={styles.cards} hidden={(design || stylesOpen) && !query}>
+              {stylesOpen && !query ? <StylesGrid list={styleList} catalog={catalog} quotes={quotes} cash={cash} selectedId={tryStyle?.id} onTry={startTry} /> : null}
+              {storageOpen && !query ? (
+                <div className={styles.cards}>
+                  {stored.map((piece) => {
+                    const item = byId.get(piece.itemId)
+                    if (!item) return null
+                    return (
+                      <button key={piece.id} type="button" className={styles.card} onClick={() => putOut(piece, item)}>
+                        <span className={styles.cardEmoji} aria-hidden="true">
+                          <ItemPic item={item} size={64} />
+                        </span>
+                        <strong className={styles.cardName}>{item.name}</strong>
+                        <span className={styles.price}>In storage · tap to place</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              ) : null}
+              <div className={styles.cards} hidden={(design || stylesOpen || storageOpen) && !query}>
                 {items.length === 0 ? <p className={styles.hint}>Nothing like that. Try another word.</p> : null}
                 {items.map((item) => (
                   <button key={item.id} type="button" className={styles.card} onClick={() => pick(item)}>
@@ -568,19 +639,6 @@ export function BuyPanel({
       )}
     </>
   )
-}
-
-/** A picture of the item's own 3D model (rendered in Blender, or Kenney's own preview); emoji if it has none. */
-function ItemPic({ item, size }: { item: { emoji: string; model?: string | null }; size: number }) {
-  const model = item.model ?? ''
-  const thumb = model.startsWith('/models/furniture/kenney/')
-    ? model.replace('/models/furniture/kenney/', '/models/furniture/kenney/thumbs/').replace(/\.glb(\?.*)?$/, '.png')
-    : model.startsWith('/models/furniture/')
-      ? model.replace('/models/furniture/', '/models/furniture/thumbs/').replace(/\.glb(\?.*)?$/, '.webp')
-      : null
-  if (!thumb) return <>{item.emoji}</>
-  // eslint-disable-next-line @next/next/no-img-element -- tiny static render, no optimisation needed
-  return <img src={thumb} alt="" width={size} height={size} draggable={false} style={{ width: size, height: size, objectFit: 'contain', display: 'block' }} />
 }
 
 /** Colour swatches for an item sold in several finishes: "Original" first, then each finish. */
