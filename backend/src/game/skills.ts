@@ -7,7 +7,7 @@ import { pool } from '../db.js'
  * Music, Comedy, Photography and Preaching come later, once they have places to earn them.
  */
 
-export const SKILL_IDS = ['academics', 'charisma', 'hustle', 'fitness', 'cooking', 'tech', 'dance'] as const
+export const SKILL_IDS = ['academics', 'charisma', 'hustle', 'fitness', 'cooking', 'tech', 'dance', 'music', 'comedy'] as const
 export type SkillId = (typeof SKILL_IDS)[number]
 
 export const SKILL_LABEL: Record<SkillId, string> = {
@@ -18,6 +18,8 @@ export const SKILL_LABEL: Record<SkillId, string> = {
   cooking: 'Cooking',
   tech: 'Tech',
   dance: 'Dance',
+  music: 'Music',
+  comedy: 'Comedy',
 }
 
 export const MAX_LEVEL = 10

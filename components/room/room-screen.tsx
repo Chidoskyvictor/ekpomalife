@@ -4,7 +4,8 @@ import dynamic from 'next/dynamic'
 import { useParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useGame } from '@/hooks/use-game'
-import { endActivity, setActivityQueue, startActivity } from '@/lib/game/activity'
+import { endActivity, runTimed, setActivityQueue, startActivity, useActivity } from '@/lib/game/activity'
+import { markSelfDone, type SelfAction } from '@/lib/game/self-actions'
 import { fetchHostCard, type HostCard } from '@/lib/game/hostels-api'
 import { normalizeAppearance, type Appearance } from '@/lib/game/look'
 import type { FurnitureAction, FurnitureId } from '@/lib/game/room-furniture'
@@ -22,6 +23,7 @@ import travelStyles from '@/components/travel/travel.module.css'
 import { STREET_AND_TRAVEL } from '@/lib/flags'
 import { BuyPanel } from './buy-panel'
 import { FurnitureSheet } from './furniture-sheet'
+import { SelfActionSheet } from './self-action-sheet'
 import type { PlayerMove, RoomPlayerControl } from './room-player'
 import { ClubPeers } from '@/components/club/club-peers'
 import { useClubLive } from '@/lib/game/club-live'
@@ -47,6 +49,23 @@ export function RoomScreen() {
   // The 3D character fills in control.use once it has mounted
   const control = useMemo<RoomPlayerControl>(() => ({}), [])
   const pick = useRoomActionQueue(control, (action) => void act(action.id, { atHome: true }))
+  // Tap yourself: the "What should they do?" sheet; the pick runs as a timed activity on the spot
+  const [selfOpen, setSelfOpen] = useState(false)
+  const activity = useActivity()
+  const runSelf = useCallback(
+    (a: SelfAction) => {
+      setSelfOpen(false)
+      control.stop?.()
+      control.pose?.(a.pose ?? null)
+      void runTimed({ emoji: a.emoji, title: a.title, seconds: a.seconds }, async () => {
+        control.pose?.(null)
+        if (await act(a.id, { atHome: true })) markSelfDone(a.id)
+      }).then((finished) => {
+        if (!finished) control.pose?.(null)
+      })
+    },
+    [control, act],
+  )
   const [modelReady, setModelReady] = useState<'checking' | 'ok' | 'missing'>('checking')
   // /room/[username]: visiting someone else's place — their character is home too
   const params = useParams<{ username?: string }>()
@@ -205,6 +224,7 @@ export function RoomScreen() {
             effects={effects}
             onPlayerMove={onPlayerMove}
             onFurniture={buy.active ? undefined : setFurnitureKey}
+            onSelf={own && !scene.outside && !buy.active ? () => setSelfOpen(true) : undefined}
             furnishing={furnishing}
             control={control}
             spawn={scene.spawnAtDoor || visitingOther ? layout.start : undefined}
@@ -270,6 +290,15 @@ export function RoomScreen() {
             setFurnitureKey(null)
             if (key) pick(key, action)
           }}
+        />
+        <SelfActionSheet
+          open={selfOpen && own && !buy.active}
+          name={state?.characterName && state.characterName !== 'Player' ? state.characterName : (state?.username ?? 'You')}
+          appearance={state?.appearance}
+          avatarColor={state?.avatarColor ?? '#2f7cf6'}
+          busy={!!activity}
+          onClose={() => setSelfOpen(false)}
+          onPick={runSelf}
         />
         {buy.active && furnishing ? (
           <BuyPanel

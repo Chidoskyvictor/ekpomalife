@@ -176,6 +176,8 @@ export type RoomPlayerControl = {
   use?: (furniture: SpotKey, action: UseHow, hooks: UseHooks) => void
   /** Stand up / stop walking over (e.g. the busy pill was tapped). */
   stop?: () => void
+  /** Hold a pose in place (e.g. dancing while a tap-yourself action runs); null goes back to idle. */
+  pose?: (pose: FigurePose | null) => void
 }
 
 /** onStart: sat / lay down · onDone: the time ran out · onAbort: stopped early (walked away, tapped stop). */
@@ -188,6 +190,7 @@ export function RoomPlayer({
   layout,
   appearance,
   onFurniture,
+  onSelf,
   control,
   onMove,
   spawn,
@@ -197,6 +200,8 @@ export function RoomPlayer({
   spawn?: [number, number]
   appearance?: Appearance
   onFurniture?: (id: SpotKey) => void
+  /** Tapped your own character (opens the "What should they do?" sheet). */
+  onSelf?: () => void
   control?: RoomPlayerControl
   onMove?: (move: PlayerMove) => void
 }) {
@@ -266,9 +271,13 @@ export function RoomPlayer({
       stopUsing()
       path.current = []
     }
+    control.pose = (p) => {
+      pose.current = p
+    }
     return () => {
       control.use = undefined
       control.stop = undefined
+      control.pose = undefined
     }
   }, [control, findPath, SPOTS])
 
@@ -483,6 +492,21 @@ export function RoomPlayer({
           <meshBasicMaterial color="#000" transparent opacity={0.18} depthWrite={false} />
         </mesh>
         <CharacterFigure appearance={look} moving={moving} pose={pose} />
+        {/* Invisible capsule over you: tap yourself for the action menu */}
+        {onSelf ? (
+          <mesh
+            position={[0, 0.9, 0]}
+            onClick={(event) => {
+              if (event.delta > 6) return
+              event.stopPropagation()
+              onSelf()
+            }}
+            {...pointer}
+          >
+            <cylinderGeometry args={[0.38, 0.38, 1.8, 10]} />
+            <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+          </mesh>
+        ) : null}
       </group>
       <HeadBubble body={body} lying={() => task.current?.using === true && task.current.action.style === 'lie'} />
     </>
