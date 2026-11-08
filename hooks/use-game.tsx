@@ -11,6 +11,7 @@ import { checkDreamProgress, loadCharacter } from '@/lib/game/character-api'
 import { AVATAR_COLORS } from '@/lib/game/content'
 import { emptyDreamSnapshot, type DreamId } from '@/lib/game/dreams'
 import { fetchGameState, postGameAction, type ServerGameState } from '@/lib/game/game-api'
+import { SELF_ACTION_IDS } from '@/lib/game/self-actions'
 import { type CharacterTypeId, type LodgingId } from '@/lib/game/live'
 import { type Appearance } from '@/lib/game/look'
 import type { GameActionId } from '@/lib/game/places'
@@ -90,6 +91,7 @@ const SERVER_ACTIONS = new Set<string>([
   'toilet',
   'bucket-bath',
   'cook',
+  ...SELF_ACTION_IDS,
   'pay-school-fees',
   'course-registration',
   'collect-matric-gown',

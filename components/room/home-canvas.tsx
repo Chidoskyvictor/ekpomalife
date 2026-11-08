@@ -40,6 +40,8 @@ type PlayerProps = {
   /** Visiting: the owner's look, standing in their room. */
   host?: Appearance
   onFurniture?: (id: SpotKey) => void
+  /** Tapped your own character. */
+  onSelf?: () => void
   /** What the player bought and placed in this home (drawn, blocks walking, and Buy mode edits it). */
   furnishing?: HomeFurnishing | null
   control?: RoomPlayerControl
@@ -171,7 +173,7 @@ function usePaintedWalls(root: Object3D, paint: string | undefined) {
 
 const MIDDAY = () => 12 * 60
 
-function HomeModel({ layout, paint, decor, clock = MIDDAY, effects, onPlayerMove, appearance, host, onFurniture, control, spawn, furnishing }: PlayerProps) {
+function HomeModel({ layout, paint, decor, clock = MIDDAY, effects, onPlayerMove, appearance, host, onFurniture, onSelf, control, spawn, furnishing }: PlayerProps) {
   const gl = useThree((state) => state.gl)
   const { scene } = useGLTF(layout.glb)
   useLayoutEffect(() => {
@@ -202,6 +204,7 @@ function HomeModel({ layout, paint, decor, clock = MIDDAY, effects, onPlayerMove
           layout={layout}
           appearance={appearance}
           onFurniture={onFurniture}
+          onSelf={onSelf}
           control={control}
           onMove={onPlayerMove}
           spawn={spawn}

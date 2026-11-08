@@ -304,3 +304,23 @@ export async function createHomeTicket(userId: string, ownerUsername: string) {
   })
   return { ticket: token, group: 1 }
 }
+
+/* —— Player-to-player interactions at home (interactions.ts) —— */
+
+const homeKey = (ownerId: string) => roomKey(`home-${ownerId}`, 0, 1)
+
+/** Is this player connected to that home's live room right now? */
+export function homeHas(ownerId: string, userId: string): boolean {
+  return rooms.get(homeKey(ownerId))?.has(userId) ?? false
+}
+
+/** Tell everyone in a home an interaction played. */
+export function announceHome(ownerId: string, message: unknown) {
+  broadcast(homeKey(ownerId), message)
+}
+
+/** Tell just one person in a home (e.g. "X wants to hug you: accept?"). */
+export function tellHomeUser(ownerId: string, userId: string, message: unknown) {
+  const member = rooms.get(homeKey(ownerId))?.get(userId)
+  if (member) send(member.socket, message)
+}

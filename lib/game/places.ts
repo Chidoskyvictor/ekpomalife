@@ -1,4 +1,5 @@
 /** Shared place ids — mirror backend/src/game/places.ts */
+import type { SelfActionId } from './self-actions'
 
 export type GameActionId =
   | 'eat'
@@ -14,6 +15,8 @@ export type GameActionId =
   | 'toilet'
   | 'bucket-bath'
   | 'cook'
+  // Tap-yourself menu (lib/game/self-actions.ts)
+  | SelfActionId
   // Building interiors (Phase 3 UI → server POST /game/action)
   | 'pay-school-fees'
   // AAU school (POST /school/action)

@@ -1,5 +1,6 @@
 import { placeLock } from './place-locks.js'
 import { awardSkill, skillForAction } from './skills.js'
+import { cooldownLeft, gainText, SELF_ACTIONS, waitText, type SelfActionId } from './self-actions.js'
 import type { PoolClient } from 'pg'
 import { pool } from '../db.js'
 import { createId } from '../ids.js'
@@ -524,6 +525,19 @@ export async function performGameAction(
       }
     }
 
+    // Tap-yourself actions: server-side cooldown so they can't be farmed for XP or money
+    if (action.self) {
+      const last = await client.query<{ last_at: Date }>(
+        `SELECT last_at FROM self_action_cooldowns WHERE character_id = $1 AND action_id = $2`,
+        [character.id, action.id],
+      )
+      const left = cooldownLeft(last.rows[0]?.last_at, action.self.cooldownSec)
+      if (left > 0) {
+        await client.query('ROLLBACK')
+        return { ok: false, error: `${action.label}: try again in ${waitText(left)}.`, code: 429 }
+      }
+    }
+
     const cash = asMoney(row.cash)
     if (action.cost < 0 && cash < Math.abs(action.cost)) {
       await client.query('ROLLBACK')
@@ -589,8 +603,20 @@ export async function performGameAction(
       [character.id, JSON.stringify(needs), locationId, nextTime],
     )
     // Studying, cooking and hanging out train a skill (where you hang out decides which)
-    const trains = skillForAction(action.id, input.atHome ? null : locationId)
-    const levelUp = trains ? await awardSkill(client, character.id, trains.skill, trains.xp, character.character_type) : null
+    let levelUp: string | null = null
+    if (action.self) {
+      await client.query(
+        `INSERT INTO self_action_cooldowns (character_id, action_id, last_at) VALUES ($1, $2, NOW())
+         ON CONFLICT (character_id, action_id) DO UPDATE SET last_at = NOW()`,
+        [character.id, action.id],
+      )
+      for (const t of action.self.skills) {
+        levelUp = (await awardSkill(client, character.id, t.skill, t.xp, character.character_type)) ?? levelUp
+      }
+    } else {
+      const trains = skillForAction(action.id, input.atHome ? null : locationId)
+      levelUp = trains ? await awardSkill(client, character.id, trains.skill, trains.xp, character.character_type) : null
+    }
 
     await client.query('COMMIT')
 
@@ -601,8 +627,10 @@ export async function performGameAction(
     const progress = dream ? dreamProgress(dream, snapshotOf(character, nextCash)) : null
     const { PLACES } = await import('./places.js')
 
-    const message =
-      action.cost > 0
+    const selfDef = action.self ? SELF_ACTIONS[action.id as SelfActionId] : null
+    const message = selfDef
+      ? `${action.label}: ${gainText(selfDef)}${action.cost > 0 ? ` +₦${action.cost.toLocaleString()}` : ''}`
+      : action.cost > 0
         ? `${action.label}: +₦${action.cost.toLocaleString()}.`
         : action.cost < 0
           ? `${action.label}: −₦${Math.abs(action.cost).toLocaleString()}.`

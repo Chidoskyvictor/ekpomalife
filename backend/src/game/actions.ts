@@ -1,4 +1,6 @@
 import type { Needs } from './needs.js'
+import { SELF_ACTIONS, type SelfActionId } from './self-actions.js'
+import type { SkillId } from './skills.js'
 import type { OpenHours } from './time.js'
 
 export type GameActionId =
@@ -14,6 +16,7 @@ export type GameActionId =
   | 'toilet'
   | 'bucket-bath'
   | 'cook'
+  | SelfActionId
 
 export type ActionDef = {
   id: GameActionId
@@ -31,6 +34,8 @@ export type ActionDef = {
   home?: boolean
   /** Home action that needs a kitchen (self-con and one bedroom). */
   kitchen?: boolean
+  /** Tap-yourself menu action: skills it trains and the seconds before it can be done again. */
+  self?: { skills: { skill: SkillId; xp: number }[]; cooldownSec: number }
 }
 
 export const ACTIONS: Record<GameActionId, ActionDef> = {
@@ -139,6 +144,13 @@ export const ACTIONS: Record<GameActionId, ActionDef> = {
     home: true,
     kitchen: true,
   },
+  // —— Tap yourself at home (self-actions.ts) ——
+  ...(Object.fromEntries(
+    Object.entries(SELF_ACTIONS).map(([id, a]) => [
+      id,
+      { id, label: a.label, hint: a.hint, cost: a.cost, duration: a.duration, needEffects: a.needEffects, home: true, self: { skills: [...a.skills], cooldownSec: a.cooldownSec } },
+    ]),
+  ) as Record<SelfActionId, ActionDef>),
 }
 
 export const ACTION_IDS = Object.keys(ACTIONS) as GameActionId[]
