@@ -4,6 +4,7 @@ import { Settings2 } from 'lucide-react'
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { SOUND_EVENT, setMusic, useMusicSettings } from '@/lib/audio/music'
 import { useShowMapLabels } from '@/lib/game/map-labels'
+import { useGfxPref, type GfxPref } from '@/lib/game/gfx-quality'
 import styles from './settings-menu.module.css'
 
 const MUTED_KEY = 'ekpoma-life-muted'
@@ -36,6 +37,9 @@ function useMuted(): [boolean, (v: boolean) => void] {
   return [muted, set]
 }
 
+const GFX_NEXT: Record<GfxPref, GfxPref> = { auto: 'low', low: 'medium', medium: 'high', high: 'auto' }
+const GFX_LABEL: Record<GfxPref, string> = { auto: 'Auto', low: 'Low', medium: 'Medium', high: 'High' }
+
 function Row({ label, on, onChange }: { label: string; on: boolean; onChange: (v: boolean) => void }) {
   return (
     <button type="button" role="switch" aria-checked={on} className={styles.row} onClick={() => onChange(!on)}>
@@ -54,6 +58,7 @@ export function SettingsMenu() {
   const music = useMusicSettings()
   const [muted, setMuted] = useMuted()
   const [showLabels, setShowLabels] = useShowMapLabels()
+  const [gfx, setGfx] = useGfxPref()
 
   // Tap anywhere outside closes it
   useEffect(() => {
@@ -92,6 +97,10 @@ export function SettingsMenu() {
           <Row label="Music" on={music.on} onChange={(v) => setMusic({ on: v })} />
           <Row label="Sound" on={!muted} onChange={(v) => setMuted(!v)} />
           <Row label="Map labels" on={showLabels} onChange={setShowLabels} />
+          <button type="button" className={styles.row} aria-label={`Home graphics: ${GFX_LABEL[gfx]}. Tap to change`} onClick={() => setGfx(GFX_NEXT[gfx])}>
+            <span>Home graphics</span>
+            <span>{GFX_LABEL[gfx]}</span>
+          </button>
         </div>
       ) : null}
     </div>

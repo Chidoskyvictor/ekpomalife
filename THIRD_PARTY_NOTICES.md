@@ -18,3 +18,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 - Source: https://kenney.nl/assets/furniture-kit (version 2.0)
 - Files: `public/models/furniture/kenney/` (selected `.glb` models and their preview images)
 - License: Creative Commons CC0 1.0 (public domain). Credit is not required; we credit it anyway: "Furniture Kit by Kenney (www.kenney.nl)".
+
+## Home surface textures
+
+Floor, grass and paver textures in `components/room/home-surfaces.tsx` are generated procedurally at runtime; no third-party assets.

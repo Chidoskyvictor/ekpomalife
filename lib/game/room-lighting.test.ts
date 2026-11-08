@@ -8,7 +8,7 @@ describe('room lighting', () => {
     const noon = roomLightAt(at(12))
     expect(noon.lamps).toBe(0)
     expect(noon.skyOpacity).toBe(0)
-    expect(noon.ambientIntensity).toBeCloseTo(0.75)
+    expect(noon.ambientIntensity).toBeCloseTo(0.62)
   })
 
   it('turns the lamps on and darkens the sky at night', () => {

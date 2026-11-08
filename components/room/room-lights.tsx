@@ -14,11 +14,14 @@ import {
   type PointLight,
 } from 'three'
 import type { RoomLayout } from '@/lib/game/room-layouts'
+import type { GfxSettings } from '@/lib/game/gfx-quality'
 import { CLUB_LIGHT, roomLightAt, type RoomLight } from '@/lib/game/room-lighting'
 
 /** Bulb / tube materials in the home GLBs that glow when the lamps are on. */
 const GLOWING = new Set(['LampBulb', 'HostelTube', 'ClassTube', 'ClassWindowGlow'])
 const LAMP_COLOR = '#ffd9a0'
+/** Light pooled on the floor from the ceiling lamps: a touch warmer than the bulb itself. */
+const POOL_COLOR = '#ffc67f'
 /** Fluorescent classes glow cool white (tubes, and the windows lit from inside) instead of the warm bulb colour. */
 const GLOW_COLOR: Record<string, string> = { ClassTube: '#eef6ff', ClassWindowGlow: '#dcecff' }
 
@@ -29,7 +32,7 @@ type Live = Omit<RoomLight, 'skyTop' | 'skyBottom' | 'skyOpacity'>
  * offset group, so positions are the GLB's own. Values ease toward the clock every frame,
  * so a jump in game time (a server refresh) fades instead of snapping.
  */
-export function RoomLights({ layout, root, clock }: { layout: RoomLayout; root: Object3D; clock: () => number }) {
+export function RoomLights({ layout, root, clock, gfx }: { layout: RoomLayout; root: Object3D; clock: () => number; gfx: GfxSettings }) {
   const sun = useRef<DirectionalLight>(null)
   const ambient = useRef<AmbientLight>(null)
   const hemi = useRef<HemisphereLight>(null)
@@ -51,8 +54,8 @@ export function RoomLights({ layout, root, clock }: { layout: RoomLayout; root: 
         spots.push({ position: [x, 2.6, z], reach: Math.max(w, d / count, w / count, d) * 1.1 })
       }
     }
-    return spots.slice(0, 4)
-  }, [layout])
+    return spots.slice(0, gfx.maxLamps)
+  }, [layout, gfx.maxLamps])
   const centre = useMemo(() => {
     const xs = layout.floors.flatMap(([x0, , x1]) => [x0, x1])
     const zs = layout.floors.flatMap(([, z0, , z1]) => [z0, z1])
@@ -116,7 +119,7 @@ export function RoomLights({ layout, root, clock }: { layout: RoomLayout; root: 
     }
     for (const lamp of lamps.current) {
       if (!lamp) continue
-      lamp.intensity = cur.lamps * 7
+      lamp.intensity = cur.lamps * 10
       lamp.visible = cur.lamps > 0.02
     }
     for (const bulb of bulbs.current) bulb.emissiveIntensity = 0.15 + cur.lamps * 2.4
@@ -126,7 +129,20 @@ export function RoomLights({ layout, root, clock }: { layout: RoomLayout; root: 
     <>
       <ambientLight ref={ambient} />
       <hemisphereLight ref={hemi} />
-      <directionalLight ref={sun} />
+      <directionalLight
+        ref={sun}
+        castShadow={gfx.shadows}
+        shadow-mapSize={[gfx.shadowMap || 1, gfx.shadowMap || 1]}
+        shadow-camera-left={-9}
+        shadow-camera-right={9}
+        shadow-camera-top={9}
+        shadow-camera-bottom={-9}
+        shadow-camera-near={1}
+        shadow-camera-far={40}
+        shadow-bias={-0.0005}
+        shadow-normalBias={0.04}
+        shadow-radius={3}
+      />
       {lampSpots.map((spot, i) => (
         <pointLight
           key={i}
@@ -134,7 +150,7 @@ export function RoomLights({ layout, root, clock }: { layout: RoomLayout; root: 
             lamps.current[i] = light
           }}
           position={spot.position}
-          color={LAMP_COLOR}
+          color={POOL_COLOR}
           distance={spot.reach}
           decay={1}
           intensity={0}
