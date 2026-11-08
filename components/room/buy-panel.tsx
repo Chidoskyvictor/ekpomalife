@@ -17,6 +17,7 @@ import {
   RotateCw,
   Search,
   ShowerHead,
+  Sparkles,
   SlidersHorizontal,
   Sofa,
   Store,
@@ -26,6 +27,7 @@ import {
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useGame } from '@/hooks/use-game'
 import {
+  buyHomeStyle,
   fetchHomeFurniture,
   moveHomeItem,
   newIdempotencyKey,
@@ -35,6 +37,7 @@ import {
   type HomeCategory,
   type HomeFinish,
   type HomeItem,
+  type HomeStyle,
   type OwnedPiece,
 } from '@/lib/game/home-buy-api'
 import { checkHomePlacement, firstFreeHomeSpot, sellBackPrice, type HomeSpec } from '@/lib/game/home-buy-rules'
@@ -43,6 +46,7 @@ import {
   pickPlaced,
   setBuyFinish,
   setBuySpot,
+  setStylePreview,
   startPlacing,
   stopPlacing,
   turnBuyCamera,
@@ -54,6 +58,9 @@ import { formatNaira } from '@/lib/game/live'
 import type { RoomView } from '@/lib/game/room-camera'
 import styles from './buy-panel.module.css'
 import { DesignTab } from './design-tab'
+import { quoteStyle, type StyleQuote } from '@/lib/game/home-style'
+import { setOwnedDecor, tryStyleDecor, useDecorUi } from '@/lib/game/home-decor-store'
+import { StylePreview, StylesGrid } from './styles-tab'
 
 /** "Any price" cycles through these caps. */
 const PRICE_STEPS = [
@@ -97,12 +104,14 @@ export function BuyPanel({
   catalog,
   placements,
   view,
+  styles: styleList,
   onPlacements,
 }: {
   spec: HomeSpec
   catalog: HomeItem[]
   placements: OwnedPiece[]
   view: RoomView
+  styles: HomeStyle[]
   onPlacements: (next: OwnedPiece[]) => void
 }) {
   const { state, applyServerState, refreshServer } = useGame()
@@ -111,6 +120,10 @@ export function BuyPanel({
   const [category, setCategory] = useState<HomeCategory>('sleep')
   /** The Design tab (paint, floor, tiles) instead of furniture */
   const [design, setDesign] = useState(false)
+  /** The Styles tab (ready-made looks) and the one being tried on */
+  const [stylesOpen, setStylesOpen] = useState(false)
+  const [tryStyle, setTryStyle] = useState<HomeStyle | null>(null)
+  const decorUi = useDecorUi()
   const [query, setQuery] = useState('')
   const [busy, setBusy] = useState(false)
   const [note, setNote] = useState<{ text: string; bad?: boolean } | null>(null)
@@ -130,6 +143,30 @@ export function BuyPanel({
   const byId = useMemo(() => new Map(catalog.map((i) => [i.id, i])), [catalog])
   const picked = ui.pickedId ? placements.find((p) => p.id === ui.pickedId) : undefined
   const pickedItem = picked ? byId.get(picked.itemId) : undefined
+
+  const quotes = useMemo(() => {
+    const map = new Map<string, StyleQuote>()
+    if (!stylesOpen && !tryStyle) return map
+    for (const st of styleList) map.set(st.id, quoteStyle(st, spec, catalog, placements, state?.lodgingId, decorUi.owned))
+    return map
+  }, [stylesOpen, tryStyle, styleList, spec, catalog, placements, state?.lodgingId, decorUi.owned])
+
+  /** Try a style on: the room shows it (nothing is bought) until you Buy or Cancel. */
+  const startTry = (st: HomeStyle) => {
+    const quote = quotes.get(st.id)
+    if (!quote) return
+    setNote(null)
+    setTryStyle(st)
+    setStylePreview(quote.plan.result)
+    tryStyleDecor(quote.decor)
+  }
+  const stopTry = useCallback(() => {
+    setTryStyle(null)
+    setStylePreview(null)
+    tryStyleDecor(null)
+  }, [])
+  // Leaving Buy mode (or this panel) puts the room back exactly as it was
+  useEffect(() => stopTry, [stopTry])
 
   const items = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -246,6 +283,18 @@ export function BuyPanel({
     }
   }
 
+  const buyStyle = async () => {
+    if (!tryStyle || busy) return
+    setBusy(true)
+    try {
+      const res = await buyHomeStyle(tryStyle.id, newIdempotencyKey())
+      if (res.ok) setOwnedDecor(res.decor)
+      if (finish(res) || (isNetwork(res) && (await resync()))) stopTry()
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const sell = async () => {
     if (!picked || busy) return
     setBusy(true)
@@ -292,14 +341,25 @@ export function BuyPanel({
         </span>
       </header>
 
-      {!open && !placing && !picked ? (
+      {!open && !placing && !picked && !tryStyle ? (
         <button type="button" className={styles.openBtn} onClick={() => setOpen(true)}>
           <Store size={18} aria-hidden="true" /> Shop items
         </button>
       ) : (
-        <section className={`${styles.sheet} ${placing || picked ? styles.sheetCompact : ''}`} aria-label="Shop items">
+        <section className={`${styles.sheet} ${placing || picked || tryStyle ? styles.sheetCompact : ''}`} aria-label="Shop items">
           <span className={styles.handle} aria-hidden="true" />
-          {placing && ui.item ? (
+          {tryStyle && quotes.get(tryStyle.id) ? (
+            <StylePreview
+              style={tryStyle}
+              quote={quotes.get(tryStyle.id)!}
+              catalog={catalog}
+              cash={cash}
+              busy={busy}
+              note={note?.bad ? note.text : undefined}
+              onBuy={() => void buyStyle()}
+              onCancel={stopTry}
+            />
+          ) : placing && ui.item ? (
             <div className={styles.placing}>
               <div className={styles.placingHead}>
                 <span className={styles.placingIcon} aria-hidden="true">
@@ -413,10 +473,24 @@ export function BuyPanel({
                 <button
                   type="button"
                   role="tab"
+                  aria-selected={stylesOpen && !query}
+                  className={`${styles.chip} ${stylesOpen && !query ? styles.chipOn : ''}`}
+                  onClick={() => {
+                    closeSearch()
+                    setDesign(false)
+                    setStylesOpen(true)
+                  }}
+                >
+                  <Sparkles size={16} aria-hidden="true" /> Styles
+                </button>
+                <button
+                  type="button"
+                  role="tab"
                   aria-selected={design}
                   className={`${styles.chip} ${design ? styles.chipOn : ''}`}
                   onClick={() => {
                     closeSearch()
+                    setStylesOpen(false)
                     setDesign(true)
                   }}
                 >
@@ -427,11 +501,12 @@ export function BuyPanel({
                     key={id}
                     type="button"
                     role="tab"
-                    aria-selected={!design && !query && category === id}
-                    className={`${styles.chip} ${!design && !query && category === id ? styles.chipOn : ''}`}
+                    aria-selected={!design && !stylesOpen && !query && category === id}
+                    className={`${styles.chip} ${!design && !stylesOpen && !query && category === id ? styles.chipOn : ''}`}
                     onClick={() => {
                       closeSearch()
                       setDesign(false)
+                      setStylesOpen(false)
                       setCategory(id)
                     }}
                   >
@@ -462,7 +537,8 @@ export function BuyPanel({
                 </p>
               ) : null}
               {design && !query ? <DesignTab /> : null}
-              <div className={styles.cards} hidden={design && !query}>
+              {stylesOpen && !query ? <StylesGrid list={styleList} catalog={catalog} quotes={quotes} cash={cash} onTry={startTry} /> : null}
+              <div className={styles.cards} hidden={(design || stylesOpen) && !query}>
                 {items.length === 0 ? <p className={styles.hint}>Nothing like that. Try another word.</p> : null}
                 {items.map((item) => (
                   <button key={item.id} type="button" className={styles.card} onClick={() => pick(item)}>

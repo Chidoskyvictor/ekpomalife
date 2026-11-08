@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { HOME_GRID } from './home-grid.js'
-import { checkHomePlacement, firstFreeHomeSpot, sellBackPrice, type HomePlacement, type HomeShape } from './home-buy-rules.js'
+import { checkHomePlacement, firstFreeHomeSpot, planStyle, sellBackPrice, type HomePlacement, type HomeShape } from './home-buy-rules.js'
 
 const shapes = new Map<string, HomeShape>([
   ['chair', { id: 'chair', w: 1, d: 1, wall: false, maxPerHome: 2 }],
@@ -61,5 +61,34 @@ describe('sellBackPrice', () => {
   it('pays half, rounded down', () => {
     expect(sellBackPrice(9500)).toBe(4750)
     expect(sellBackPrice(301)).toBe(150)
+  })
+})
+
+describe('planStyle', () => {
+  it('buys what is missing, reuses what you own, skips what is over the cap', () => {
+    const owned: HomePlacement[] = [{ id: 'hp_1', itemId: 'table', x: 0, z: 0, rot: 0 }]
+    const plan = planStyle(spec, shapes, owned, [
+      { item: 'table', finish: '#a9744f' },
+      { item: 'table', finish: null },
+      { item: 'chair', finish: '#111111' },
+      { item: 'nope' },
+    ])
+    expect(plan.moves.map((m) => m.id)).toEqual(['hp_1'])
+    expect(plan.moves[0]!.finish).toBe('#a9744f')
+    // The second table is over the one-per-home cap, the unknown item is unknown
+    expect(plan.skipped).toEqual(['table', 'nope'])
+    expect(plan.buys.map((b) => b.itemId)).toEqual(['chair'])
+    expect(plan.result).toHaveLength(2)
+    // Nothing overlaps afterwards
+    for (const p of plan.result) {
+      const rest = plan.result.filter((q) => q.id !== p.id)
+      expect(checkHomePlacement(spec, shapes, rest, p.itemId, p).ok).toBe(true)
+    }
+  })
+
+  it('leaves the original placements untouched', () => {
+    const owned: HomePlacement[] = [{ id: 'hp_1', itemId: 'chair', x: 1, z: 1, rot: 0 }]
+    planStyle(spec, shapes, owned, [{ item: 'chair' }])
+    expect(owned[0]).toMatchObject({ x: 1, z: 1 })
   })
 })

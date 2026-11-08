@@ -35,12 +35,23 @@ export type HomeItem = {
   finishes?: HomeFinish[]
 }
 
+/** A ready-made look (see backend/sql/056_home_styles.sql): items in finishes, plus a wall paint and floor. */
+export type HomeStyle = {
+  id: string
+  name: string
+  emoji: string
+  blurb: string
+  wall: string | null
+  floor: string | null
+  items: { item: string; finish?: string | null }[]
+}
+
 export type HomeFinish = { n: string; c: string }
 
 /** `finish` is a chosen finish colour (#rrggbb); null or missing = the model's own colours. */
 export type OwnedPiece = HomePlacement & { paid?: number; finish?: string | null }
 
-type OkOwn = { ok: true; enabled: boolean; lodgingId: string; catalog: HomeItem[]; placements: OwnedPiece[]; decor?: HomeDecor; decorZones?: DecorZone[] }
+type OkOwn = { ok: true; enabled: boolean; lodgingId: string; catalog: HomeItem[]; placements: OwnedPiece[]; decor?: HomeDecor; decorZones?: DecorZone[]; styles?: HomeStyle[] }
 type OkVisit = { ok: true; catalog: HomeItem[]; placements: OwnedPiece[]; decor?: HomeDecor }
 type OkWrite = {
   ok: true
@@ -98,4 +109,12 @@ export async function buyHomeDecor(
   key: string,
 ): Promise<{ ok: true; decor: HomeDecor; state: ServerGameState; message: string } | HomeBuyFail> {
   return apiPost('/home/decor', { zone, value }, idem(key))
+}
+
+/** Buy a whole style in one go: your own pieces are reused, missing ones bought, what doesn't fit skipped. */
+export async function buyHomeStyle(
+  styleId: string,
+  key: string,
+): Promise<{ ok: true; placements: OwnedPiece[]; decor: HomeDecor; state: ServerGameState; message: string } | HomeBuyFail> {
+  return apiPost<{ ok: true; placements: OwnedPiece[]; decor: HomeDecor; state: ServerGameState; message: string }>('/home/style', { styleId }, idem(key))
 }

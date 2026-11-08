@@ -10,7 +10,9 @@ import { HOME_GRID } from './home-grid.js'
 import {
   checkHomePlacement,
   firstFreeHomeSpot,
+  planStyle,
   sellBackPrice,
+  type StyleEntry,
   type HomeRotation,
   type HomeShape,
 } from './home-buy-rules.js'
@@ -114,6 +116,21 @@ function pickFinish(item: HomeItem, finish: string | null | undefined): string |
 async function loadCatalog(db: Pick<PoolClient, 'query'>): Promise<HomeItem[]> {
   const rows = await db.query<ItemRow>(`SELECT * FROM home_furniture ORDER BY sort ASC, id ASC`)
   return rows.rows.map(mapItem)
+}
+
+/** A ready-made look: items in finishes, plus an optional wall paint and floor (see 056_home_styles.sql). */
+export type HomeStyle = { id: string; name: string; emoji: string; blurb: string; wall: string | null; floor: string | null; items: StyleEntry[] }
+
+async function loadStyles(db: Pick<PoolClient, 'query'>): Promise<HomeStyle[]> {
+  const rows = await db.query<Omit<HomeStyle, 'items'> & { items: unknown }>(`SELECT id, name, emoji, blurb, wall, floor, items FROM home_styles ORDER BY sort ASC, id ASC`)
+  return rows.rows.map((r) => ({
+    ...r,
+    items: Array.isArray(r.items)
+      ? r.items.flatMap((e: { item?: unknown; finish?: unknown }) =>
+          typeof e?.item === 'string' ? [{ item: e.item, finish: typeof e.finish === 'string' ? e.finish : null }] : [],
+        )
+      : [],
+  }))
 }
 
 const shapesOf = (catalog: HomeItem[]) =>
@@ -266,6 +283,7 @@ export async function getHomeBuy(userId: string, starters = false) {
     placements,
     decor: await loadDecor(pool, gate.character.id),
     decorZones: decorZones(gate.character.lodging_id),
+    styles: await loadStyles(pool),
   }
 }
 
@@ -513,6 +531,72 @@ export function buyHomeDecor(userId: string, zone: DecorZone, value: string, ide
     return {
       status: 200,
       body: { ok: true, decor: next, placements: await loadPlacements(client, characterId), message: `${name} ${what} done.` },
+    }
+  })
+}
+
+/**
+ * Buy a whole style in one transaction. The plan is the same one the app previews: pieces you own
+ * are moved in and recoloured (free), missing ones are bought where they fit, the rest are skipped.
+ * You pay only for what is bought, plus the wall paint and floor if the style changes them.
+ */
+export function buyHomeStyle(userId: string, styleId: string, idemKey: string) {
+  return writeHome(userId, idemKey, 'POST /home/style', { styleId }, true, async ({ client, characterId, spec, catalog }) => {
+    const style = (await loadStyles(client)).find((s) => s.id === styleId)
+    if (!style) return bad('That style is not sold.', 404, 'UNKNOWN_STYLE')
+    const byId = new Map(catalog.map((i) => [i.id, i]))
+    // Only items that are for sale can be bought; ones you own are reused whatever their status
+    const owned = await loadPlacements(client, characterId)
+    const entries = style.items.filter((e) => {
+      const item = byId.get(e.item)
+      return item && !item.starter && (item.available || owned.some((p) => p.itemId === e.item))
+    })
+    const plan = planStyle(spec, shapesOf(catalog), owned, entries)
+    const priced = plan.buys.map((b) => ({ ...b, item: byId.get(b.itemId)! }))
+    const pieces = priced.reduce((sum, b) => sum + b.item.price, 0)
+
+    const lodging = await client.query<{ lodging_id: string | null }>(`SELECT lodging_id FROM characters WHERE id = $1`, [characterId])
+    const zones = decorZones(lodging.rows[0]?.lodging_id)
+    const decor = await loadDecor(client, characterId)
+    const nextDecor = { ...decor }
+    let decorCost = 0
+    for (const zone of ['wall', 'floor'] as const) {
+      const value = style[zone]
+      if (!value || !zones.includes(zone) || decor[zone] === value) continue
+      const price = decorPrice(zone, value)
+      if (price === null) continue
+      decorCost += price
+      nextDecor[zone] = value
+    }
+
+    const total = pieces + decorCost
+    if (plan.moves.length === 0 && plan.buys.length === 0 && decorCost === 0) return bad('Nothing to change: your home already has this look, or nothing fits.', 400, 'NOTHING_TO_DO')
+    if (total > 0) {
+      const wrote = await applyCash(client, characterId, -total, `${style.name} style for your home`, 'purchase')
+      if (!wrote.ok) return bad('Not enough naira for that.', 400, 'INSUFFICIENT_FUNDS')
+    }
+    for (const m of plan.moves) {
+      await client.query(`UPDATE home_placements SET x = $2, z = $3, rot = $4, finish = $5 WHERE id = $1`, [m.id, m.spot.x, m.spot.z, m.spot.rot, m.finish])
+    }
+    for (const b of priced) {
+      await client.query(
+        `INSERT INTO home_placements (id, character_id, item_id, x, z, rot, paid, finish) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+        [`hp_${createId()}`, characterId, b.itemId, b.spot.x, b.spot.z, b.spot.rot, b.item.price, b.finish],
+      )
+    }
+    if (decorCost > 0) await client.query(`UPDATE characters SET home_decor = $2::jsonb WHERE id = $1`, [characterId, JSON.stringify(nextDecor)])
+    const skipped = plan.skipped.length
+    return {
+      status: 200,
+      body: {
+        ok: true,
+        placements: await loadPlacements(client, characterId),
+        decor: nextDecor,
+        bought: plan.buys.length,
+        reused: plan.moves.length,
+        skipped,
+        message: `${style.name} done: ${plan.buys.length} bought, ${plan.moves.length} reused${skipped ? `, ${skipped} didn’t fit` : ''}.`,
+      },
     }
   })
 }
