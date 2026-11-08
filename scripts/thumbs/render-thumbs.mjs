@@ -38,11 +38,20 @@ const req = createRequire(join(dirname(nodeModules), 'package.json'))
 const { chromium } = req('playwright')
 const sharp = req('sharp')
 const threeDir = nodeModules
+const ts = req('typescript')
 
 const types = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.glb': 'model/gltf-binary', '.json': 'application/json' }
 const server = createServer((req2, res) => {
   const url = decodeURIComponent(req2.url.split('?')[0])
   let file
+  if (url === '/lib/furniture-materials.js') {
+    // The same module the 3D room uses, compiled on the fly
+    const src = readFileSync(join(repo, 'lib', 'game', 'furniture-materials.ts'), 'utf8')
+    const js = ts.transpileModule(src, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } }).outputText
+    res.writeHead(200, { 'content-type': 'text/javascript' })
+    res.end(js)
+    return
+  }
   if (url === '/') file = join(here, 'studio.html')
   else if (url.startsWith('/three/')) file = join(threeDir, url.slice(1))
   else file = join(repo, 'public', url)

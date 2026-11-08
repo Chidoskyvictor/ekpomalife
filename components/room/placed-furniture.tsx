@@ -1,6 +1,7 @@
 'use client'
 
 import { useGLTF } from '@react-three/drei'
+import { furnitureEnvironment, upgradeFurnitureMaterials } from '@/lib/game/furniture-materials'
 import { useThree, type ThreeEvent } from '@react-three/fiber'
 import { Suspense, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { Box3, Color, Vector3, type Group, type Mesh, type MeshStandardMaterial, type Object3D } from 'three'
@@ -92,7 +93,13 @@ function ModelPiece({
   finish?: string | null
 }) {
   const { scene } = useGLTF(item.model!)
+  const gl = useThree((state) => state.gl)
   const object = useMemo(() => {
+    // Flat Kenney colours -> wood grain, fabric, reflective metal (same code as the catalogue thumbnails)
+    if (isKenney(item.model!)) {
+      const raw = new Box3().setFromObject(scene).getSize(new Vector3())
+      upgradeFurnitureMaterials(scene, { scale: raw.y > 0 ? item.height / raw.y : 1, env: furnitureEnvironment(gl) })
+    }
     const copy = scene.clone(true)
     const tint = finish ? new Color(finish) : null
     copy.traverse((o) => {
@@ -121,7 +128,7 @@ function ModelPiece({
     const centre = box.getCenter(new Vector3())
     copy.position.set(-centre.x, -box.min.y, -centre.z)
     return copy
-  }, [scene, finish, item.model, item.height])
+  }, [scene, gl, finish, item.model, item.height])
   const [x0, z0, x1, z1] = pieceRect(spec, item, spot)
   const pos: [number, number, number] = item.wall
     ? [(x0 + x1) / 2, WALL_Y - item.height / 2, spec.oz + 0.02 + Math.min(0.3, (z1 - z0) / 2)]

@@ -1,11 +1,12 @@
 <!doctype html>
 <meta charset="utf-8">
 <style>html,body{margin:0;background:transparent}canvas{display:block}</style>
-<script type="importmap">{"imports":{"three":"/three/build/three.module.js","three/addons/":"/three/examples/jsm/"}}</script>
+<script type="importmap">{"imports":{"three":"/three/build/three.module.js","three/addons/":"/three/examples/jsm/","three/examples/jsm/":"/three/examples/jsm/"}}</script>
 <canvas id="c" width="640" height="640"></canvas>
 <script type="module">
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
+import { upgradeFurnitureMaterials, furnitureEnvironment } from '/lib/furniture-materials.js'
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js'
 
 const SIZE = 640
@@ -43,6 +44,16 @@ function tintScene(root, finish) {
 window.renderItem = async ({ model, finish, height, wall }) => {
   const gltf = await loader.loadAsync(model)
   const root = gltf.scene
+  // Kenney: realistic wood/fabric/metal (same module as the 3D room), at the scale the game shows it
+  if (model.includes('/furniture/kenney/')) {
+    const raw = new THREE.Box3().setFromObject(root).getSize(new THREE.Vector3())
+    upgradeFurnitureMaterials(root, { scale: raw.y > 0 && height ? height / raw.y : 1, env: furnitureEnvironment(renderer) })
+    // wait for the grain textures
+    const imgs = []
+    root.traverse((o) => { if (o.isMesh && o.material.map) imgs.push(o.material.map) })
+    for (let i = 0; i < 60 && imgs.some((t) => !t.image || !(t.image.complete ?? true)); i += 1) await new Promise((r) => setTimeout(r, 50))
+    await new Promise((r) => setTimeout(r, 100))
+  }
   tintScene(root, finish)
   const scene = new THREE.Scene()
   const holder = new THREE.Group()
