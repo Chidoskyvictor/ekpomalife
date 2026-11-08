@@ -4,6 +4,7 @@ import type { ServerGameState } from './game-api'
 import type { HomePlacement, HomeRotation } from './home-buy-rules'
 import { newIdempotencyKey } from './room-api'
 import type { DecorZone, HomeDecor } from './home-decor'
+import type { StyleScope } from './home-style-layout'
 
 export type HomeCategory = 'sleep' | 'kitchen' | 'bath' | 'comfort' | 'study' | 'light' | 'deco'
 
@@ -51,7 +52,7 @@ export type HomeFinish = { n: string; c: string }
 /** `finish` is a chosen finish colour (#rrggbb); null or missing = the model's own colours. */
 export type OwnedPiece = HomePlacement & { paid?: number; finish?: string | null }
 
-type OkOwn = { ok: true; enabled: boolean; lodgingId: string; catalog: HomeItem[]; placements: OwnedPiece[]; decor?: HomeDecor; decorZones?: DecorZone[]; styles?: HomeStyle[] }
+type OkOwn = { ok: true; enabled: boolean; lodgingId: string; catalog: HomeItem[]; placements: OwnedPiece[]; decor?: HomeDecor; decorZones?: DecorZone[]; styles?: HomeStyle[]; stored?: OwnedPiece[] }
 type OkVisit = { ok: true; catalog: HomeItem[]; placements: OwnedPiece[]; decor?: HomeDecor }
 type OkWrite = {
   ok: true
@@ -59,6 +60,8 @@ type OkWrite = {
   state: ServerGameState
   message: string
   placedId?: string
+  /** Pieces in storage (sent when a move or style changes it). */
+  stored?: OwnedPiece[]
   refunded?: number
 }
 
@@ -114,7 +117,8 @@ export async function buyHomeDecor(
 /** Buy a whole style in one go: your own pieces are reused, missing ones bought, what doesn't fit skipped. */
 export async function buyHomeStyle(
   styleId: string,
+  scope: StyleScope,
   key: string,
-): Promise<{ ok: true; placements: OwnedPiece[]; decor: HomeDecor; state: ServerGameState; message: string } | HomeBuyFail> {
-  return apiPost<{ ok: true; placements: OwnedPiece[]; decor: HomeDecor; state: ServerGameState; message: string }>('/home/style', { styleId }, idem(key))
+): Promise<{ ok: true; placements: OwnedPiece[]; stored: OwnedPiece[]; decor: HomeDecor; state: ServerGameState; message: string } | HomeBuyFail> {
+  return apiPost<{ ok: true; placements: OwnedPiece[]; stored: OwnedPiece[]; decor: HomeDecor; state: ServerGameState; message: string }>('/home/style', { styleId, scope }, idem(key))
 }
