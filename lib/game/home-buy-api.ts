@@ -31,11 +31,27 @@ export type HomeItem = {
   /** For sale in the shop (block-only items aren't; ones already placed still show). */
   available?: boolean
   maxPerHome: number
+  /** Colours it is sold in (a tint on the model). Missing or empty = one look only. */
+  finishes?: HomeFinish[]
 }
 
-export type OwnedPiece = HomePlacement & { paid?: number }
+/** A ready-made look (see backend/sql/056_home_styles.sql): items in finishes, plus a wall paint and floor. */
+export type HomeStyle = {
+  id: string
+  name: string
+  emoji: string
+  blurb: string
+  wall: string | null
+  floor: string | null
+  items: { item: string; finish?: string | null }[]
+}
 
-type OkOwn = { ok: true; enabled: boolean; lodgingId: string; catalog: HomeItem[]; placements: OwnedPiece[]; decor?: HomeDecor; decorZones?: DecorZone[] }
+export type HomeFinish = { n: string; c: string }
+
+/** `finish` is a chosen finish colour (#rrggbb); null or missing = the model's own colours. */
+export type OwnedPiece = HomePlacement & { paid?: number; finish?: string | null }
+
+type OkOwn = { ok: true; enabled: boolean; lodgingId: string; catalog: HomeItem[]; placements: OwnedPiece[]; decor?: HomeDecor; decorZones?: DecorZone[]; styles?: HomeStyle[] }
 type OkVisit = { ok: true; catalog: HomeItem[]; placements: OwnedPiece[]; decor?: HomeDecor }
 type OkWrite = {
   ok: true
@@ -67,16 +83,19 @@ export async function placeHomeItem(
   itemId: string,
   spot: { x: number; z: number; rot: HomeRotation },
   key: string,
+  finish?: string | null,
 ): Promise<OkWrite | HomeBuyFail> {
-  return apiPost<OkWrite>('/home/place', { itemId, ...spot }, idem(key))
+  return apiPost<OkWrite>('/home/place', { itemId, ...spot, ...(finish ? { finish } : {}) }, idem(key))
 }
 
+/** Move or turn a piece you own. `finish`: a colour to change it to, null for its own colours, undefined to keep it. */
 export async function moveHomeItem(
   id: string,
   spot: { x: number; z: number; rot: HomeRotation },
   key: string,
+  finish?: string | null,
 ): Promise<OkWrite | HomeBuyFail> {
-  return apiPost<OkWrite>('/home/move', { id, ...spot }, idem(key))
+  return apiPost<OkWrite>('/home/move', { id, ...spot, ...(finish === undefined ? {} : { finish }) }, idem(key))
 }
 
 export async function sellHomeItem(id: string, key: string): Promise<OkWrite | HomeBuyFail> {
@@ -90,4 +109,12 @@ export async function buyHomeDecor(
   key: string,
 ): Promise<{ ok: true; decor: HomeDecor; state: ServerGameState; message: string } | HomeBuyFail> {
   return apiPost('/home/decor', { zone, value }, idem(key))
+}
+
+/** Buy a whole style in one go: your own pieces are reused, missing ones bought, what doesn't fit skipped. */
+export async function buyHomeStyle(
+  styleId: string,
+  key: string,
+): Promise<{ ok: true; placements: OwnedPiece[]; decor: HomeDecor; state: ServerGameState; message: string } | HomeBuyFail> {
+  return apiPost<{ ok: true; placements: OwnedPiece[]; decor: HomeDecor; state: ServerGameState; message: string }>('/home/style', { styleId }, idem(key))
 }

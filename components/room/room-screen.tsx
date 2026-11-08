@@ -8,7 +8,7 @@ import { endActivity, setActivityQueue, startActivity } from '@/lib/game/activit
 import { fetchHostCard, type HostCard } from '@/lib/game/hostels-api'
 import { normalizeAppearance, type Appearance } from '@/lib/game/look'
 import type { FurnitureAction, FurnitureId } from '@/lib/game/room-furniture'
-import { fetchHomeFurniture, fetchVisitFurniture, type HomeItem, type OwnedPiece } from '@/lib/game/home-buy-api'
+import { fetchHomeFurniture, fetchVisitFurniture, type HomeItem, type HomeStyle, type OwnedPiece } from '@/lib/game/home-buy-api'
 import { exitBuyMode, setBuyAvailable, useBuyUi } from '@/lib/game/home-buy-store'
 import { furnitureUse, homeSpecFor, layoutWithPlaced, placedIdOf, startersFor } from '@/lib/game/home-placed'
 import { resolvePaint } from '@/lib/game/house-paint'
@@ -74,12 +74,14 @@ export function RoomScreen() {
     () => layoutWithPlaced(baseLayout, spec, home.placements, home.catalog, startersFor(lodgingId)),
     [baseLayout, spec, home.placements, home.catalog, lodgingId],
   )
+  // A style being tried on in Buy mode shows instead of what's really placed (nothing is bought yet)
+  const stylePreview = useBuyUi().stylePreview
   const furnishing = useMemo(
     () =>
       spec && home.loaded
-        ? { spec, catalog: home.catalog, placements: home.placements, starters: startersFor(lodgingId) }
+        ? { spec, catalog: home.catalog, placements: stylePreview ?? home.placements, starters: startersFor(lodgingId) }
         : null,
-    [spec, home.loaded, home.catalog, home.placements, lodgingId],
+    [spec, home.loaded, home.catalog, home.placements, stylePreview, lodgingId],
   )
   const furniture = useMemo<FurnitureId | null>(() => {
     if (!furnitureKey) return null
@@ -275,7 +277,8 @@ export function RoomScreen() {
           <BuyPanel
             spec={furnishing.spec}
             catalog={furnishing.catalog}
-            placements={furnishing.placements}
+            placements={home.placements}
+            styles={home.styles}
             view={layout.view}
             onPlacements={home.setPlacements}
           />
@@ -459,6 +462,7 @@ function useHomeFurniture(who: string | null, hasGrid: boolean) {
   const [catalog, setCatalog] = useState<HomeItem[]>([])
   const [placements, setPlacements] = useState<OwnedPiece[]>([])
   const [decor, setDecor] = useState<HomeDecor>({})
+  const [styles, setStyles] = useState<HomeStyle[]>([])
   const [loaded, setLoaded] = useState(false)
   const [enabled, setEnabled] = useState(false)
   const [failed, setFailed] = useState(false)
@@ -476,6 +480,7 @@ function useHomeFurniture(who: string | null, hasGrid: boolean) {
       setCatalog(res.catalog)
       setPlacements(res.placements)
       setDecor(res.decor ?? {})
+      setStyles((res as { styles?: HomeStyle[] }).styles ?? [])
       if (who === '') setOwnedDecor(res.decor ?? {}, 'decorZones' in res ? res.decorZones : [])
       setEnabled('enabled' in res ? res.enabled : false)
       setLoaded(true)
@@ -484,5 +489,5 @@ function useHomeFurniture(who: string | null, hasGrid: boolean) {
       cancelled = true
     }
   }, [who, hasGrid, attempt])
-  return { catalog, placements, setPlacements, decor, loaded, enabled, failed, retry: () => setAttempt((n) => n + 1) }
+  return { catalog, placements, setPlacements, styles, decor, loaded, enabled, failed, retry: () => setAttempt((n) => n + 1) }
 }
