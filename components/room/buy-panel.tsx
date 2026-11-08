@@ -33,6 +33,7 @@ import {
   sellHomeItem,
   type HomeBuyFail,
   type HomeCategory,
+  type HomeFinish,
   type HomeItem,
   type OwnedPiece,
 } from '@/lib/game/home-buy-api'
@@ -40,6 +41,7 @@ import { checkHomePlacement, firstFreeHomeSpot, sellBackPrice, type HomeSpec } f
 import {
   exitBuyMode,
   pickPlaced,
+  setBuyFinish,
   setBuySpot,
   startPlacing,
   stopPlacing,
@@ -217,16 +219,28 @@ export function BuyPanel({
     try {
       const key = newIdempotencyKey()
       if (ui.movingId) {
-        const res = await moveHomeItem(ui.movingId, ui.spot, key)
+        const res = await moveHomeItem(ui.movingId, ui.spot, key, ui.finish)
         if (finish(res) || (isNetwork(res) && (await resync()))) stopPlacing()
         return
       }
-      const res = await placeHomeItem(item.id, ui.spot, key)
+      const res = await placeHomeItem(item.id, ui.spot, key, ui.finish)
       if (finish(res) || (isNetwork(res) && (await resync()))) {
         stopPlacing()
         if (more) pick(item)
         else setLast(item)
       }
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  /** Change the colour of a piece you own (free), keeping its spot. */
+  const recolour = async (colour: string | null) => {
+    if (!picked || busy) return
+    setBusy(true)
+    try {
+      const res = await moveHomeItem(picked.id, { x: picked.x, z: picked.z, rot: picked.rot }, newIdempotencyKey(), colour)
+      if (!finish(res) && isNetwork(res)) await resync()
     } finally {
       setBusy(false)
     }
@@ -307,6 +321,7 @@ export function BuyPanel({
                   <RotateCw size={18} aria-hidden="true" />
                 </button>
               </div>
+              <Finishes finishes={ui.item.finishes} value={ui.finish} onPick={setBuyFinish} />
               <div className={styles.arrows} role="group" aria-label="Move preview">
                 {arrows.map(([dir, Icon, label]) => (
                   <button key={dir} type="button" className={styles.round} aria-label={label} onClick={() => move(dir)}>
@@ -342,11 +357,12 @@ export function BuyPanel({
                   <X size={18} aria-hidden="true" />
                 </button>
               </div>
+              <Finishes finishes={pickedItem.finishes} value={picked.finish ?? null} onPick={(c) => void recolour(c)} disabled={busy} />
               <div className={styles.twoUp}>
                 <button
                   type="button"
                   className={`${styles.pill} ${styles.goFlex}`}
-                  onClick={() => startPlacing(pickedItem, { x: picked.x, z: picked.z, rot: picked.rot }, picked.id)}
+                  onClick={() => startPlacing(pickedItem, { x: picked.x, z: picked.z, rot: picked.rot }, picked.id, picked.finish ?? null)}
                 >
                   Move
                 </button>
@@ -460,6 +476,7 @@ export function BuyPanel({
                     <strong className={styles.cardName}>{item.name}</strong>
                     <span className={item.price > cash ? styles.priceShort : styles.price}>{formatNaira(item.price)}</span>
                     <span className={styles.tags}>
+                      {item.finishes?.length ? <span className={styles.tag}>{item.finishes.length + 1} colours</span> : null}
                       {item.helps.slice(0, 2).map((need) => (
                         <span key={need} className={styles.tag}>
                           +{need}
@@ -477,10 +494,51 @@ export function BuyPanel({
   )
 }
 
-/** A picture of the item's own 3D model (public/models/furniture/thumbs/…, rendered in Blender); emoji if it has none. */
+/** A picture of the item's own 3D model (rendered in Blender, or Kenney's own preview); emoji if it has none. */
 function ItemPic({ item, size }: { item: { emoji: string; model?: string | null }; size: number }) {
-  const thumb = item.model?.startsWith('/models/furniture/') ? item.model.replace('/models/furniture/', '/models/furniture/thumbs/').replace(/\.glb(\?.*)?$/, '.webp') : null
+  const model = item.model ?? ''
+  const thumb = model.startsWith('/models/furniture/kenney/')
+    ? model.replace('/models/furniture/kenney/', '/models/furniture/kenney/thumbs/').replace(/\.glb(\?.*)?$/, '.png')
+    : model.startsWith('/models/furniture/')
+      ? model.replace('/models/furniture/', '/models/furniture/thumbs/').replace(/\.glb(\?.*)?$/, '.webp')
+      : null
   if (!thumb) return <>{item.emoji}</>
   // eslint-disable-next-line @next/next/no-img-element -- tiny static render, no optimisation needed
   return <img src={thumb} alt="" width={size} height={size} draggable={false} style={{ width: size, height: size, objectFit: 'contain', display: 'block' }} />
+}
+
+/** Colour swatches for an item sold in several finishes: "Original" first, then each finish. */
+function Finishes({
+  finishes,
+  value,
+  onPick,
+  disabled,
+}: {
+  finishes?: HomeFinish[]
+  value: string | null
+  onPick: (colour: string | null) => void
+  disabled?: boolean
+}) {
+  if (!finishes?.length) return null
+  const all: { n: string; c: string | null }[] = [{ n: 'Original', c: null }, ...finishes]
+  return (
+    <div className={styles.swatches} role="radiogroup" aria-label="Colour">
+      {all.map((f) => (
+        <button
+          key={f.c ?? 'original'}
+          type="button"
+          role="radio"
+          aria-checked={value === f.c}
+          aria-label={f.n}
+          title={f.n}
+          disabled={disabled}
+          className={`${styles.swatch} ${value === f.c ? styles.swatchOn : ''}`}
+          style={f.c ? { background: f.c } : undefined}
+          onClick={() => onPick(f.c)}
+        >
+          {f.c ? null : <span aria-hidden="true">Aa</span>}
+        </button>
+      ))}
+    </div>
+  )
 }

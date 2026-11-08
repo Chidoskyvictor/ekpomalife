@@ -20,11 +20,13 @@ export type BuyUi = {
   movingId: string | null
   /** Owned piece tapped for Move / Sell. */
   pickedId: string | null
+  /** Finish colour picked for the item being placed (null = its own colours). */
+  finish: string | null
   /** Quarter-turn steps of the camera ("Turn room"). */
   turn: number
 }
 
-const IDLE: BuyUi = { available: false, active: false, item: null, spot: null, movingId: null, pickedId: null, turn: 0 }
+const IDLE: BuyUi = { available: false, active: false, item: null, spot: null, movingId: null, pickedId: null, finish: null, turn: 0 }
 
 let ui = IDLE
 const listeners = new Set<() => void>()
@@ -41,10 +43,11 @@ export const setBuyAvailable = (available: boolean) => {
   set(available ? { available } : { ...IDLE })
 }
 export const enterBuyMode = () => ui.available && set({ active: true })
-export const exitBuyMode = () => set({ active: false, item: null, spot: null, movingId: null, pickedId: null, turn: 0 })
-export const startPlacing = (item: HomeItem, spot: HomeSpot, movingId: string | null = null) =>
-  set({ item, spot, movingId, pickedId: null })
-export const stopPlacing = () => set({ item: null, spot: null, movingId: null })
+export const exitBuyMode = () => set({ active: false, item: null, spot: null, movingId: null, pickedId: null, finish: null, turn: 0 })
+export const startPlacing = (item: HomeItem, spot: HomeSpot, movingId: string | null = null, finish: string | null = null) =>
+  set({ item, spot, movingId, pickedId: null, finish })
+export const stopPlacing = () => set({ item: null, spot: null, movingId: null, finish: null })
+export const setBuyFinish = (finish: string | null) => set({ finish })
 export const setBuySpot = (spot: HomeSpot) => set({ spot })
 export const turnBuyItem = () => {
   if (!ui.spot || !ui.item || ui.item.wall) return

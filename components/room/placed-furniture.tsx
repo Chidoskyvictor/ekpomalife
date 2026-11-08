@@ -3,7 +3,7 @@
 import { useGLTF } from '@react-three/drei'
 import { useThree, type ThreeEvent } from '@react-three/fiber'
 import { Suspense, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
-import { Box3, Vector3, type Group, type Object3D } from 'three'
+import { Box3, Color, Vector3, type Group, type Mesh, type MeshStandardMaterial, type Object3D } from 'three'
 import type { HomeItem, OwnedPiece } from '@/lib/game/home-buy-api'
 import { checkHomePlacement, type HomeSpec } from '@/lib/game/home-buy-rules'
 import { pickPlaced, setBuySpot, useBuyUi } from '@/lib/game/home-buy-store'
@@ -72,27 +72,60 @@ function Block({
   )
 }
 
+/** Kenney's models come in their own scale: they are fitted to the item's `height`. */
+const isKenney = (model: string) => model.startsWith('/models/furniture/kenney/')
+
 /**
  * A bought piece with a real model: centred on its tiles, standing on the floor, turned with the
- * piece. Real-world size (the models are in metres), never squashed.
+ * piece (wall pieces hang on the back wall). Our own models are real-world size (metres); Kenney's
+ * are scaled to the item's height. `finish` tints the model (#rrggbb), null keeps its own colours.
  */
-function ModelPiece({ spec, item, spot }: { spec: HomeSpec; item: HomeItem; spot: { x: number; z: number; rot: 0 | 90 | 180 | 270 } }) {
+function ModelPiece({
+  spec,
+  item,
+  spot,
+  finish,
+}: {
+  spec: HomeSpec
+  item: HomeItem
+  spot: { x: number; z: number; rot: 0 | 90 | 180 | 270 }
+  finish?: string | null
+}) {
   const { scene } = useGLTF(item.model!)
   const object = useMemo(() => {
     const copy = scene.clone(true)
+    const tint = finish ? new Color(finish) : null
     copy.traverse((o) => {
       o.castShadow = true
       o.receiveShadow = true
+      const mesh = o as Mesh
+      if (tint && mesh.isMesh) {
+        // Materials are shared with the loaded scene: tint a copy, never the original
+        const tinted = (Array.isArray(mesh.material) ? mesh.material : [mesh.material]).map((m) => {
+          const c = m.clone() as MeshStandardMaterial
+          if (c.color) c.color.multiply(tint)
+          return c
+        })
+        mesh.material = Array.isArray(mesh.material) ? tinted : tinted[0]
+      }
     })
-    // Centre it on x/z and stand it on the floor
+    if (isKenney(item.model!)) {
+      const size = new Box3().setFromObject(copy).getSize(new Vector3())
+      if (size.y > 0) copy.scale.multiplyScalar(item.height / size.y)
+    }
+    // Centre it on x/z and stand it on the floor (the scale above is applied first)
+    copy.updateMatrixWorld(true)
     const box = new Box3().setFromObject(copy)
     const centre = box.getCenter(new Vector3())
     copy.position.set(-centre.x, -box.min.y, -centre.z)
     return copy
-  }, [scene])
+  }, [scene, finish, item.model, item.height])
   const [x0, z0, x1, z1] = pieceRect(spec, item, spot)
+  const pos: [number, number, number] = item.wall
+    ? [(x0 + x1) / 2, WALL_Y - item.height / 2, spec.oz + 0.02 + Math.min(0.3, (z1 - z0) / 2)]
+    : [(x0 + x1) / 2, 0, (z0 + z1) / 2]
   return (
-    <group position={[(x0 + x1) / 2, 0, (z0 + z1) / 2]} rotation={[0, (-spot.rot * Math.PI) / 180, 0]}>
+    <group position={pos} rotation={[0, (-spot.rot * Math.PI) / 180, 0]}>
       <primitive object={object} />
     </group>
   )
@@ -172,7 +205,7 @@ export function PlacedPieces({ furnishing, root }: { furnishing: HomeFurnishing;
         if (item.model) {
           return (
             <Suspense key={p.id} fallback={<Block spec={furnishing.spec} item={item} spot={p} />}>
-              <ModelPiece spec={furnishing.spec} item={item} spot={p} />
+              <ModelPiece spec={furnishing.spec} item={item} spot={p} finish={p.finish} />
             </Suspense>
           )
         }
@@ -295,7 +328,7 @@ export function BuyLayer({ furnishing, root: roomRoot }: { furnishing: HomeFurni
             <planeGeometry args={[width, depth]} />
             <meshBasicMaterial transparent opacity={0} depthWrite={false} />
           </mesh>
-          <PlacingGhost spec={spec} item={item} spot={spot} ok={!!verdict?.ok} starters={furnishing.starters} root={roomRoot} />
+          <PlacingGhost spec={spec} item={item} spot={spot} ok={!!verdict?.ok} finish={ui.finish} starters={furnishing.starters} root={roomRoot} />
         </>
       ) : null}
     </group>
@@ -311,6 +344,7 @@ function PlacingGhost({
   item,
   spot,
   ok,
+  finish,
   starters,
   root,
 }: {
@@ -318,6 +352,7 @@ function PlacingGhost({
   item: HomeItem
   spot: { x: number; z: number; rot: 0 | 90 | 180 | 270 }
   ok: boolean
+  finish?: string | null
   starters?: StarterDef[]
   root?: Object3D
 }) {
@@ -343,7 +378,7 @@ function PlacingGhost({
       <group>
         {patch}
         <Suspense fallback={<Block spec={spec} item={item} spot={spot} ghost={ok ? 'ok' : 'bad'} />}>
-          <ModelPiece spec={spec} item={item} spot={spot} />
+          <ModelPiece spec={spec} item={item} spot={spot} finish={finish} />
         </Suspense>
       </group>
     )

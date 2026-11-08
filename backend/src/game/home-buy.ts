@@ -43,7 +43,11 @@ export type HomeItem = {
   model: string | null
   /** For sale in the shop (block-only items aren't, but placed ones still show) */
   available: boolean
+  /** Colour finishes it can be bought in (tints for the model). Empty = one look only. */
+  finishes: HomeFinish[]
 }
+
+export type HomeFinish = { n: string; c: string }
 
 type ItemRow = {
   id: string
@@ -62,9 +66,10 @@ type ItemRow = {
   starter: boolean | null
   model: string | null
   available: boolean | null
+  finishes: unknown
 }
 
-type PlacementRow = { id: string; item_id: string; x: number; z: number; rot: number; paid: string | number }
+type PlacementRow = { id: string; item_id: string; x: number; z: number; rot: number; paid: string | number; finish: string | null }
 
 export type HomeBuyFail = { ok: false; error: string; code: number; reason?: string }
 
@@ -86,7 +91,24 @@ function mapItem(row: ItemRow): HomeItem {
     starter: row.starter === true,
     model: row.model ?? null,
     available: row.available !== false,
+    finishes: cleanFinishes(row.finishes),
   }
+}
+
+const HEX = /^#[0-9a-f]{6}$/i
+
+function cleanFinishes(raw: unknown): HomeFinish[] {
+  if (!Array.isArray(raw)) return []
+  return raw.flatMap((f: { n?: unknown; c?: unknown } | null) =>
+    f && typeof f.n === 'string' && typeof f.c === 'string' && HEX.test(f.c) ? [{ n: f.n, c: f.c.toLowerCase() }] : [],
+  )
+}
+
+/** The finish to save for a piece: a colour the item is sold in, or null for its own colours. */
+function pickFinish(item: HomeItem, finish: string | null | undefined): string | null | 'BAD' {
+  if (!finish) return null
+  const want = finish.toLowerCase()
+  return item.finishes.some((f) => f.c === want) ? want : 'BAD'
 }
 
 async function loadCatalog(db: Pick<PoolClient, 'query'>): Promise<HomeItem[]> {
@@ -101,7 +123,7 @@ const shapesOf = (catalog: HomeItem[]) =>
 
 async function loadPlacements(db: Pick<PoolClient, 'query'>, characterId: string) {
   const rows = await db.query<PlacementRow>(
-    `SELECT id, item_id, x, z, rot, paid FROM home_placements WHERE character_id = $1 ORDER BY created_at ASC, id ASC`,
+    `SELECT id, item_id, x, z, rot, paid, finish FROM home_placements WHERE character_id = $1 ORDER BY created_at ASC, id ASC`,
     [characterId],
   )
   return rows.rows.map((r) => ({
@@ -111,6 +133,7 @@ async function loadPlacements(db: Pick<PoolClient, 'query'>, characterId: string
     z: r.z,
     rot: r.rot as HomeRotation,
     paid: asMoney(r.paid),
+    finish: r.finish ?? null,
   }))
 }
 
@@ -208,7 +231,7 @@ async function addNewStarters(
       `INSERT INTO home_placements (id, character_id, item_id, x, z, rot, paid) VALUES ($1, $2, $3, $4, $5, $6, 0)`,
       [id, characterId, def.item, spot.x, spot.z, spot.rot],
     )
-    placements.push({ id, itemId: def.item, x: spot.x, z: spot.z, rot: spot.rot, paid: 0 })
+    placements.push({ id, itemId: def.item, x: spot.x, z: spot.z, rot: spot.rot, paid: 0, finish: null })
     added.push(def.item)
   }
   if (added.length === 0) return
@@ -328,10 +351,12 @@ async function writeHome(
 const bad = (error: string, status = 400, reason?: string) => ({ status, body: { ok: false, error, reason } })
 
 /** Buy and place in one go: balance, free tiles, cash out, placement saved, all or nothing. */
-export function placeHomeItem(userId: string, itemId: string, spot: Spot, idemKey: string) {
-  return writeHome(userId, idemKey, 'POST /home/place', { itemId, ...spot }, true, async ({ client, characterId, spec, catalog }) => {
+export function placeHomeItem(userId: string, itemId: string, spot: Spot, idemKey: string, finish?: string | null) {
+  return writeHome(userId, idemKey, 'POST /home/place', { itemId, ...spot, finish: finish ?? null }, true, async ({ client, characterId, spec, catalog }) => {
     const item = catalog.find((i) => i.id === itemId)
     if (!item || item.starter || !item.available) return bad('That item is not sold.', 404, 'UNKNOWN_ITEM')
+    const chosen = pickFinish(item, finish)
+    if (chosen === 'BAD') return bad('That colour is not sold for this item.', 400, 'UNKNOWN_FINISH')
     const placements = await loadPlacements(client, characterId)
     const check = checkHomePlacement(spec, shapesOf(catalog), placements, itemId, spot)
     if (!check.ok) return bad(check.error, 400, check.code)
@@ -341,8 +366,8 @@ export function placeHomeItem(userId: string, itemId: string, spot: Spot, idemKe
     }
     const id = `hp_${createId()}`
     await client.query(
-      `INSERT INTO home_placements (id, character_id, item_id, x, z, rot, paid) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [id, characterId, itemId, spot.x, spot.z, spot.rot, item.price],
+      `INSERT INTO home_placements (id, character_id, item_id, x, z, rot, paid, finish) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [id, characterId, itemId, spot.x, spot.z, spot.rot, item.price, chosen],
     )
     return {
       status: 200,
@@ -351,17 +376,27 @@ export function placeHomeItem(userId: string, itemId: string, spot: Spot, idemKe
   })
 }
 
-/** Move or turn something you already own (free). */
-export function moveHomeItem(userId: string, id: string, spot: Spot, idemKey: string) {
-  return writeHome(userId, idemKey, 'POST /home/move', { id, ...spot }, false, async ({ client, characterId, spec, catalog }) => {
+/** Move or turn something you already own, or change its colour (free). `finish` undefined keeps the colour. */
+export function moveHomeItem(userId: string, id: string, spot: Spot, idemKey: string, finish?: string | null) {
+  return writeHome(userId, idemKey, 'POST /home/move', { id, ...spot, finish }, false, async ({ client, characterId, spec, catalog }) => {
     const placements = await loadPlacements(client, characterId)
     const mine = placements.find((p) => p.id === id)
     if (!mine) return bad('That is not in your home.', 404)
     const others = placements.filter((p) => p.id !== id)
     const check = checkHomePlacement(spec, shapesOf(catalog), others, mine.itemId, spot)
     if (!check.ok) return bad(check.error, 400, check.code)
-    await client.query(`UPDATE home_placements SET x = $2, z = $3, rot = $4 WHERE id = $1`, [id, spot.x, spot.z, spot.rot])
-    return { status: 200, body: { ok: true, placements: await loadPlacements(client, characterId), message: 'Moved.' } }
+    let chosen = mine.finish ?? null
+    if (finish !== undefined) {
+      const item = catalog.find((i) => i.id === mine.itemId)
+      const picked = item ? pickFinish(item, finish) : 'BAD'
+      if (picked === 'BAD') return bad('That colour is not sold for this item.', 400, 'UNKNOWN_FINISH')
+      chosen = picked
+    }
+    await client.query(`UPDATE home_placements SET x = $2, z = $3, rot = $4, finish = $5 WHERE id = $1`, [id, spot.x, spot.z, spot.rot, chosen])
+    return {
+      status: 200,
+      body: { ok: true, placements: await loadPlacements(client, characterId), message: finish !== undefined ? 'Colour changed.' : 'Moved.' },
+    }
   })
 }
 
