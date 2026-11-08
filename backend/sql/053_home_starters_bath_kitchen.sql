@@ -1,5 +1,9 @@
 -- Bath and kitchen pieces (toilet, bucket, cooker…) become starter furniture too, so Buy mode can
 -- move or remove them. Additive only. See backend/src/game/home-starters.ts.
+
+-- The cooker and counter is 5 tiles deep; 032 capped depth at 4.
+ALTER TABLE home_furniture DROP CONSTRAINT IF EXISTS home_furniture_d_check;
+ALTER TABLE home_furniture ADD CONSTRAINT home_furniture_d_check CHECK (d BETWEEN 1 AND 6);
 INSERT INTO home_furniture (id, name, emoji, category, price, w, d, wall, height, color, helps, uses, max_per_home, sort, starter) VALUES
   ('starter-toilet', 'Your toilet', '🚽', 'bath', 0, 1, 1, FALSE, 1.05, '#f5f5f4', ARRAY['Hygiene']::text[], 'toilet', 1, 109, TRUE),
   ('starter-bucket', 'Your bucket and basin', '🪣', 'bath', 0, 1, 2, FALSE, 0.7, '#2563eb', ARRAY['Hygiene']::text[], 'bucket', 1, 110, TRUE),
