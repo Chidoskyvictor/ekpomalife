@@ -86,6 +86,8 @@ export type StylePlan = {
   moves: { id: string; itemId: string; spot: HomeSpot; finish: string | null; fromStorage: boolean }[]
   /** Pieces to buy, in order. */
   buys: { itemId: string; spot: HomeSpot; finish: string | null }[]
+  /** Style pieces already covered by a piece that came with the home (bed for bed, cooker for cooker…): it stays where it is, nothing is bought. */
+  reused: { itemId: string; starterId: string }[]
   /** Pieces of yours the style doesn't use (whole-home only): they go to storage. */
   toStorage: string[]
   /** Item ids that didn't fit (never bought). */
@@ -121,6 +123,19 @@ export function ruleOf(item: StyleItem): Rule {
   if (item.category === 'bath') return { kinds: ['bath'], mode: 'wall', priority: 4 }
   if (item.category === 'study') return { kinds: ['bedroom', 'sitting'], mode: 'wall', priority: 4 }
   return { kinds: ['sitting', 'bedroom'], mode: 'wall', priority: 8 }
+}
+
+/**
+ * What a piece is, for swapping like for like: the pieces that come with a home (starter-bed,
+ * starter-cooker…) stand in for the style's bed, cooker and so on. null = no starter equivalent.
+ */
+export function kindOf(item: { id: string; uses: string | null }): string | null {
+  if (item.uses === 'bed' || item.uses === 'sofa' || item.uses === 'cooker' || item.uses === 'toilet' || item.uses === 'red-chair') return item.uses
+  if (item.id.includes('desk') && !item.id.includes('chair')) return 'desk'
+  if (item.id.includes('tv') && !item.id.includes('stand')) return 'tv'
+  if (item.id.includes('shelf') || item.id.includes('bookcase')) return 'shelf'
+  if (item.id.includes('cooler') || item.id.includes('fridge')) return 'cooler'
+  return null
 }
 
 /** The room a piece primarily belongs in (what a room scope filters by). */
@@ -326,7 +341,7 @@ export function planStyleLayout(input: {
   const { spec, items, entries } = input
   const scope = input.scope ?? 'home'
   const stored = input.stored ?? []
-  const plan: StylePlan = { moves: [], buys: [], toStorage: [], skipped: [], result: [] }
+  const plan: StylePlan = { moves: [], buys: [], reused: [], toStorage: [], skipped: [], result: [] }
   const plans = roomsFor(input.lodgingId, spec)
   const shapes = new Map<string, HomeShape>([...items].map(([id, it]) => [id, { id, w: it.w, d: it.d, wall: it.wall, maxPerHome: it.maxPerHome }]))
   const ctx: Ctx = { spec, items, shapes, rooms: plans.rooms, keepClear: new Set(plans.keepClear.map(([x, z]) => key(x, z))) }
@@ -346,8 +361,21 @@ export function planStyleLayout(input: {
   // runs out of room at the end of this list, so the decor is what gets skipped. Ties keep the style's order.
   wanted.sort((a, b) => a.rule.priority - b.rule.priority)
 
-  // Claim the pieces you own: placed ones first, then the ones in storage
+  // Pieces that came with the home stand in for the style's matching piece (bed for bed, cooker for cooker):
+  // they stay where they are, free. That also keeps a starter from sitting next to a second one.
   const isStarter = (p: StylePiece) => p.id.startsWith('starter-') || p.itemId.startsWith('starter-')
+  const usedStarters = new Set<string>()
+  for (let i = wanted.length - 1; i >= 0; i--) {
+    const kind = kindOf(wanted[i]!.item)
+    if (!kind || wanted[i]!.item.wall) continue
+    const starter = input.active.find((p) => isStarter(p) && !usedStarters.has(p.id) && items.get(p.itemId) && kindOf(items.get(p.itemId)!) === kind)
+    if (!starter) continue
+    usedStarters.add(starter.id)
+    plan.reused.unshift({ itemId: wanted[i]!.item.id, starterId: starter.id })
+    wanted.splice(i, 1)
+  }
+
+  // Claim the pieces you own: placed ones first, then the ones in storage
   const pool = [...input.active.filter((p) => !isStarter(p)).map((p) => ({ p, stored: false })), ...stored.map((p) => ({ p, stored: true }))]
   const claimed = new Map<number, (typeof pool)[number]>()
   const taken = new Set<string>()

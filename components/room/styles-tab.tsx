@@ -110,7 +110,7 @@ export function StylePreview({
       ? 'Nothing to change here: you already have this look, or nothing fits.'
       : short
         ? `${aboutNaira(quote.total - cash).replace('about ', '')} more to go.`
-        : `${plan.moves.length} of yours · ${plan.buys.length} new${plan.skipped.length ? ` · ${plan.skipped.length} won’t fit` : ''}`
+        : `${plan.moves.length + plan.reused.length} of yours · ${plan.buys.length} new${plan.skipped.length ? ` · ${plan.skipped.length} won’t fit` : ''}`
   const paint = [quote.decor.wall ? 'walls' : '', quote.decor.floor ? 'floor' : ''].filter(Boolean).join(' and ')
   return (
     <div className={styles.placing}>

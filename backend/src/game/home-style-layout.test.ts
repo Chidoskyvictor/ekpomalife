@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { HOME_GRID } from './home-grid.js'
+import { STARTERS, STARTER_SIZE, starterSeedSpot } from './home-starters.js'
 import { checkHomePlacement, homeTiles, type HomeShape } from './home-buy-rules.js'
 import { HOME_ROOMS, planStyleLayout, roomOf, ruleOf, scopesFor, type StyleEntry, type StyleItem, type StylePiece } from './home-style-layout.js'
 
@@ -31,6 +32,7 @@ const items = new Map<string, StyleItem>([
   it$('k-bookcase-wide', 'study', 2, 1, { maxPerHome: 2 }),
   it$('k-table-lamp', 'light', 1, 1, { maxPerHome: 3 }),
   it$('k-house-plant', 'deco', 1, 1, { maxPerHome: 4 }),
+  ...Object.entries(STARTER_SIZE).map(([id, size]) => it$(id, 'starter', size.w, size.d, { maxPerHome: 1, uses: id === 'starter-bed' ? 'bed' : id === 'starter-cooker' ? 'cooker' : id === 'starter-toilet' ? 'toilet' : id === 'starter-sofa' ? 'sofa' : id === 'starter-red-chair' ? 'red-chair' : null })),
 ])
 const shapes = new Map<string, HomeShape>([...items].map(([id, i]) => [id, { id, w: i.w, d: i.d, wall: i.wall, maxPerHome: i.maxPerHome }]))
 
@@ -206,5 +208,42 @@ describe('every home type', () => {
     expect(plan.result.some((p) => p.itemId === 'k-gas-cooker-oven')).toBe(true)
     expect(plan.skipped.every((id) => id === 'k-house-plant')).toBe(true)
     expect(plan.skipped.length).toBeGreaterThan(0)
+  })
+})
+
+describe('pieces that come with the home', () => {
+  const starterPieces = (home: string): StylePiece[] =>
+    STARTERS[home]!.map((d) => ({ id: 'starter-' + d.item, itemId: d.item, ...starterSeedSpot(HOME_GRID[home]!, d) }))
+
+  it('single room: a bed style reuses the starter bed in place and buys no second bed', () => {
+    const active = starterPieces('single-poultry')
+    const plan = run('single-poultry', e('k-single-bed', 'k-student-desk', 'k-table-lamp'), { active })
+    expect(plan.reused.map((r) => r.itemId).sort()).toEqual(['k-single-bed', 'k-student-desk'])
+    expect(plan.buys.map((b) => b.itemId)).toEqual(['k-table-lamp'])
+    // The starter bed and desk are still exactly where they were, and nothing else is a bed
+    const bed = plan.result.find((p) => p.id === 'starter-starter-bed')!
+    expect(bed).toMatchObject({ x: 0, z: 6 })
+    expect(plan.result.filter((p) => ['k-single-bed', 'k-spring-bed'].includes(p.itemId))).toEqual([])
+    expect(plan.toStorage).toEqual([])
+  })
+
+  it('never stores or moves a starter piece, even on a whole-home style', () => {
+    const active = starterPieces('selfcon-g2')
+    const plan = run('selfcon-g2', BIG, { active })
+    for (const s of active) expect(plan.result.find((p) => p.id === s.id)).toMatchObject({ x: s.x, z: s.z })
+    expect(plan.toStorage.some((id) => id.startsWith('starter-'))).toBe(false)
+  })
+
+  it('a starter cooker stands in for the style cooker (no charge, no second cooker)', () => {
+    const plan = run('selfcon-g2', e('k-gas-cooker-oven', 'k-fridge'), { active: starterPieces('selfcon-g2') })
+    expect(plan.reused.map((r) => r.itemId)).toContain('k-gas-cooker-oven')
+    expect(plan.buys.map((b) => b.itemId)).not.toContain('k-gas-cooker-oven')
+  })
+
+  it('one starter covers one style piece: a second bed in the style is a real purchase', () => {
+    const plan = run('single-poultry', e('k-single-bed', 'k-spring-bed'), { active: starterPieces('single-poultry') })
+    expect(plan.reused).toHaveLength(1)
+    expect(plan.buys).toHaveLength(1)
+    expect(plan.buys.length + plan.reused.length + plan.skipped.length).toBe(2)
   })
 })
