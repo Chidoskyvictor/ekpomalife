@@ -29,6 +29,7 @@ import { ClubPeers } from '@/components/club/club-peers'
 import { useClubLive } from '@/lib/game/club-live'
 import type { Object3D } from 'three'
 import { VisitBanner } from './visit-banner'
+import { AskPrompt, PeopleBar, PersonSheet, useHomePeople } from './people-panel'
 import styles from './room.module.css'
 
 /** Fade to dark, swap scenes, fade back (each way): ~0.5s when the scene is cached. */
@@ -184,9 +185,12 @@ export function RoomScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- live.roster is the change signal for the peers ref
     [visitingOther, visiting, live.roster],
   )
+  const people = useHomePeople(live, control, owner)
   const effects = useCallback(
-    (_root: Object3D) => <ClubPeers peers={live.peers} roster={live.roster} />,
-    [live.peers, live.roster],
+    (_root: Object3D) => (
+      <ClubPeers peers={live.peers} roster={live.roster} bubbles={people.bubbles} onTap={buy.active ? undefined : people.setTarget} />
+    ),
+    [live.peers, live.roster, people.bubbles, people.setTarget, buy.active],
   )
 
   useEffect(() => {
@@ -280,7 +284,12 @@ export function RoomScreen() {
             )}
           </div>
         ) : null}
-        {visiting && !isOwn ? <VisitBanner username={host?.username ?? visiting} displayName={host?.displayName ?? null} /> : null}
+        {visiting && !isOwn ? (
+          <VisitBanner username={host?.username ?? visiting} displayName={host?.displayName ?? null} place={layout.label} hostHome={hostLive} />
+        ) : null}
+        {owner && !scene.outside && !buy.active && !selfOpen ? <PeopleBar live={live} people={people} onOpen={people.setTarget} /> : null}
+        {owner ? <PersonSheet peer={people.target} homeOwner={owner} onClose={() => people.setTarget(null)} people={people} /> : null}
+        <AskPrompt live={live} />
         {/* No "My room" bar: tap a piece of furniture to use it */}
         <FurnitureSheet
           furniture={furniture}

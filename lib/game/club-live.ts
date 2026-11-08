@@ -47,6 +47,15 @@ type Incoming =
   | { t: 'error'; error: string }
   | { t: 'say'; from: string; to: string; line: string }
   | { t: 'social'; from: string; to: string; kind: string; landed: boolean }
+  | { t: 'act'; action: string; from: string; to: string; fromUsername: string; toUsername: string; landed: boolean }
+  | { t: 'ask'; id: string; action: string; from: string; fromUsername: string; expiresIn: number }
+  | { t: 'declined'; action: string; by: string }
+
+/** Someone asked me for a hug / romantic action: nothing plays until I accept. */
+export type Ask = { id: string; action: string; from: string; fromUsername: string; until: number }
+
+/** An interaction that played in this home (both characters show it). */
+export type Act = { id: number; at: number; action: string; from: string; to: string; fromUsername: string; toUsername: string; landed: boolean }
 
 /** A quick line someone in your group sent (to you or to someone else). */
 export type Said = { id: number; from: string; to: string; line: string; at: number }
@@ -70,6 +79,9 @@ export function useClubLive(venueId: string, enabled: boolean, myUsername?: stri
   const [lastGot, setLastGot] = useState<{ value: number; at: number } | null>(null)
   const [connected, setConnected] = useState(false)
   const [said, setSaid] = useState<Said[]>([])
+  const [asks, setAsks] = useState<Ask[]>([])
+  const [acts, setActs] = useState<Act[]>([])
+  const [declined, setDeclined] = useState<{ action: string; at: number } | null>(null)
   const socket = useRef<WebSocket | null>(null)
   const lastSent = useRef<{ at: number; key: string }>({ at: 0, key: '' })
 
@@ -120,6 +132,12 @@ export function useClubLive(venueId: string, enabled: boolean, myUsername?: stri
           const line = msg.t === 'say' ? msg.line : `social:${msg.kind}:${msg.landed ? 1 : 0}`
           const entry = { id: Math.random(), from: msg.from, to: msg.to, line, at: Date.now() }
           setSaid((list) => [...list.slice(-11), entry])
+        } else if (msg.t === 'act') {
+          setActs((list) => [...list.slice(-9), { ...msg, id: Math.random(), at: Date.now() }])
+        } else if (msg.t === 'ask') {
+          setAsks((list) => [...list.filter((a) => a.id !== msg.id), { id: msg.id, action: msg.action, from: msg.from, fromUsername: msg.fromUsername, until: Date.now() + msg.expiresIn * 1000 }])
+        } else if (msg.t === 'declined') {
+          setDeclined({ action: msg.action, at: Date.now() })
         } else if (msg.t === 'spray') {
           const { t: _t, ...spray } = msg
           setSprays((list) =>
@@ -188,5 +206,7 @@ export function useClubLive(venueId: string, enabled: boolean, myUsername?: stri
     if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ t: 'say', to, line }))
   }, [])
 
-  return { peers, roster, sprays, lastGot, connected, sendState, pick, addOwnSpray, said, say }
+  const dismissAsk = useCallback((id: string) => setAsks((list) => list.filter((a) => a.id !== id)), [])
+
+  return { peers, roster, sprays, lastGot, connected, sendState, pick, addOwnSpray, said, say, asks, dismissAsk, acts, declined }
 }

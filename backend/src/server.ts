@@ -1,4 +1,5 @@
 import { houseRoutes } from './routes/houses.js'
+import { interactionRoutes } from './routes/interactions.js'
 import { hubRoutes } from './routes/hub.js'
 import { rentalsRoutes } from './routes/rentals.js'
 import { schoolRoutes } from './routes/school.js'
@@ -185,6 +186,7 @@ await app.register(hubRoutes)
 await app.register(rentalsRoutes)
 await app.register(walletRoutes)
 await app.register(houseRoutes)
+await app.register(interactionRoutes)
 await app.register(schoolRoutes)
 await app.register(skillRoutes)
 await app.register(missionRoutes)
