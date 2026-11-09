@@ -120,6 +120,15 @@ export const lodgingsFor = (characterType: string | null | undefined) =>
 /** Can this much cash cover the house's move-in fee? */
 export const canAffordLodging = (lodging: Pick<Lodging, 'moveInFee'>, cash: number) => cash >= lodging.moveInFee
 
+/** From ₦1B up, money is shown short (₦1.2B, ₦25B) so big balances fit the top bar. */
+export const COMPACT_FROM = 1_000_000_000
+
+export function compactNaira(value: number) {
+  const v = Math.max(0, Math.round(value))
+  if (v < COMPACT_FROM) return `₦${v.toLocaleString()}`
+  return `₦${new Intl.NumberFormat('en-NG', { notation: 'compact', maximumFractionDigits: 1 }).format(v)}`
+}
+
 export function formatNaira(value: number) {
   return `₦${Math.max(0, Math.round(value)).toLocaleString()}`
 }

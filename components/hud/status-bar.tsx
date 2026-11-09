@@ -1,5 +1,6 @@
 'use client'
 
+import { COMPACT_FROM, compactNaira } from '@/lib/game/live'
 import { SOUND_EVENT } from '@/lib/audio/music'
 import NumberFlow from '@number-flow/react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
@@ -68,7 +69,7 @@ export function StatusBar({
         : styles.moodBad
   const waitingOnCash = Boolean(cashLoading) || !state
   const cashLabel =
-    state != null ? `₦${Math.max(0, Math.round(state.cash)).toLocaleString()}` : '₦·····'
+    state != null ? compactNaira(state.cash) : '₦·····'
 
   useEffect(() => {
     try {
@@ -220,7 +221,11 @@ export function StatusBar({
                   <NumberFlow
                     value={state.cash}
                     prefix="₦"
-                    format={{ maximumFractionDigits: 0 }}
+                    format={
+                      state.cash >= COMPACT_FROM
+                        ? { notation: 'compact', maximumFractionDigits: 1 }
+                        : { maximumFractionDigits: 0 }
+                    }
                     locales="en-NG"
                     className={styles.cashAmount}
                     style={{ fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum"' }}
@@ -251,7 +256,7 @@ export function StatusBar({
             exit={reduced ? { opacity: 0 } : { opacity: 0, y: deltaPos.above ? -10 : 10 }}
             transition={reduced ? { duration: 0 } : spring}
           >
-            {delta > 0 ? '+' : '−'}₦{Math.abs(delta).toLocaleString()}
+            {delta > 0 ? '+' : '−'}{compactNaira(Math.abs(delta))}
           </motion.span>
         ) : null}
       </AnimatePresence>
