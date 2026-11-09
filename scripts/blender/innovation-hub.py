@@ -521,10 +521,51 @@ for i in range(13):
     box(f"DashR{i}", RX_RIGHT - 0.08, z, RX_RIGHT + 0.08, z + 1.6, -0.05, -0.03, line_m)
 
 
+# ---------- lit facade: the same cream bay, 4 bays x 4 floors per texture, with an emission map so
+# a random share of the windows glow softly at night (the game switches them with the clock) ----------
+def lit_pattern(cx, cy):
+    return ((cx * 7 + cy * 13 + (cx * cy) * 5) % 10) < 6
+
+
+def facade_atlas(x, y, s):
+    b = s // 4
+    return facade(x % b, y % b, b)
+
+
+def facade_glow(x, y, s):
+    b = s // 4
+    lx, ly = x % b, y % b
+    wx0, wx1, wy0, wy1 = b * 0.22, b * 0.78, b * 0.30, b * 0.80
+    inside = wx0 + 3 <= lx <= wx1 - 3 and wy0 + 3 <= ly <= wy1 - 3 and abs(lx - b / 2) >= 2
+    if inside and lit_pattern(x // b, y // b):
+        k = 0.85 + 0.15 * (ly - wy0) / (wy1 - wy0)
+        return (1.0 * k, 0.88 * k, 0.62 * k)
+    return (0.0, 0.0, 0.0)
+
+
+def lit_mat(name, color_img, glow_img):
+    m = bpy.data.materials.new(name)
+    m.use_nodes = True
+    nt = m.node_tree
+    b = nt.nodes["Principled BSDF"]
+    b.inputs["Roughness"].default_value = 0.85
+    t = nt.nodes.new("ShaderNodeTexImage")
+    t.image = color_img
+    nt.links.new(t.outputs["Color"], b.inputs["Base Color"])
+    e = nt.nodes.new("ShaderNodeTexImage")
+    e.image = glow_img
+    nt.links.new(e.outputs["Color"], b.inputs["Emission Color"])
+    b.inputs["Emission Strength"].default_value = 1.0
+    return m
+
+
+facade_lit_m = lit_mat("FacadeLit", texture("facade_lit", 256, facade_atlas), texture("facade_glow", 256, facade_glow))
+
+
 def building(tag, x0, z0, x1, z1, floors, sign=None, face='+z'):
     FH = 3.2
     h = floors * FH
-    box(f"{tag}Body", x0, z0, x1, z1, 0.0, h, facade_m, tile=(3.2, FH))
+    box(f"{tag}Body", x0, z0, x1, z1, 0.0, h, facade_lit_m, tile=(12.8, 12.8))
     box(f"{tag}Roof", x0 - 0.3, z0 - 0.3, x1 + 0.3, z1 + 0.3, h, h + 0.35, roof_m)
     box(f"{tag}Base", x0 - 0.1, z0 - 0.1, x1 + 0.1, z1 + 0.1, 0.0, 0.6, trim_m)
     cx, cz = x0 + (x1 - x0) * 0.3, z0 + (z1 - z0) * 0.4

@@ -1,5 +1,6 @@
 'use client'
 
+import { ClubSurroundings } from './club-surroundings'
 import { LogOut, Users } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
@@ -258,6 +259,7 @@ export function ClubScreen({ venueId }: { venueId: string }) {
     (root: Object3D) => (
       <>
         <ClubLedWall venueId={venueId} clubName={view?.venue.name ?? ''} song={song} lowPerf={lowPerf} />
+        <ClubSurroundings root={root} />
         <ClubFx root={root} clubName={view?.venue.name ?? ''} top={view?.top ?? []} />
         <ClubPeers
           peers={live.peers}

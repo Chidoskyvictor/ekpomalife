@@ -417,7 +417,7 @@ export const OFFICE: RoomLayout = {
 export const INNOVATION_HUB: RoomLayout = {
   id: 'office',
   label: 'Innovation Hub',
-  glb: '/models/innovation-hub.glb?v=4',
+  glb: '/models/innovation-hub.glb?v=5',
   floors: [[-9.9, -4.4, 5.9, 6.4]],
   blocks: [
     [1.5, -4.5, 4.9, -3.4], // reception desk
