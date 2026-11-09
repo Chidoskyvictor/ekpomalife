@@ -307,6 +307,17 @@
   color: #fff;
 }
 
+/* Styles / Design tabs: scroll up and down inside the sheet, like the item list */
+.tabScroll {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  padding-bottom: 4px;
+}
+
 /* The list: one direction only (up and down), with a thick scrollbar you can see and grab */
 .cards {
   display: grid;

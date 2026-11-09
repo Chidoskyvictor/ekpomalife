@@ -590,8 +590,17 @@ export function BuyPanel({
                   {note.text}
                 </p>
               ) : null}
-              {design && !query ? <DesignTab /> : null}
-              {stylesOpen && !query ? <StylesGrid list={styleList} catalog={catalog} quotes={quotes} cash={cash} selectedId={tryStyle?.id} onTry={startTry} /> : null}
+              {/* Styles and Design have their own scroll area, like the item list (the sheet has a fixed height) */}
+              {design && !query ? (
+                <div className={styles.tabScroll}>
+                  <DesignTab />
+                </div>
+              ) : null}
+              {stylesOpen && !query ? (
+                <div className={styles.tabScroll}>
+                  <StylesGrid list={styleList} catalog={catalog} quotes={quotes} cash={cash} selectedId={tryStyle?.id} onTry={startTry} />
+                </div>
+              ) : null}
               {storageOpen && !query ? (
                 <div className={styles.cards}>
                   {stored.map((piece) => {
