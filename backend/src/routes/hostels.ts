@@ -18,9 +18,12 @@ import {
   searchPlayers,
   sendMessage,
   sendMoney,
+  sendVoice,
+  voiceAudioFor,
   unreadTotal,
 } from '../game/chat.js'
 import { HOSTEL_NAME_MAX } from '../game/hostel-names.js'
+import { VOICE_MAX_BYTES } from '../game/voice-rules.js'
 import { createHostel, getMyHostel, joinHostel, leaveHostel, listNeighbours, searchHostels } from '../game/hostels.js'
 
 function fail(reply: FastifyReply, result: { status: number; code: string; error: string }) {
@@ -42,6 +45,11 @@ const sendSchema = z.object({
   replyTo: z.coerce.number().int().positive().optional(),
 })
 const reactionSchema = z.object({ emoji: z.string().min(1).max(16) })
+const voiceSchema = z.object({
+  ms: z.coerce.number().int().min(0).max(120_000),
+  peaks: z.string().max(400).default(''),
+  replyTo: z.coerce.number().int().positive().optional(),
+})
 const syncSchema = z.object({ from: z.coerce.number().int().min(0).default(0) })
 const prefsSchema = z.object({ readReceipts: z.boolean() })
 const moneySchema = z.object({ amount: z.coerce.number().int() })
@@ -164,6 +172,49 @@ export async function hostelRoutes(app: FastifyInstance) {
     if (!result.ok) return fail(reply, result)
     await missionProgressFor(user.id, 'text')
     return reply.code(201).send({ ok: true, message: result.message })
+  })
+
+  // —— Voice notes: the raw recording is the request body (WebM/Opus on Android, MP4/AAC on iPhone) ——
+  app.addContentTypeParser(/^audio\//, { parseAs: 'buffer', bodyLimit: VOICE_MAX_BYTES }, (_request, body, done) => {
+    done(null, body)
+  })
+
+  app.post(
+    '/chats/:id/voice',
+    { bodyLimit: VOICE_MAX_BYTES, config: { rateLimit: { max: 20, timeWindow: '1 minute' } } },
+    async (request, reply) => {
+      const user = await getSessionUser(request)
+      if (!user) return notLoggedIn(reply)
+      const { id } = request.params as { id: string }
+      const parsed = voiceSchema.safeParse(request.query)
+      if (!parsed.success || !Buffer.isBuffer(request.body)) {
+        return reply.code(400).send({ ok: false, code: 'BAD_AUDIO', error: 'Couldn’t read that voice note.' })
+      }
+      const result = await sendVoice(
+        user.id,
+        id,
+        request.body,
+        request.headers['content-type'],
+        parsed.data.ms,
+        parsed.data.peaks,
+        parsed.data.replyTo,
+      )
+      if (!result.ok) return fail(reply, result)
+      await missionProgressFor(user.id, 'text')
+      return reply.code(201).send({ ok: true, message: result.message })
+    },
+  )
+
+  app.get('/chats/voice/:seq', { config: { rateLimit: { max: 120, timeWindow: '1 minute' } } }, async (request, reply) => {
+    const user = await getSessionUser(request)
+    if (!user) return notLoggedIn(reply)
+    const { seq } = request.params as { seq: string }
+    const result = await voiceAudioFor(user.id, seq)
+    if (!result.ok) return fail(reply, result)
+    return reply
+      .header('Content-Type', result.contentType)
+      .header('Cache-Control', 'private, max-age=86400')
+      .send(result.audio)
   })
 
   // Send naira to the other player in a direct chat

@@ -4,6 +4,8 @@ import { createId } from '../ids.js'
 import { applyCash } from './game-state.js'
 import { liveSpaceMoneyBlock } from './spaces-money.js'
 import { isStickerId } from './stickers.js'
+import { cleanPeaks, parseVoiceBody, voiceContentType, voiceExt, VOICE_MAX_BYTES, VOICE_MAX_MS, VOICE_MIN_MS } from './voice-rules.js'
+import { getVoice, putVoice, voiceEnabled } from './voice-store.js'
 import {
   canInteractWith,
   isReactionEmoji,
@@ -30,7 +32,7 @@ export type ChatSender = {
 }
 
 /** text · system ("X joined") · sticker (body = sticker id) · invite (body = host username) · visit (body = visited username) · money (body = naira amount) */
-export type MessageKind = 'text' | 'system' | 'sticker' | 'invite' | 'visit' | 'money' | 'game' | 'nudge' | 'bae'
+export type MessageKind = 'text' | 'system' | 'sticker' | 'invite' | 'visit' | 'money' | 'game' | 'nudge' | 'bae' | 'voice'
 
 /** Naira you can send in one go from a direct chat: at least ₦100, no upper limit (only your balance). */
 export const TRANSFER_MIN = 100
@@ -576,6 +578,66 @@ export async function sendMessage(
   const seq = await insertMessage(pool, userId, chatId, kind, body, replyTo ?? null)
   const row = await pool.query<MessageRow>(`${MESSAGE_SELECT} WHERE m.seq = $1`, [seq])
   return { ok: true, message: toMessage(row.rows[0]!, userId) }
+}
+
+/** A recorded voice note: the audio goes to storage, the message holds its key, length and waveform. */
+export async function sendVoice(
+  userId: string,
+  chatId: string,
+  audio: Buffer,
+  contentType: string | undefined,
+  ms: number,
+  peaks: unknown,
+  replyTo?: number | null,
+): Promise<{ ok: true; message: ChatMessage } | Fail> {
+  if (!voiceEnabled()) return fail(503, 'VOICE_OFF', 'Voice notes are not available yet.')
+  const ext = voiceExt(contentType)
+  if (!ext) return fail(400, 'BAD_AUDIO', 'That recording format is not supported.')
+  if (!audio.length || audio.length > VOICE_MAX_BYTES) return fail(400, 'BAD_AUDIO', 'That voice note is too long.')
+  if (!Number.isFinite(ms) || ms < VOICE_MIN_MS) return fail(400, 'TOO_SHORT', 'Hold the mic a little longer.')
+  if (!(await isMember(chatId, userId))) return fail(403, 'NOT_MEMBER', 'Join this hostel to chat.')
+  if (replyTo != null) {
+    const original = await pool.query<{ chat_id: string; kind: string }>(`SELECT chat_id, kind FROM chat_messages WHERE seq = $1`, [replyTo])
+    const problem = replyError(original.rows[0], chatId)
+    if (problem) return fail(400, 'BAD_REPLY', problem)
+  }
+  const recent = await pool.query<{ n: number }>(
+    `SELECT COUNT(*)::int AS n FROM chat_messages
+     WHERE sender_id = $1 AND created_at > NOW() - INTERVAL '1 minute'`,
+    [userId],
+  )
+  if ((recent.rows[0]?.n ?? 0) >= CHAT_RATE_PER_MIN) {
+    return fail(429, 'SLOW_DOWN', 'You’re sending messages quickly — wait a moment and try again.')
+  }
+  const key = `voice/${chatId}/${createId()}.${ext}`
+  try {
+    await putVoice(key, audio, (contentType ?? '').split(';')[0]!.trim())
+  } catch {
+    return fail(502, 'UPLOAD_FAILED', 'Couldn’t send the voice note. Try again.')
+  }
+  const body = JSON.stringify({ key, ms: Math.min(Math.round(ms), VOICE_MAX_MS), peaks: cleanPeaks(peaks) })
+  const seq = await insertMessage(pool, userId, chatId, 'voice', body, replyTo ?? null)
+  const row = await pool.query<MessageRow>(`${MESSAGE_SELECT} WHERE m.seq = $1`, [seq])
+  return { ok: true, message: toMessage(row.rows[0]!, userId) }
+}
+
+/** The audio of a voice note, for a member of its chat only. */
+export async function voiceAudioFor(
+  userId: string,
+  seq: string,
+): Promise<{ ok: true; audio: Buffer; contentType: string } | Fail> {
+  if (!/^\d{1,18}$/.test(seq)) return fail(404, 'NOT_FOUND', 'Voice note not found.')
+  const row = await pool.query<{ chat_id: string; kind: string; body: string }>(
+    `SELECT chat_id, kind, body FROM chat_messages WHERE seq = $1`,
+    [seq],
+  )
+  const msg = row.rows[0]
+  if (!msg || msg.kind !== 'voice') return fail(404, 'NOT_FOUND', 'Voice note not found.')
+  if (!(await isMember(msg.chat_id, userId))) return fail(403, 'NOT_MEMBER', 'You’re not in this chat.')
+  const voice = parseVoiceBody(msg.body)
+  const audio = voice ? await getVoice(voice.key) : null
+  if (!voice || !audio) return fail(404, 'NOT_FOUND', 'Voice note not found.')
+  return { ok: true, audio, contentType: voiceContentType(voice.key) }
 }
 
 /** Quick actions players do to each other in person (Say Hello, Gist, Joke, Compliment). */

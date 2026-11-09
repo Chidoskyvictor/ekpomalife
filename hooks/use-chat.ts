@@ -9,6 +9,7 @@ import {
   markChatRead,
   reportChatMessage,
   sendChatMessage,
+  sendChatVoice,
   sendChatMoney,
   type ChatMessage,
   type ReceiptMarkers,
@@ -180,6 +181,20 @@ export function useChat(chatId: string | null, open: boolean, onMoneyIn?: () => 
     [chatId],
   )
 
+  const sendVoice = useCallback(
+    async (audio: Blob, ms: number, peaks: number[], replyTo?: string | null): Promise<{ ok: true } | { ok: false; error: string }> => {
+      if (!chatId) return { ok: false, error: 'Open a chat first.' }
+      const res = await sendChatVoice(chatId, audio, ms, peaks, replyTo)
+      if (!res.ok) return res
+      playSfx('sent')
+      setMessages((current) => mergeById(current, [res.message]))
+      newest.current = res.message.id
+      lastRead.current = res.message.id
+      return { ok: true }
+    },
+    [chatId],
+  )
+
   const sendMoney = useCallback(
     async (amount: number): Promise<{ ok: true } | { ok: false; error: string }> => {
       if (!chatId) return { ok: false, error: 'Open a chat first.' }
@@ -217,5 +232,5 @@ export function useChat(chatId: string | null, open: boolean, onMoneyIn?: () => 
     return res.ok
   }, [])
 
-  return { messages, hasMore, loading, loadingOlder, error, receipts, loadOlder, send, sendMoney, report, react }
+  return { messages, hasMore, loading, loadingOlder, error, receipts, loadOlder, send, sendVoice, sendMoney, report, react }
 }

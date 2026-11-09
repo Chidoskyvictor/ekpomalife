@@ -67,6 +67,14 @@ const envSchema = z.object({
   /** Comma-separated usernames allowed to use /admin routes (moderation) */
   ADMIN_USERNAMES: z.preprocess((value) => (value == null ? '' : value), z.string()),
   SPACES_DAILY_MINUTES: z.preprocess((value) => (value == null || value === '' ? 160 : value), z.coerce.number().int().min(0)),
+  /**
+   * Cloudflare R2 bucket for chat voice notes (S3 API token: Object Read & Write on this bucket).
+   * Unset = voice notes are kept on local disk in development and switched off in production.
+   */
+  R2_ACCOUNT_ID: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
+  R2_ACCESS_KEY_ID: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
+  R2_SECRET_ACCESS_KEY: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
+  R2_BUCKET: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
   /** Paystack secret key (sk_test_… / sk_live_…). Unset = top-ups disabled. */
   PAYSTACK_SECRET_KEY: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
   /** Public site URL for Paystack callback_url (no trailing slash). */

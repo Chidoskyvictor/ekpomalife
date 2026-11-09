@@ -1,5 +1,6 @@
 import { apiGet, apiPatch, apiPost, apiPut } from '@/lib/api/client'
 import type { ApiFail } from '@/lib/api/errors'
+import { apiUrl } from '@/lib/game/api'
 
 /** Hostels + hostel group chat — mirrors backend/src/routes/hostels.ts */
 
@@ -21,7 +22,7 @@ export type ChatMessage = {
   id: string
   chatId: string
   /** sticker: body = sticker id · invite: body = host username · visit: body = visited username · money: body = naira amount · game: body = JSON {matchId, game, stake} */
-  kind: 'text' | 'system' | 'sticker' | 'invite' | 'visit' | 'money' | 'game' | 'nudge' | 'bae'
+  kind: 'text' | 'system' | 'sticker' | 'invite' | 'visit' | 'money' | 'game' | 'nudge' | 'bae' | 'voice'
   body: string
   createdAt: string
   sender: ChatSender | null
@@ -188,3 +189,46 @@ export function reportChatMessage(messageId: string, reason?: string) {
 }
 
 export type HostelApiFail = ApiFail
+
+/** Send a recorded voice note: the raw audio is the body, its length and waveform ride in the query. */
+export async function sendChatVoice(
+  chatId: string,
+  audio: Blob,
+  ms: number,
+  peaks: number[],
+  replyTo?: string | null,
+): Promise<{ ok: true; message: ChatMessage } | { ok: false; error: string }> {
+  const query = new URLSearchParams({ ms: String(Math.round(ms)), peaks: peaks.map((p) => p.toFixed(2)).join(',') })
+  if (replyTo) query.set('replyTo', replyTo)
+  try {
+    const res = await fetch(`${apiUrl()}/chats/${encodeURIComponent(chatId)}/voice?${query}`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': audio.type || 'audio/webm' },
+      body: audio,
+      signal: AbortSignal.timeout(30_000),
+    })
+    const data = (await res.json().catch(() => ({}))) as { ok?: boolean; message?: ChatMessage; error?: string }
+    if (res.ok && data.ok && data.message) return { ok: true, message: data.message }
+    return { ok: false, error: data.error ?? 'Couldn’t send the voice note.' }
+  } catch {
+    return { ok: false, error: 'No connection. The voice note wasn’t sent.' }
+  }
+}
+
+const voiceUrls = new Map<string, Promise<string | null>>()
+
+/** A playable blob: URL for a voice note (fetched once with the login cookie, then reused). */
+export function voiceNoteUrl(messageId: string): Promise<string | null> {
+  let found = voiceUrls.get(messageId)
+  if (!found) {
+    found = fetch(`${apiUrl()}/chats/voice/${encodeURIComponent(messageId)}`, { credentials: 'include' })
+      .then(async (res) => (res.ok ? URL.createObjectURL(await res.blob()) : null))
+      .catch(() => null)
+    found.then((url) => {
+      if (!url) voiceUrls.delete(messageId)
+    })
+    voiceUrls.set(messageId, found)
+  }
+  return found
+}

@@ -1,9 +1,9 @@
 'use client'
 
 import { PlayerFace } from '@/components/look/player-face'
-import { Bell, Check, CheckCheck, ChevronLeft, DoorOpen, Home, MoreHorizontal, Reply, Search, Send, Smile, SquarePen, User, Users, X, Lock } from 'lucide-react'
+import { Bell, Check, CheckCheck, ChevronLeft, DoorOpen, Home, MoreHorizontal, Reply, Search, Send, Smile, SquarePen, User, Users, X, Lock, Mic } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import { PlayerProfilePanel } from '@/components/profile/player-profile-panel'
 import { tickFor, useChat, type Tick } from '@/hooks/use-chat'
 import { useGame } from '@/hooks/use-game'
@@ -32,6 +32,7 @@ import { requestOpenGames } from '@/lib/game/open-games'
 import type { PhoneNotificationsResponse } from '@/lib/game/phone-api'
 import { FamilyRequestCard } from './family-request-card'
 import { UpdateBanner } from '../update-banner'
+import { canRecordVoice, clock, useVoiceRecorder, VoiceBubble, VOICE_MAX_MS } from './voice-note'
 import styles from './messages.module.css'
 
 type GameNotification = PhoneNotificationsResponse['items'][number]
@@ -297,6 +298,7 @@ function previewText(message: ChatMessage) {
   if (message.kind === 'game') return message.mine ? 'You sent a 🎮 challenge' : '🎮 Challenged you'
   if (message.kind === 'nudge') return nudgeLine(message)
   if (message.kind === 'bae') return '💕 Request'
+  if (message.kind === 'voice') return '🎤 Voice note'
   return message.body
 }
 
@@ -547,7 +549,7 @@ function ChatView({
 }) {
   const router = useRouter()
   const { state, refreshServer } = useGame()
-  const { messages, hasMore, loading, loadingOlder, error, receipts, loadOlder, send, sendMoney, report, react } = useChat(
+  const { messages, hasMore, loading, loadingOlder, error, receipts, loadOlder, send, sendVoice, sendMoney, report, react } = useChat(
     chat.id,
     true,
     () => void refreshServer(),
@@ -619,6 +621,58 @@ function ChatView({
     else if (quoted) setReplyTo(null)
     return res.ok
   }
+
+  // —— Voice notes: hold the mic to record, release to send, slide left to cancel ——
+  const holdX = useRef<number | null>(null)
+  const [voiceHint, setVoiceHint] = useState<string | null>(null)
+  const [slideCancel, setSlideCancel] = useState(false)
+  const finishVoice = async () => {
+    holdX.current = null
+    const take = await recorder.stop()
+    if (!take) {
+      setVoiceHint('Hold to record, release to send')
+      return
+    }
+    setSending(true)
+    setSendError(null)
+    stickToBottom.current = true
+    const res = await sendVoice(take.blob, take.ms, take.peaks, replyTo?.id)
+    setSending(false)
+    if (res.ok) setReplyTo(null)
+    else setSendError(res.error)
+  }
+  const recorder = useVoiceRecorder(() => void finishVoice())
+  useEffect(() => {
+    if (!voiceHint) return
+    const t = window.setTimeout(() => setVoiceHint(null), 2200)
+    return () => window.clearTimeout(t)
+  }, [voiceHint])
+  const micDown = async (e: ReactPointerEvent<HTMLButtonElement>) => {
+    e.preventDefault()
+    e.currentTarget.setPointerCapture?.(e.pointerId)
+    holdX.current = e.clientX
+    setSlideCancel(false)
+    setVoiceHint(null)
+    setStickersOpen(false)
+    const started = await recorder.start()
+    if (started === 'denied') setVoiceHint('Allow the microphone to send voice notes')
+  }
+  const micMove = (e: ReactPointerEvent<HTMLButtonElement>) => {
+    if (holdX.current == null || !recorder.recording) return
+    const far = holdX.current - e.clientX > 90
+    setSlideCancel(far)
+  }
+  const micUp = () => {
+    if (holdX.current == null) return
+    if (slideCancel) {
+      holdX.current = null
+      setSlideCancel(false)
+      recorder.cancel()
+      return
+    }
+    void finishVoice()
+  }
+  const showMic = !draft.trim() && canRecordVoice()
 
   const startReply = (message: ChatMessage) => {
     setReplyTo(message)
@@ -867,9 +921,21 @@ function ChatView({
             </button>
           </div>
         ) : null}
+        {voiceHint ? <p className={styles.voiceHint}>{voiceHint}</p> : null}
         <div className={styles.composerRow}>
+          {recorder.recording ? (
+            <div className={`${styles.recStrip} ${slideCancel ? styles.recCancel : ''}`} aria-live="polite">
+              <span className={styles.recDot} style={{ transform: `scale(${1 + recorder.level * 0.6})` }} aria-hidden="true" />
+              <span className={styles.recTime}>
+                {clock(recorder.elapsed)}
+                <span className={styles.recMax}> / {clock(VOICE_MAX_MS)}</span>
+              </span>
+              <span className={styles.recSlide}>{slideCancel ? 'Release to cancel' : '‹ Slide to cancel'}</span>
+            </div>
+          ) : null}
           <button
             type="button"
+            hidden={recorder.recording}
             className={`${styles.stickerBtn} ${stickersOpen ? styles.stickerBtnOn : ''}`}
             aria-label="Stickers"
             aria-expanded={stickersOpen}
@@ -879,6 +945,7 @@ function ChatView({
           </button>
           <textarea
             ref={draftBox}
+            hidden={recorder.recording}
             className={styles.input}
             value={draft}
             maxLength={CHAT_MESSAGE_MAX}
@@ -894,14 +961,30 @@ function ChatView({
               }
             }}
           />
-          {direct && chat.peer && !draft.trim() ? (
+          {direct && chat.peer && !draft.trim() && !recorder.recording ? (
             <button type="button" className={styles.moneyBtn} aria-label="Send money" onClick={() => setMoneyOpen(true)}>
               ₦
             </button>
           ) : null}
-          <button type="submit" className={styles.send} disabled={!draft.trim() || sending} aria-label="Send">
-            <Send size={15} aria-hidden="true" />
-          </button>
+          {showMic ? (
+            <button
+              type="button"
+              className={`${styles.send} ${styles.mic} ${recorder.recording ? styles.micOn : ''}`}
+              disabled={sending}
+              aria-label="Hold to record a voice note"
+              onPointerDown={(e) => void micDown(e)}
+              onPointerMove={micMove}
+              onPointerUp={micUp}
+              onPointerCancel={micUp}
+              onContextMenu={(e) => e.preventDefault()}
+            >
+              <Mic size={16} aria-hidden="true" />
+            </button>
+          ) : (
+            <button type="submit" className={styles.send} disabled={!draft.trim() || sending} aria-label="Send">
+              <Send size={15} aria-hidden="true" />
+            </button>
+          )}
         </div>
         {remaining <= 100 ? <span className={styles.counter}>{remaining}</span> : null}
       </form>
@@ -1351,6 +1434,7 @@ function StickerArt({ id, size }: { id: string; size: number }) {
 
 /** What goes inside a message: text, a big sticker, a come-over card or a money card. */
 function MessageContent({ message, onVisit }: { message: ChatMessage; onVisit: (username: string | undefined) => void }) {
+  if (message.kind === 'voice') return <VoiceBubble messageId={message.id} body={message.body} mine={message.mine} />
   if (message.kind === 'sticker') {
     return (
       <span className={styles.sticker}>
