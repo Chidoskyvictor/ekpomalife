@@ -7,6 +7,7 @@ import { schoolRoutes } from './routes/school.js'
 import { skillRoutes } from './routes/skills.js'
 import { missionRoutes } from './routes/missions.js'
 import { dailyRoutes } from './routes/daily.js'
+import { coachRoutes } from './routes/coach.js'
 import Fastify from 'fastify'
 import cookie from '@fastify/cookie'
 import websocket from '@fastify/websocket'
@@ -194,6 +195,7 @@ await app.register(schoolRoutes)
 await app.register(skillRoutes)
 await app.register(missionRoutes)
 await app.register(dailyRoutes)
+await app.register(coachRoutes)
 
 const shutdown = async () => {
   await app.close()

@@ -12,6 +12,7 @@ import {
 import { fetchChatSettings, saveChatSettings } from '@/lib/game/hostels-api'
 import { fetchFamily, saveHideStatus } from '@/lib/game/family-api'
 import { notificationsSupported, setNotifications, useNotificationsOn } from '@/lib/notify'
+import { replayTour } from '@/lib/game/coach-api'
 import styles from '../phone.module.css'
 
 export function SettingsApp({
@@ -94,6 +95,9 @@ export function SettingsApp({
       <h3 className={styles.sectionTitle}>Notifications</h3>
       <NotificationsToggle onMessage={setMsg} />
 
+      <h3 className={styles.sectionTitle}>Help</h3>
+      <ReplayTutorial onMessage={setMsg} />
+
       <h3 className={styles.sectionTitle}>Privacy</h3>
       <ReadReceiptsToggle onMessage={setMsg} />
       <HideStatusToggle onMessage={setMsg} />
@@ -109,6 +113,38 @@ export function SettingsApp({
         . App icons: Fluent Emoji by Microsoft.
       </p>
     </div>
+  )
+}
+
+/** Settings → Replay tutorial: the tour starts again (and shows when the phone closes). */
+function ReplayTutorial({ onMessage }: { onMessage: (msg: string | null) => void }) {
+  const [busy, setBusy] = useState(false)
+  return (
+    <ul className={styles.list}>
+      <li className={styles.listItem}>
+        <div>
+          <p className={styles.promoTitle} style={{ color: '#111', margin: 0 }}>
+            Replay tutorial
+          </p>
+          <p className={styles.listMeta}>Show the quick tour again</p>
+        </div>
+        <button
+          type="button"
+          className={styles.smallPill}
+          disabled={busy}
+          onClick={() => {
+            void (async () => {
+              setBusy(true)
+              const ok = await replayTour()
+              onMessage(ok ? 'Close the phone to start the tour.' : 'Could not start the tour. Try again.')
+              setBusy(false)
+            })()
+          }}
+        >
+          Replay
+        </button>
+      </li>
+    </ul>
   )
 }
 

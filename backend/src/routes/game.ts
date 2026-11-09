@@ -1,8 +1,9 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { getSessionUser } from '../auth/current-user.js'
-import { ACTION_IDS } from '../game/actions.js'
+import { ACTION_IDS, getAction } from '../game/actions.js'
 import { getPublicState, performGameAction } from '../game/game-state.js'
+import { missionProgressFor } from '../game/missions.js'
 import { PLACE_IDS } from '../game/places.js'
 
 const actionBody = z.object({
@@ -57,6 +58,8 @@ export async function gameRoutes(app: FastifyInstance) {
             .code(result.code)
             .send({ ok: false, error: result.error, conflict: result.conflict ?? false })
         }
+        // Tutorial mission: any action that fills hunger counts as eating
+        if ((getAction(parsed.data.actionId)?.needEffects.hunger ?? 0) > 0) await missionProgressFor(user.id, 'eat')
         return reply.send({ ok: true, message: result.message, ...result.state })
       } catch (error) {
         request.log.error(error)

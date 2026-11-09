@@ -1,0 +1,43 @@
+/* Same row as the missions card, right side, left of the round filter button. Off-screen until a new message arrives. */
+.wrap {
+  position: absolute;
+  z-index: calc(var(--z-hud) + 2);
+  right: calc(max(12px, env(safe-area-inset-right)) + 56px);
+  top: calc(max(12px, env(safe-area-inset-top)) + 94px);
+  pointer-events: none;
+  transform: translateX(calc(100% + 80px));
+  opacity: 0;
+  transition: transform 0.28s ease, opacity 0.2s ease;
+}
+.in {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+.chip {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 44px;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1.5px solid rgba(17, 24, 39, 0.22);
+  border-radius: 14px;
+  background: #fff;
+  color: #111827;
+  font-size: 14px;
+  font-weight: 800;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.22);
+}
+.count {
+  min-width: 14px;
+  text-align: center;
+  color: #ef4444;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wrap {
+    transition: none;
+  }
+}

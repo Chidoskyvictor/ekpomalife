@@ -6,7 +6,7 @@
 
 import { LECTURE_BUILDINGS, lectureBuildingsFor } from './school-rules'
 
-export type MissionRole = 'student' | 'graduate' | 'lecturer' | 'indigene' | 'general'
+export type MissionRole = 'student' | 'graduate' | 'lecturer' | 'indigene' | 'general' | 'tutorial'
 
 export type MissionDef = {
   id: string
@@ -25,7 +25,7 @@ export type MissionDef = {
   /** Only between these hours (Nigerian time) */
   hours?: { open: number; close: number }
   /** Done by a real action instead of the Start button */
-  auto?: 'lecture' | 'bond'
+  auto?: 'lecture' | 'bond' | 'eat' | 'ride' | 'text'
   /** Chance of getting caught (pays `fine` instead of the reward) */
   risk?: { chance: number; fine: number }
 }
@@ -66,6 +66,10 @@ export const MISSIONS: MissionDef[] = [
   { id: 'help-security', role: 'indigene', emoji: '🛡️', title: 'Help security officials', blurb: 'Keep watch with security at the school gate.', places: ['aau-gate'], seconds: 35, reward: 6_000 },
   { id: 'council-meeting', role: 'indigene', emoji: '🏛️', title: 'Attend a council meeting', blurb: 'Speak up for your street.', places: ['admin-block'], seconds: 40, reward: 7_000 },
   { id: 'nuisance', role: 'indigene', emoji: '😈', title: 'Loiter and be a nuisance', blurb: 'Risky: security might catch you and fine you ₦2,000.', places: ['cattle-market'], seconds: 20, reward: 8_000, risk: { chance: 0.3, fine: 2_000 } },
+  // —— Tutorial (a brand-new player's first missions; done by real actions) ——
+  { id: 'tut-eat', role: 'tutorial', emoji: '🍲', title: 'Eat something', blurb: 'Cook at home or buy food. Fill that hunger bar.', places: [], seconds: 0, reward: 5_000, once: true, auto: 'eat' },
+  { id: 'tut-ride', role: 'tutorial', emoji: '🛺', title: 'Take your first ride', blurb: 'Open Where to? and pick a keke or okada.', places: [], seconds: 0, reward: 6_000, once: true, auto: 'ride' },
+  { id: 'tut-text', role: 'tutorial', emoji: '💬', title: 'Text someone', blurb: 'Open the phone, go to Messages and say hi.', places: [], seconds: 0, reward: 5_000, once: true, auto: 'text' },
   // —— General ——
   { id: 'hidden-prize', role: 'general', emoji: '🎁', title: 'Find the hidden prize', blurb: 'Follow the clue.', places: 'hidden', seconds: 10, reward: 10_000 },
   { id: 'evening-sports', role: 'general', emoji: '⚽', title: 'Play evening sports', blurb: 'Kick ball at the Sports Complex after 5 PM.', places: ['sports-complex'], seconds: 45, reward: 5_000, hours: { open: 17, close: 22 } },
@@ -74,6 +78,9 @@ export const MISSIONS: MissionDef[] = [
   { id: 'crush', role: 'general', emoji: '💘', title: 'Get close to your crush', blurb: 'A quiet chat at the Relaxation Centre.', places: ['relaxation-centre'], seconds: 30, reward: 5_000 },
   { id: 'bond-5', role: 'general', emoji: '🫂', title: `Bond with ${BOND_TARGET} people`, blurb: 'Wave, laugh or chat with 5 different people anywhere.', places: [], seconds: 0, reward: 6_000, auto: 'bond' },
 ]
+
+/** The first missions a brand-new player gets (see pickDailyMissions). */
+export const TUTORIAL_IDS = ['tut-eat', 'tut-ride', 'tut-text']
 
 export const MISSION_BY_ID = new Map(MISSIONS.map((m) => [m.id, m]))
 
@@ -134,8 +141,17 @@ function pickFrom(pool: MissionDef[], count: number, rand: () => number, skip: S
 }
 
 /** Today's 3 missions and hidden prize spot for a player. `done` = once-only missions already finished. */
-export function pickDailyMissions(seed: string, characterType: string | null, doneOnce: Set<string>) {
+export function pickDailyMissions(seed: string, characterType: string | null, doneOnce: Set<string>, tutorial = false) {
   const rand = seededRandom(seed)
+  if (tutorial) {
+    // Tutorial missions not yet done first, then ordinary general ones to make up 3
+    const first = TUTORIAL_IDS.filter((id) => !doneOnce.has(id))
+    if (first.length) {
+      const rest = pickFrom(MISSIONS.filter((m) => m.role === 'general'), MISSIONS_PER_DAY - first.length, rand, new Set(doneOnce))
+      const hiddenSpot = HIDDEN_SPOTS[Math.floor(rand() * HIDDEN_SPOTS.length)]!
+      return { ids: [...first, ...rest], hiddenPlace: hiddenSpot.place }
+    }
+  }
   const role = roleOf(characterType)
   const general = MISSIONS.filter((m) => m.role === 'general')
   const skip = new Set(doneOnce)

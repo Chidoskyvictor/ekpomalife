@@ -111,6 +111,7 @@ export function DailyMoments() {
         <div className={styles.backdrop} onClick={() => setCheckin(null)}>
           <motion.div
             role="dialog"
+            data-coach-hold=""
             aria-modal="true"
             aria-labelledby="checkin-title"
             className={styles.card}
@@ -149,7 +150,7 @@ export function DailyMoments() {
     return (
       <BodyPortal>
         <div className={styles.backdrop}>
-          <motion.div role="dialog" aria-modal="true" aria-labelledby="story-title" className={styles.card} {...motionProps}>
+          <motion.div role="dialog" data-coach-hold="" aria-modal="true" aria-labelledby="story-title" className={styles.card} {...motionProps}>
             <span className={styles.emoji} aria-hidden="true">
               {story.emoji}
             </span>

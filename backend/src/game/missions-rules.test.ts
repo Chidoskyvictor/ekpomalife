@@ -43,3 +43,41 @@ describe('daily missions', () => {
     expect(missionPlaces(MISSION_BY_ID.get('hidden-prize')!, { courseId: null, hiddenPlace: 'bukka' })).toEqual(['bukka'])
   })
 })
+
+describe('tutorial missions', () => {
+  it('a brand-new player gets the 3 tutorial missions, in order, with cash rewards', () => {
+    const { ids } = pickDailyMissions('new:1', 'student', new Set(), true)
+    expect(ids).toEqual(['tut-eat', 'tut-ride', 'tut-text'])
+    for (const id of ids) {
+      expect(MISSION_BY_ID.get(id)!.reward).toBeGreaterThan(0)
+      expect(MISSION_BY_ID.get(id)!.once).toBe(true)
+    }
+  })
+  it('finished tutorial missions are replaced by ordinary general ones', () => {
+    const { ids } = pickDailyMissions('new:2', 'student', new Set(['tut-eat']), true)
+    expect(ids.slice(0, 2)).toEqual(['tut-ride', 'tut-text'])
+    expect(ids).toHaveLength(3)
+    expect(MISSION_BY_ID.get(ids[2]!)!.role).toBe('general')
+  })
+  it('once all are done (or for existing players) nobody sees them', () => {
+    const done = new Set(['tut-eat', 'tut-ride', 'tut-text'])
+    expect(pickDailyMissions('new:3', 'student', done, true).ids.some((id) => id.startsWith('tut-'))).toBe(false)
+    for (let day = 0; day < 40; day++) {
+      expect(pickDailyMissions(`old:${day}`, 'student', new Set()).ids.some((id) => id.startsWith('tut-'))).toBe(false)
+    }
+  })
+  it('are finished by real actions, not at a place', () => {
+    for (const id of ['tut-eat', 'tut-ride', 'tut-text']) expect(MISSION_BY_ID.get(id)!.auto).toBeTruthy()
+  })
+})
+
+describe('missions and student status', () => {
+  it('only students get student (lecture / faculty / handout) missions', () => {
+    for (const type of ['casual', null, 'graduate', 'lecturer', 'indigene']) {
+      for (let day = 0; day < 60; day++) {
+        const ids = pickDailyMissions(`p:${day}`, type, new Set()).ids
+        expect(ids.some((id) => MISSION_BY_ID.get(id)!.role === 'student'), `${type} day ${day}`).toBe(false)
+      }
+    }
+  })
+})

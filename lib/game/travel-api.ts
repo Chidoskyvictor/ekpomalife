@@ -1,6 +1,7 @@
 import { apiGet, apiPost } from '@/lib/api/client'
 import type { ApiFail } from '@/lib/api/errors'
 import type { ServerGameState } from './game-api'
+import { coachSignal } from './coach-api'
 import { takeRide } from './phone-api'
 
 /** How you get there: trek is free; keke and okada are charged by the server (POST /ride). */
@@ -41,7 +42,9 @@ export async function travel(option: TravelOption, mode: TripMode, idempotencyKe
   if (mode === 'trek') {
     return apiPost<Moved & { state: ServerGameState }>('/travel/trek', { to: option.id })
   }
-  return takeRide(option.id, mode, idempotencyKey)
+  const ride = await takeRide(option.id, mode, idempotencyKey)
+  if (ride.ok) coachSignal('ride')
+  return ride
 }
 
 /** Fare for a mode ("Free" for trekking or when you're already there). */

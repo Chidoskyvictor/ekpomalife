@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { MAX_STORIES_PER_DAY, STORY_EVENTS, STREAK_REWARDS, cycleDay, nextStreak, pickStory, rewardForStreak, shouldOfferStory } from './daily-hooks-rules.js'
+import { MAX_STORIES_PER_DAY, SCHOOL_STORY_IDS, STORY_EVENTS, STREAK_REWARDS, cycleDay, nextStreak, pickStory, rewardForStreak, shouldOfferStory } from './daily-hooks-rules.js'
 
 describe('login streak rules', () => {
   it('rewards grow over 7 days, repeat, day 7 is the gift', () => {
@@ -40,5 +40,20 @@ describe('story moments', () => {
     expect(shouldOfferStory({ ...base, shownToday: 1, lastShownAt: base.now - 3600_000 })).toBe(false)
     expect(shouldOfferStory({ ...base, shownToday: 1, lastShownAt: base.now - 4 * 3600_000 })).toBe(true)
     expect(shouldOfferStory({ ...base, roll: 0.9, shownToday: 0, lastShownAt: null })).toBe(false)
+  })
+})
+
+describe('story moments and student status', () => {
+  it('non-students never get school stories, however the dice fall', () => {
+    for (let i = 0; i < 100; i++) {
+      const ev = pickStory(i / 100, [], false)
+      expect(SCHOOL_STORY_IDS.has(ev.id), ev.id).toBe(false)
+    }
+    const seenAll = STORY_EVENTS.map((e) => e.id)
+    for (let i = 0; i < 50; i++) expect(SCHOOL_STORY_IDS.has(pickStory(i / 50, seenAll, false).id)).toBe(false)
+  })
+  it('students can still get them', () => {
+    const ids = new Set(Array.from({ length: 200 }, (_, i) => pickStory(i / 200, []).id))
+    expect(ids.has('group-project')).toBe(true)
   })
 })

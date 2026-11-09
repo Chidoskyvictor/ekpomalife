@@ -28,7 +28,7 @@ import { useChatUnread } from '@/hooks/use-chat-unread'
 import { MapApp } from './apps/map-app'
 import { MarketApp } from './apps/market-app'
 import { RideApp } from './apps/ride-app'
-import { OPEN_CHAT_EVENT } from '@/lib/game/open-chat'
+import { MESSAGES_OPENED_EVENT, OPEN_CHAT_EVENT } from '@/lib/game/open-chat'
 import { OPEN_GAMES_EVENT } from '@/lib/game/open-games'
 import { useLiveSpaces } from '@/hooks/use-live-spaces'
 import { OPEN_SPACES_EVENT, hasPendingSpace, requestOpenSpace } from '@/lib/game/open-spaces'
@@ -47,6 +47,7 @@ import { SupportApp } from './apps/support-app'
 import { PhoneHome, phoneModeFromStorage } from './phone-home'
 import { PhoneStatusBar } from './phone-status-bar'
 import { WallpaperSkyline } from './wallpaper-skyline'
+import { requestTip } from '@/lib/game/coach-api'
 import styles from './phone.module.css'
 
 const FULL_WEEKDAY: Record<string, string> = {
@@ -185,6 +186,9 @@ export function PhoneShell({
   const openApp = async (id: PhoneAppId) => {
     const meta = PHONE_APPS.find((a) => a.id === id)
     setAppId(id)
+    if (id === 'messages') window.dispatchEvent(new CustomEvent(MESSAGES_OPENED_EVENT))
+    // One-time tips: Family (Bae too), Bank, then the first other app
+    requestTip(id === 'family' ? 'family' : id === 'bank' ? 'bank' : 'phone-apps')
     // The Guide works offline and isn't a server app (no battery or data cost).
     if (meta?.status === 'soon' || id === 'guide') return
     const res = await mobileApi.open(id)
