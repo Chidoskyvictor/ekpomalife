@@ -10,6 +10,7 @@ import {
   missionPlaces,
   pickDailyMissions,
   swapMission,
+  TUTORIAL_IDS,
   type MissionDef,
 } from './missions-rules.js'
 import { clockFromGameTime, DAY_MINUTES, GAME_EPOCH_MS, realGameTime } from './time.js'
