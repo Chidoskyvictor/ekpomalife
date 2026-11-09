@@ -47,6 +47,7 @@ import { SupportApp } from './apps/support-app'
 import { PhoneHome, phoneModeFromStorage } from './phone-home'
 import { PhoneStatusBar } from './phone-status-bar'
 import { WallpaperSkyline } from './wallpaper-skyline'
+import { requestTip } from '@/lib/game/coach-api'
 import styles from './phone.module.css'
 
 const FULL_WEEKDAY: Record<string, string> = {
@@ -185,6 +186,8 @@ export function PhoneShell({
   const openApp = async (id: PhoneAppId) => {
     const meta = PHONE_APPS.find((a) => a.id === id)
     setAppId(id)
+    // One-time tips: Family (Bae too), Bank, then the first other app
+    requestTip(id === 'family' ? 'family' : id === 'bank' ? 'bank' : 'phone-apps')
     // The Guide works offline and isn't a server app (no battery or data cost).
     if (meta?.status === 'soon' || id === 'guide') return
     const res = await mobileApi.open(id)

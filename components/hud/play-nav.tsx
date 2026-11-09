@@ -42,6 +42,7 @@ export function PlayNav({
               key={id}
               type="button"
               role="tab"
+              data-coach={`nav-${id}`}
               aria-selected={active}
               aria-label={count > 0 ? `${label}, ${count} new` : label}
               className={`${styles.tab} ${isMap ? styles.mapTab : ''} ${active ? styles.active : ''}`}

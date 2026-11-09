@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyReply } from 'fastify'
 import { z } from 'zod'
 import { getSessionUser } from '../auth/current-user.js'
+import { missionProgressFor } from '../game/missions.js'
 import {
   CHAT_MESSAGE_MAX,
   clearReaction,
@@ -161,6 +162,7 @@ export async function hostelRoutes(app: FastifyInstance) {
     }
     const result = await sendMessage(user.id, id, parsed.data.body, parsed.data.kind, parsed.data.replyTo)
     if (!result.ok) return fail(reply, result)
+    await missionProgressFor(user.id, 'text')
     return reply.code(201).send({ ok: true, message: result.message })
   })
 

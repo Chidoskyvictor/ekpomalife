@@ -39,6 +39,7 @@ import { ClubPeers } from './club-peers'
 import { ClubPeople } from './club-people'
 import { ClubShoutouts } from './club-shoutouts'
 import { SprayRain } from './spray-rain'
+import { requestTip } from '@/lib/game/coach-api'
 import styles from './club.module.css'
 
 const HomeCanvas = dynamic(() => import('@/components/room/home-canvas').then((m) => m.HomeCanvas), {
@@ -89,6 +90,10 @@ export function ClubScreen({ venueId }: { venueId: string }) {
   const { state, notifyToast, refreshServer } = useGame()
   const layout = CLUB_LAYOUTS[venueId]
   const control = useMemo<RoomPlayerControl>(() => ({}), [])
+  // First time in a club: one tip
+  useEffect(() => {
+    requestTip('club')
+  }, [])
   const [view, setView] = useState<VenueView | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)

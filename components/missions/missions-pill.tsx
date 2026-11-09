@@ -43,7 +43,7 @@ export function MissionsPill({ view, onOpen }: { view: MissionsView; onOpen: () 
   if (collapsed) {
     return (
       <div className={styles.topPill}>
-        <button type="button" className={styles.topText} aria-label={`Today's missions: ${count} done. Open`} onClick={onOpen}>
+        <button type="button" className={styles.topText} data-coach="missions" aria-label={`Today's missions: ${count} done. Open`} onClick={onOpen}>
           🎯 {count}
         </button>
         <button type="button" className={styles.topChevron} aria-label="Show mission" aria-expanded="false" onClick={toggle}>
@@ -66,7 +66,7 @@ export function MissionsPill({ view, onOpen }: { view: MissionsView; onOpen: () 
 
   return (
     <div className={`${styles.topPill} ${styles.topPillOpen}`}>
-      <button type="button" className={styles.topText} onClick={onOpen} aria-label="Open today's missions">
+      <button type="button" className={styles.topText} data-coach="missions" onClick={onOpen} aria-label="Open today's missions">
         {next ? (
           <>
             {next.emoji} {next.title}

@@ -136,7 +136,8 @@ export function MissionsSheet({ open, onClose }: { open: boolean; onClose: () =>
               const atPlace = m.places.includes(here)
               const running = busy === m.id
               const placeName = getPlace(m.places[0])?.label ?? 'around Ekpoma'
-              const where = m.auto === 'bond' ? 'Anywhere' : m.places.length > 1 ? `${placeName} or nearby` : placeName
+              const tutorialAuto = m.auto === 'eat' || m.auto === 'ride' || m.auto === 'text'
+              const where = m.auto === 'bond' || tutorialAuto ? 'Anywhere' : m.places.length > 1 ? `${placeName} or nearby` : placeName
               return (
                 <article key={m.id} className={`${styles.card} ${m.done ? styles.cardDone : ''}`}>
                   <div className={styles.cardTop}>

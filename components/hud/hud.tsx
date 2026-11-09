@@ -52,6 +52,8 @@ import travelStyles from '@/components/travel/travel.module.css'
 import { openTravel } from '@/lib/game/trip'
 import { cancelActivity } from '@/lib/game/activity'
 import { STREET_AND_TRAVEL } from '@/lib/flags'
+import { CoachTour } from '@/components/coach/coach-tour'
+import { coachSignal, requestTip } from '@/lib/game/coach-api'
 
 export function Hud() {
   const { isGuest, state, booting, bootError, retryBoot, select, selectedId, toast, logOut, notifyToast } =
@@ -106,6 +108,20 @@ export function Hud() {
       setTab('home')
     }
   }, [pathname])
+
+  // Coach marks: the tour hears about the phone and missions opening; one-time tips for Buy mode and Forbes
+  useEffect(() => {
+    if (phoneOpen) coachSignal('phone-open')
+  }, [phoneOpen])
+  useEffect(() => {
+    if (missionsOpen) coachSignal('missions-open')
+  }, [missionsOpen])
+  useEffect(() => {
+    if (homeBuy.active) requestTip('buy-mode')
+  }, [homeBuy.active])
+  useEffect(() => {
+    if (!guest && (selectedId === 'forbes' || locationId === 'forbes')) requestTip('forbes')
+  }, [guest, selectedId, locationId])
 
   // Leaving Buy mode (Exit, or stepping outside) puts the nav back on Home
   useEffect(() => {
@@ -311,7 +327,7 @@ export function Hud() {
       {/* Map: travel anywhere on campus (hidden while a place's sheet is up) */}
       {STREET_AND_TRAVEL && state && pathname === '/' && !selectedId && !placeSheet && !phoneOpen && !buyOpen ? (
         <div className={travelStyles.corner}>
-          <button type="button" className={travelStyles.cornerBtn} onClick={openTravel}>
+          <button type="button" className={travelStyles.cornerBtn} data-coach="travel" onClick={openTravel}>
             🧭 Where to?
           </button>
         </div>
@@ -368,6 +384,7 @@ export function Hud() {
       <DreamCelebration />
       <EventDialog />
       <AdViewer />
+      <CoachTour />
     </div>
   )
 }

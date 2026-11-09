@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { getSessionUser } from '../auth/current-user.js'
+import { missionProgressFor } from '../game/missions.js'
 import {
   DATA_BUNDLES,
   PHONE_APP_IDS,
@@ -227,6 +228,7 @@ export async function phoneRoutes(app: FastifyInstance) {
         parsed.data.idempotencyKey,
       )
       if (!result.ok) return fail(reply, result)
+      if (!result.replayed) await missionProgressFor(user.id, 'ride')
       return reply.send({
         ok: true,
         state: result.state,

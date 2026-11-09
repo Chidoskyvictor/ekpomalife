@@ -14,7 +14,7 @@ export type MissionView = {
   seconds: number
   reward: number
   done: boolean
-  auto: 'lecture' | 'bond' | null
+  auto: 'lecture' | 'bond' | 'eat' | 'ride' | 'text' | null
   hours: string | null
   risky: boolean
   progress: { now: number; goal: number } | null
@@ -92,4 +92,5 @@ export const ROLE_TAG: Record<MissionRole, string> = {
   lecturer: 'LECTURER',
   indigene: 'INDIGENE',
   general: 'GENERAL',
+  tutorial: 'START HERE',
 }

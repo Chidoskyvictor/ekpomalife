@@ -88,7 +88,7 @@ export function MeCard({
           ) : null}
         </span>
 
-        <span className={styles.needsPanel} aria-label="Needs">
+        <span className={styles.needsPanel} aria-label="Needs" data-coach="needs">
           {values.map(({ id, value }) => (
             <span key={id} className={styles.needCell} title={`${NEED_META[id].label} ${value}%`}>
               <img src={NEED_META[id].emoji} alt="" width={16} height={16} className={styles.needIcon} />
@@ -104,6 +104,7 @@ export function MeCard({
       <button
         type="button"
         className={styles.needChip}
+        data-coach="needs"
         onClick={() => {
           hapticTap()
           onNeeds()

@@ -82,6 +82,7 @@ export function TravelControl() {
               key={m.id}
               type="button"
               role="radio"
+              data-coach={`mode-${m.id}`}
               aria-checked={mode === m.id}
               className={`${styles.mode} ${mode === m.id ? styles.modeOn : ''}`}
               onClick={() => setMode(m.id)}
@@ -96,7 +97,7 @@ export function TravelControl() {
         {error ? <p className={styles.status}>{error}</p> : null}
         {!options && !error ? <p className={styles.status}>Finding places…</p> : null}
         {options ? (
-          <ul className={styles.list}>
+          <ul className={styles.list} data-coach="travel-list">
             {options.places.map((option) => {
               const fare = fareOf(option, mode)
               const meta =
@@ -107,7 +108,7 @@ export function TravelControl() {
                     : `🛺 ${option.minutes[mode]} min ride`
               return (
                 <li key={option.id}>
-                  <button type="button" className={styles.place} onClick={() => void go(option, mode)}>
+                  <button type="button" className={styles.place} data-coach={`place-${option.id}`} onClick={() => void go(option, mode)}>
                     <span className={styles.placeEmoji} aria-hidden="true">
                       {option.home ? '🏠' : (TYPE_EMOJI[option.type] ?? '📍')}
                     </span>

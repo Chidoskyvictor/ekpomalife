@@ -86,7 +86,10 @@ async function loadDay(client: PoolClient, ch: Character, day: number, lock: boo
                   FROM daily_missions WHERE character_id = $1 AND day = $2 ${lock ? 'FOR UPDATE' : ''}`
   const found = await client.query<DayRow>(select, [ch.id, day])
   if (found.rows[0]) return found.rows[0]
-  const picks = pickDailyMissions(`${ch.id}:${day}`, ch.character_type, await doneOnce(client, ch.id))
+  // Brand-new players (coach_progress row missing or tutorial not finished) get the tutorial missions first
+  const tut = await client.query<{ tutorial_done: boolean }>(`SELECT tutorial_done FROM coach_progress WHERE character_id = $1`, [ch.id])
+  const tutorial = !tut.rows[0] || !tut.rows[0].tutorial_done
+  const picks = pickDailyMissions(`${ch.id}:${day}`, ch.character_type, await doneOnce(client, ch.id), tutorial)
   await client.query(
     `INSERT INTO daily_missions (character_id, day, mission_ids, hidden_place) VALUES ($1, $2, $3, $4)
      ON CONFLICT (character_id, day) DO NOTHING`,
@@ -153,6 +156,13 @@ async function complete(client: PoolClient, ch: Character, day: number, row: Day
      WHERE character_id = $1 AND day = $2`,
     [ch.id, day, doneIds, payBonus],
   )
+  if (TUTORIAL_IDS.includes(def.id) && TUTORIAL_IDS.every((id) => id === def.id || doneIds.includes(id))) {
+    await client.query(
+      `INSERT INTO coach_progress (character_id, tutorial_done) VALUES ($1, TRUE)
+       ON CONFLICT (character_id) DO UPDATE SET tutorial_done = TRUE, updated_at = NOW()`,
+      [ch.id],
+    )
+  }
   if (def.once) {
     await client.query(`INSERT INTO missions_once (character_id, mission_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`, [ch.id, def.id])
   }
@@ -239,7 +249,7 @@ export async function missionAction(
  * 'lecture' after a lecture, 'bond' after waving / laughing / chatting with someone (`target`).
  * Never throws: a mission problem must not undo the lecture or the wave.
  */
-export async function missionProgress(client: PoolClient, characterId: string, kind: 'lecture' | 'bond', target?: string): Promise<string | null> {
+export async function missionProgress(client: PoolClient, characterId: string, kind: 'lecture' | 'bond' | 'eat' | 'ride' | 'text', target?: string): Promise<string | null> {
   try {
     await client.query('SAVEPOINT mission_progress')
     const ch = await loadCharacter(client, { characterId })
@@ -252,7 +262,7 @@ export async function missionProgress(client: PoolClient, characterId: string, k
       return null
     }
     let message: string | null = null
-    if (kind === 'lecture') {
+    if (kind !== 'bond') {
       message = await complete(client, ch, day, row, def)
     } else if (target && !row.bond_targets.includes(target)) {
       const targets = [...row.bond_targets, target]
@@ -264,5 +274,30 @@ export async function missionProgress(client: PoolClient, characterId: string, k
   } catch {
     await client.query('ROLLBACK TO SAVEPOINT mission_progress').catch(() => {})
     return null
+  }
+}
+
+/**
+ * For routes that finished a real action (ate, rode, texted) outside a transaction of their own:
+ * ticks the matching tutorial mission. Never throws and never blocks the action.
+ */
+export async function missionProgressFor(userId: string, kind: 'eat' | 'ride' | 'text'): Promise<string | null> {
+  let client: PoolClient | null = null
+  try {
+    client = await pool.connect()
+    await client.query('BEGIN')
+    const ch = await loadCharacter(client, { userId })
+    if (!ch) {
+      await client.query('ROLLBACK')
+      return null
+    }
+    const message = await missionProgress(client, ch.id, kind)
+    await client.query('COMMIT')
+    return message
+  } catch {
+    await client?.query('ROLLBACK').catch(() => {})
+    return null
+  } finally {
+    client?.release()
   }
 }

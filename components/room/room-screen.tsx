@@ -275,12 +275,12 @@ export function RoomScreen() {
                     🏠 Go inside
                   </button>
                 ) : null}
-                <button type="button" className={travelStyles.cornerBtn} onClick={openTravel}>
+                <button type="button" className={travelStyles.cornerBtn} data-coach="travel" onClick={openTravel}>
                   🧭 Where to?
                 </button>
               </>
             ) : (
-              <button type="button" className={travelStyles.cornerBtn} onClick={() => scene.goTo(true)}>
+              <button type="button" className={travelStyles.cornerBtn} data-coach="outside" onClick={() => scene.goTo(true)}>
                 🚪 Go outside
               </button>
             )}
