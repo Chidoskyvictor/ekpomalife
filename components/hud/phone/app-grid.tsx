@@ -21,6 +21,7 @@ import {
   AudioLines,
   Bike,
   Heart,
+  Crown,
   type LucideIcon,
 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -46,6 +47,7 @@ const ICONS: Partial<Record<PhoneAppId, { Icon: LucideIcon; from: string; to: st
   spaces: { Icon: Podcast, from: '#f1e6ff', to: '#e2ccff' },
   anonymous: { Icon: VenetianMask, from: '#e9e1ff', to: '#cbbcf5' },
   family: { Icon: Heart, from: '#ffe0ee', to: '#ffc2dc' },
+  forbes: { Icon: Crown, from: '#fff1b8', to: '#f5c542' },
   settings: { Icon: Settings, from: '#eef1f5', to: '#dce2ea' },
   support: { Icon: LifeBuoy, from: '#dbeafe', to: '#bfdbfe' },
   portal: { Icon: GraduationCap, from: '#e6e9ff', to: '#cdd3ff' },

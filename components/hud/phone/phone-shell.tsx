@@ -41,6 +41,7 @@ import { EtaApp } from './apps/eta-app'
 import { GamesApp } from './apps/games-app'
 import { AnonymousApp } from './apps/anonymous-app'
 import { FamilyApp } from './apps/family-app'
+import { ForbesApp } from './apps/forbes-app'
 import { SpacesApp } from './apps/spaces-app'
 import { GuideApp } from './apps/guide-app'
 import { SupportApp } from './apps/support-app'
@@ -333,6 +334,7 @@ export function PhoneShell({
                         {appId === 'games' ? <GamesApp onHome={goHome} /> : null}
                         {appId === 'anonymous' ? <AnonymousApp onHome={goHome} /> : null}
                         {appId === 'family' ? <FamilyApp /> : null}
+                        {appId === 'forbes' ? <ForbesApp /> : null}
                         {appId === 'spaces' ? (
                           <SpacesApp currentPlaceId={mobileApi.location?.placeId ?? state?.locationId ?? null} onHome={goHome} />
                         ) : null}
