@@ -71,6 +71,15 @@ export function setMusicSignedIn(value: boolean) {
 }
 export const musicSignedIn = () => signedIn
 
+/** True while a club plays its own song: the game's background music steps aside. */
+let clubPlaying = false
+export function setClubMusic(value: boolean) {
+  if (clubPlaying === value) return
+  clubPlaying = value
+  window.dispatchEvent(new Event(SOUND_EVENT))
+}
+export const clubMusicOn = () => clubPlaying
+
 export function useMusicSettings(): MusicSettings {
   return useSyncExternalStore(subscribe, read, () => DEFAULTS)
 }

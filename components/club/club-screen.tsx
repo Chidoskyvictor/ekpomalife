@@ -34,6 +34,7 @@ import { ClubFx } from './club-fx'
 import { ClubHype } from './club-hype'
 import { ClubLedWall } from './club-led-wall'
 import { ClubTab } from './club-tab'
+import { ClubMusic } from './club-music'
 import { ClubSongBanner } from './club-song-banner'
 import { ClubPeers } from './club-peers'
 import { ClubPeople } from './club-people'
@@ -444,6 +445,7 @@ export function ClubScreen({ venueId }: { venueId: string }) {
         />
       ) : null}
       {inside ? <ClubSongBanner song={song} /> : null}
+      {inside ? <ClubMusic /> : null}
       {inside ? <SprayRain sprays={live.sprays} lastGot={live.lastGot} onPick={live.pick} /> : null}
       {inside ? (
         <ClubShoutouts

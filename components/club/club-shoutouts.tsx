@@ -2,6 +2,7 @@
 
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { playSfx } from '@/lib/audio/sfx'
 import { useLowPerf } from '@/hooks/use-low-perf'
 import type { Spray } from '@/lib/game/club-live'
 import type { HypeEvent } from '@/lib/game/venues-api'
@@ -79,7 +80,12 @@ export function ClubShoutouts({
       const big = s.amount >= DJ_ALWAYS || (s.amount >= DJ_FLOOR && s.amount > average)
       spent.current = [...past, s.amount].slice(-50)
       push({ id: `rain-${s.id}`, kind: 'rain', who: s.byUsername, amount: s.amount, mine: s.mine })
-      if (big) push({ id: `dj-${s.id}`, kind: 'dj', who: s.byUsername, you: s.mine })
+      if (big) {
+        push({ id: `dj-${s.id}`, kind: 'dj', who: s.byUsername, you: s.mine })
+        // Big money: the DJ's air horn and notes flying (small sprays keep the normal spray sound)
+        playSfx('airHorn')
+        window.setTimeout(() => playSfx('moneyFlutter'), 250)
+      }
     }
   }, [sprays])
 
