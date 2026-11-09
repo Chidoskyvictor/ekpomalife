@@ -168,8 +168,8 @@
 }
 .close {
   display: grid;
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   place-items: center;
   border: none;
   border-radius: 999px;
