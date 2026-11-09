@@ -13,7 +13,6 @@ import {
   Lamp,
   LayoutGrid,
   Paintbrush,
-  Rotate3d,
   RotateCw,
   Package,
   Search,
@@ -50,12 +49,11 @@ import {
   setStylePreview,
   startPlacing,
   stopPlacing,
-  turnBuyCamera,
   turnBuyItem,
   useBuyUi,
 } from '@/lib/game/home-buy-store'
 import { shapeMap } from '@/lib/game/home-placed'
-import { formatNaira } from '@/lib/game/live'
+import { compactNaira, formatNaira } from '@/lib/game/live'
 import type { RoomView } from '@/lib/game/room-camera'
 import styles from './buy-panel.module.css'
 import { DesignTab } from './design-tab'
@@ -355,20 +353,18 @@ export function BuyPanel({
 
   return (
     <>
-      {/* Wallet, turn and exit float over the room (not inside the sheet) */}
+      {/* Wallet and exit float over the room (not inside the sheet). No turn button: on iPhones it crowded
+          the ✕ off the edge (owner asked to remove it). */}
       <header className={styles.floatBar}>
         <span className={styles.modePill}>
           <LayoutGrid size={16} aria-hidden="true" /> Buy mode
         </span>
         <span className={styles.wallet} aria-label={`Wallet ${formatNaira(cash)}`}>
-          {formatNaira(cash)}
+          {compactNaira(cash)}
         </span>
         <span className={styles.actions}>
-          <button type="button" className={styles.iconBtn} aria-label="Turn room" onClick={turnBuyCamera}>
-            <Rotate3d size={20} aria-hidden="true" />
-          </button>
-          <button type="button" className={styles.iconBtn} aria-label="Exit Buy mode" onClick={exitBuyMode}>
-            <X size={20} aria-hidden="true" />
+          <button type="button" className={`${styles.iconBtn} ${styles.exitBtn}`} aria-label="Exit Buy mode" onClick={exitBuyMode}>
+            <X size={22} strokeWidth={2.6} aria-hidden="true" />
           </button>
         </span>
       </header>

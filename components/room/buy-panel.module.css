@@ -56,6 +56,18 @@
   display: flex;
   justify-self: end;
   gap: 6px;
+  /* A little inside the edge so it's easy to hit on iPhones (rounded corners) */
+  margin-right: 2px;
+}
+
+/* Exit Buy mode: solid and obvious, 48px to tap */
+.exitBtn {
+  width: 48px;
+  min-height: 48px;
+  border-color: #111;
+  background: #111;
+  color: #fff;
+  touch-action: manipulation;
 }
 
 .iconBtn {
