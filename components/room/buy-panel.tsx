@@ -613,22 +613,26 @@ export function BuyPanel({
                 {items.length === 0 ? <p className={styles.hint}>Nothing like that. Try another word.</p> : null}
                 {items.map((item) => (
                   <button key={item.id} type="button" className={styles.card} onClick={() => pick(item)}>
-                    <span className={styles.sizeBadge}>
-                      {item.w}×{item.d}
-                      {item.wall ? ' · wall' : ''}
+                    <span className={styles.tile} style={{ background: TILE_TINT[item.category] }}>
+                      <span className={styles.sizeBadge}>
+                        {item.w}×{item.d}
+                        {item.wall ? ' · wall' : ''}
+                      </span>
+                      <span className={styles.cardEmoji} aria-hidden="true">
+                        <ItemPic item={item} size={160} fill />
+                      </span>
                     </span>
-                    <span className={styles.cardEmoji} aria-hidden="true">
-                      <ItemPic item={item} size={64} />
-                    </span>
-                    <strong className={styles.cardName}>{item.name}</strong>
-                    <span className={item.price > cash ? styles.priceShort : styles.price}>{formatNaira(item.price)}</span>
-                    <span className={styles.tags}>
-                      {item.finishes?.length ? <span className={styles.tag}>{item.finishes.length + 1} colours</span> : null}
-                      {item.helps.slice(0, 2).map((need) => (
-                        <span key={need} className={styles.tag}>
-                          +{need}
-                        </span>
-                      ))}
+                    <span className={styles.cardBody}>
+                      <strong className={styles.cardName}>{item.name}</strong>
+                      <span className={item.price > cash ? styles.priceShort : styles.price}>{formatNaira(item.price)}</span>
+                      <span className={styles.tags}>
+                        {item.finishes?.length ? <span className={styles.tag}>{item.finishes.length + 1} colours</span> : null}
+                        {item.helps.slice(0, 2).map((need) => (
+                          <span key={need} className={styles.tag}>
+                            +{need}
+                          </span>
+                        ))}
+                      </span>
                     </span>
                   </button>
                 ))}
@@ -639,6 +643,17 @@ export function BuyPanel({
       )}
     </>
   )
+}
+
+/** Pastel tile behind each catalogue picture, by category. */
+const TILE_TINT: Record<HomeCategory, string> = {
+  sleep: 'linear-gradient(160deg, #ece7fb, #ddd5f6)',
+  comfort: 'linear-gradient(160deg, #fdeee1, #f8dcc6)',
+  kitchen: 'linear-gradient(160deg, #e2f5ea, #cdeadb)',
+  study: 'linear-gradient(160deg, #e1edfd, #cfe0f8)',
+  bath: 'linear-gradient(160deg, #def3f6, #c9e8ee)',
+  light: 'linear-gradient(160deg, #fdf5d3, #f7ebb6)',
+  deco: 'linear-gradient(160deg, #fce6ee, #f7d3e1)',
 }
 
 /** Colour swatches for an item sold in several finishes: "Original" first, then each finish. */

@@ -1,0 +1,625 @@
+[
+ {
+  "id": "family-bed",
+  "model": "/models/furniture/family-bed.glb",
+  "height": 1.05,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "wine-fridge",
+  "model": "/models/furniture/wine-fridge.glb",
+  "height": 0.9,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "fan",
+  "model": "/models/furniture/pro/fan-standing.glb",
+  "height": 1.49,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "shop-bed",
+  "model": "/models/furniture/shop-bed.glb",
+  "height": 0.51,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "shop-shelf",
+  "model": "/models/furniture/pro/shelf-open.glb",
+  "height": 2.39,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "shop-desk",
+  "model": "/models/furniture/shop-desk.glb",
+  "height": 1.28,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "shop-cooler",
+  "model": "/models/furniture/shop-cooler.glb",
+  "height": 0.69,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "shop-drum",
+  "model": "/models/furniture/shop-drum.glb",
+  "height": 1.13,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "shop-red-chair",
+  "model": "/models/furniture/shop-red-chair.glb",
+  "height": 0.52,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "shop-sofa",
+  "model": "/models/furniture/shop-sofa.glb",
+  "height": 0.88,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "shop-low-table",
+  "model": "/models/furniture/shop-low-table.glb",
+  "height": 0.42,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "shop-tv",
+  "model": "/models/furniture/shop-tv.glb",
+  "height": 1.3,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "k-single-bed",
+  "model": "/models/furniture/pro/bed-vono-single.glb",
+  "height": 1.23,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "k-spring-bed",
+  "model": "/models/furniture/pro/bed-vono-double.glb",
+  "height": 1.23,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "k-bunk-bed",
+  "model": "/models/furniture/kenney/bedBunk.glb",
+  "height": 0.91,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "k-bedside-locker",
+  "model": "/models/furniture/kenney/cabinetBed.glb",
+  "height": 0.39,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "k-bedside-drawers",
+  "model": "/models/furniture/pro/bedside-painted.glb",
+  "height": 0.71,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "k-gas-cooker-oven",
+  "model": "/models/furniture/pro/cooker-gas.glb",
+  "height": 1,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "k-electric-cooker",
+  "model": "/models/furniture/kenney/kitchenStoveElectric.glb",
+  "height": 0.62,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "k-fridge",
+  "model": "/models/furniture/pro/fridge-single.glb",
+  "height": 1.7,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "k-tabletop-fridge",
+  "model": "/models/furniture/pro/fridge-tabletop.glb",
+  "height": 0.85,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "k-double-door-fridge",
+  "model": "/models/furniture/pro/fridge-double.glb",
+  "height": 2.03,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "k-kitchen-cabinet",
+  "model": "/models/furniture/kenney/kitchenCabinet.glb",
+  "height": 0.6,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "k-kitchen-drawers",
+  "model": "/models/furniture/kenney/kitchenCabinetDrawer.glb",
+  "height": 0.6,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "k-kitchen-sink",
+  "model": "/models/furniture/kenney/kitchenSink.glb",
+  "height": 0.65,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "k-hanging-cabinet",
+  "model": "/models/furniture/kenney/kitchenCabinetUpper.glb",
+  "height": 0.54,
+  "wall": true,
+  "finish": null
+ },
+ {
+  "id": "k-cooker-hood",
+  "model": "/models/furniture/kenney/hoodModern.glb",
+  "height": 0.56,
+  "wall": true,
+  "finish": null
+ },
+ {
+  "id": "k-microwave",
+  "model": "/models/furniture/kenney/kitchenMicrowave.glb",
+  "height": 0.25,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "k-blender",
+  "model": "/models/furniture/kenney/kitchenBlender.glb",
+  "height": 0.37,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "k-dining-table",
+  "model": "/models/furniture/pro/dining-table.glb",
+  "height": 1.01,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "k-washing-machine",
+  "model": "/models/furniture/kenney/washer.glb",
+  "height": 0.58,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "k-wc-square",
+  "model": "/models/furniture/kenney/toiletSquare.glb",
+  "height": 0.57,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "k-cistern-wc",
+  "model": "/models/furniture/kenney/toilet.glb",
+  "height": 0.52,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "k-hand-basin",
+  "model": "/models/furniture/kenney/bathroomSink.glb",
+  "height": 0.66,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "k-bathtub",
+  "model": "/models/furniture/kenney/bathtub.glb",
+  "height": 0.53,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "k-shower-cubicle",
+  "model": "/models/furniture/kenney/showerRound.glb",
+  "height": 2.14,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "k-bath-cabinet",
+  "model": "/models/furniture/kenney/bathroomCabinet.glb",
+  "height": 0.76,
+  "wall": true,
+  "finish": null
+ },
+ {
+  "id": "k-bath-mirror-k",
+  "model": "/models/furniture/kenney/bathroomMirror.glb",
+  "height": 0.72,
+  "wall": true,
+  "finish": null
+ },
+ {
+  "id": "k-waste-bin",
+  "model": "/models/furniture/kenney/trashcan.glb",
+  "height": 0.55,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "k-sofa-two",
+  "model": "/models/furniture/pro/sofa-two.glb",
+  "height": 0.82,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "k-sofa-chaise",
+  "model": "/models/furniture/pro/sofa-chaise.glb",
+  "height": 1.29,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "k-sofa-corner",
+  "model": "/models/furniture/kenney/loungeSofaCorner.glb",
+  "height": 1.03,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "k-sofa-designer",
+  "model": "/models/furniture/pro/sofa-designer.glb",
+  "height": 1.19,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "k-armchair",
+  "model": "/models/furniture/pro/armchair.glb",
+  "height": 1.22,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "k-recliner",
+  "model": "/models/furniture/pro/lounge-chair.glb",
+  "height": 1.34,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "k-pouffe",
+  "model": "/models/furniture/pro/pouffe.glb",
+  "height": 0.68,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "k-wooden-chair",
+  "model": "/models/furniture/pro/dining-chair.glb",
+  "height": 1.12,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "k-cushion-chair",
+  "model": "/models/furniture/kenney/chairCushion.glb",
+  "height": 0.92,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "k-centre-table",
+  "model": "/models/furniture/pro/centre-table.glb",
+  "height": 0.45,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "k-glass-centre-table",
+  "model": "/models/furniture/kenney/tableCoffeeGlass.glb",
+  "height": 0.35,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "k-side-table",
+  "model": "/models/furniture/pro/side-table.glb",
+  "height": 0.63,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "k-tv-stand",
+  "model": "/models/furniture/pro/tv-stand.glb",
+  "height": 0.54,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "k-flat-tv",
+  "model": "/models/furniture/pro/tv-flat.glb",
+  "height": 0.86,
+  "wall": true,
+  "finish": null
+ },
+ {
+  "id": "k-speaker-tower",
+  "model": "/models/furniture/kenney/speaker.glb",
+  "height": 1.07,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "k-radio-set",
+  "model": "/models/furniture/kenney/radio.glb",
+  "height": 0.22,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "k-coat-stand",
+  "model": "/models/furniture/kenney/coatRackStanding.glb",
+  "height": 0.99,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "k-student-desk",
+  "model": "/models/furniture/pro/office-desk.glb",
+  "height": 0.91,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "k-office-chair",
+  "model": "/models/furniture/kenney/chairDesk.glb",
+  "height": 0.91,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "k-bookcase-narrow",
+  "model": "/models/furniture/pro/bookcase-narrow.glb",
+  "height": 1.29,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "k-bookcase-wide",
+  "model": "/models/furniture/pro/bookcase-wide.glb",
+  "height": 2.37,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "k-bookcase-doors",
+  "model": "/models/furniture/pro/cabinet-doors.glb",
+  "height": 1.36,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "k-floor-lamp-round",
+  "model": "/models/furniture/kenney/lampRoundFloor.glb",
+  "height": 1.47,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "k-floor-lamp-square",
+  "model": "/models/furniture/kenney/lampSquareFloor.glb",
+  "height": 1.58,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "k-table-lamp",
+  "model": "/models/furniture/kenney/lampRoundTable.glb",
+  "height": 0.45,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "k-wall-lamp",
+  "model": "/models/furniture/kenney/lampWall.glb",
+  "height": 0.14,
+  "wall": true,
+  "finish": null
+ },
+ {
+  "id": "k-house-plant",
+  "model": "/models/furniture/kenney/pottedPlant.glb",
+  "height": 1.35,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "k-small-plant",
+  "model": "/models/furniture/kenney/plantSmall1.glb",
+  "height": 0.44,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "k-small-plant-2",
+  "model": "/models/furniture/kenney/plantSmall2.glb",
+  "height": 0.44,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "k-teddy-bear",
+  "model": "/models/furniture/kenney/bear.glb",
+  "height": 0.35,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "naija:bucket-with-cup",
+  "model": "/models/furniture/naija/bucket-with-cup.glb",
+  "height": 0,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "naija:ceiling-fan",
+  "model": "/models/furniture/naija/ceiling-fan.glb",
+  "height": 0,
+  "wall": true,
+  "finish": null
+ },
+ {
+  "id": "naija:clothes-rack",
+  "model": "/models/furniture/naija/clothes-rack.glb",
+  "height": 0,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "naija:food-cooler-flask",
+  "model": "/models/furniture/naija/food-cooler-flask.glb",
+  "height": 0,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "naija:gas-cooker-table",
+  "model": "/models/furniture/naija/gas-cooker-table.glb",
+  "height": 0,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "naija:generator",
+  "model": "/models/furniture/naija/generator.glb",
+  "height": 0,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "naija:ghana-must-go-bag",
+  "model": "/models/furniture/naija/ghana-must-go-bag.glb",
+  "height": 0,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "naija:kerosene-stove",
+  "model": "/models/furniture/naija/kerosene-stove.glb",
+  "height": 0,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "naija:mini-fridge",
+  "model": "/models/furniture/naija/mini-fridge.glb",
+  "height": 0,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "naija:monobloc-chair",
+  "model": "/models/furniture/naija/monobloc-chair.glb",
+  "height": 0,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "naija:mosquito-net-bed",
+  "model": "/models/furniture/naija/mosquito-net-bed.glb",
+  "height": 0,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "naija:plastic-table",
+  "model": "/models/furniture/naija/plastic-table.glb",
+  "height": 0,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "naija:prayer-mat",
+  "model": "/models/furniture/naija/prayer-mat.glb",
+  "height": 0,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "naija:reading-table-stool",
+  "model": "/models/furniture/naija/reading-table-stool.glb",
+  "height": 0,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "naija:rechargeable-lantern",
+  "model": "/models/furniture/naija/rechargeable-lantern.glb",
+  "height": 0,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "naija:standing-mirror",
+  "model": "/models/furniture/naija/standing-mirror.glb",
+  "height": 0,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "naija:vono-spring-bed",
+  "model": "/models/furniture/naija/vono-spring-bed.glb",
+  "height": 0,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "naija:wall-clock",
+  "model": "/models/furniture/naija/wall-clock.glb",
+  "height": 0,
+  "wall": true,
+  "finish": null
+ },
+ {
+  "id": "naija:water-tank",
+  "model": "/models/furniture/naija/water-tank.glb",
+  "height": 0,
+  "wall": false,
+  "finish": null
+ },
+ {
+  "id": "naija:wooden-wardrobe",
+  "model": "/models/furniture/naija/wooden-wardrobe.glb",
+  "height": 0,
+  "wall": false,
+  "finish": null
+ }
+]
