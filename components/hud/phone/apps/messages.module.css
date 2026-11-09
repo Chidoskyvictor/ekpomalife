@@ -1881,7 +1881,10 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  width: min(232px, 64vw);
+  /* Fits inside the bubble (its 12px padding + the row's max width), never spills out */
+  box-sizing: border-box;
+  width: min(208px, 56vw);
+  max-width: 100%;
   padding: 4px 2px 2px 0;
   color: #111;
 }
@@ -2070,4 +2073,26 @@
   background: transparent;
   color: #ff3b30;
   cursor: pointer;
+}
+
+/* ₦ Send money in the chat header, beside ⋯ */
+.headMoney {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  flex: none;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(145deg, #f7c948, #d9a21b);
+  color: #3b2a00;
+  font-size: 17px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+/* Keep the mic/send button off the phone's rounded edge */
+.composerRow > .send:last-child,
+.composerRow > .micWrap:last-child {
+  margin-right: 4px;
 }

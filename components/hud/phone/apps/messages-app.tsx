@@ -769,6 +769,12 @@ function ChatView({
           </span>
         )}
         {direct && chat.peer ? (
+          // Send money sits up here, so the message bar has room and the mic isn't jammed at the edge
+          <button type="button" className={styles.headMoney} aria-label="Send money" onClick={() => setMoneyOpen(true)}>
+            ₦
+          </button>
+        ) : null}
+        {direct && chat.peer ? (
           <div className={styles.moreWrap}>
             <button type="button" className={styles.iconBtn} aria-label="More" aria-expanded={moreOpen} onClick={() => setMoreOpen((o) => !o)}>
               <MoreHorizontal size={18} aria-hidden="true" />
@@ -996,11 +1002,6 @@ function ChatView({
               }
             }}
           />
-          {direct && chat.peer && !draft.trim() && !recorder.recording ? (
-            <button type="button" className={styles.moneyBtn} aria-label="Send money" onClick={() => setMoneyOpen(true)}>
-              ₦
-            </button>
-          ) : null}
           {recorder.recording && locked ? (
             <button type="button" className={styles.send} onClick={() => void finishVoice()} aria-label="Send voice note">
               <Send size={19} aria-hidden="true" />
