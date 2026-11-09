@@ -2,8 +2,9 @@
 
 import { useGLTF } from '@react-three/drei'
 import { useFrame, useThree } from '@react-three/fiber'
-import { Suspense, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
+import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, type RefObject } from 'react'
 import {
+  Box3,
   BoxGeometry,
   AdditiveBlending,
   CanvasTexture,
@@ -20,6 +21,7 @@ import {
   Mesh,
   MeshLambertMaterial,
   Object3D,
+  PlaneGeometry,
   RepeatWrapping,
   SRGBColorSpace,
   Vector3,
@@ -35,7 +37,9 @@ import type { TripRoute } from '@/lib/game/trip'
 import { mulberry32 } from '@/lib/game/world-layout'
 import { bakeStaticParts, type StaticPart } from '@/components/world/bake-static'
 import { CharacterFigure, type FigurePose } from '@/components/look/character-figure'
-import { normalizeAppearance, type Appearance } from '@/lib/game/look'
+import { CHARACTER_GLB, normalizeAppearance, type Appearance } from '@/lib/game/look'
+import { GFX, useGfxTier, type GfxTier } from '@/lib/game/gfx-quality'
+import { PopIn, RideLights, RideSky, Verges, rideLookAt, rideMinute, useRoadWear } from './ride-environment'
 
 /*
  * The looping highway drive. highway.glb (60 long, two carriageways split by a median wall) is
@@ -69,30 +73,9 @@ const WALK = { median: 1.5, sidewalk: 11.3, top: 0.16 }
 /** Where the road ends and roadside land starts. */
 const ROAD_EDGE = 14.5
 
-const SKY = '#bcd3e0'
-
 /** Reduce Motion (iPhone Settings → Accessibility → Motion): the ride still plays, just without camera bob or vehicle sway. */
 const calm = () => typeof window !== 'undefined' && Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)
 
-/** Sky and lights for the ride, by the hour in Ekpoma (the game runs on real WAT time). */
-type RideLight = { level: 'day' | 'dusk' | 'night'; sky: string; ambient: number; hemi: [string, string, number]; sun: number; sunColor: string; fogNear: number; fogFar: number }
-const DAY: RideLight = { level: 'day', sky: SKY, ambient: 1.05, hemi: ['#eaf3fb', '#9aa683', 0.55], sun: 1.2, sunColor: '#ffffff', fogNear: 70, fogFar: 230 }
-const DUSK: RideLight = { level: 'dusk', sky: '#e8a87c', ambient: 0.7, hemi: ['#ffd2a8', '#6b5a48', 0.45], sun: 0.8, sunColor: '#ffb27a', fogNear: 60, fogFar: 200 }
-const NIGHT: RideLight = { level: 'night', sky: '#0e1a2c', ambient: 0.32, hemi: ['#3b4f78', '#141a12', 0.4], sun: 0.35, sunColor: '#9fb4ff', fogNear: 30, fogFar: 150 }
-
-function lagosHour(): number {
-  try {
-    return Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Africa/Lagos', hour: '2-digit', hour12: false }).format(new Date())) % 24
-  } catch {
-    return (new Date().getUTCHours() + 1) % 24
-  }
-}
-
-function rideLightAt(hour: number): RideLight {
-  if (hour >= 20 || hour < 5) return NIGHT
-  if (hour >= 18 || hour < 7) return DUSK
-  return DAY
-}
 const SPEED: Record<DriveMode, number> = { keke: 24, okada: 32 }
 /** Campus lanes are slow and narrow. */
 const CAMPUS_SPEED = 13
@@ -114,7 +97,10 @@ const GATE_CLEAR = 26
 const GATE_X = -(ROAD_EDGE + 0.8)
 const CONCRETE = new Color().setRGB(0.4, 0.37, 0.31, LinearSRGBColorSpace)
 
-useGLTF.preload(HIGHWAY_URL)
+/** Start fetching everything a ride needs (called when the player opens "Ways to get there"). */
+export function preloadRide() {
+  for (const url of [HIGHWAY_URL, KEKE_URL, ...CAR_URLS, ...Object.values(CHARACTER_GLB)]) useGLTF.preload(url)
+}
 
 type Offset = { current: number }
 
@@ -214,6 +200,8 @@ function Instances({
   matrices,
   colors,
   stream,
+  cast,
+  receive,
 }: {
   geometry: BufferGeometry
   material: Material
@@ -221,6 +209,8 @@ function Instances({
   colors?: Color[]
   /** The strip's scroll: buildings rise out of the haze ahead and drop away behind (only what's near is drawn) */
   stream?: Offset
+  cast?: boolean
+  receive?: boolean
 }) {
   const ref = useRef<InstancedMesh>(null)
   const base = useMemo(
@@ -262,7 +252,7 @@ function Instances({
     mesh.instanceMatrix.needsUpdate = true
   })
   if (matrices.length === 0) return null
-  return <instancedMesh ref={ref} args={[geometry, material, matrices.length]} frustumCulled={false} />
+  return <instancedMesh ref={ref} args={[geometry, material, matrices.length]} frustumCulled={false} castShadow={cast} receiveShadow={receive} />
 }
 
 /** Roadside streaming: a building appears this far ahead (m), is full height by STREAM_FULL, and goes STREAM_BEHIND past us. */
@@ -308,9 +298,9 @@ function LampGlow({ lamps, tiles, level }: { lamps: Vector3[]; tiles: Matrix4[];
     for (const tile of tiles) {
       for (const lamp of lamps) {
         // Pool on the road under the head (the arm reaches over the road toward the centre)
-        local.makeTranslation(lamp.x * 0.72, 0.06, lamp.z)
+        local.makeTranslation(lamp.x, 0.06, lamp.z)
         poolMatrices.push(tile.clone().multiply(local))
-        local.makeTranslation(lamp.x, lamp.y - 0.15, lamp.z)
+        local.makeTranslation(lamp.x, lamp.y - 0.1, lamp.z)
         haloMatrices.push(tile.clone().multiply(local))
       }
     }
@@ -348,20 +338,102 @@ function LampGlow({ lamps, tiles, level }: { lamps: Vector3[]; tiles: Matrix4[];
   )
 }
 
-function Highway({ offset, plan, gateZ, level = 'day' }: { offset: Offset; plan: Plan; gateZ: Offset; level?: 'day' | 'dusk' | 'night' }) {
+const HW_PAINT: Record<string, string> = {
+  HW_Red_Dirt: '#a8461f',
+  HW_Road_Concrete: '#948a7a',
+  HW_Concrete_Side: '#b7aa8e',
+  HW_Concrete: '#c8b99c',
+}
+
+/** Wear over the tarmac: tyre tracks, patches, cracks and a few shallow potholes (one texture, one draw call). */
+function RoadWear({ tiles, tier }: { tiles: Matrix4[]; tier: GfxTier }) {
+  const texture = useRoadWear(tier)
+  const geometry = useMemo(() => new PlaneGeometry(7.8, TILE).rotateX(-Math.PI / 2), [])
+  const material = useMemo(
+    () => new MeshLambertMaterial({ map: texture, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }),
+    [texture],
+  )
+  const matrices = useMemo(() => {
+    const out: Matrix4[] = []
+    const d = new Object3D()
+    for (const tile of tiles) {
+      // our carriageway, and the oncoming one turned round so its wear isn't a mirror image
+      for (const side of [1, -1]) {
+        d.position.set(side * 6.7, 0.012, 0)
+        d.rotation.set(0, side === 1 ? 0 : Math.PI, 0)
+        d.updateMatrix()
+        out.push(tile.clone().multiply(d.matrix))
+      }
+    }
+    return out
+  }, [tiles])
+  useEffect(
+    () => () => {
+      geometry.dispose()
+      material.dispose()
+    },
+    [geometry, material],
+  )
+  return <Instances geometry={geometry} material={material} matrices={matrices} receive />
+}
+
+/** Plain stand-in road, drawn the instant the ride opens and swapped for highway.glb when it arrives. */
+function RoadFallback() {
+  return (
+    <group>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.0, -120]} receiveShadow>
+        <planeGeometry args={[25.2, 700]} />
+        <meshLambertMaterial color="#b7aa8e" />
+      </mesh>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.004, -120]} receiveShadow>
+        <planeGeometry args={[21.2, 700]} />
+        <meshLambertMaterial color="#948a7a" />
+      </mesh>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.008, -120]}>
+        <planeGeometry args={[5.6, 700]} />
+        <meshLambertMaterial color="#a8461f" />
+      </mesh>
+      <mesh position={[0, 0.5, -120]} castShadow receiveShadow>
+        <boxGeometry args={[0.5, 1, 700]} />
+        <meshLambertMaterial color="#c8b99c" />
+      </mesh>
+    </group>
+  )
+}
+
+/** Flags a load stage as done once everything in its Suspense boundary has arrived. */
+function Ready({ gate, name }: { gate: RefObject<Record<string, boolean>>; name: string }) {
+  useLayoutEffect(() => {
+    gate.current[name] = true
+  }, [gate, name])
+  return null
+}
+
+function Highway({ offset, plan, gateZ, level = 'day', tier }: { offset: Offset; plan: Plan; gateZ: Offset; level?: 'day' | 'dusk' | 'night'; tier: GfxTier }) {
   const { scene } = useGLTF(HIGHWAY_URL)
   const group = useRef<Group>(null)
   const walls = useRef<(Mesh | null)[]>([])
   // The median wall is baked on its own so a gap can be opened in it for the gate
   const { parts, wall, zMin, zMax, lamps } = useMemo(() => {
     const root = scene.clone(true)
+    // Warmer concrete and red-brown laterite on the median (each mesh gets its own copy, the cached model stays as it was)
+    root.traverse((o) => {
+      const mesh = o as Mesh
+      const paint = mesh.isMesh && !Array.isArray(mesh.material) ? HW_PAINT[mesh.material.name] : undefined
+      if (!paint) return
+      const m = (mesh.material as MeshStandardMaterial).clone()
+      m.color.set(paint)
+      mesh.material = m
+    })
     const wallRoot = new Group()
     const node = root.getObjectByName('Median_Wall')
     root.updateMatrixWorld(true)
     // Where the lamp heads are in one tile (Light_Centre_*, Light_Side_*)
     const lampsFound: Vector3[] = []
+    // The glow sits on the bulb itself (the lamp head up top), not on the pole's origin halfway down
     root.traverse((o) => {
-      if (/^Light_/.test(o.name)) lampsFound.push(o.getWorldPosition(new Vector3()))
+      const mesh = o as Mesh
+      if (mesh.isMesh && !Array.isArray(mesh.material) && mesh.material.name === 'HW_Lamp_Light') lampsFound.push(new Box3().setFromObject(mesh).getCenter(new Vector3()))
     })
     if (node) wallRoot.attach(node)
     const wallParts = node ? bakeStaticParts(wallRoot) : []
@@ -418,8 +490,9 @@ function Highway({ offset, plan, gateZ, level = 'day' }: { offset: Offset; plan:
     <>
       <group ref={group}>
         {parts.map((part: StaticPart, i) => (
-          <Instances key={i} geometry={part.geometry} material={part.material} matrices={matrices} />
+          <Instances key={i} geometry={part.geometry} material={part.material} matrices={matrices} cast receive />
         ))}
+        <RoadWear tiles={matrices} tier={tier} />
         {level !== 'day' && lamps.length ? <LampGlow lamps={lamps} tiles={matrices} level={level} /> : null}
       </group>
       {wall.flatMap((part, i) =>
@@ -432,6 +505,8 @@ function Highway({ offset, plan, gateZ, level = 'day' }: { offset: Offset; plan:
             geometry={part.geometry}
             material={part.material}
             frustumCulled={false}
+            castShadow
+            receiveShadow
           />
         )),
       )}
@@ -568,8 +643,11 @@ function windowTexture() {
   return texture
 }
 
-const TINTS = ['#f1e6d3', '#e6d3c0', '#d9e1e6', '#d4dcc9', '#ead9d0', '#cfd8dc'].map((c) => new Color(c))
-const SHOP_TINTS = ['#ffffff', '#f6e7c8', '#ffe0c4', '#e8f0e0', '#f3d9c9'].map((c) => new Color(c))
+// Painted walls: cream, sand, terracotta, pale blue and green, yellow, pink, and the odd blue gate-paint
+const TINTS = ['#f6e6bd', '#ead0a6', '#e3a77c', '#aacbd9', '#f1d98c', '#c9ddb0', '#f2f0e4', '#e9b9a6', '#7ea3cc'].map((c) => new Color(c))
+// Shop fronts: green, yellow, blue and orange paint between cream ones
+const SHOP_TINTS = ['#ffffff', '#f6e0a0', '#92c880', '#82b4e2', '#f2b88a', '#f4e7c8'].map((c) => new Color(c))
+const CROWN_GREENS = ['#2f6b34', '#3a7a38', '#2a5f33', '#4a8a3a', '#356f3c', '#58903a'].map((c) => new Color(c))
 
 type Place = { m: Matrix4; c: Color }
 type Archetype = 'tower' | 'flats3' | 'flats2' | 'shopA' | 'shopB'
@@ -604,7 +682,10 @@ function makeStrip({ edge, campus, gateLocal }: StripOptions) {
   const dummy = new Object3D()
   const buildings: Record<Archetype, Place[]> = { tower: [], flats3: [], flats2: [], shopA: [], shopB: [] }
   const crowns: Matrix4[] = []
+  const crownColors: Color[] = []
   const trunks: Matrix4[] = []
+  // Own random stream, so greens never move the layout
+  const paint = mulberry32(4041)
 
   const put = (kind: Archetype, x: number, z: number, yaw: number, scale: number, color: Color) => {
     dummy.position.set(x, 0, z)
@@ -658,6 +739,7 @@ function makeStrip({ edge, campus, gateLocal }: StripOptions) {
       dummy.scale.set(s, s, s)
       dummy.updateMatrix()
       crowns.push(dummy.matrix.clone())
+      crownColors.push(CROWN_GREENS[Math.floor(paint() * CROWN_GREENS.length)]!)
       dummy.position.set(x, 1.1 * s, zt)
       dummy.updateMatrix()
       trunks.push(dummy.matrix.clone())
@@ -668,7 +750,7 @@ function makeStrip({ edge, campus, gateLocal }: StripOptions) {
   const towerColour = TINTS[Math.floor(rand() * TINTS.length)]!
   const towerZ = -30 - rand() * 50
   if (!campus) put('tower', (gateLocal === null ? side : 1) * (edge + 34), towerZ, rand() * Math.PI, 1, towerColour)
-  return { buildings, crowns, trunks }
+  return { buildings, crowns, crownColors, trunks }
 }
 
 /** Copy a strip's matrices into `STRIPS` consecutive strips along -z. */
@@ -706,8 +788,8 @@ function Roadside({ offset, edge, campus, gateLocal }: { offset: Offset } & Stri
       geo,
       crownGeo: new IcosahedronGeometry(2, 0),
       trunkGeo: new CylinderGeometry(0.22, 0.3, 2.2, 5),
-      crownMat: new MeshLambertMaterial({ color: '#5f8f4f', flatShading: true }),
-      trunkMat: new MeshLambertMaterial({ color: '#6b5238' }),
+      crownMat: new MeshLambertMaterial({ flatShading: true }),
+      trunkMat: new MeshLambertMaterial({ color: '#5b4330' }),
       places: ARCHETYPES.map((kind) => {
         const list = strip.buildings[kind]
         return {
@@ -717,6 +799,7 @@ function Roadside({ offset, edge, campus, gateLocal }: { offset: Offset } & Stri
         }
       }),
       crowns: repeatStrips(strip.crowns),
+      crownColors: Array.from({ length: STRIPS }).flatMap(() => strip.crownColors),
       trunks: repeatStrips(strip.trunks),
     }
   }, [edge, campus, gateLocal])
@@ -749,10 +832,11 @@ function Roadside({ offset, edge, campus, gateLocal }: { offset: Offset } & Stri
           matrices={matrices}
           colors={colors}
           stream={offset}
+          cast
         />
       ))}
-      <Instances geometry={kit.crownGeo} material={kit.crownMat} matrices={kit.crowns} stream={offset} />
-      <Instances geometry={kit.trunkGeo} material={kit.trunkMat} matrices={kit.trunks} stream={offset} />
+      <Instances geometry={kit.crownGeo} material={kit.crownMat} matrices={kit.crowns} colors={kit.crownColors} stream={offset} cast />
+      <Instances geometry={kit.trunkGeo} material={kit.trunkMat} matrices={kit.trunks} stream={offset} cast />
     </group>
   )
 }
@@ -967,6 +1051,8 @@ function Traffic({ plan, rate, pose }: { plan: Plan; rate: Offset; pose: { x: nu
             }}
             args={[geometries[m]!, carMat, cars.length]}
             frustumCulled={false}
+            castShadow
+            receiveShadow
           />
         ) : null,
       )}
@@ -1083,11 +1169,23 @@ function Seated({ appearance, at }: { appearance: Appearance; at: { x: number; y
 
 function KekeModel() {
   const { scene } = useGLTF(KEKE_URL)
-  const keke = useMemo(() => scene.clone(true), [scene])
+  const keke = useMemo(() => {
+    const copy = scene.clone(true)
+    copy.traverse((o) => {
+      const mesh = o as Mesh
+      if (mesh.isMesh) {
+        mesh.castShadow = true
+        mesh.receiveShadow = true
+      }
+    })
+    return copy
+  }, [scene])
   return (
-    <group rotation={[0, KEKE_FIT.rotation, 0]} position={[0, KEKE_FIT.y, 0]}>
-      <primitive object={keke} />
-    </group>
+    <PopIn>
+      <group rotation={[0, KEKE_FIT.rotation, 0]} position={[0, KEKE_FIT.y, 0]}>
+        <primitive object={keke} />
+      </group>
+    </PopIn>
   )
 }
 
@@ -1095,9 +1193,17 @@ function KekeModel() {
  * Your ride: the keke (keke.glb) with you in the back seat and a driver up front, or the okada
  * (stand-in bike until its model lands) with you behind the rider. You are your own avatar.
  */
-function PlayerVehicle({ mode, pose, appearance }: { mode: DriveMode; pose: Pose; appearance: Appearance }) {
+function PlayerVehicle({ mode, pose, appearance, gate }: { mode: DriveMode; pose: Pose; appearance: Appearance; gate: RefObject<Record<string, boolean>> }) {
   const ref = useRef<Group>(null)
+  const swept = useRef(0)
   useFrame(({ clock }) => {
+    // The riders arrive a moment after the vehicle: for the first few seconds, let whatever has loaded cast a shadow
+    if (swept.current < 600 && ref.current && swept.current++ % 30 === 7) {
+      ref.current.traverse((o) => {
+        const mesh = o as Mesh
+        if (mesh.isMesh) mesh.castShadow = true
+      })
+    }
     const t = clock.elapsedTime
     if (!ref.current) return
     ref.current.position.x = pose.x
@@ -1114,13 +1220,14 @@ function PlayerVehicle({ mode, pose, appearance }: { mode: DriveMode; pose: Pose
         <>
           <Suspense fallback={null}>
             <KekeModel />
+            <Ready gate={gate} name="ride" />
           </Suspense>
           <Seated appearance={DRIVER_LOOK} at={SEATS.kekeDriver} />
           <Seated appearance={appearance} at={SEATS.kekePassenger} />
         </>
       ) : (
         <>
-          <mesh position={[0, 0.65, 0]}>
+          <mesh position={[0, 0.65, 0]} castShadow>
             <boxGeometry args={[0.45, 0.7, 1.9]} />
             <meshLambertMaterial color="#2d3a46" />
           </mesh>
@@ -1237,7 +1344,7 @@ function CampusRoad({ offset }: { offset: Offset }) {
   )
   return (
     <>
-      <mesh position={[0, 0.02, -120]} rotation={[-Math.PI / 2, 0, 0]}>
+      <mesh position={[0, 0.02, -120]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[CAMPUS_ROAD * 2, 700]} />
         <meshLambertMaterial color="#5f6165" />
       </mesh>
@@ -1267,17 +1374,6 @@ type DriveProps = {
   onShown?: () => void
 }
 
-/** Calls `onShown` once, after the first frame that draws the ride. */
-function FirstFrame({ onShown }: { onShown?: () => void }) {
-  const done = useRef(false)
-  useFrame(() => {
-    if (done.current) return
-    done.current = true
-    onShown?.()
-  })
-  return null
-}
-
 function World({ mode, view, route, plannedMs, appearance, onShown }: DriveProps) {
   const rider = useMemo(() => normalizeAppearance(appearance), [appearance])
   const plan = useMemo(() => makePlan(mode, route, plannedMs), [mode, route, plannedMs])
@@ -1287,13 +1383,27 @@ function World({ mode, view, route, plannedMs, appearance, onShown }: DriveProps
   const rate = useRef(plan.speed)
   const gateZ = useRef(-9999)
   const time = useRef(0)
-  // Day, dusk or night for the whole ride (checked once when it starts)
-  const light = useMemo(() => rideLightAt(lagosHour()), [])
+  const tier = useGfxTier()
+  const gfx = GFX[tier]
+  // Light for the hour on the game clock, fixed for the whole ride (a ride is under a minute)
+  const look = useMemo(() => rideLookAt(rideMinute()), [])
+  // The ride's clock waits for the road and the vehicle to arrive; the sky, ground and a stand-in road are up straight away
+  const gate = useRef<Record<string, boolean>>({ road: campus, ride: mode === 'okada' })
+  const started = useRef(false)
+  const waited = useRef(0)
   const pose = useMemo<Pose>(() => ({ offset: plan.offset0, rate: plan.speed, x: plan.lane, yaw: 0 }), [plan])
   // Where the gate falls in a roadside strip, so the left side can leave room for it
   const gateLocal = hasGate ? -(plan.passAt % STRIP) : null
 
   useFrame((_, delta) => {
+    if (!started.current) {
+      waited.current += delta
+      if ((gate.current.road && gate.current.ride) || waited.current > 8) {
+        started.current = true
+        onShown?.()
+      }
+      return
+    }
     time.current += Math.min(delta, 0.05)
     sample(plan, time.current, pose)
     offset.current = pose.offset
@@ -1303,20 +1413,19 @@ function World({ mode, view, route, plannedMs, appearance, onShown }: DriveProps
 
   return (
     <>
-      <color attach="background" args={[light.sky]} />
-      <fog attach="fog" args={[light.sky, light.fogNear, light.fogFar]} />
-      <ambientLight intensity={light.ambient} />
-      <hemisphereLight args={light.hemi} />
-      <directionalLight position={[18, 30, 12]} intensity={light.sun} color={light.sunColor} />
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.04, -120]}>
+      <RideLights look={look} gfx={gfx} pose={pose} />
+      <RideSky look={look} tier={tier} />
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.04, -120]} receiveShadow>
         <planeGeometry args={[800, 900]} />
-        <meshLambertMaterial color={campus ? '#86a46a' : '#8d9c76'} />
+        <meshLambertMaterial color={campus ? '#8aa468' : '#9aa264'} />
       </mesh>
+      <Verges offset={offset} from={campus ? 5 : 12.6} width={campus ? 12 : 16} tier={tier} receive={gfx.shadows} />
       {campus ? (
         <CampusRoad offset={offset} />
       ) : (
-        <Suspense fallback={null}>
-          <Highway offset={offset} plan={plan} gateZ={gateZ} level={light.level} />
+        <Suspense fallback={<RoadFallback />}>
+          <Highway offset={offset} plan={plan} gateZ={gateZ} level={look.level} tier={tier} />
+          <Ready gate={gate} name="road" />
         </Suspense>
       )}
       {hasGate ? (
@@ -1333,9 +1442,10 @@ function World({ mode, view, route, plannedMs, appearance, onShown }: DriveProps
           <Traffic plan={plan} rate={rate} pose={pose} />
         </Suspense>
       )}
-      <Walkers rate={rate} campus={campus} />
-      <PlayerVehicle mode={mode} pose={pose} appearance={rider} />
-      <FirstFrame onShown={onShown} />
+      <Suspense fallback={null}>
+        <Walkers rate={rate} campus={campus} />
+      </Suspense>
+      <PlayerVehicle mode={mode} pose={pose} appearance={rider} gate={gate} />
       <CameraRig mode={mode} view={view} gateZ={gateZ} pose={pose} glance={plan.kind === 'in' || plan.kind === 'stop'} narrow={campus} />
     </>
   )
