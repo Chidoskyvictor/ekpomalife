@@ -11,6 +11,7 @@ import { LobbyField } from './lobby-field'
 import { PasswordMeter, passwordScore } from './password-meter'
 import styles from './auth.module.css'
 import { playSfx } from '@/lib/audio/sfx'
+import { resetLaunchInvite } from '@/lib/game/launch-invite'
 
 type Field = 'name' | 'username' | 'email' | 'password' | 'adult' | 'form'
 type Values = { name: string; handle: string; email: string; password: string; isAdult: boolean }
@@ -115,6 +116,7 @@ export function SignupForm({ onShake }: { onShake: () => void }) {
       return
     }
     playSfx('signup')
+    resetLaunchInvite()
     await celebrate(reduce)
     await redirectAfterAuth(result.account)
   }

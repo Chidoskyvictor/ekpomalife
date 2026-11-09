@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyReply } from 'fastify'
 import { z } from 'zod'
 import { getSessionUser } from '../auth/current-user.js'
-import { finishPitch, pitchStatus, startPitch } from '../game/pitch.js'
+import { finishPitch, launchStatus, pitchStatus, startPitch } from '../game/pitch.js'
 import { listPosts, listSuggestions, mySubmissions, react, submit, SUBMISSION_KINDS, toggleVote } from '../game/hub.js'
 
 const submitBody = z.object({
@@ -25,6 +25,12 @@ export async function hubRoutes(app: FastifyInstance) {
     const user = await getSessionUser(request)
     if (!user) return reply.code(401).send({ ok: false, error: 'Log in to play.' })
     return send(reply, await pitchStatus(user.id))
+  })
+  // Launch invite: has this player pitched yet? (decides whether the Innovation Hub invite shows)
+  app.get('/hub/launch', rate(60), async (request, reply) => {
+    const user = await getSessionUser(request)
+    if (!user) return reply.code(401).send({ ok: false, error: 'Log in to play.' })
+    return send(reply, await launchStatus(user.id))
   })
   app.post('/hub/pitch', rate(10), async (request, reply) => {
     const user = await getSessionUser(request)

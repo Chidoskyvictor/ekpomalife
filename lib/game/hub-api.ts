@@ -58,6 +58,8 @@ export type Pitch = {
   ready: boolean
   result: { accepted: boolean; amount: number } | null
 }
+export const fetchLaunch = () => apiGet<{ ok: true; hasPitched: boolean }>('/hub/launch')
+
 export const fetchPitch = () => apiGet<{ ok: true; left: number; pending: Pitch | null; last: Pitch | null }>('/hub/pitch')
 export const startPitch = (idea: string) => apiPost<{ ok: true; pitch: Pitch; left: number }>('/hub/pitch', { idea })
 export const finishPitch = (id: string) =>
