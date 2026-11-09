@@ -327,10 +327,7 @@ def building(tag, x0, z0, x1, z1, floors):
 
 building("Back1", -28.0, -35.0, -9.0, -24.0, 4)
 building("Back2", 3.0, -36.0, 22.0, -24.5, 3)
-building("Right1", 21.0, -14.0, 30.0, 9.0, 5)
-building("Right2", 21.5, 12.0, 31.0, 28.0, 3)
-building("Left1", -32.0, -12.0, -22.0, 8.0, 4)
-building("Front1", -22.0, 25.0, -4.0, 34.0, 3)
+# Only the back row: the sides and front stay open so the club reads clearly (owner, Nov 2026)
 
 def car(tag, cx, cz, along, paint, flip=False):
     G0 = G
