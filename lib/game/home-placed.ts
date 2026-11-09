@@ -4,6 +4,7 @@ import type { HomeItem } from './home-buy-api'
 import type { FurnitureId } from './room-furniture'
 import type { FurnitureSpot, Rect, RoomLayout, SpotKey } from './room-layouts'
 import { normalizeLodging } from './home-lodging'
+import { seatSuffix, seatsFor, SEAT_TAP } from './furniture-seats'
 import { STARTERS, starterSeedSpot, type StarterDef } from './home-starters'
 
 /*
@@ -23,7 +24,8 @@ export const FRONT: Record<0 | 90 | 180 | 270, [number, number]> = {
 }
 
 export const placedKey = (id: string): SpotKey => `placed:${id}`
-export const placedIdOf = (key: string) => (key.startsWith('placed:') ? key.slice('placed:'.length) : null)
+/** A piece with several seats (a sofa) has `placed:<id>` for its first and `placed:<id>#1`, `#2`… for the others. */
+export const placedIdOf = (key: string) => (key.startsWith('placed:') ? key.slice('placed:'.length).split('#')[0]! : null)
 
 export const homeSpecFor = (lodgingId: string | null | undefined): HomeSpec | null =>
   HOME_GRID[normalizeLodging(lodgingId)] ?? null
@@ -146,6 +148,38 @@ export function layoutWithPlaced(
     const candidates = [sides[`${fx},${fz}` as keyof typeof sides], ...Object.values(sides)].flat()
     const side = candidates.find(([x, z]) => free(x, z))
     if (!side) continue
+    const tileCentre = ([tx, tz]: [number, number]): [number, number] => [spec.ox + (tx + 0.5) * HOME_TILE, spec.oz + (tz + 0.5) * HOME_TILE]
+
+    // Per-model seat data (sofa seats, mattress height, which way a chair faces…), turned with the piece
+    const placedSeats = seatsFor(item.model, [(rect[0] + rect[2]) / 2, (rect[1] + rect[3]) / 2], p.rot)
+    if (placedSeats) {
+      const free_ = candidates.filter(([x, z]) => free(x, z))
+      const topY = Math.max(item.height, 0.3)
+      placedSeats.seats.forEach((seat, i) => {
+        // Walk up to the free tile nearest this seat (the piece's front side wins a tie)
+        const near = free_
+          .map((tile) => {
+            const c = tileCentre(tile)
+            const front = tile[0] === side[0] && tile[1] === side[1] ? -0.01 : 0
+            return { c, d: Math.hypot(c[0] - seat.floor[0], c[1] - seat.floor[1]) + front }
+          })
+          .sort((a, b) => a.d - b.d)[0]!.c
+        const key = `${placedKey(p.id)}${seatSuffix(i)}` as SpotKey
+        spots[key] = { approach: near, at: seat.at, heading: seat.heading }
+        tapBoxes[key] =
+          placedSeats.seats.length === 1
+            ? [rect[0], 0, rect[1], rect[2], topY, rect[3]]
+            : [
+                Math.max(rect[0], seat.floor[0] - SEAT_TAP),
+                0,
+                Math.max(rect[1], seat.floor[1] - SEAT_TAP),
+                Math.min(rect[2], seat.floor[0] + SEAT_TAP),
+                topY,
+                Math.min(rect[3], seat.floor[1] + SEAT_TAP),
+              ]
+      })
+      continue
+    }
     const approach: [number, number] = [spec.ox + (side[0] + 0.5) * HOME_TILE, spec.oz + (side[1] + 0.5) * HOME_TILE]
     const cx = (rect[0] + rect[2]) / 2
     const cz = (rect[1] + rect[3]) / 2
