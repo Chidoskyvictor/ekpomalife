@@ -6,6 +6,9 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useGame } from '@/hooks/use-game'
 import { runTimed } from '@/lib/game/activity'
+import { useStreak } from '@/lib/game/daily-api'
+import { getPlace } from '@/lib/game/places'
+import { playSfx } from '@/lib/audio/sfx'
 import { missionAction, refreshMissions, ROLE_TAG, useMissions, type MissionView } from '@/lib/game/missions-api'
 import { pushNavigation } from '@/lib/navigation/safe-nav'
 import base from '@/components/hud/map-place-sheet.module.css'
@@ -22,6 +25,7 @@ export function MissionsSheet({ open, onClose }: { open: boolean; onClose: () =>
   const router = useRouter()
   const { state, isGuest, select, notifyToast, refreshServer } = useGame()
   const view = useMissions(!isGuest)
+  const streak = useStreak(!isGuest)
   const [busy, setBusy] = useState<string | null>(null)
   const [, setTick] = useState(0)
 
@@ -62,6 +66,7 @@ export function MissionsSheet({ open, onClose }: { open: boolean; onClose: () =>
     await runTimed({ emoji: m.emoji, title: m.title, seconds: m.seconds }, async () => {
       const done = await missionAction('finish', m.id)
       notifyToast(done.ok ? done.message : done.error, done.ok && !done.message.startsWith('🚨'))
+      if (done.ok && !done.message.startsWith('🚨')) playSfx('missionDone')
       void refreshServer()
     })
     setBusy(null)
@@ -95,76 +100,101 @@ export function MissionsSheet({ open, onClose }: { open: boolean; onClose: () =>
       </header>
 
       {view ? (
-        <>
-          <div className={styles.summary}>
-            <span className={styles.ring} style={{ ['--done' as string]: (done / Math.max(1, total)) * 100 }}>
-              {done}/{total}
-            </span>
-            <div className={styles.summaryText}>
-              <strong>{view.bonusPaid ? 'Daily bonus collected 🎁' : `Do all ${total} for the daily bonus`}</strong>
-              <span>+₦{view.bonus.toLocaleString()} when all {total} are done</span>
+        <div className={styles.body}>
+          {streak ? (
+            <div className={styles.streak}>
+              <div className={styles.streakHead}>
+                <strong>{streak.streak > 0 ? `${streak.streak}-day streak 🔥` : 'Start your streak 🔥'}</strong>
+                <span>best {streak.best}</span>
+              </div>
+              <div className={styles.segments} aria-hidden="true">
+                {streak.rewards.map((r, i) => (
+                  <span key={i} className={`${styles.seg} ${i < streak.cycleDay ? styles.segOn : ''}`} title={`₦${r.toLocaleString()}`}>
+                    {i === 6 ? '🎁' : i + 1}
+                  </span>
+                ))}
+              </div>
+              <p className={styles.streakNote}>
+                {streak.checkedInToday
+                  ? `Checked in today ✓ — come back tomorrow · best ${streak.best}`
+                  : `Check in to earn ₦${streak.nextReward.toLocaleString()}`}
+              </p>
             </div>
+          ) : null}
+
+          <div className={styles.bonusRow}>
+            <strong>
+              {done}/{total}
+            </strong>
+            <span>
+              {view.bonusPaid ? 'Daily Bonus collected 🎁' : `Do all ${total} for the Daily Bonus (+₦${view.bonus.toLocaleString()})`}
+            </span>
           </div>
 
           <div className={styles.list}>
             {view.missions.map((m) => {
               const atPlace = m.places.includes(here)
               const running = busy === m.id
+              const placeName = getPlace(m.places[0])?.label ?? 'around Ekpoma'
+              const where = m.auto === 'bond' ? 'Anywhere' : m.places.length > 1 ? `${placeName} or nearby` : placeName
               return (
                 <article key={m.id} className={`${styles.card} ${m.done ? styles.cardDone : ''}`}>
-                  <span className={styles.emoji} aria-hidden="true">
-                    {m.emoji}
-                  </span>
-                  <div className={styles.info}>
-                    <div className={styles.tagRow}>
-                      <span className={styles.tag}>{ROLE_TAG[m.role]}</span>
-                      {m.risky ? <span className={`${styles.tag} ${styles.tagRisk}`}>RISKY</span> : null}
+                  <div className={styles.cardTop}>
+                    <span className={styles.emoji} aria-hidden="true">
+                      {m.emoji}
+                    </span>
+                    <div className={styles.info}>
+                      <div className={styles.tagRow}>
+                        <span className={styles.tag}>{ROLE_TAG[m.role]}</span>
+                        {m.risky ? <span className={`${styles.tag} ${styles.tagRisk}`}>RISKY</span> : null}
+                      </div>
+                      <p className={styles.title}>{m.title}</p>
+                      <p className={styles.where}>
+                        📍 {where}
+                        {m.seconds ? ` · ~${m.seconds}s` : ''}
+                        {m.hours ? ` · ${m.hours}` : ''}
+                      </p>
                     </div>
-                    <p className={styles.title}>{m.title}</p>
-                    <p className={styles.blurb}>
-                      {m.blurb}
-                      {m.hours ? ` · ${m.hours}` : ''}
-                      {m.seconds ? ` · ${m.seconds}s` : ''}
-                    </p>
-                    <p className={styles.meta}>
-                      +₦{m.reward.toLocaleString()}
-                      {m.progress ? ` · ${m.progress.now}/${m.progress.goal} people` : ''}
-                    </p>
+                    <span className={styles.reward}>+₦{m.reward.toLocaleString()}</span>
                   </div>
-                  <div className={styles.side}>
-                    {m.done ? (
-                      <span className={styles.check}>Done ✅</span>
-                    ) : m.auto === 'bond' ? null : m.auto === 'lecture' ? (
-                      <button type="button" className={styles.go} onClick={() => go(m)}>
-                        Go
-                      </button>
-                    ) : atPlace ? (
-                      <button type="button" className={styles.go} disabled={Boolean(busy)} onClick={() => void start(m)}>
-                        {running ? '…' : 'Start'}
-                      </button>
-                    ) : (
-                      <button type="button" className={styles.go} onClick={() => go(m)}>
-                        Go
-                      </button>
-                    )}
-                    {!m.done && !view.swapped ? (
-                      <button
-                        type="button"
-                        className={styles.swap}
-                        aria-label={`Swap ${m.title}`}
-                        disabled={Boolean(busy)}
-                        onClick={() => void swap(m)}
-                      >
-                        <RefreshCw size={14} aria-hidden="true" />
-                      </button>
-                    ) : null}
-                  </div>
+                  <p className={styles.how}>
+                    <b>How?</b> {m.blurb}
+                    {m.progress ? ` (${m.progress.now}/${m.progress.goal} people)` : ''}
+                  </p>
+                  {m.done ? (
+                    <p className={styles.check}>Done ✅</p>
+                  ) : (
+                    <div className={styles.actions}>
+                      {m.auto === 'bond' ? (
+                        <span className={styles.auto}>Counts as you chat and wave</span>
+                      ) : atPlace && m.auto !== 'lecture' ? (
+                        <button type="button" className={styles.go} disabled={Boolean(busy)} onClick={() => void start(m)}>
+                          {running ? '…' : 'Start'}
+                        </button>
+                      ) : (
+                        <button type="button" className={styles.go} onClick={() => go(m)}>
+                          Go
+                        </button>
+                      )}
+                      {!view.swapped ? (
+                        <button
+                          type="button"
+                          className={styles.swap}
+                          aria-label={`Swap ${m.title}`}
+                          disabled={Boolean(busy)}
+                          onClick={() => void swap(m)}
+                        >
+                          <RefreshCw size={16} aria-hidden="true" />
+                        </button>
+                      ) : null}
+                    </div>
+                  )}
                 </article>
               )
             })}
           </div>
           <p className={styles.note}>{view.swapped ? 'Free swap used today' : '1 free swap today: tap ↻ on a mission'}</p>
-        </>
+        </div>
       ) : null}
     </section>,
     document.body,

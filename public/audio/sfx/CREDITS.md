@@ -36,3 +36,7 @@ Processing: all files mono 22.05 kHz MP3 (~64 kbps or lower) to stay under 50 KB
 - notify.mp3: universfield, "new notification 051" (new incoming message, info notices)
 - sent.mp3: universfield, "new notification 040" (chat message sent)
 - invite.mp3: dragon-studio, "notification sound effect" (an invitation to go somewhere arrives)
+
+## Daily hooks (check-in, mission done, story popup)
+
+No new files: `checkin` reuses reveal.mp3 (Tada!, Yoshicakes77), `missionDone` reuses success.mp3 (PiesHelpfulOven) and `story` reuses notify.mp3 (LegitCheese). All CC0 and already credited above; they are registered under their own names in `lib/audio/sfx.ts` so a dedicated clip can be dropped in later.

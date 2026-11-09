@@ -4,6 +4,7 @@ import { BodyPortal } from '@/components/ui/body-portal'
 import { HudToast } from '@/components/hud/hud-toast'
 import { IslandToast } from '@/components/hud/island-toast'
 import { LaunchInvite } from '@/components/hud/launch-invite'
+import { DailyMoments } from '@/components/hud/daily-moments'
 import type { Toast } from '@/hooks/use-game'
 import type { GameState } from '@/lib/game/types'
 import styles from './toast-layer.module.css'
@@ -23,6 +24,7 @@ export function ToastLayer({
         <HudToast toast={toast} />
       </div>
       {state ? <LaunchInvite /> : null}
+      {state ? <DailyMoments /> : null}
     </BodyPortal>
   )
 }
