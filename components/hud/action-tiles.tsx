@@ -35,13 +35,11 @@ export function ActionTiles() {
             <span className={styles.emoji} aria-hidden="true">
               {activity.emoji}
             </span>
-            <button type="button" className={styles.cancel} onClick={cancelActivity} aria-label={`Stop ${activity.title}`}>
-              <X size={11} strokeWidth={3} />
-            </button>
           </div>
-          <span className={styles.caption} aria-label={`${activity.title}, ${left} seconds left`}>
+          <button type="button" className={`${styles.cancel} ${styles.slotButton}`} onClick={cancelActivity} aria-label={`Stop ${activity.title}, ${left} seconds left`}>
+            <X size={13} strokeWidth={3} aria-hidden="true" />
             {left}s
-          </span>
+          </button>
         </div>
       ) : null}
       {queue.map((q) => (
@@ -50,11 +48,11 @@ export function ActionTiles() {
             <span className={styles.emoji} aria-hidden="true">
               {q.emoji}
             </span>
-            <button type="button" className={styles.cancel} onClick={q.onRemove} aria-label={`Remove ${q.title}`}>
-              <X size={11} strokeWidth={3} />
-            </button>
           </div>
-          <span className={styles.caption}>next</span>
+          <button type="button" className={`${styles.cancel} ${styles.slotButton}`} onClick={q.onRemove} aria-label={`Remove ${q.title}`}>
+            <X size={13} strokeWidth={3} aria-hidden="true" />
+            next
+          </button>
         </div>
       ))}
     </div>

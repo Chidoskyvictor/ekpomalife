@@ -3,12 +3,15 @@
 import dynamic from 'next/dynamic'
 import { useEffect, useRef, useState } from 'react'
 import { hapticTap } from '@/components/hud/haptic'
-import { type Trip, tripShown } from '@/lib/game/trip'
+import { Eye, EyeOff, Map as MapIcon, Megaphone, SkipForward, Video } from 'lucide-react'
+import { skipTrip, type Trip, tripShown } from '@/lib/game/trip'
 import type { DriveMode, DriveView } from './drive-scene'
 import { TripMap, tripProgress, useTripClock, VEHICLE } from './trip-map'
 import styles from './drive-trip.module.css'
 
 const DriveCanvas = dynamic(() => import('./drive-canvas').then((m) => m.DriveCanvas), { ssr: false })
+
+const MODE_LABEL = { trek: 'Walking', keke: 'Keke', okada: 'Okada' } as const
 
 const VIEWS: { id: DriveView; label: string }[] = [
   { id: 'chase', label: 'Chase' },
@@ -93,6 +96,8 @@ export function DriveTrip({ trip }: { trip: Trip }) {
   const mode: DriveMode = trip.mode === 'okada' ? 'okada' : 'keke'
   const [view, setView] = useState<DriveView>('chase')
   const [showMap, setShowMap] = useState(false)
+  // Clean view: only a small eye button stays
+  const [hidden, setHidden] = useState(false)
   const horn = useHorn()
   // How long the ride was planned for (Skip shortens minMs, but the gate keeps its place)
   const plannedMs = useRef(trip.minMs).current
@@ -104,57 +109,91 @@ export function DriveTrip({ trip }: { trip: Trip }) {
   useRideSounds(progress >= 0.9)
   const waiting = progress >= 0.9 && !trip.ready && trip.minMs <= now - trip.startedAt
 
+  const skipped = trip.minMs === 0
+  const timeText = waiting || skipped ? 'Arriving…' : pct >= 100 ? 'Here' : `0:${String(left).padStart(2, '0')} left`
+  const viewLabel = VIEWS.find((v) => v.id === view)!.label
+
   return (
     <div className={styles.drive} data-done={trip.done} role="status" aria-live="polite">
       <div className={styles.canvas} aria-hidden="true">
         <DriveCanvas mode={mode} view={view} route={trip.route} plannedMs={plannedMs} appearance={trip.appearance} onShown={() => tripShown(trip.id)} />
       </div>
 
-      <div className={styles.glass}>
-        <span className={styles.glassIcon} aria-hidden="true">{VEHICLE[trip.mode]}</span>
-        <span className={styles.glassTo}>{trip.label}</span>
-        <span className={styles.glassTime}>
-          {waiting ? '…' : pct >= 100 ? 'Here' : `0:${String(left).padStart(2, '0')}`}
-        </span>
-        <span className={styles.glassBar} role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}>
-          <span style={{ width: `${pct}%` }} />
-        </span>
-      </div>
-      {mode === 'okada' && trip.route === 'in' ? (
-        <p className={styles.note}>Okada drops you at the gate</p>
-      ) : null}
-
-      {showMap ? (
-        <div className={styles.map}>
-          <TripMap trip={trip} progress={progress} />
+      <div className={styles.hud} data-hidden={hidden}>
+        <div className={styles.hudBar}>
+          <span className={styles.barIcon} aria-hidden="true">
+            {VEHICLE[trip.mode]}
+          </span>
+          <div className={styles.barText}>
+            <strong className={styles.barTo}>{trip.label}</strong>
+            <span className={styles.barMeta}>
+              {MODE_LABEL[trip.mode]} · {timeText}
+            </span>
+          </div>
+          <button
+            type="button"
+            className={styles.skipBtn}
+            disabled={skipped || trip.done}
+            onClick={() => {
+              hapticTap()
+              skipTrip(trip.id)
+            }}
+          >
+            <SkipForward size={15} aria-hidden="true" />
+            Skip
+          </button>
+          <span className={styles.barLine} role="progressbar" aria-label="Trip progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}>
+            <span style={{ width: `${pct}%` }} />
+          </span>
         </div>
-      ) : null}
+        {mode === 'okada' && trip.route === 'in' ? <p className={styles.note}>Okada drops you at the gate</p> : null}
 
-      <div className={styles.round}>
+        {showMap ? (
+          <div className={styles.map}>
+            <TripMap trip={trip} progress={progress} />
+          </div>
+        ) : null}
+      </div>
+
+      <div className={styles.dock}>
+        {hidden ? null : (
+          <>
+            <button
+              type="button"
+              className={styles.dockBtn}
+              aria-label={`Camera: ${viewLabel}. Tap to switch`}
+              onClick={() => {
+                const i = VIEWS.findIndex((v) => v.id === view)
+                setView(VIEWS[(i + 1) % VIEWS.length]!.id)
+              }}
+            >
+              <Video size={18} aria-hidden="true" />
+              <span>{viewLabel}</span>
+            </button>
+            <button
+              type="button"
+              className={styles.dockBtn}
+              aria-label="Horn"
+              onClick={() => {
+                hapticTap()
+                horn()
+              }}
+            >
+              <Megaphone size={18} aria-hidden="true" />
+            </button>
+            <button type="button" className={styles.dockBtn} aria-label="Map" aria-pressed={showMap} onClick={() => setShowMap((on) => !on)}>
+              <MapIcon size={18} aria-hidden="true" />
+            </button>
+          </>
+        )}
         <button
           type="button"
-          className={styles.roundBtn}
-          aria-label={`Camera: ${VIEWS.find((v) => v.id === view)?.label}. Tap to switch`}
-          onClick={() => {
-            const i = VIEWS.findIndex((v) => v.id === view)
-            setView(VIEWS[(i + 1) % VIEWS.length]!.id)
-          }}
+          className={`${styles.dockBtn} ${hidden ? styles.dockQuiet : ''}`}
+          aria-label={hidden ? 'Show ride controls' : 'Hide ride controls'}
+          aria-pressed={hidden}
+          onClick={() => setHidden((h) => !h)}
         >
-          🎥
-        </button>
-        <button
-          type="button"
-          className={styles.roundBtn}
-          aria-label="Horn"
-          onClick={() => {
-            hapticTap()
-            horn()
-          }}
-        >
-          📣
-        </button>
-        <button type="button" className={styles.roundBtn} aria-label="Map" aria-pressed={showMap} onClick={() => setShowMap((on) => !on)}>
-          🗺️
+          {hidden ? <Eye size={18} aria-hidden="true" /> : <EyeOff size={18} aria-hidden="true" />}
         </button>
       </div>
     </div>

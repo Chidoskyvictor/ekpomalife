@@ -118,9 +118,10 @@
 
 .map {
   position: absolute;
-  right: calc(68px + env(safe-area-inset-right));
-  bottom: calc(16px + env(safe-area-inset-bottom));
-  width: min(260px, 60vw);
+  right: max(12px, env(safe-area-inset-right));
+  bottom: calc(72px + env(safe-area-inset-bottom));
+  width: min(260px, 70vw);
+  pointer-events: auto;
   padding: 8px;
   border-radius: 20px;
   background: #fff;
@@ -175,55 +176,113 @@
   }
 }
 
-/* Minimal glass: one slim pill on top, three small round buttons bottom-right */
-.glass {
+/*
+ * Ride HUD: one glassy bar (where, how, time left, progress, Skip) at the top, one small dock at the
+ * bottom right (camera, horn, map, hide). Everything is at least 44px and inside the safe areas.
+ */
+.hud {
   position: absolute;
-  top: max(12px, env(safe-area-inset-top));
-  left: 50%;
+  inset: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+.hud[data-hidden='true'] {
+  opacity: 0;
+}
+.hudBar {
+  position: absolute;
+  top: max(10px, env(safe-area-inset-top));
+  left: max(12px, env(safe-area-inset-left));
+  right: max(12px, env(safe-area-inset-right));
   display: flex;
-  width: min(86vw, 340px);
+  max-width: 420px;
   align-items: center;
-  gap: 8px;
-  overflow: hidden;
-  padding: 8px 14px 10px;
-  border: 1px solid rgba(255, 255, 255, 0.45);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.28);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  gap: 10px;
+  margin-inline: auto;
+  padding: 8px 8px 13px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.62);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+  backdrop-filter: blur(18px) saturate(1.4);
+  -webkit-backdrop-filter: blur(18px) saturate(1.4);
   color: #111;
   font-family: var(--font-jakarta), system-ui, sans-serif;
-  transform: translateX(-50%);
+  pointer-events: auto;
 }
-.glassIcon {
-  font-size: 16px;
+.hud[data-hidden='true'] .hudBar {
+  pointer-events: none;
 }
-.glassTo {
+.barIcon {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex: none;
+  place-items: center;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.7);
+  font-size: 20px;
+}
+.barText {
+  display: flex;
   min-width: 0;
   flex: 1;
+  flex-direction: column;
+  gap: 1px;
+}
+.barTo {
   overflow: hidden;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 800;
+  line-height: 1.2;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.glassTime {
+.barMeta {
+  color: #4b5563;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+.skipBtn {
+  display: inline-flex;
+  min-width: 44px;
+  min-height: 44px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  background: #111827;
+  color: #fff;
+  font: inherit;
   font-size: 14px;
   font-weight: 800;
-  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
-.glassBar {
+.skipBtn:active {
+  transform: scale(0.96);
+}
+.skipBtn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.barLine {
   position: absolute;
-  right: 14px;
-  bottom: 4px;
-  left: 14px;
+  right: 18px;
+  bottom: 5px;
+  left: 18px;
   height: 3px;
   overflow: hidden;
   border-radius: 999px;
   background: rgba(0, 0, 0, 0.12);
 }
-.glassBar span {
+.barLine span {
   display: block;
   height: 100%;
   border-radius: inherit;
@@ -232,7 +291,7 @@
 }
 .note {
   position: absolute;
-  top: calc(max(12px, env(safe-area-inset-top)) + 50px);
+  top: calc(max(10px, env(safe-area-inset-top)) + 72px);
   left: 50%;
   margin: 0;
   padding: 4px 10px;
@@ -244,29 +303,41 @@
   transform: translateX(-50%);
   white-space: nowrap;
 }
-.round {
+.dock {
   position: absolute;
   right: max(12px, env(safe-area-inset-right));
-  bottom: calc(16px + env(safe-area-inset-bottom));
+  bottom: calc(14px + env(safe-area-inset-bottom));
   display: flex;
-  flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
-.roundBtn {
-  display: grid;
-  width: 44px;
-  height: 44px;
-  place-items: center;
-  border: 1px solid rgba(255, 255, 255, 0.5);
+.dockBtn {
+  display: inline-flex;
+  min-width: 44px;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.3);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  font-size: 19px;
+  background: rgba(255, 255, 255, 0.62);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.14);
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  color: #111;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
   cursor: pointer;
+  touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 }
-.roundBtn[aria-pressed='true'] {
-  background: rgba(255, 255, 255, 0.9);
+.dockBtn:active {
+  transform: scale(0.96);
+}
+.dockBtn[aria-pressed='true'] {
+  background: #fff;
+}
+.dockQuiet {
+  opacity: 0.55;
 }

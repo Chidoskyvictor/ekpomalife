@@ -47,7 +47,7 @@ const MIN_MS: Record<TripMode, number> = { trek: 700, keke: 1200, okada: 900 }
 
 /**
  * How long the 3D ride plays, from the trip's real minutes (OpenStreetMap road distance at keke /
- * okada speed): 20 s for a hop round the corner, up to 45 s across town. No skipping.
+ * okada speed): 20 s for a hop round the corner, up to 45 s across town. Skip jumps to arrival: the server has already moved you and charged the fare when the ride starts, so the timer is only the show.
  */
 export function driveMs(minutes: number | undefined): number {
   const m = Number.isFinite(minutes) ? (minutes as number) : 6
@@ -120,7 +120,7 @@ export function tripMoved(id: number) {
   patch({ moved: true, movedAt: Date.now(), ready: trip.scene === 'map' && readyScenes.has('map') })
 }
 
-/** Skip the drive: the trip still waits for the server and the next scene, just not for the timer. */
+/** Skip the drive (the Skip button): the trip still waits for the server and the next scene, just not for the timer. */
 export function skipTrip(id: number) {
   if (trip?.id !== id) return
   patch({ minMs: 0 })

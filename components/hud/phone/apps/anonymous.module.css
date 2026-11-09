@@ -38,7 +38,7 @@
 .iconBtnDark {
   display: inline-flex;
   min-width: 40px;
-  height: 40px;
+  height: 44px;
   align-items: center;
   justify-content: center;
   border: 0;
@@ -46,12 +46,14 @@
   background: transparent;
   color: inherit;
   cursor: pointer;
+  min-width: 44px;
 }
 
 .iconBtnDark {
   min-width: 36px;
-  height: 36px;
+  height: 44px;
   color: #3b2a63;
+  min-width: 44px;
 }
 
 .warn {
