@@ -1,41 +1,26 @@
 """
-Innovation Hub interior -> public/models/innovation-hub-raw.glb (then meshopt-compressed).
-Headless:  blender -b --factory-startup -P scripts/blender/innovation-hub.py -- <out.glb>
-The room build below is the user's cutaway office script, unchanged; after it, the outside
-ground, lights and camera are dropped (the game has its own), the room is centred on the origin
-and meshes are joined per material so ~150 floor planks become a handful of draw calls.
+Innovation Hub: a big modern open-plan office (white porcelain tile floor, oak slat wall, teal feature
+wall behind reception, tall windows, coffee bar, desks with monitors, meeting table, lounge) standing in
+the same courtyard as the Student Conference hall: paving, kerbs, ring road, cream campus blocks (different
+buildings, same facade texture), tree ferns, plus a few parked cars. -> public/models/innovation-hub.glb
+Headless:  blender -b --factory-startup -P scripts/blender/innovation-hub.py -- <out.glb> <tmp dir>
+(then: npx gltf-transform meshopt <out.glb> public/models/innovation-hub.glb)
+
+GAME coordinates: game (x, y, z) = Blender (x, -y, z). Walls at game -z and +x, where the room camera expects
+them. Room floor x -10..6, z -4.5..6.5. Desks, chairs, stools and reception keep their old positions: keep in
+sync with lib/game/hub-desks.ts and INNOVATION_HUB in lib/game/room-layouts.ts.
 """
-import bpy, random, math, sys
+import bpy, math, sys, os, random
 
-random.seed(21)
+args = sys.argv[sys.argv.index("--") + 1:]
+OUT, TMP = args[0], args[1]
+os.makedirs(TMP, exist_ok=True)
+random.seed(7)
 
-# ================= SETTINGS =================
-W, D, H = 12.0, 9.0, 3.4        # room width (x), depth (y), wall height
-COLOURFUL_FLOOR = True          # False = natural wood tones only
-COLOURED_PLANK_CHANCE = 0.30    # share of planks stained in colour
-DESK_ROWS, DESK_COLS = 2, 3     # work desks
-# ============================================
-
-if bpy.context.object and bpy.context.object.mode != 'OBJECT':
-    bpy.ops.object.mode_set(mode='OBJECT')
 bpy.ops.object.select_all(action='SELECT')
 bpy.ops.object.delete()
-for blk in (bpy.data.meshes, bpy.data.materials, bpy.data.lights, bpy.data.cameras):
-    for b in list(blk):
-        blk.remove(b)
-
-col = bpy.data.collections.new("Interior")
+col = bpy.data.collections.new("Hall")
 bpy.context.scene.collection.children.link(col)
-
-
-def mat(name, color, rough=0.55, metal=0.0):
-    m = bpy.data.materials.new(name)
-    m.use_nodes = True
-    b = m.node_tree.nodes["Principled BSDF"]
-    b.inputs["Base Color"].default_value = (*color, 1)
-    b.inputs["Roughness"].default_value = rough
-    b.inputs["Metallic"].default_value = metal
-    return m
 
 
 def link(o):
@@ -45,134 +30,609 @@ def link(o):
     return o
 
 
-def box(name, loc, size, m):
+# ---------- small generated textures (saved as PNG, embedded in the GLB) ----------
+def texture(name, size, fn):
+    img = bpy.data.images.new(name, size, size, alpha=False)
+    px = [0.0] * (size * size * 4)
+    for y in range(size):
+        for x in range(size):
+            r, g, b = fn(x, y, size)
+            i = (y * size + x) * 4
+            px[i], px[i + 1], px[i + 2], px[i + 3] = r, g, b, 1.0
+    img.pixels = px
+    path = os.path.join(TMP, name + ".png")
+    img.filepath_raw = path
+    img.file_format = 'PNG'
+    img.save()
+    return img
+
+
+def noise(a=0.06):
+    return (random.random() - 0.5) * a
+
+
+def wood(x, y, s):
+    # parquet planks: 8 planks across, staggered joints, grain streaks
+    pw = s // 8
+    k = x // pw
+    off = (k * 37) % s
+    yy = (y + off) % s
+    tone = 0.85 + ((k * 53) % 7) / 40
+    grain = 0.04 * math.sin((x % pw) * 0.9 + yy * 0.05 + k)
+    edge = 0.55 if (x % pw == 0 or yy % (s // 2) == 0) else 1.0
+    n = noise(0.05)
+    return ((0.55 + grain + n) * tone * edge, (0.34 + grain * 0.7 + n) * tone * edge, (0.18 + n) * tone * edge)
+
+
+def floor_tile(x, y, s):
+    # big square ceramic tiles (2 per texture), thin grout, faint streaks, wood brown
+    t = s // 2
+    grout = (x % t < 2 or y % t < 2)
+    if grout:
+        return (0.25, 0.16, 0.09)
+    k = (x // t) * 3 + (y // t)
+    vein = 0.03 * math.sin(x * 0.11 + y * 0.07 + k * 2.1) + 0.02 * math.sin(x * 0.03 - y * 0.05 + k)
+    n = noise(0.025)
+    return (0.55 + vein + n, 0.34 + vein * 0.7 + n, 0.18 + n)  # wood brown, like the old parquet
+
+
+def fabric(x, y, s):
+    weave = 0.04 if (x + y) % 2 else -0.02
+    n = noise(0.05)
+    return (0.45 + weave + n, 0.07 + weave * 0.5 + n * 0.3, 0.10 + weave * 0.5 + n * 0.3)
+
+
+def carpet(x, y, s):
+    n = noise(0.06)
+    border = 0.75 if (x < 6 or y < 6 or x > s - 7 or y > s - 7) else 1.0
+    return (0.10 * border + n * 0.3, 0.16 * border + n * 0.3, 0.32 * border + n)
+
+
+def wall(x, y, s):
+    # cream plaster above, walnut wainscot below with a gold rail line
+    n = noise(0.035)
+    if y < s * 0.32:
+        seam = 0.7 if x % (s // 4) < 2 else 1.0
+        return ((0.40 + n) * seam, (0.25 + n) * seam, (0.14 + n) * seam)
+    if y < s * 0.34:
+        return (0.78, 0.62, 0.30)
+    return (0.92 + n, 0.88 + n, 0.78 + n)
+
+
+def asphalt(x, y, s):
+    n = noise(0.08) + (0.05 if random.random() < 0.03 else 0)
+    return (0.20 + n, 0.20 + n, 0.21 + n)
+
+
+def paving(x, y, s):
+    # interlocking pavers in a herringbone: 2:1 bricks, alternating direction, grey with a few red
+    u = s // 8
+    bx, by = x // u, y // u
+    k = (bx + by) % 4
+    if k < 2:  # horizontal brick, 2 units wide
+        sx = (x - (k * u)) % (2 * u)
+        edge = sx < 2 or (y % u) < 2
+        bid = ((x - k * u) // (2 * u), by)
+    else:  # vertical brick, 2 units tall
+        sy = (y - ((k - 2) * u)) % (2 * u)
+        edge = sy < 2 or (x % u) < 2
+        bid = (bx, (y - (k - 2) * u) // (2 * u))
+    if edge:
+        return (0.30, 0.29, 0.28)
+    h = (bid[0] * 73 + bid[1] * 151) % 11
+    n = noise(0.05)
+    if h == 0:
+        return (0.62 + n, 0.30 + n, 0.22 + n)
+    shade = 0.56 + (h % 4) * 0.035
+    return (shade + n, shade - 0.01 + n, shade - 0.04 + n)
+
+
+def facade(x, y, s):
+    # one bay of a cream building: a window with a dark frame and a sill
+    n = noise(0.03)
+    wx0, wx1, wy0, wy1 = s * 0.22, s * 0.78, s * 0.30, s * 0.80
+    if wx0 <= x <= wx1 and wy0 <= y <= wy1:
+        if abs(x - s / 2) < 2 or x - wx0 < 3 or wx1 - x < 3 or y - wy0 < 3 or wy1 - y < 3:
+            return (0.22, 0.20, 0.18)
+        sky = 0.35 + (y - wy0) / (wy1 - wy0) * 0.25
+        return (0.30 + n, sky * 0.9 + n, sky + 0.1 + n)
+    if wy0 - 6 <= y < wy0 and wx0 - 4 <= x <= wx1 + 4:
+        return (0.80, 0.78, 0.72)
+    return (0.88 + n, 0.82 + n, 0.66 + n)
+
+
+def mat(name, color=None, img=None, rough=0.7, metal=0.0, emit=None):
+    m = bpy.data.materials.new(name)
+    m.use_nodes = True
+    nt = m.node_tree
+    b = nt.nodes["Principled BSDF"]
+    b.inputs["Roughness"].default_value = rough
+    b.inputs["Metallic"].default_value = metal
+    if img is not None:
+        t = nt.nodes.new("ShaderNodeTexImage")
+        t.image = img
+        nt.links.new(t.outputs["Color"], b.inputs["Base Color"])
+    else:
+        b.inputs["Base Color"].default_value = (*color, 1)
+    if emit is not None:
+        b.inputs["Emission Color"].default_value = (*emit, 1)
+        b.inputs["Emission Strength"].default_value = 1.0
+    return m
+
+
+S = 128
+tile_m = mat("HallTile", img=texture("halltile", S, floor_tile), rough=0.25)
+fabric_m = mat("ChairFabric", img=texture("fabric", 64, fabric), rough=0.9)
+carpet_m = mat("StageCarpet", img=texture("carpet", 64, carpet), rough=0.95)
+wall_m = mat("HallWall", img=texture("hallwall", S, wall), rough=0.85)
+asphalt_m = mat("Asphalt", img=texture("asphalt", 64, asphalt), rough=0.95)
+paving_m = mat("Paving", img=texture("paving", 128, paving), rough=0.9)
+facade_m = mat("Facade", img=texture("facade", 64, facade), rough=0.85)
+metal_m = mat("ChairMetal", (0.12, 0.12, 0.13), rough=0.35, metal=0.8)
+walnut_m = mat("Walnut", (0.30, 0.17, 0.09), rough=0.5)
+gold_m = mat("Gold", (0.83, 0.64, 0.25), rough=0.35, metal=0.8)
+screen_m = mat("Screen", (0.10, 0.25, 0.55), rough=0.3, emit=(0.08, 0.22, 0.50))
+banner_m = mat("Banner", (0.06, 0.32, 0.18), rough=0.8)
+white_m = mat("WhiteText", (0.97, 0.97, 0.95), rough=0.5, emit=(0.6, 0.6, 0.58))
+roof_m = mat("Roof", (0.60, 0.58, 0.55), rough=0.9)
+trim_m = mat("Trim", (0.95, 0.93, 0.88), rough=0.8)
+signbg_m = mat("SignBoard", (0.07, 0.23, 0.45), rough=0.6)
+line_m = mat("RoadLine", (0.95, 0.93, 0.85), rough=0.7)
+kerb_m = mat("Kerb", (0.80, 0.80, 0.78), rough=0.9)
+plant_m = mat("Plant", (0.20, 0.52, 0.22), rough=0.8)
+pot_m = mat("Pot", (0.85, 0.82, 0.75), rough=0.7)
+
+TILED = {}  # object -> texture tile size in metres (box-projected UVs)
+
+
+def box(name, x0, z0, x1, z1, y0, y1, m, tile=None):
     bpy.ops.mesh.primitive_cube_add(size=1)
     o = bpy.context.active_object
     o.name = name
-    o.scale = size
-    o.location = (loc[0] + size[0] / 2, loc[1] + size[1] / 2, loc[2] + size[2] / 2)
+    o.scale = (x1 - x0, z1 - z0, y1 - y0)
+    o.location = ((x0 + x1) / 2, -(z0 + z1) / 2, (y0 + y1) / 2)
     o.data.materials.append(m)
+    if tile:
+        TILED[o.name] = tile
     return link(o)
 
 
-def cyl(name, center, radius, depth, m, verts=24):
-    bpy.ops.mesh.primitive_cylinder_add(vertices=verts, radius=radius, depth=depth,
-                                        location=(center[0], center[1], center[2] + depth / 2))
+def cyl(name, x, z, y0, h, r, m, verts=12):
+    bpy.ops.mesh.primitive_cylinder_add(vertices=verts, radius=r, depth=h, location=(x, -z, y0 + h / 2))
     o = bpy.context.active_object
     o.name = name
     o.data.materials.append(m)
     return link(o)
 
 
-NATURAL = [(0.62, 0.38, 0.18), (0.70, 0.45, 0.22), (0.52, 0.31, 0.14), (0.76, 0.52, 0.28)]
-STAINS = [(0.20, 0.55, 0.55), (0.85, 0.35, 0.30), (0.90, 0.70, 0.20),
-          (0.35, 0.60, 0.35), (0.45, 0.40, 0.70), (0.90, 0.50, 0.65)]
-wood_mats = [mat(f"WoodN{i}", c, 0.45) for i, c in enumerate(NATURAL)]
-stain_mats = [mat(f"WoodC{i}", c, 0.45) for i, c in enumerate(STAINS)]
+def boxuv(o, tile):
+    """World-space box projection so textures keep their size on any box."""
+    me = o.data
+    uv = me.uv_layers.active.data
+    for poly in me.polygons:
+        n = poly.normal
+        ax = max(range(3), key=lambda i: abs(n[i]))
+        for li in poly.loop_indices:
+            v = me.vertices[me.loops[li].vertex_index].co
+            if ax == 2:
+                u, w = v.x, v.y
+            elif ax == 0:
+                u, w = v.y, v.z
+            else:
+                u, w = v.x, v.z
+            uv[li].uv = (u / tile[0], w / tile[1])
 
-slab_m   = mat("Slab",     (0.35, 0.33, 0.30), 0.8)
-wall_m   = mat("Wall",     (0.80, 0.80, 0.78), 0.9)
-wall2_m  = mat("WallBack", (0.86, 0.86, 0.84), 0.9)
-trim_m   = mat("Trim",     (0.95, 0.95, 0.93), 0.6)
-accent_m = mat("Accent",   (0.20, 0.55, 0.60), 0.7)
-sign_m   = mat("SignBoard", (0.04, 0.04, 0.05), 0.4)
-tan_m    = mat("DeskTan",  (0.80, 0.65, 0.45), 0.55)
-dark_m   = mat("BarDark",  (0.20, 0.12, 0.08), 0.5)
-top_m    = mat("BarTop",   (0.88, 0.86, 0.80), 0.4)
-metal_m  = mat("Metal",    (0.10, 0.10, 0.11), 0.35, 0.8)
-ground_m = mat("Ground",   (0.62, 0.78, 0.58), 0.95)
 
-DESK_COLOURS = [(0.85, 0.35, 0.30), (0.20, 0.55, 0.60), (0.90, 0.70, 0.20),
-                (0.45, 0.40, 0.70), (0.35, 0.60, 0.35), (0.90, 0.50, 0.65)]
-CHAIR_COLOURS = [(0.20, 0.35, 0.80), (0.85, 0.35, 0.50), (0.25, 0.65, 0.40),
-                 (0.95, 0.60, 0.15), (0.50, 0.30, 0.75), (0.15, 0.60, 0.70)]
+def text(name, body, x, y, z, size, m, face='+z', depth=0.04):
+    bpy.ops.object.text_add(location=(0, 0, 0))
+    t = bpy.context.active_object
+    t.data.body = body
+    t.data.size = size
+    t.data.extrude = depth
+    t.data.align_x = 'CENTER'
+    t.data.align_y = 'CENTER'
+    t.rotation_euler = (math.radians(90), 0, 0 if face == '+z' else math.radians(-90))
+    t.location = (x, -z, y)
+    bpy.ops.object.convert(target='MESH')
+    t = bpy.context.active_object
+    t.name = name
+    t.data.materials.clear()
+    t.data.materials.append(m)
+    return link(t)
 
-box("Ground", (-14, -14, -0.55), (W + 28, D + 28, 0.1), ground_m)
-box("FloorSlab", (-0.2, -0.2, -0.45), (W + 0.2, D + 0.2, 0.45), slab_m)
 
-plank_w = 0.26
-n = int(W / plank_w)
-for i in range(n):
-    if COLOURFUL_FLOOR and random.random() < COLOURED_PLANK_CHANCE:
-        m = random.choice(stain_mats)
+# ================= extra textures + materials for the hub =================
+def porcelain(x, y, s):
+    # big white porcelain tiles (2 x 2 per texture), thin light-grey grout, a faint grey veining
+    t = s // 2
+    if x % t < 2 or y % t < 2:
+        return (0.70, 0.70, 0.69)
+    k = (x // t) * 3 + (y // t)
+    vein = 0.012 * math.sin(x * 0.09 + y * 0.05 + k * 2.3) + 0.01 * math.sin(x * 0.02 - y * 0.06 + k)
+    n = noise(0.012)
+    v = 0.93 + vein + n
+    return (v, v, v - 0.005)
+
+
+def plaster(x, y, s):
+    n = noise(0.02)
+    return (0.93 + n, 0.92 + n, 0.89 + n)
+
+
+def slats(x, y, s):
+    # vertical oak slats with dark gaps
+    pw = s // 8
+    k = x // pw
+    if x % pw < 3:
+        return (0.12, 0.08, 0.05)
+    tone = 0.8 + ((k * 37) % 9) / 45
+    g = 0.03 * math.sin(y * 0.2 + k)
+    n = noise(0.03)
+    return ((0.72 + g + n) * tone, (0.52 + g + n) * tone, (0.31 + n) * tone)
+
+
+def rug(x, y, s):
+    n = noise(0.05)
+    edge = 0.8 if (x < 5 or y < 5 or x > s - 6 or y > s - 6) else 1.0
+    band = 0.06 if (x % 32 < 16) ^ (y % 32 < 16) else 0.0
+    return ((0.20 + band * 0.4 + n * 0.4) * edge, (0.33 + band + n * 0.4) * edge, (0.38 + band + n * 0.4) * edge)
+
+
+def mesh_fabric(x, y, s):
+    n = noise(0.04)
+    v = 0.14 + (0.03 if (x + y) % 3 == 0 else 0.0) + n
+    return (v, v + 0.005, v + 0.01)
+
+
+ptile_m = mat("OfficeTile", img=texture("porcelain", 128, porcelain), rough=0.12)
+plaster_m = mat("OfficeWall", img=texture("plaster", 64, plaster), rough=0.9)
+slat_m = mat("OakSlats", img=texture("slats", 64, slats), rough=0.55)
+rug_m = mat("LoungeRug", img=texture("rug", 64, rug), rough=0.95)
+mesh_m = mat("MeshChair", img=texture("meshfab", 32, mesh_fabric), rough=0.85)
+sofa_m = mat("SofaFabric", (0.10, 0.27, 0.32), rough=0.9)
+sofa2_m = mat("SofaAccent", (0.88, 0.55, 0.18), rough=0.9)
+charcoal_m = mat("Charcoal", (0.10, 0.12, 0.13), rough=0.6)
+teal_m = mat("BrandTeal", (0.05, 0.36, 0.40), rough=0.6)
+oak_m = mat("Oak", (0.62, 0.43, 0.24), rough=0.5)
+white_top_m = mat("DeskWhite", (0.96, 0.96, 0.94), rough=0.35)
+marble_m = mat("Marble", (0.90, 0.90, 0.88), rough=0.2)
+glass_m = mat("ClassWindowGlow", (0.62, 0.78, 0.88), rough=0.1)   # lit from inside at night
+frame_m = mat("WindowFrame", (0.13, 0.14, 0.15), rough=0.4, metal=0.6)
+chrome_m = mat("Chrome", (0.75, 0.76, 0.78), rough=0.2, metal=0.9)
+monitor_m = mat("Monitor", (0.02, 0.03, 0.05), rough=0.25, emit=(0.02, 0.05, 0.09))
+bulb_m = mat("LampBulb", (1.0, 0.85, 0.6), rough=0.4, emit=(1.0, 0.72, 0.4))
+led_m = mat("ClassTube", (0.93, 0.96, 1.0), rough=0.3, emit=(0.8, 0.9, 1.0))
+art1_m = mat("ArtOrange", (0.90, 0.45, 0.15), rough=0.7)
+art2_m = mat("ArtBlue", (0.15, 0.40, 0.70), rough=0.7)
+art3_m = mat("ArtYellow", (0.95, 0.78, 0.20), rough=0.7)
+pot2_m = mat("PlanterGrey", (0.30, 0.31, 0.32), rough=0.6)
+leaf2_m = mat("LeafDark", (0.12, 0.40, 0.18), rough=0.8)
+tyre_m = mat("Tyre", (0.05, 0.05, 0.06), rough=0.8)
+glass_car_m = mat("CarGlass", (0.14, 0.20, 0.26), rough=0.15)
+tail_m = mat("TailLight", (0.8, 0.08, 0.06), rough=0.4, emit=(0.5, 0.04, 0.02))
+PAINTS = {
+    "white": mat("CarWhite", (0.92, 0.92, 0.90), rough=0.3, metal=0.3),
+    "red": mat("CarRed", (0.62, 0.10, 0.10), rough=0.3, metal=0.3),
+    "blue": mat("CarBlue", (0.12, 0.25, 0.55), rough=0.3, metal=0.3),
+    "silver": mat("CarSilver", (0.62, 0.64, 0.66), rough=0.3, metal=0.5),
+    "black": mat("CarBlack", (0.07, 0.07, 0.08), rough=0.3, metal=0.4),
+}
+
+# ================= ROOM =================
+# Game x -10..6, z -4.5..6.5. Walls on -z (back) and +x. Furniture that people walk to (desks,
+# chairs, bar stools, reception) keeps the old coordinates: keep in sync with lib/game/hub-desks.ts.
+HX0, HX1, HZ0, HZ1 = -10.0, 6.0, -4.5, 6.5
+WH = 3.4
+box("HubFloor", HX0, HZ0, HX1, HZ1, -0.15, 0.0, ptile_m, tile=(2.4, 2.4))
+
+# walls: back (plain plaster, feature wall and oak slats), right (windows)
+box("WallBack", HX0 - 0.2, HZ0 - 0.25, HX1 + 0.25, HZ0, 0.0, WH, plaster_m, tile=(3.0, WH))
+box("BaseBack", HX0, HZ0, HX1, HZ0 + 0.04, 0.0, 0.14, charcoal_m)
+box("CrownBack", HX0 - 0.2, HZ0 - 0.32, HX1 + 0.32, HZ0 + 0.05, WH, WH + 0.18, trim_m)
+# oak slat wall on the left half of the back wall, teal feature wall behind reception
+box("SlatWall", HX0, HZ0, 0.2, HZ0 + 0.06, 0.14, 3.1, slat_m, tile=(2.0, 2.0))
+box("FeatureWall", 0.4, HZ0, 5.95, HZ0 + 0.06, 0.14, 3.1, teal_m)
+box("FeatureTrimL", 0.3, HZ0, 0.4, HZ0 + 0.08, 0.14, 3.1, chrome_m)
+box("FeatureTrimR", 5.95, HZ0, 6.0, HZ0 + 0.08, 0.14, 3.1, chrome_m)
+text("HubLogo", "INNOVATION HUB", 3.2, 2.15, HZ0 + 0.1, 0.55, white_m, '+z', 0.03)
+box("LogoLine", 1.2, HZ0 + 0.06, 5.2, HZ0 + 0.09, 1.75, 1.82, led_m)
+# framed art on the slat wall
+for i, (x, m_) in enumerate(((-8.6, art1_m), (-7.2, art2_m), (-5.8, art3_m))):
+    box(f"FrameA{i}", x - 0.62, HZ0 + 0.06, x + 0.62, HZ0 + 0.12, 1.15, 2.35, charcoal_m)
+    box(f"ArtA{i}", x - 0.55, HZ0 + 0.12, x + 0.55, HZ0 + 0.14, 1.22, 2.28, m_)
+# wall screen (presentation display) on the slat wall near the meeting table
+box("ScreenBezel", -3.4, HZ0 + 0.06, -0.6, HZ0 + 0.16, 1.05, 2.65, charcoal_m)
+box("ScreenPanel", -3.34, HZ0 + 0.16, -0.66, HZ0 + 0.18, 1.11, 2.59, monitor_m)
+
+# right wall with a row of tall windows (sill 0.85, head 2.8)
+box("WallRightLow", HX1, HZ0 - 0.25, HX1 + 0.25, HZ1, 0.0, 0.85, plaster_m, tile=(3.0, WH))
+box("WallRightHigh", HX1, HZ0 - 0.25, HX1 + 0.25, HZ1, 2.8, WH, plaster_m, tile=(3.0, WH))
+bays = [(-4.0, -1.8), (-1.4, 0.8), (1.2, 3.4), (3.8, 6.0)]
+prev = HZ0 - 0.25
+for i, (z0, z1) in enumerate(bays):
+    box(f"Pier{i}", HX1, prev, HX1 + 0.25, z0, 0.85, 2.8, plaster_m, tile=(3.0, WH))
+    box(f"Glass{i}", HX1 + 0.06, z0, HX1 + 0.1, z1, 0.85, 2.8, glass_m)
+    box(f"FrameTop{i}", HX1 + 0.04, z0, HX1 + 0.14, z1, 2.75, 2.8, frame_m)
+    box(f"FrameBot{i}", HX1 + 0.04, z0, HX1 + 0.14, z1, 0.85, 0.9, frame_m)
+    box(f"Mullion{i}", HX1 + 0.04, (z0 + z1) / 2 - 0.03, HX1 + 0.14, (z0 + z1) / 2 + 0.03, 0.85, 2.8, frame_m)
+    prev = z1
+box(f"Pier{len(bays)}", HX1, prev, HX1 + 0.25, HZ1, 0.85, 2.8, plaster_m, tile=(3.0, WH))
+box("BaseRight", HX1 - 0.04, HZ0, HX1, HZ1, 0.0, 0.14, charcoal_m)
+box("CrownRight", HX1 - 0.05, HZ0 - 0.32, HX1 + 0.32, HZ1, WH, WH + 0.18, trim_m)
+# low clean edge on the open front and left so the room reads as closed without hiding it
+box("SillFront", HX0 - 0.2, HZ1, HX1 + 0.25, HZ1 + 0.2, 0.0, 0.4, marble_m)
+box("SillLeft", HX0 - 0.2, HZ0 - 0.25, HX0, HZ1 + 0.2, 0.0, 0.4, marble_m)
+# warm wall lights on the right wall piers
+for i, z in enumerate((-4.2, -1.6, 1.0, 3.6, 6.2)):
+    box(f"Sconce{i}", HX1 - 0.1, z - 0.08, HX1, z + 0.08, 1.9, 2.4, charcoal_m)
+    box(f"SconceGlow{i}", HX1 - 0.12, z - 0.05, HX1 - 0.1, z + 0.05, 1.95, 2.35, bulb_m)
+
+
+# ---------- reception (old footprint, new finish) ----------
+box("ReceptionMain", 1.6, -4.3, 4.8, -3.5, 0.0, 1.05, oak_m)
+box("ReceptionTop", 1.5, -4.35, 4.9, -3.4, 1.05, 1.1, marble_m)
+box("ReceptionWing", 1.6, -3.5, 2.4, -1.9, 0.0, 1.05, oak_m)
+box("ReceptionWingTop", 1.5, -3.5, 2.5, -1.8, 1.05, 1.1, marble_m)
+box("ReceptionLed", 1.62, -3.52, 4.78, -3.5, 0.08, 0.14, led_m)
+box("ReceptionPanel", 1.6, -3.6, 4.8, -3.5, 0.2, 0.95, teal_m)
+# monitor + keyboard behind the counter, bell, plant
+box("RecMonitor", 3.0, -4.0, 3.9, -3.95, 1.3, 1.85, monitor_m)
+box("RecStand", 3.4, -4.02, 3.5, -3.96, 1.1, 1.3, chrome_m)
+box("RecKeys", 3.1, -3.85, 3.8, -3.6, 1.1, 1.12, charcoal_m)
+cyl("Bell", 4.4, -3.8, 1.1, 0.08, 0.07, chrome_m)
+
+# ---------- coffee bar on the right wall (old footprint, stools unchanged) ----------
+box("BarBody", 5.25, -0.6, 5.95, 3.6, 0.0, 1.0, charcoal_m)
+box("BarFrontWood", 5.2, -0.6, 5.25, 3.6, 0.0, 1.0, oak_m)
+box("BarTop", 5.15, -0.65, 5.95, 3.65, 1.0, 1.06, marble_m)
+box("BarLed", 5.18, -0.6, 5.2, 3.6, 0.06, 0.1, led_m)
+box("BackShelf1", 5.7, -0.4, 5.98, 3.4, 1.55, 1.6, oak_m)
+box("BackShelf2", 5.7, -0.4, 5.98, 3.4, 2.05, 2.1, oak_m)
+box("Espresso", 5.5, 0.1, 5.9, 0.8, 1.06, 1.45, chrome_m)
+box("EspressoTop", 5.5, 0.1, 5.9, 0.8, 1.45, 1.5, charcoal_m)
+for i, z in enumerate((1.4, 1.9, 2.4, 2.9)):
+    cyl(f"Cup{i}", 5.45, z, 1.06, 0.09, 0.05, white_top_m)
+for i, z in enumerate((0.0, 0.5, 1.1, 1.7, 2.3, 2.9)):
+    box(f"Jar{i}", 5.74, z, 5.9, z + 0.24, 1.6, 1.85, white_top_m if i % 2 else oak_m)
+for i, z in enumerate((0.2, 1.0, 1.8, 2.6)):
+    box(f"Mug{i}", 5.76, z, 5.9, z + 0.14, 2.1, 2.24, (art1_m, art2_m, art3_m, white_top_m)[i])
+for i, sz in enumerate((3.05, 2.05, 1.05, 0.05)):
+    cyl(f"StoolSeat{i}", 4.65, sz, 0.62, 0.08, 0.20, charcoal_m)
+    cyl(f"StoolPole{i}", 4.65, sz, 0.0, 0.62, 0.04, chrome_m, 12)
+    cyl(f"StoolBase{i}", 4.65, sz, 0.0, 0.03, 0.18, chrome_m)
+
+
+# ---------- work desks + ergonomic chairs (old coordinates) ----------
+def chair(tag, cx, cz, m_seat=None, d=1):
+    """Office chair at (cx, cz); d = 1 faces -z (back toward +z), d = -1 faces +z."""
+    cyl(f"{tag}Hub", cx, cz, 0.06, 0.34, 0.03, chrome_m, 10)
+    for k in range(5):
+        a = k * 2 * math.pi / 5
+        box(f"{tag}Leg{k}", cx + math.cos(a) * 0.22 - 0.025, cz + math.sin(a) * 0.22 - 0.025,
+            cx + math.cos(a) * 0.22 + 0.025, cz + math.sin(a) * 0.22 + 0.025, 0.0, 0.06, chrome_m)
+    box(f"{tag}Seat", cx - 0.23, cz - 0.23, cx + 0.23, cz + 0.23, 0.42, 0.51, m_seat or mesh_m)
+    box(f"{tag}Back", cx - 0.22, min(cz + 0.2 * d, cz + 0.27 * d), cx + 0.22, max(cz + 0.2 * d, cz + 0.27 * d), 0.55, 1.0, m_seat or mesh_m)
+    box(f"{tag}Arm1", cx - 0.26, cz - 0.12, cx - 0.23, cz + 0.16, 0.6, 0.64, charcoal_m)
+    box(f"{tag}Arm2", cx + 0.23, cz - 0.12, cx + 0.26, cz + 0.16, 0.6, 0.64, charcoal_m)
+
+
+def work_desk(idx, x0, z0, accent):
+    x1, z1 = x0 + 1.5, z0 + 0.75
+    box(f"Desk{idx}Top", x0, z0, x1, z1, 0.72, 0.77, white_top_m)
+    box(f"Desk{idx}Edge", x0, z1 - 0.02, x1, z1, 0.72, 0.77, accent)
+    for lx in (x0 + 0.04, x1 - 0.08):
+        for lz in (z0 + 0.04, z1 - 0.08):
+            box(f"Desk{idx}Leg", lx, lz, lx + 0.04, lz + 0.04, 0.0, 0.72, chrome_m)
+    box(f"Desk{idx}Drawers", x1 - 0.5, z0 + 0.05, x1 - 0.06, z1 - 0.08, 0.2, 0.72, white_top_m)
+    # monitor on the desk facing +z, keyboard in front of it
+    mx = x0 + 0.55
+    box(f"Desk{idx}Stand", mx - 0.04, z0 + 0.18, mx + 0.04, z0 + 0.26, 0.77, 0.95, charcoal_m)
+    box(f"Desk{idx}Mon", mx - 0.3, z0 + 0.14, mx + 0.3, z0 + 0.2, 0.93, 1.3, monitor_m)
+    box(f"Desk{idx}Keys", mx - 0.2, z0 + 0.45, mx + 0.2, z0 + 0.6, 0.77, 0.79, charcoal_m)
+    box(f"Desk{idx}Mug", x1 - 0.65, z0 + 0.45, x1 - 0.55, z0 + 0.55, 0.77, 0.85, accent)
+
+
+ACCENTS = [teal_m, art1_m, art2_m, art3_m, teal_m, art1_m]
+n_desk = 0
+for row_z in (1.55, -0.85):
+    for dx in (0.25, -1.95, -4.15):
+        work_desk(n_desk, dx - 0.75, row_z, ACCENTS[n_desk])
+        chair(f"Chair{n_desk}", dx + 0.2, row_z + 1.3)
+        n_desk += 1
+
+# ---------- meeting area (left of the desks) ----------
+box("MeetTop", -9.3, -3.5, -6.5, -1.1, 0.72, 0.8, oak_m)
+box("MeetLedge", -9.3, -3.5, -6.5, -1.1, 0.68, 0.72, charcoal_m)
+for lx in (-9.1, -6.8):
+    for lz in (-3.3, -1.3):
+        box(f"MeetLeg", lx, lz, lx + 0.12, lz + 0.12, 0.0, 0.72, charcoal_m)
+for i, x in enumerate((-8.7, -7.9, -7.1)):
+    chair(f"MeetA{i}", x, -0.55)       # south side, facing -z (the table)
+for i, x in enumerate((-8.7, -7.9, -7.1)):
+    chair(f"MeetB{i}", x, -4.05, d=-1)  # north side, facing the table
+
+
+# ---------- lounge (front-left) ----------
+box("Rug", -9.7, 3.6, -5.9, 6.3, 0.0, 0.025, rug_m, tile=(2.0, 2.0))
+box("SofaBaseL", -9.8, 3.8, -8.9, 6.3, 0.0, 0.4, sofa_m)
+box("SofaBackL", -9.9, 3.8, -9.5, 6.3, 0.4, 0.95, sofa_m)
+box("SofaBaseF", -8.9, 5.5, -6.0, 6.35, 0.0, 0.4, sofa_m)
+box("SofaBackF", -8.9, 6.0, -6.0, 6.4, 0.4, 0.95, sofa_m)
+box("SofaCush1", -9.4, 4.0, -9.0, 4.6, 0.4, 0.5, sofa2_m)
+box("SofaCush2", -7.2, 5.6, -6.6, 5.95, 0.4, 0.52, sofa2_m)
+box("CoffeeTable", -8.4, 4.3, -7.2, 5.1, 0.34, 0.4, oak_m)
+for lx in (-8.35, -7.3):
+    for lz in (4.35, 5.0):
+        box("CoffeeLeg", lx, lz, lx + 0.05, lz + 0.05, 0.0, 0.34, charcoal_m)
+box("Book1", -8.2, 4.5, -7.9, 4.75, 0.4, 0.43, art2_m)
+box("Book2", -7.9, 4.6, -7.6, 4.8, 0.4, 0.44, art1_m)
+# floor lamp
+cyl("FloorLampBase", -6.4, 4.0, 0.0, 0.03, 0.18, charcoal_m)
+cyl("FloorLampPole", -6.4, 4.0, 0.03, 1.5, 0.02, charcoal_m, 8)
+cyl("FloorLampShade", -6.4, 4.0, 1.5, 0.35, 0.2, bulb_m, 14)
+
+
+# ---------- plants, planters, bench ----------
+def plant(tag, x, z, big=False):
+    s = 1.35 if big else 1.0
+    cyl(f"{tag}Pot", x, z, 0.0, 0.5 * s, 0.26 * s, pot2_m, 14)
+    cyl(f"{tag}Soil", x, z, 0.5 * s, 0.03, 0.22 * s, charcoal_m, 12)
+    for k, (dx, dz, h) in enumerate(((0, 0, 0.95), (0.12, 0.05, 0.7), (-0.1, 0.1, 0.8), (0.04, -0.12, 0.65))):
+        cyl(f"{tag}Stem{k}", x + dx * s, z + dz * s, 0.5 * s, h * s, 0.1 * s, leaf2_m if k % 2 else plant_m, 7)
+
+
+plant("PlantA", -9.5, -4.1, True)
+plant("PlantB", -5.35, -4.0)
+plant("PlantC", 5.4, -4.0, True)
+plant("PlantD", 5.5, 6.0, True)
+plant("PlantE", -9.5, 1.6)
+plant("PlantF", -5.6, 5.9)
+box("BenchSeat", 0.5, 5.7, 3.3, 6.2, 0.38, 0.45, oak_m)
+for lx in (0.6, 3.1):
+    box("BenchLeg", lx, 5.75, lx + 0.1, 6.15, 0.0, 0.38, charcoal_m)
+box("WaterCooler", 5.45, 4.6, 5.9, 5.1, 0.0, 1.1, white_top_m)
+box("WaterTap", 5.4, 4.7, 5.45, 4.9, 0.85, 0.95, teal_m)
+
+# ================= OUTSIDE: same paving, road, cream blocks and ferns as the Conference courtyard =================
+OX0, OX1, OZ0, OZ1 = -30.0, 26.0, -26.0, 28.0
+box("Paving", HX0 - 3, HZ0 - 3, HX1 + 3, HZ1 + 3, -0.17, -0.02, paving_m, tile=(2.0, 2.0))
+box("Asphalt", OX0, OZ0, OX1, OZ1, -0.2, -0.05, asphalt_m, tile=(4.0, 4.0))
+for i, (a, b, c, d) in enumerate(((HX0 - 3.2, HZ0 - 3.2, HX1 + 3.2, HZ0 - 3.0), (HX0 - 3.2, HZ1 + 3.0, HX1 + 3.2, HZ1 + 3.2),
+                                  (HX0 - 3.2, HZ0 - 3.2, HX0 - 3.0, HZ1 + 3.2), (HX1 + 3.0, HZ0 - 3.2, HX1 + 3.2, HZ1 + 3.2))):
+    box(f"Kerb{i}", a, b, c, d, -0.05, 0.08, kerb_m)
+RZ_BACK, RX_RIGHT = HZ0 - 8.0, HX1 + 8.0
+for i in range(15):
+    x = -22 + i * 3.2
+    box(f"DashB{i}", x, RZ_BACK - 0.08, x + 1.6, RZ_BACK + 0.08, -0.05, -0.03, line_m)
+for i in range(13):
+    z = -22 + i * 3.2
+    box(f"DashR{i}", RX_RIGHT - 0.08, z, RX_RIGHT + 0.08, z + 1.6, -0.05, -0.03, line_m)
+
+
+def building(tag, x0, z0, x1, z1, floors, sign=None, face='+z'):
+    FH = 3.2
+    h = floors * FH
+    box(f"{tag}Body", x0, z0, x1, z1, 0.0, h, facade_m, tile=(3.2, FH))
+    box(f"{tag}Roof", x0 - 0.3, z0 - 0.3, x1 + 0.3, z1 + 0.3, h, h + 0.35, roof_m)
+    box(f"{tag}Base", x0 - 0.1, z0 - 0.1, x1 + 0.1, z1 + 0.1, 0.0, 0.6, trim_m)
+    cx, cz = x0 + (x1 - x0) * 0.3, z0 + (z1 - z0) * 0.4
+    box(f"{tag}TankStand", cx - 0.6, cz - 0.6, cx + 0.6, cz + 0.6, h + 0.35, h + 1.2, metal_m)
+    cyl(f"{tag}Tank", cx, cz, h + 1.2, 1.3, 0.75, metal_m)
+    if sign:
+        if face == '+z':
+            sx = (x0 + x1) / 2
+            w = min(x1 - x0 - 1, len(sign) * 0.95)
+            box(f"{tag}SignBoard", sx - w / 2, z1 - 0.5, sx + w / 2, z1 - 0.3, h + 0.9, h + 2.6, signbg_m)
+            box(f"{tag}SignTrim", sx - w / 2 - 0.1, z1 - 0.52, sx + w / 2 + 0.1, z1 - 0.28, h + 2.6, h + 2.75, gold_m)
+            text(f"{tag}SignText", sign, sx, h + 1.75, z1 - 0.27, 1.05, white_m, '+z', 0.05)
+        else:
+            sz = (z0 + z1) / 2
+            w = min(z1 - z0 - 1, len(sign) * 0.95)
+            box(f"{tag}SignBoard", x0 + 0.3, sz - w / 2, x0 + 0.5, sz + w / 2, h + 0.9, h + 2.6, signbg_m)
+            box(f"{tag}SignTrim", x0 + 0.28, sz - w / 2 - 0.1, x0 + 0.52, sz + w / 2 + 0.1, h + 2.6, h + 2.75, gold_m)
+            text(f"{tag}SignText", sign, x0 + 0.27, h + 1.75, sz, 1.05, white_m, '-x', 0.05)
+
+
+# different blocks from the Conference hall's, same cream facades
+building("Science", -20.0, -26.0, -2.0, -16.5, 4, "SCIENCE BLOCK", '+z')
+building("Ict", 17.0, -12.0, 25.5, 10.0, 5, "ICT CENTRE", '-x')
+building("Lecture", 2.0, -26.0, 20.0, -17.0, 3)
+building("Annex", -26.0, -10.0, -17.0, 8.0, 4)
+
+
+# ---------- parked cars along the kerbs of the ring road ----------
+def car(tag, cx, cz, along, paint, flip=False):
+    """A low-poly sedan 4.2 x 1.8, long axis along 'x' or 'z', parked at (cx, cz)."""
+    L, Wd = 2.1, 0.9
+    p = PAINTS[paint]
+    if along == 'x':
+        bx = (cx - L, cz - Wd, cx + L, cz + Wd)
+        cab = (cx - 1.1, cz - Wd + 0.08, cx + 0.95, cz + Wd - 0.08)
+        roof = (cx - 0.95, cz - Wd + 0.12, cx + 0.8, cz + Wd - 0.12)
+        wheels = [(cx + dx, cz + s * (Wd - 0.05)) for dx in (-1.35, 1.35) for s in (-1, 1)]
+        lights = [(cx + L, cz - 0.7, cx + L + 0.04, cz - 0.4), (cx + L, cz + 0.4, cx + L + 0.04, cz + 0.7)]
+        tails = [(cx - L - 0.04, cz - 0.7, cx - L, cz - 0.4), (cx - L - 0.04, cz + 0.4, cx - L, cz + 0.7)]
+        if flip:
+            lights, tails = tails, lights
     else:
-        m = random.choice(wood_mats)
-    y, k = 0.0, 0
-    while y < D - 0.05:
-        L = min(random.uniform(1.8, 3.6), D - y)
-        box(f"Plank{i:02d}_{k}", (i * plank_w, y, 0), (plank_w - 0.01, L - 0.01, 0.05), m)
-        y += L
-        k += 1
-
-box("WallLeft", (-0.2, -0.2, 0), (0.2, D + 0.2, H), wall_m)
-box("WallBack", (-0.2, D, 0), (W + 0.2, 0.2, H), wall2_m)
-box("BaseLeft", (0, 0, 0.05), (0.04, D, 0.14), trim_m)
-box("BaseBack", (0, D - 0.04, 0.05), (W, 0.04, 0.14), trim_m)
-box("StripeLeft", (0, 0, 1.15), (0.03, D, 0.12), accent_m)
-box("StripeBack", (0, D - 0.03, 1.15), (W, 0.03, 0.12), accent_m)
-box("CapLeft", (-0.2, -0.2, H), (0.25, D + 0.2, 0.08), trim_m)
-box("CapBack", (-0.2, D - 0.05, H), (W + 0.2, 0.25, 0.08), trim_m)
-box("SignBoard", (2.0, D - 0.06, 2.35), (3.2, 0.06, 0.55), sign_m)
-
-rx, ry = 1.2, D - 1.0
-box("ReceptionMain", (rx, ry, 0), (3.2, 0.8, 1.0), tan_m)
-box("ReceptionTop",  (rx - 0.05, ry - 0.05, 1.0), (3.3, 0.9, 0.06), top_m)
-box("ReceptionWing", (rx + 2.4, ry - 1.6, 0), (0.8, 1.6, 1.0), tan_m)
-box("ReceptionWingTop", (rx + 2.35, ry - 1.65, 1.0), (0.9, 1.7, 0.06), top_m)
-
-bx, by0 = 0.05, 0.9
-box("BarBody", (bx, by0, 0), (0.7, 4.2, 1.0), dark_m)
-box("BarTop",  (bx, by0 - 0.05, 1.0), (0.85, 4.3, 0.06), top_m)
-box("BarShelf", (0.0, by0 + 0.2, 1.9), (0.3, 3.4, 0.05), dark_m)
-stool_m = mat("StoolSeat", (0.08, 0.08, 0.10), 0.5)
-for i in range(4):
-    sy = by0 + 0.55 + i * 1.0
-    cyl(f"StoolSeat{i}", (1.35, sy, 0.62), 0.19, 0.08, stool_m)
-    cyl(f"StoolPole{i}", (1.35, sy, 0.0), 0.04, 0.62, metal_m, 12)
-    cyl(f"StoolBase{i}", (1.35, sy, 0.0), 0.17, 0.03, metal_m)
+        bx = (cx - Wd, cz - L, cx + Wd, cz + L)
+        cab = (cx - Wd + 0.08, cz - 1.1, cx + Wd - 0.08, cz + 0.95)
+        roof = (cx - Wd + 0.12, cz - 0.95, cx + Wd - 0.12, cz + 0.8)
+        wheels = [(cx + s * (Wd - 0.05), cz + dz) for dz in (-1.35, 1.35) for s in (-1, 1)]
+        lights = [(cx - 0.7, cz + L, cx - 0.4, cz + L + 0.04), (cx + 0.4, cz + L, cx + 0.7, cz + L + 0.04)]
+        tails = [(cx - 0.7, cz - L - 0.04, cx - 0.4, cz - L), (cx + 0.4, cz - L - 0.04, cx + 0.7, cz - L)]
+        if flip:
+            lights, tails = tails, lights
+    box(f"{tag}Body", *bx[:2], *bx[2:], 0.3, 0.85, p)
+    box(f"{tag}Cabin", cab[0], cab[1], cab[2], cab[3], 0.85, 1.35, glass_car_m)
+    box(f"{tag}Roof", roof[0], roof[1], roof[2], roof[3], 1.35, 1.42, p)
+    for k, (wx, wz) in enumerate(wheels):
+        bpy.ops.mesh.primitive_cylinder_add(vertices=14, radius=0.33, depth=0.24, location=(wx, -wz, 0.33))
+        o = bpy.context.active_object
+        o.name = f"{tag}Wheel{k}"
+        o.rotation_euler = (math.pi / 2, 0, 0) if along == 'x' else (0, math.pi / 2, 0)
+        o.data.materials.append(tyre_m)
+        link(o)
+    for k, l in enumerate(lights):
+        box(f"{tag}Head{k}", l[0], l[1], l[2], l[3], 0.55, 0.7, white_top_m)
+    for k, l in enumerate(tails):
+        box(f"{tag}Tail{k}", l[0], l[1], l[2], l[3], 0.55, 0.7, tail_m)
 
 
-def work_desk(idx, x, y, face_back=True):
-    dm = mat(f"DeskTop{idx}", DESK_COLOURS[idx % len(DESK_COLOURS)], 0.5)
-    cm = mat(f"Chair{idx}", CHAIR_COLOURS[idx % len(CHAIR_COLOURS)], 0.6)
-    DW, DD = 1.5, 0.75
-    box(f"Desk{idx}_Top", (x, y, 0.72), (DW, DD, 0.05), dm)
-    for lx in (0.05, DW - 0.10):
-        for ly in (0.05, DD - 0.10):
-            box(f"Desk{idx}_Leg", (x + lx, y + ly, 0), (0.05, 0.05, 0.72), metal_m)
-    box(f"Desk{idx}_Drawers", (x + DW - 0.5, y + 0.05, 0.2), (0.42, DD - 0.1, 0.52), dm)
-    cx, cy = x + DW / 2 - 0.2, y - 0.55
-    cyl(f"Chair{idx}_Base", (cx, cy, 0.03), 0.22, 0.03, metal_m, 5)
-    cyl(f"Chair{idx}_Pole", (cx, cy, 0.05), 0.03, 0.40, metal_m, 10)
-    box(f"Chair{idx}_Seat", (cx - 0.22, cy - 0.22, 0.45), (0.44, 0.44, 0.07), cm)
-    box(f"Chair{idx}_Back", (cx - 0.22, cy - 0.27, 0.52), (0.44, 0.06, 0.45), cm)
+# lined up at the kerb, as if the hub's visitors parked there (right side and back are what the camera sees)
+car("CarR1", HX1 + 5.0, -2.0, 'z', "white")
+car("CarR2", HX1 + 5.0, 3.2, 'z', "blue", True)
+car("CarR3", HX1 + 5.0, 8.0, 'z', "silver")
+car("CarB1", -7.5, HZ0 - 5.0, 'x', "red")
+car("CarB2", -1.5, HZ0 - 5.0, 'x', "black", True)
+car("CarB3", 5.5, HZ0 - 5.0, 'x', "white")
+car("CarF1", -2.0, HZ1 + 5.0, 'x', "silver")
+car("CarL1", HX0 - 4.5, 1.0, 'z', "blue")
 
-
-idx = 0
-start_x, start_y = 5.0, 2.2
-for r in range(DESK_ROWS):
-    for c in range(DESK_COLS):
-        work_desk(idx, start_x + c * 2.2, start_y + r * 2.4)
-        idx += 1
-
-# ---------------- game export ----------------
-# The outside lawn isn't part of the room (the game draws its own backdrop)
-bpy.data.objects.remove(bpy.data.objects["Ground"], do_unlink=True)
-
-# Centre the room on the origin (floor x -6..6, y -4.5..4.5)
-for o in col.objects:
-    o.location.x -= W / 2
-    o.location.y -= D / 2
-
-# Bake transforms, then join everything that shares a material (one draw call per material)
+# Tree ferns (scripts/blender/assets/tree-fern.glb): one mesh, instanced round the courtyard
+FERN = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "tree-fern.glb")
+before = set(bpy.data.objects)
+bpy.ops.import_scene.gltf(filepath=FERN)
+parts = [o for o in bpy.data.objects if o not in before]
+part_names = [o.name for o in parts]
+meshes = [o for o in parts if o.type == 'MESH']
 bpy.ops.object.select_all(action='DESELECT')
-for o in col.objects:
+for o in meshes:
     o.select_set(True)
-bpy.context.view_layer.objects.active = col.objects[0]
+bpy.context.view_layer.objects.active = meshes[0]
+bpy.ops.object.parent_clear(type='CLEAR_KEEP_TRANSFORM')
 bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+if len(meshes) > 1:
+    bpy.ops.object.join()
+fern = bpy.context.active_object
+for n in part_names:
+    if n != fern.name and n in bpy.data.objects:
+        bpy.data.objects.remove(bpy.data.objects[n], do_unlink=True)
+link(fern)
+fern.name = "Fern_0"
+ferns = []
+for i, (x, z, sc) in enumerate(((-12.5, -7.0, 0.6), (-4.0, -7.2, 0.52), (9.0, -7.0, 0.6), (9.0, 1.0, 0.55), (-13.0, 2.5, 0.58),
+                                (-13.0, 8.5, 0.5), (9.0, 9.0, 0.55), (2.0, 9.6, 0.5))):
+    o = fern if i == 0 else link(fern.copy())
+    o.name = f"Fern_{i}"
+    o.location = (x, -z, 0)
+    o.scale = (sc, sc, sc)
+    o.rotation_euler = (0, 0, i * 1.3)
+    ferns.append(o)
 
+# ---------- bake transforms, box-UV the tiled pieces, join per material (ferns stay instanced) ----------
+chair_set = set(ferns)
+rest = [o for o in col.objects if o not in chair_set]
+bpy.ops.object.select_all(action='DESELECT')
+for o in rest:
+    o.select_set(True)
+bpy.context.view_layer.objects.active = rest[0]
+bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+for o in rest:
+    if o.name in TILED:
+        boxuv(o, TILED[o.name])
 groups = {}
-for o in list(col.objects):
+for o in rest:
     if o.type == 'MESH' and o.data.materials:
         groups.setdefault(o.data.materials[0].name, []).append(o)
 for name, objs in groups.items():
@@ -184,15 +644,5 @@ for name, objs in groups.items():
         bpy.ops.object.join()
     bpy.context.view_layer.objects.active.name = name
 
-# Mirror left-right so the walls are on +x and −z, where the game's room camera expects them
-# (it looks in from the front-left). Flip the faces too so they still face outwards.
-for o in col.objects:
-    if o.type == 'MESH':
-        for v in o.data.vertices:
-            v.co.x = -v.co.x
-        o.data.flip_normals()
-        o.data.update()
-
-out = sys.argv[sys.argv.index("--") + 1]
-bpy.ops.export_scene.gltf(filepath=out, export_format='GLB', export_apply=True, export_lights=False, export_cameras=False)
-print("EXPORTED", out, len(col.objects), "objects")
+bpy.ops.export_scene.gltf(filepath=OUT, export_format='GLB', export_apply=True, export_lights=False, export_cameras=False)
+print("EXPORTED", OUT, len(col.objects), "objects")
