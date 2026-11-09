@@ -29,3 +29,10 @@ All clips CC0 (Creative Commons 0) from Freesound; files are the HQ MP3 previews
 | spin.mp3 | slot machine reels sound.m4a (2s excerpt from 3s) | aghirlandaio | https://freesound.org/people/aghirlandaio/sounds/415074/ | 2.06 | CC0 1.0 |
 
 Processing: all files mono 22.05 kHz MP3 (~64 kbps or lower) to stay under 50 KB; signup.mp3 and win.mp3 re-encoded only.
+
+
+## Replaced by the owner's picks (Nov 2026)
+
+- notify.mp3: universfield, "new notification 051" (new incoming message, info notices)
+- sent.mp3: universfield, "new notification 040" (chat message sent)
+- invite.mp3: dragon-studio, "notification sound effect" (an invitation to go somewhere arrives)

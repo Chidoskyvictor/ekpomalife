@@ -140,7 +140,10 @@ export function useChat(chatId: string | null, open: boolean, onMoneyIn?: () => 
       if (res.receipts) setReceipts(res.receipts)
       setMessages((current) => mergeById(current, res.messages))
       if (res.messages.some((m) => m.kind === 'money' && !m.mine)) moneyIn.current?.()
-      if (res.messages.some((m) => !m.mine)) playSfx(res.messages.some((m) => m.kind === 'money' && !m.mine) ? 'coin' : 'notify')
+      if (res.messages.some((m) => !m.mine)) {
+        const incoming = res.messages.filter((m) => !m.mine)
+        playSfx(incoming.some((m) => m.kind === 'money') ? 'coin' : incoming.some((m) => m.kind === 'invite') ? 'invite' : 'notify')
+      }
       newest.current = res.messages.at(-1)!.id
       markRead(newest.current)
     }, POLL_MS)
