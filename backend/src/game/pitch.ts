@@ -46,7 +46,8 @@ export async function pitchStatus(userId: string) {
     `SELECT * FROM hub_pitches WHERE character_id = $1 AND created_at >= $2 ORDER BY created_at DESC`,
     [ch.id, lagosDayStart(new Date())],
   )
-  const pending = today.rows.find((r) => r.status === 'pending') ?? null
+  // A deck still under review counts even if it was handed in before midnight
+  const pending = (await pool.query<Row>(`SELECT * FROM hub_pitches WHERE character_id = $1 AND status = 'pending' ORDER BY created_at DESC LIMIT 1`, [ch.id])).rows[0] ?? null
   return {
     ok: true as const,
     left: Math.max(0, PITCHES_PER_DAY - today.rowCount!),
@@ -79,7 +80,8 @@ export async function startPitch(userId: string, idea: string) {
       `SELECT * FROM hub_pitches WHERE character_id = $1 AND created_at >= $2`,
       [ch.id, lagosDayStart(new Date())],
     )
-    const pending = today.rows.find((r) => r.status === 'pending')
+    const pendingAny = await client.query<Row>(`SELECT * FROM hub_pitches WHERE character_id = $1 AND status = 'pending' ORDER BY created_at DESC LIMIT 1`, [ch.id])
+    const pending = pendingAny.rows[0]
     if (pending) {
       await client.query('COMMIT')
       return { ok: true as const, pitch: view(pending), left: Math.max(0, PITCHES_PER_DAY - today.rows.length) }

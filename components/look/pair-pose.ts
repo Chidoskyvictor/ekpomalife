@@ -172,3 +172,28 @@ export function applyPairPose(bones: PairBones, pose: PairPose, frame: Quaternio
     aimBone(bones.lowerR, bones.handR, dirOf(frame, aim.r.lower), w)
   }
 }
+
+/**
+ * Typing at a desk, on top of the sit clip: both forearms reach forward and down to the keys, the
+ * hands patter in turn, the head tips toward the screen. `w` = 0..1 blend, `t` = seconds.
+ */
+export function applyTypePose(bones: PairBones, frame: Quaternion, w: number, t: number) {
+  if (w <= 0.001) return
+  const rad = Math.PI / 180
+  // Quick, uneven patter: two out-of-step oscillators per hand
+  const tapL = Math.sin(t * 17) * 0.5 + Math.sin(t * 7.3 + 1) * 0.5
+  const tapR = Math.sin(t * 15 + 2) * 0.5 + Math.sin(t * 6.1) * 0.5
+  if (bones.head) {
+    wq.setFromAxisAngle(tmpA.set(1, 0, 0).applyQuaternion(frame).clone(), (10 + Math.sin(t * 0.8) * 3) * rad)
+    rotateWorld(bones.head, wq.clone(), w)
+  }
+  const arm = (side: 1 | -1, tap: number, upper: ArmAim['upper'], lower: ArmAim['lower']) => {
+    const u = side === 1 ? bones.upperL : bones.upperR
+    const l = side === 1 ? bones.lowerL : bones.lowerR
+    const h = side === 1 ? bones.handL : bones.handR
+    aimBone(u, l, dirOf(frame, upper), w)
+    aimBone(l, h, dirOf(frame, [lower[0], lower[1] + tap * 0.12, lower[2]]), w)
+  }
+  arm(1, tapL, [0.2, -0.75, 0.5], [0.1, -0.35, 0.9])
+  arm(-1, tapR, [-0.2, -0.75, 0.5], [-0.1, -0.35, 0.9])
+}

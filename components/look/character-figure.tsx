@@ -20,7 +20,7 @@ import {
 } from 'three'
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js'
 import { hairFitFor, type HairFit } from '@/lib/game/hair-config'
-import { applyPairPose, findPairBones, isPairPose, type PairBones, type PairPose } from './pair-pose'
+import { applyPairPose, applyTypePose, findPairBones, isPairPose, type PairBones, type PairPose } from './pair-pose'
 import { meshoptDecoder } from '@/lib/game/meshopt'
 import {
   CHARACTER_GLB,
@@ -587,7 +587,7 @@ function FittedHair({
 }
 
 /** Clips baked into the rigged body GLBs (see blender/rig.py). */
-export type FigurePose = 'idle' | 'walk' | 'sit' | 'bath' | 'dance' | PairPose
+export type FigurePose = 'idle' | 'walk' | 'sit' | 'type' | 'bath' | 'dance' | PairPose
 
 /**
  * Plays the model's clips: `pose.current` picks one; otherwise "walk" while
@@ -601,7 +601,7 @@ function useFigureClips(
 ) {
   const state = useRef<{ mixer: AnimationMixer; actions: Map<string, AnimationAction>; current: string } | null>(null)
   /** Paired pose (hug, kiss...) blended over idle: bones + current blend weight. */
-  const pair = useRef<{ bones: PairBones | null; weight: number; pose: PairPose | null; clock: number }>({ bones: null, weight: 0, pose: null, clock: 0 })
+  const pair = useRef<{ bones: PairBones | null; weight: number; pose: PairPose | null; clock: number; typing: number }>({ bones: null, weight: 0, pose: null, clock: 0, typing: 0 })
 
   useEffect(() => {
     if (clips.length === 0) return
@@ -609,7 +609,7 @@ function useFigureClips(
     const actions = new Map(clips.map((clip) => [clip.name.toLowerCase(), mixer.clipAction(clip)]))
     actions.get('idle')?.play()
     state.current = { mixer, actions, current: 'idle' }
-    pair.current = { bones: findPairBones(root), weight: 0, pose: null, clock: 0 }
+    pair.current = { bones: findPairBones(root), weight: 0, pose: null, clock: 0, typing: 0 }
     return () => {
       mixer.stopAllAction()
       mixer.uncacheRoot(root)
@@ -622,7 +622,7 @@ function useFigureClips(
     if (!anim) return
     const asked = pose?.current ?? null
     const pairPose = isPairPose(asked) ? asked : null
-    const want = pairPose ? 'idle' : (asked ?? (moving?.current ? 'walk' : 'idle'))
+    const want = pairPose ? 'idle' : asked === 'type' ? 'sit' : (asked ?? (moving?.current ? 'walk' : 'idle'))
     if (want !== anim.current && anim.actions.has(want)) {
       const to = anim.actions.get(want)!
       to.reset().setEffectiveWeight(1).fadeIn(0.25).play()
@@ -635,6 +635,12 @@ function useFigureClips(
     if (pairPose) p.pose = pairPose
     p.weight = Math.max(0, Math.min(1, p.weight + (pairPose ? 1 : -1) * Math.min(delta, 0.1) * 3.5))
     p.clock += delta
+    // Typing at a desk (the sit clip with the arms on the keys), eased in and out the same way
+    p.typing = Math.max(0, Math.min(1, p.typing + (asked === 'type' ? 1 : -1) * Math.min(delta, 0.1) * 3.5))
+    if (p.bones && p.typing > 0) {
+      root.parent?.updateWorldMatrix(true, false)
+      applyTypePose(p.bones, (root.parent ?? root).getWorldQuaternion(new Quaternion()), p.typing, p.clock)
+    }
     if (p.bones && p.pose && p.weight > 0) {
       root.parent?.updateWorldMatrix(true, false)
       const frame = (root.parent ?? root).getWorldQuaternion(new Quaternion())

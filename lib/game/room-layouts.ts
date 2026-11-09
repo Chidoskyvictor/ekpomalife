@@ -408,16 +408,17 @@ export const OFFICE: RoomLayout = {
 }
 
 /**
- * The Innovation Hub (scripts/blender/innovation-hub.py): coloured plank floor, light walls on the
- * right (+x) and back (−z) where the room camera expects them, reception desk at the back right,
- * coffee bar + stools along the right wall, two rows of three work desks with chairs.
- * Room x −6…6, z −4.5…4.5.
+ * The Innovation Hub (scripts/blender/innovation-hub.py): a big open-plan office on white porcelain
+ * tiles, standing in a courtyard with a ring road, campus blocks and parked cars. Walls on the right
+ * (+x) and back (−z) where the room camera expects them. Reception at the back right, coffee bar +
+ * stools along the right wall, two rows of three work desks (same spots as before), a meeting table
+ * on the left and a lounge at the front left. Room x −10…6, z −4.5…6.5.
  */
 export const INNOVATION_HUB: RoomLayout = {
   id: 'office',
   label: 'Innovation Hub',
-  glb: '/models/innovation-hub.glb?v=1',
-  floors: [[-5.9, -4.3, 5.8, 4.4]],
+  glb: '/models/innovation-hub.glb?v=5',
+  floors: [[-9.9, -4.4, 5.9, 6.4]],
   blocks: [
     [1.5, -4.5, 4.9, -3.4], // reception desk
     [1.5, -3.5, 2.5, -1.8], // reception wing
@@ -429,6 +430,18 @@ export const INNOVATION_HUB: RoomLayout = {
     [-0.55, -0.9, 1.05, 0.75], // back row
     [-2.75, -0.9, -1.15, 0.75],
     [-4.95, -0.9, -3.35, 0.75],
+    [-9.5, -4.4, -6.3, -0.2], // meeting table + its chairs
+    [-9.95, 3.7, -8.8, 6.4], // lounge sofa (left)
+    [-9.0, 5.4, -5.9, 6.4], // lounge sofa (front)
+    [-8.5, 4.2, -7.1, 5.2], // coffee table
+    [-6.7, 3.7, -6.1, 4.3], // floor lamp
+    [-5.8, -4.4, -4.9, -3.6], // plants
+    [4.9, -4.4, 5.9, -3.5],
+    [5.0, 5.5, 5.9, 6.4],
+    [5.4, 4.5, 6, 5.15], // water cooler
+    [-9.9, 1.2, -9.1, 2.0],
+    [-6.1, 5.4, -5.1, 6.4],
+    [0.4, 5.6, 3.4, 6.4], // bench
   ],
   start: [-3.6, 3.9],
   // Walk to an NPC's desk to do their task, or sit on a free chair / bar stool
@@ -436,7 +449,7 @@ export const INNOVATION_HUB: RoomLayout = {
   tapBoxes: {},
   host: { position: [0, 0, 0], rotation: 0 },
   view: 'corner',
-  cameraScale: 1.75,
+  cameraScale: 2.3,
   speed: 2.4,
 }
 

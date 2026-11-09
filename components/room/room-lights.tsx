@@ -18,12 +18,14 @@ import type { GfxSettings } from '@/lib/game/gfx-quality'
 import { CLUB_LIGHT, roomLightAt, type RoomLight } from '@/lib/game/room-lighting'
 
 /** Bulb / tube materials in the home GLBs that glow when the lamps are on. */
-const GLOWING = new Set(['LampBulb', 'HostelTube', 'ClassTube', 'ClassWindowGlow'])
+const GLOWING = new Set(['LampBulb', 'HostelTube', 'ClassTube', 'ClassWindowGlow', 'FacadeLit'])
 const LAMP_COLOR = '#ffd9a0'
 /** Light pooled on the floor from the ceiling lamps: a touch warmer than the bulb itself. */
 const POOL_COLOR = '#ffc67f'
 /** Fluorescent classes glow cool white (tubes, and the windows lit from inside) instead of the warm bulb colour. */
-const GLOW_COLOR: Record<string, string> = { ClassTube: '#eef6ff', ClassWindowGlow: '#dcecff' }
+const GLOW_COLOR: Record<string, string> = { ClassTube: '#eef6ff', ClassWindowGlow: '#dcecff', FacadeLit: '#ffeab8' }
+/** Windows of the buildings round a courtyard: a soft fluorescent glow after dark (never as strong as a lamp). Clubs are always at night. */
+const WINDOW_GLOW = { day: 0.03, night: 0.75, club: 0.6 }
 
 type Live = Omit<RoomLight, 'skyTop' | 'skyBottom' | 'skyOpacity'>
 
@@ -39,6 +41,7 @@ export function RoomLights({ layout, root, clock, gfx }: { layout: RoomLayout; r
   const lamps = useRef<(PointLight | null)[]>([])
   const live = useRef<Live | null>(null)
   const bulbs = useRef<MeshStandardMaterial[]>([])
+  const windows = useRef<MeshStandardMaterial[]>([])
 
   // Warm ceiling lights spread along each floor area (at most four per home, for phones)
   const lampSpots = useMemo(() => {
@@ -72,7 +75,8 @@ export function RoomLights({ layout, root, clock, gfx }: { layout: RoomLayout; r
       glow.emissive = new Color(GLOW_COLOR[mesh.material.name] ?? LAMP_COLOR)
       swapped.push([mesh, mesh.material])
       mesh.material = glow
-      bulbs.current.push(glow)
+      if (mesh.material.name === 'FacadeLit') windows.current.push(glow)
+      else bulbs.current.push(glow)
     })
     return () => {
       for (const [mesh, original] of swapped) {
@@ -80,6 +84,7 @@ export function RoomLights({ layout, root, clock, gfx }: { layout: RoomLayout; r
         mesh.material = original
       }
       bulbs.current = []
+      windows.current = []
     }
   }, [root])
 
@@ -123,6 +128,8 @@ export function RoomLights({ layout, root, clock, gfx }: { layout: RoomLayout; r
       lamp.visible = cur.lamps > 0.02
     }
     for (const bulb of bulbs.current) bulb.emissiveIntensity = 0.15 + cur.lamps * 2.4
+    const windowGlow = layout.mood === 'club' ? WINDOW_GLOW.club : WINDOW_GLOW.day + cur.lamps * (WINDOW_GLOW.night - WINDOW_GLOW.day)
+    for (const pane of windows.current) pane.emissiveIntensity = windowGlow
   })
 
   return (
