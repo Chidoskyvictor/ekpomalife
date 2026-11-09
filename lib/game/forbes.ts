@@ -13,9 +13,22 @@ export type ForbesEntry = {
   avatarColor: string
 }
 
-export type ForbesBoard = { top: ForbesEntry[]; total: number; me: ForbesEntry | null; updatedAt: string }
+export const FORBES_PAGE = 100
 
-export const fetchForbes = () => apiGet<{ ok: true } & ForbesBoard>('/forbes')
+export type ForbesBoard = { entries: ForbesEntry[]; total: number; me: ForbesEntry | null; updatedAt: string }
+
+export const fetchForbes = (offset = 0) => apiGet<{ ok: true } & ForbesBoard>(`/forbes?offset=${offset}`)
+
+/** Joins a freshly loaded page onto what is shown, keeping rank order and dropping repeats. */
+export function mergePage(shown: ForbesEntry[], page: ForbesEntry[]): ForbesEntry[] {
+  const have = new Set(shown.map((e) => e.userId))
+  return [...shown, ...page.filter((e) => !have.has(e.userId))].sort((a, b) => a.rank - b.rank)
+}
+
+/** "You · #47 of 232 · ₦3.2m" */
+export function meLabel(rank: number, total: number, worth: string) {
+  return `You · #${rank} of ${total.toLocaleString()} · ${worth}`
+}
 
 /** Podium shows 2nd, 1st, 3rd left to right. Missing places are skipped. */
 export function podiumOrder(top: ForbesEntry[]): ForbesEntry[] {
