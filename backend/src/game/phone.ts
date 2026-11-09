@@ -56,6 +56,7 @@ export type PhoneAppId =
   | 'houses'
   | 'anonymous'
   | 'family'
+  | 'forbes'
   | 'guide'
   | 'support'
 
@@ -144,6 +145,7 @@ export const PHONE_APP_IDS = [
   'houses',
   'anonymous',
   'family',
+  'forbes',
   'guide',
   'support',
 ] as const satisfies readonly PhoneAppId[]
