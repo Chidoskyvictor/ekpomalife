@@ -3,6 +3,7 @@ import { pool } from '../db.js'
 import { containsBlockedLanguage, defaultDisplayNameFromAccount, validateDisplayName } from './display-name.js'
 import {
   AVATAR_COLORS,
+  shownDepartment,
   PROFILE_DEPARTMENTS,
   STUDY_LEVELS,
   type StudyLevel,
@@ -57,6 +58,7 @@ type UserRow = {
 type CharacterGameRow = {
   character_id: string
   course_id: string | null
+  character_type?: string | null
   appearance: { skinTone?: string } | null
   cash: string | number | null
   needs: Needs | string | null
@@ -176,7 +178,7 @@ async function loadUserBundle(userId: string): Promise<{
     let character: CharacterGameRow | null = null
     if (charRow) {
       const gs = await client.query<CharacterGameRow>(
-        `SELECT gs.character_id, c.course_id, c.appearance, gs.cash, gs.needs, gs.game_time, gs.reputation, gs.whot_wins
+        `SELECT gs.character_id, c.course_id, c.character_type, c.appearance, gs.cash, gs.needs, gs.game_time, gs.reputation, gs.whot_wins
          FROM characters c
          LEFT JOIN game_state gs ON gs.character_id = c.id
          WHERE c.id = $1`,
@@ -222,7 +224,7 @@ function toPublic(
     // Real name is private: only the owner sees it, everyone else sees the username
     displayName: isOwner ? profile.display_name : user.username,
     avatar: { color: profile.avatar_color, emoji: profile.avatar_emoji, look: character?.appearance ?? null },
-    department: profile.department,
+    department: shownDepartment(profile.department, character?.character_type),
     studyLevel: profile.study_level,
     bio: profile.bio,
     joinDate: user.created_at.toISOString(),
@@ -327,7 +329,9 @@ export async function patchPlayerProfile(
     }
 
     let department = existing.department
-    if (patch.department !== undefined) {
+    // The form sends back what it was shown: a role label ("Graduate") means "unchanged"
+    const roleLabel = ['Graduate', 'Lecturer', 'Indigene'].includes(patch.department?.trim() ?? '')
+    if (patch.department !== undefined && !roleLabel) {
       const trimmed = patch.department.trim()
       if (trimmed.length < 2 || trimmed.length > 48) {
         await client.query('ROLLBACK')

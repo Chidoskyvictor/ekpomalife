@@ -30,3 +30,15 @@ export const AVATAR_COLORS = [
 ] as const
 
 export const AVATAR_EMOJIS = ['😊', '🎓', '✨', '🔥', '💫', '🌿', '🎤', '⚽', '📚', '🛡️'] as const
+
+const ROLE_LABELS: Record<string, string> = { graduate: 'Graduate', lecturer: 'Lecturer', indigene: 'Indigene' }
+
+/**
+ * The department shown on a profile. Graduates, lecturers and indigenes have no course, so their
+ * profile defaulted to "Undeclared": show their role instead (an edited department still wins).
+ */
+export function shownDepartment(department: string | null | undefined, characterType: string | null | undefined): string {
+  const role = characterType ? ROLE_LABELS[characterType] : undefined
+  if (role && (!department || department === 'Undeclared')) return role
+  return department || 'Undeclared'
+}

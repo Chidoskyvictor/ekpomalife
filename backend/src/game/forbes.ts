@@ -1,6 +1,8 @@
 import { pool } from '../db.js'
 import { env } from '../env.js'
 import { adminSet, buildBoard, type Board, type WorthRow } from './forbes-rules.js'
+import { departmentForCourse } from './aau-courses.js'
+import { shownDepartment } from './profile-constants.js'
 
 /*
  * Net worth = live cash (game_state.cash) + furniture paid for + rides + land + businesses.
@@ -18,13 +20,15 @@ type Row = {
   appearance: unknown
   job_title: string | null
   department: string | null
+  character_type: string | null
+  course_id: string | null
   net_worth: string
 }
 
 async function loadRows(): Promise<WorthRow[]> {
   const { rows } = await pool.query<Row>(
     `SELECT u.id AS user_id, u.username, pp.display_name, pp.avatar_color, pp.department,
-            c.appearance, j.title AS job_title,
+            c.appearance, c.character_type, c.course_id, j.title AS job_title,
             (COALESCE(gs.cash, 0)
              + COALESCE((SELECT SUM(paid) FROM home_placements h WHERE h.character_id = c.id), 0)
              + COALESCE((SELECT SUM(bought_price) FROM ride_holdings r WHERE r.character_id = c.id), 0)
@@ -43,7 +47,7 @@ async function loadRows(): Promise<WorthRow[]> {
     username: r.username,
     displayName: r.display_name ?? r.username,
     netWorth: Number(r.net_worth),
-    detail: r.job_title ?? r.department ?? 'Student',
+    detail: r.job_title ?? shownDepartment(r.department ?? departmentForCourse(r.course_id), r.character_type),
     appearance: r.appearance ?? null,
     avatarColor: r.avatar_color ?? '#3d9ad6',
   }))
