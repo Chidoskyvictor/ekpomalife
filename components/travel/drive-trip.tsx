@@ -120,7 +120,7 @@ export function DriveTrip({ trip }: { trip: Trip }) {
       </div>
 
       <div className={styles.hud} data-hidden={hidden}>
-        <div className={styles.bar}>
+        <div className={styles.hudBar}>
           <span className={styles.barIcon} aria-hidden="true">
             {VEHICLE[trip.mode]}
           </span>

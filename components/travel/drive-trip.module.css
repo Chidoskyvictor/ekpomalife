@@ -189,7 +189,7 @@
 .hud[data-hidden='true'] {
   opacity: 0;
 }
-.bar {
+.hudBar {
   position: absolute;
   top: max(10px, env(safe-area-inset-top));
   left: max(12px, env(safe-area-inset-left));
@@ -210,7 +210,7 @@
   font-family: var(--font-jakarta), system-ui, sans-serif;
   pointer-events: auto;
 }
-.hud[data-hidden='true'] .bar {
+.hud[data-hidden='true'] .hudBar {
   pointer-events: none;
 }
 .barIcon {
