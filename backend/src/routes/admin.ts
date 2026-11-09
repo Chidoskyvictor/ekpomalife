@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { z } from 'zod'
 import { getSessionUser, type SessionUser } from '../auth/current-user.js'
 import { env } from '../env.js'
+import { deleteSong, listAllSongs, saveSong } from '../game/promoted-songs.js'
 import { adminAnonAction, listAnonReports } from '../game/anonymous.js'
 import { adminBanHost, adminEndSpace, listSpaceReports, type SpacesFail } from '../game/spaces.js'
 import {
@@ -44,7 +45,48 @@ function send(reply: FastifyReply, result: SpacesFail | { ok: true }) {
   return reply.send(result)
 }
 
+const songSchema = z.object({
+  title: z.string().max(200),
+  artist: z.string().max(200),
+  linkUrl: z.string().max(600),
+  coverUrl: z.string().max(600).nullish(),
+  active: z.boolean().optional(),
+  sortOrder: z.number().int().optional(),
+  weight: z.number().int().optional(),
+  startsAt: z.string().max(40).nullish(),
+  endsAt: z.string().max(40).nullish(),
+})
+
 export async function adminRoutes(app: FastifyInstance) {
+  // Promoted songs shown on the club LED screen. Admin-only: players cannot submit songs.
+  app.get('/admin/songs', rate(60), async (request, reply) => {
+    if (!(await requireAdmin(request, reply))) return
+    return reply.send({ ok: true, songs: await listAllSongs() })
+  })
+
+  app.post('/admin/songs', rate(30), async (request, reply) => {
+    if (!(await requireAdmin(request, reply))) return
+    const parsed = songSchema.safeParse(request.body)
+    if (!parsed.success) return reply.code(400).send({ ok: false, error: 'Check the song details.' })
+    const res = await saveSong(parsed.data)
+    return res.ok ? reply.send(res) : reply.code(400).send(res)
+  })
+
+  app.put('/admin/songs/:id', rate(30), async (request, reply) => {
+    if (!(await requireAdmin(request, reply))) return
+    const { id } = idParam.parse(request.params)
+    const parsed = songSchema.safeParse(request.body)
+    if (!parsed.success) return reply.code(400).send({ ok: false, error: 'Check the song details.' })
+    const res = await saveSong(parsed.data, id)
+    return res.ok ? reply.send(res) : reply.code(res.error === 'No such song.' ? 404 : 400).send(res)
+  })
+
+  app.delete('/admin/songs/:id', rate(30), async (request, reply) => {
+    if (!(await requireAdmin(request, reply))) return
+    const { id } = idParam.parse(request.params)
+    return (await deleteSong(id)) ? reply.send({ ok: true }) : reply.code(404).send({ ok: false, error: 'No such song.' })
+  })
+
   app.get('/admin/space-reports', rate(60), async (request, reply) => {
     if (!(await requireAdmin(request, reply))) return
     return reply.send(await listSpaceReports())

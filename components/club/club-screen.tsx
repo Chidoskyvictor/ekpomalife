@@ -6,9 +6,11 @@ import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Object3D } from 'three'
 import { PlaceReactions, PlaceTalkCard, usePlaceSocial } from '@/components/hud/interior/place-social'
-import { PlaceAction, PlaceActions, PlacePeople, PlaceSheet, PlaceSpots, type PlaceTag } from '@/components/hud/place-sheet'
+import { PlaceAction, PlaceActions, PlacePeople, PlaceSheet, PlaceSpots, placeChipClass, type PlaceTag } from '@/components/hud/place-sheet'
 import type { RoomPlayerControl } from '@/components/room/room-player'
 import { useGame } from '@/hooks/use-game'
+import { useLowPerf } from '@/hooks/use-low-perf'
+import { useClubSongs } from '@/lib/game/club-songs'
 import { endActivity, startActivity } from '@/lib/game/activity'
 import type { FurnitureId, UseStyle } from '@/lib/game/room-furniture'
 import { CLUB_LAYOUTS } from '@/lib/game/room-layouts'
@@ -28,6 +30,10 @@ import {
 } from '@/lib/game/venues-api'
 import type { PlayerMove } from '@/components/room/room-player'
 import { ClubFx } from './club-fx'
+import { ClubHype } from './club-hype'
+import { ClubLedWall } from './club-led-wall'
+import { ClubTab } from './club-tab'
+import { ClubSongBanner } from './club-song-banner'
 import { ClubPeers } from './club-peers'
 import { ClubPeople } from './club-people'
 import { ClubShoutouts } from './club-shoutouts'
@@ -65,12 +71,13 @@ const TAGS: Record<VenueItem['kind'], PlaceTag[]> = {
   ],
 }
 
-type Spot = 'floor' | 'bar' | 'vip' | 'spray'
+type Spot = 'floor' | 'bar' | 'vip' | 'spray' | 'hype'
 const SPOTS: { id: Spot; emoji: string; label: string }[] = [
   { id: 'floor', emoji: '💃', label: 'Dance floor' },
   { id: 'bar', emoji: '🍹', label: 'Bar' },
   { id: 'vip', emoji: '🛋️', label: 'VIP' },
   { id: 'spray', emoji: '💸', label: 'Spray' },
+  { id: 'hype', emoji: '🔥', label: 'Hype' },
 ]
 
 const naira = (n: number) => `₦${n.toLocaleString()}`
@@ -110,13 +117,9 @@ export function ClubScreen({ venueId }: { venueId: string }) {
   // Live crowd: the others in your group, and money sprays
   const live = useClubLive(venueId, inside, state?.username)
   const social = usePlaceSocial(venueId, live)
+  const lowPerf = useLowPerf()
+  const { current: song } = useClubSongs(venueId, inside)
   const { sendState } = live
-  // Names in your group right now, for the DJ's welcome shout-outs (roster bumps on join/leave)
-  const peerNames = useMemo(
-    () => [...live.peers.current.values()].map((p) => p.username),
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- live.roster is the change signal for the peers ref
-    [live.roster],
-  )
   const onPlayerMove = useCallback(
     (m: PlayerMove) => sendState({ x: m.x, y: m.y, z: m.z, h: m.h, pose: m.pose, moving: m.moving }),
     [sendState],
@@ -254,6 +257,7 @@ export function ClubScreen({ venueId }: { venueId: string }) {
   const effects = useCallback(
     (root: Object3D) => (
       <>
+        <ClubLedWall venueId={venueId} clubName={view?.venue.name ?? ''} song={song} lowPerf={lowPerf} />
         <ClubFx root={root} clubName={view?.venue.name ?? ''} top={view?.top ?? []} />
         <ClubPeers
           peers={live.peers}
@@ -263,7 +267,7 @@ export function ClubScreen({ venueId }: { venueId: string }) {
         />
       </>
     ),
-    [view?.venue.name, view?.top, live.peers, live.roster, social],
+    [venueId, view?.venue.name, view?.top, live.peers, live.roster, social, song, lowPerf],
   )
 
   if (!layout) return <div className={styles.status}>This club isn't open yet.</div>
@@ -301,7 +305,21 @@ export function ClubScreen({ venueId }: { venueId: string }) {
         />
       </div>
 
-      {social.talk && view ? <PlaceTalkCard social={social} placeName={view.venue.name} tone="night" /> : null}
+      {social.talk && view ? <PlaceTalkCard
+          social={social}
+          placeName={view.venue.name}
+          tone="night"
+          playerExtra={(player) => (
+            <ClubHype
+              venueId={venueId}
+              target={player}
+              onDone={() => {
+                social.setTalk(null)
+                void load()
+              }}
+            />
+          )}
+        /> : null}
       {view && !social.talk ? (
         <PlaceSheet
           tone="night"
@@ -328,7 +346,9 @@ export function ClubScreen({ venueId }: { venueId: string }) {
           {inside ? (
             <>
               <PlaceReactions onReact={social.react} />
-              <PlaceSpots spots={SPOTS} value={spot} onChange={setSpot} hint="Tap one to see what's there" />
+              <PlaceSpots spots={SPOTS} value={spot} onChange={setSpot} hint="Tap one to see what's there"
+                lead={inside && view ? <ClubTab venueId={venueId} spent={view.me.spent} refreshKey={view.me.spent} className={placeChipClass} /> : null}
+              />
               <PlaceActions>
                 {spot === 'floor' && dance ? card(dance) : null}
                 {spot === 'bar' ? drinks.map(card) : null}
@@ -359,6 +379,16 @@ export function ClubScreen({ venueId }: { venueId: string }) {
                     ))
                   : null}
               </PlaceActions>
+              {spot === 'hype' ? (
+                <ClubHype
+                  venueId={venueId}
+                  onDone={() => {
+                    setExpanded(false)
+                    void load()
+                  }}
+                />
+              ) : null}
+              {spot === 'hype' ? <p className={styles.note}>Tap a player below to hype them, or buy the whole club a moment.</p> : null}
               <PlacePeople
                 count={view.inside}
                 people={faces.map((p) => ({ id: p.userId, username: p.username, mark: p.vip ? 'VIP' : undefined, look: p.appearance }))}
@@ -406,14 +436,15 @@ export function ClubScreen({ venueId }: { venueId: string }) {
           }}
         />
       ) : null}
+      {inside ? <ClubSongBanner song={song} /> : null}
       {inside ? <SprayRain sprays={live.sprays} lastGot={live.lastGot} onPick={live.pick} /> : null}
       {inside ? (
         <ClubShoutouts
           clubName={view?.venue.name ?? ''}
-          me={state?.username}
           sprays={live.sprays}
           topUsername={view ? (top?.username ?? null) : undefined}
-          peerNames={peerNames}
+          hypes={live.hypes}
+          me={state?.username}
         />
       ) : null}
 

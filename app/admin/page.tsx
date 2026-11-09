@@ -58,6 +58,9 @@ export default function AdminPage() {
         <Link href="/admin/anonymous" className="text-[#1a6fb0] underline">
           Anonymous reports
         </Link>
+        <Link href="/admin/songs" className="text-[#1a6fb0] underline">
+          Club songs
+        </Link>
       </nav>
       <Stats />
       <Revenue />

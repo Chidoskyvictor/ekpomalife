@@ -3,7 +3,7 @@
 import { useGLTF } from '@react-three/drei'
 import { furnitureEnvironment, upgradeFurnitureMaterials } from '@/lib/game/furniture-materials'
 import { useThree, type ThreeEvent } from '@react-three/fiber'
-import { Suspense, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
+import { Component, Suspense, useEffect, useLayoutEffect, useMemo, useRef, type ReactNode } from 'react'
 import { Box3, Color, Vector3, type Group, type Mesh, type MeshStandardMaterial, type Object3D } from 'three'
 import type { HomeItem, OwnedPiece } from '@/lib/game/home-buy-api'
 import { checkHomePlacement, type HomeSpec } from '@/lib/game/home-buy-rules'
@@ -16,6 +16,23 @@ const WALL_Y = 1.35
 const WALL_DEPTH = 0.07
 
 export type HomeFurnishing = { spec: HomeSpec; catalog: HomeItem[]; placements: OwnedPiece[]; starters?: StarterDef[] }
+
+/**
+ * A furniture model that fails to load (missing file, bad network) shows its block instead of
+ * crashing the whole home canvas.
+ */
+class ModelBoundary extends Component<{ fallback: ReactNode; children: ReactNode }, { failed: boolean }> {
+  state = { failed: false }
+  static getDerivedStateFromError() {
+    return { failed: true }
+  }
+  componentDidCatch(error: unknown) {
+    console.warn('Furniture model failed to load; showing a block instead.', error)
+  }
+  render() {
+    return this.state.failed ? this.props.fallback : this.props.children
+  }
+}
 
 /** One block standing in for a piece of furniture (no models yet): its footprint, height and colour. */
 function Block({
@@ -213,9 +230,11 @@ export function PlacedPieces({ furnishing, root }: { furnishing: HomeFurnishing;
         }
         if (item.model) {
           return (
-            <Suspense key={p.id} fallback={<Block spec={furnishing.spec} item={item} spot={p} />}>
-              <ModelPiece spec={furnishing.spec} item={item} spot={p} finish={p.finish} />
-            </Suspense>
+            <ModelBoundary key={p.id} fallback={<Block spec={furnishing.spec} item={item} spot={p} />}>
+              <Suspense fallback={<Block spec={furnishing.spec} item={item} spot={p} />}>
+                <ModelPiece spec={furnishing.spec} item={item} spot={p} finish={p.finish} />
+              </Suspense>
+            </ModelBoundary>
           )
         }
         return (
@@ -386,9 +405,11 @@ function PlacingGhost({
     return (
       <group>
         {patch}
-        <Suspense fallback={<Block spec={spec} item={item} spot={spot} ghost={ok ? 'ok' : 'bad'} />}>
-          <ModelPiece spec={spec} item={item} spot={spot} finish={finish} />
-        </Suspense>
+        <ModelBoundary key={item.model} fallback={<Block spec={spec} item={item} spot={spot} ghost={ok ? 'ok' : 'bad'} />}>
+          <Suspense fallback={<Block spec={spec} item={item} spot={spot} ghost={ok ? 'ok' : 'bad'} />}>
+            <ModelPiece spec={spec} item={item} spot={spot} finish={finish} />
+          </Suspense>
+        </ModelBoundary>
       </group>
     )
   }

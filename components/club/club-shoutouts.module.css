@@ -103,6 +103,12 @@
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
+/* Fireworks / confetti layer for the DJ card (Mega hype) */
+.fx {
+  position: absolute;
+  inset: 0;
+}
+
 /* Confetti falling in front of everything */
 .piece {
   position: absolute;

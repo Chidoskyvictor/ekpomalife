@@ -215,6 +215,12 @@ export function announceSpray(
   broadcast(roomKey(venueId, night, group), { t: 'spray', ...spray })
 }
 
+/** Tell every crowd group in a club night about a hype / big moment (late joiners don't replay it). */
+export function announceHype(venueId: string, night: number, event: Record<string, unknown>) {
+  const prefix = `${venueId}:${night}:`
+  for (const key of rooms.keys()) if (key.startsWith(prefix)) broadcast(key, { t: 'hype', ...event })
+}
+
 async function pickNote(key: string, me: Member, msg: Record<string, unknown>) {
   const sprayId = typeof msg.sprayId === 'string' ? msg.sprayId : null
   const note = typeof msg.note === 'number' && Number.isInteger(msg.note) ? msg.note : null

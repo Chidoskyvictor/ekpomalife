@@ -89,3 +89,46 @@ export function fetchClubPeople(id: string, offset = 0) {
     `/venues/${encodeURIComponent(id)}/people?offset=${offset}`,
   )
 }
+
+/* —— Hype (mirrors backend/src/game/club-hype.ts) —— */
+
+export type HypeTier = 'hype' | 'mega' | 'round' | 'shutdown'
+export const HYPE_TIERS: { id: HypeTier; emoji: string; label: string; price: number; target: boolean; blurb: string }[] = [
+  { id: 'hype', emoji: '🔥', label: 'Hype', price: 5_000_000, target: true, blurb: 'DJ shout-out' },
+  { id: 'mega', emoji: '🎆', label: 'Mega hype', price: 15_000_000, target: true, blurb: 'DJ + fireworks' },
+  { id: 'round', emoji: '🍹', label: 'Buy a round', price: 100_000_000, target: false, blurb: 'Drinks for all' },
+  { id: 'shutdown', emoji: '👑', label: 'Shut it down', price: 1_000_000_000, target: false, blurb: 'Club is yours' },
+]
+
+export type HypeEvent = {
+  id: string
+  tier: HypeTier
+  byUsername: string
+  toUsername: string | null
+  toUserId: string | null
+  amount: number
+}
+
+/** Pay to hype a player (tier hype / mega, with their userId) or the whole club (round / shutdown). */
+export function hypeAtVenue(id: string, tier: HypeTier, target?: string) {
+  return apiPost<{ ok: true; message: string; cash: number } & HypeEvent>(
+    `/venues/${encodeURIComponent(id)}/hype`,
+    target ? { tier, target } : { tier },
+    idem(),
+  )
+}
+
+export type PromotedSong = { id: string; title: string; artist: string; linkUrl: string; coverUrl: string | null; weight: number }
+
+/** Songs promoted on the club screen (added by admins only). */
+export function fetchClubSongs(id: string) {
+  return apiGet<{ ok: true; songs: PromotedSong[] }>(`/venues/${encodeURIComponent(id)}/songs`)
+}
+
+/* —— Your tab (receipt built server-side from the ledger) —— */
+export type TabGroup = { type: 'food' | 'entry' | 'spray' | 'hype'; title: string; lines: { label: string; qty: number; amount: number }[] }
+export type VenueTab = { club: { name: string; emoji: string }; arrivedAt: string; total: number; groups: TabGroup[] }
+
+export function fetchVenueTab(id: string) {
+  return apiGet<{ ok: true } & VenueTab>(`/venues/${encodeURIComponent(id)}/tab`)
+}

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { apiPost } from '@/lib/api/client'
+import type { HypeEvent } from '@/lib/game/venues-api'
 import type { FigurePose } from '@/components/look/character-figure'
 
 /*
@@ -44,6 +45,7 @@ type Incoming =
   | { t: 'picked'; sprayId: string; note: number; by: string }
   | { t: 'got'; sprayId: string; note: number; value: number; cash: number }
   | { t: 'missed'; sprayId: string; note: number }
+  | ({ t: 'hype' } & HypeEvent)
   | { t: 'error'; error: string }
   | { t: 'say'; from: string; to: string; line: string }
   | { t: 'social'; from: string; to: string; kind: string; landed: boolean }
@@ -81,6 +83,8 @@ export function useClubLive(venueId: string, enabled: boolean, myUsername?: stri
   const [said, setSaid] = useState<Said[]>([])
   const [asks, setAsks] = useState<Ask[]>([])
   const [acts, setActs] = useState<Act[]>([])
+  /** Hype events as they happen (late joiners never see old ones). */
+  const [hypes, setHypes] = useState<HypeEvent[]>([])
   const [declined, setDeclined] = useState<{ action: string; at: number } | null>(null)
   const socket = useRef<WebSocket | null>(null)
   const lastSent = useRef<{ at: number; key: string }>({ at: 0, key: '' })
@@ -138,6 +142,9 @@ export function useClubLive(venueId: string, enabled: boolean, myUsername?: stri
           setAsks((list) => [...list.filter((a) => a.id !== msg.id), { id: msg.id, action: msg.action, from: msg.from, fromUsername: msg.fromUsername, until: Date.now() + msg.expiresIn * 1000 }])
         } else if (msg.t === 'declined') {
           setDeclined({ action: msg.action, at: Date.now() })
+        } else if (msg.t === 'hype') {
+          const { t: _t, ...event } = msg
+          setHypes((list) => (list.some((h) => h.id === event.id) ? list : [...list.slice(-9), event]))
         } else if (msg.t === 'spray') {
           const { t: _t, ...spray } = msg
           setSprays((list) =>
@@ -208,5 +215,5 @@ export function useClubLive(venueId: string, enabled: boolean, myUsername?: stri
 
   const dismissAsk = useCallback((id: string) => setAsks((list) => list.filter((a) => a.id !== id)), [])
 
-  return { peers, roster, sprays, lastGot, connected, sendState, pick, addOwnSpray, said, say, asks, dismissAsk, acts, declined }
+  return { peers, roster, sprays, lastGot, connected, sendState, pick, addOwnSpray, said, say, asks, dismissAsk, acts, declined, hypes }
 }

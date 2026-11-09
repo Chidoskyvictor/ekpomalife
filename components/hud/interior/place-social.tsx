@@ -1,7 +1,7 @@
 'use client'
 
 import { ChevronRight, MessageCircle, X } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { useGame } from '@/hooks/use-game'
 import type { useClubLive } from '@/lib/game/club-live'
 import { openDirectChat } from '@/lib/game/hostels-api'
@@ -170,7 +170,18 @@ export function PlaceReactions({ onReact }: { onReact: (id: string) => void }) {
 }
 
 /** The card for someone you tapped. Shows in place of the place sheet. */
-export function PlaceTalkCard({ social, placeName, tone = 'light' }: { social: PlaceSocial; placeName: string; tone?: 'light' | 'night' }) {
+export function PlaceTalkCard({
+  social,
+  placeName,
+  tone = 'light',
+  playerExtra,
+}: {
+  social: PlaceSocial
+  placeName: string
+  tone?: 'light' | 'night'
+  /** Extra block under the chat button when the tapped one is a player (e.g. a club's Hype). */
+  playerExtra?: (player: PlacePlayer) => ReactNode
+}) {
   const { talk, setTalk, acting } = social
   if (!talk) return null
   const name = talk.kind === 'npc' ? talk.npc.name : `@${talk.player.username}`
@@ -202,6 +213,8 @@ export function PlaceTalkCard({ social, placeName, tone = 'light' }: { social: P
           Chat
         </button>
       ) : null}
+
+      {talk.kind === 'player' && playerExtra ? playerExtra(talk.player) : null}
 
       <ul className={styles.socials}>
         {SOCIALS.map((s) => (

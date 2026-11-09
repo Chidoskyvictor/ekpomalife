@@ -3,7 +3,8 @@ import { missionProgress } from './missions.js'
 import type { PoolClient } from 'pg'
 import { pool } from '../db.js'
 import { createId } from '../ids.js'
-import { announceSocial, announceSpray, createLiveTicket, type SprayNote } from './club-live.js'
+import { announceHype, announceSocial, announceSpray, createLiveTicket, type SprayNote } from './club-live.js'
+import { HYPE_PAIR_COOLDOWN_MS, HYPE_TIERS, type HypeTier } from './club-hype.js'
 import { requireEconomySetup, tickAndWeekly } from './economy.js'
 import { applyCash, asMoney, parseNeeds } from './game-state.js'
 import { withIdempotency } from './idempotency.js'
@@ -519,6 +520,162 @@ export async function sprayAtVenue(userId: string, venueId: string, amount: numb
   // Only tell the room once the money has really moved
   ;(announce as (() => void) | null)?.()
   return result
+}
+
+export async function hypeAtVenue(userId: string, venueId: string, tier: HypeTier, targetUserId: string | null, key: string) {
+  const venue = VENUES[venueId]
+  if (!venue || venue.kind === 'hall') return { ok: false as const, error: 'No such club.', code: 404 }
+  const def = HYPE_TIERS[tier]
+  if (!def) return { ok: false as const, error: 'Pick a hype.', code: 400 }
+  if (def.target && !targetUserId) return { ok: false as const, error: 'Pick who to hype.', code: 400 }
+  if (def.target && targetUserId === userId) return { ok: false as const, error: "You can't hype yourself.", code: 400 }
+  const inSpace = await liveSpaceMoneyBlock([userId])
+  if (inSpace) return { ok: false as const, error: inSpace, code: 409 }
+  const night = nightKey()
+  let announce: (() => void) | null = null
+  const result = await withPlayer(userId, async ({ client, characterId, gameTime }) =>
+    withIdempotency(client, {
+      userId,
+      characterId,
+      key,
+      route: `venue:${venueId}:hype`,
+      body: { venueId, tier, targetUserId: def.target ? targetUserId : null },
+      run: async () => {
+        const visit = await visitOf(client, characterId, venueId, night)
+        if (!visit) return bad(403, 'NOT_INSIDE', `Pay the ₦${venue.entry.toLocaleString()} entry first.`)
+        if (!isOpen(venue, gameTime)) return bad(400, 'CLOSED', `${venue.name} has closed for the night.`)
+        // One player's hypes go one at a time, so two taps can't both pass the cooldown
+        await client.query(`SELECT pg_advisory_xact_lock(hashtext($1))`, [`hype:${userId}`])
+        const recent = await client.query<{ created_at: Date }>(
+          `SELECT created_at FROM club_hypes WHERE from_user_id = $1 ORDER BY created_at DESC LIMIT 1`,
+          [userId],
+        )
+        const last = recent.rows[0]?.created_at
+        if (last && Date.now() - new Date(last).getTime() < def.cooldownMs) {
+          return bad(429, 'COOLDOWN', 'Easy, big spender. Give it a moment before the next one.')
+        }
+        let target: { userId: string; characterId: string; username: string } | null = null
+        if (def.target) {
+          const t = await client.query<{ user_id: string; character_id: string; username: string }>(
+            `SELECT u.id AS user_id, c.id AS character_id, u.username
+             FROM venue_visits v JOIN characters c ON c.id = v.character_id JOIN users u ON u.id = c.user_id
+             WHERE u.id = $1 AND v.venue_id = $2 AND v.night_key = $3
+               AND v.last_seen_at > NOW() - make_interval(secs => $4)`,
+            [targetUserId, venueId, night, INSIDE_SECONDS],
+          )
+          if (!t.rows[0]) return bad(404, 'NOT_HERE', "They've left the club.")
+          target = { userId: t.rows[0].user_id, characterId: t.rows[0].character_id, username: t.rows[0].username }
+          const blocked = await client.query(
+            `SELECT 1 FROM player_blocks WHERE (blocker_id = $1 AND blocked_id = $2) OR (blocker_id = $2 AND blocked_id = $1) LIMIT 1`,
+            [userId, target.userId],
+          )
+          if (blocked.rows[0]) return bad(403, 'BLOCKED', "You can't hype this player.")
+          const pair = await client.query(
+            `SELECT 1 FROM club_hypes WHERE from_user_id = $1 AND to_user_id = $2 AND created_at > NOW() - make_interval(secs => $3) LIMIT 1`,
+            [userId, target.userId, HYPE_PAIR_COOLDOWN_MS / 1000],
+          )
+          if (pair.rows[0]) return bad(429, 'PAIR_COOLDOWN', 'You just hyped them. Spread the love.')
+        }
+        const paid = await applyCash(client, characterId, -def.price, `${venueId}:hype:${tier}`, 'spray')
+        if (!paid.ok) return bad(400, 'INSUFFICIENT_FUNDS', `${def.label} is ₦${def.price.toLocaleString()}. Not enough in your wallet.`)
+        const hypeId = createId()
+        await client.query(
+          `INSERT INTO club_hypes (id, venue_id, night_key, tier, from_user_id, to_user_id, amount) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+          [hypeId, venueId, night, tier, userId, target?.userId ?? null, def.price],
+        )
+        await client.query(
+          `UPDATE venue_visits SET spent = spent + $4, last_seen_at = NOW() WHERE character_id = $1 AND venue_id = $2 AND night_key = $3`,
+          [characterId, venueId, night, def.price],
+        )
+        // The hyped player feels the love (+Social / +Fun)
+        if (target && def.reward) {
+          const gs = await client.query<{ needs: string | Needs | null }>(`SELECT needs FROM game_state WHERE character_id = $1 FOR UPDATE`, [target.characterId])
+          if (gs.rows[0]) {
+            const next = applyNeedDelta(parseNeeds(gs.rows[0].needs), def.reward)
+            await client.query(`UPDATE game_state SET needs = $2::jsonb, updated_at = NOW() WHERE character_id = $1`, [target.characterId, JSON.stringify(next)])
+          }
+        }
+        const me = await client.query<{ username: string }>(`SELECT username FROM users WHERE id = $1`, [userId])
+        const byUsername = me.rows[0]?.username ?? 'someone'
+        const event = { id: hypeId, tier, byUsername, toUsername: target?.username ?? null, toUserId: target?.userId ?? null, amount: def.price }
+        announce = () => announceHype(venueId, night, event)
+        return {
+          status: 200,
+          body: {
+            ok: true,
+            message: target ? `You hyped @${target.username}! 🔥` : `${def.label}! The whole club saw that 🍾`,
+            cash: paid.cash,
+            ...event,
+          },
+        }
+      },
+    }),
+  )
+  // Only tell the club once the money has really moved
+  ;(announce as (() => void) | null)?.()
+  return result
+}
+
+/*
+ * "Your tab": a receipt of what you've spent at this club tonight, built from the money ledger
+ * (rows written by applyCash with reason "<venue>:<what>") since you arrived. The app keeps no
+ * total of its own.
+ */
+export type TabLine = { label: string; qty: number; amount: number }
+export type TabGroup = { type: 'food' | 'entry' | 'spray' | 'hype'; title: string; lines: TabLine[] }
+
+export async function getTab(userId: string, venueId: string) {
+  const venue = VENUES[venueId]
+  if (!venue || venue.kind === 'hall') return { ok: false as const, error: 'No such club.', code: 404 }
+  const night = nightKey()
+  const found = await withPlayer(userId, async ({ client, characterId }) => {
+    const visit = await client.query<{ entered_at: Date }>(
+      `SELECT entered_at FROM venue_visits WHERE character_id = $1 AND venue_id = $2 AND night_key = $3`,
+      [characterId, venueId, night],
+    )
+    if (!visit.rows[0]) return null
+    const rows = await client.query<{ reason: string; spent: string; n: string }>(
+      `SELECT reason, SUM(-amount)::text AS spent, COUNT(*)::text AS n
+       FROM ledger
+       WHERE character_id = $1 AND amount < 0 AND created_at >= $2 AND left(reason, $4) = $3
+       GROUP BY reason`,
+      [characterId, visit.rows[0].entered_at, `${venueId}:`, venueId.length + 1],
+    )
+    return { arrived: visit.rows[0].entered_at, rows: rows.rows }
+  })
+  if (!found) return { ok: false as const, error: 'Go inside first.', code: 403 }
+  if ('ok' in found) return found
+  const data = found
+  const groups: Record<TabGroup['type'], TabGroup> = {
+    food: { type: 'food', title: 'Drinks & bottles', lines: [] },
+    entry: { type: 'entry', title: 'Entry & VIP', lines: [] },
+    spray: { type: 'spray', title: 'Sprays', lines: [] },
+    hype: { type: 'hype', title: 'Hypes & rounds', lines: [] },
+  }
+  let total = 0
+  for (const r of data.rows) {
+    const what = r.reason.slice(venueId.length + 1)
+    const amount = Number(r.spent)
+    const qty = Number(r.n)
+    total += amount
+    if (what === 'entry') groups.entry.lines.push({ label: 'Entry', qty, amount })
+    else if (what === 'spray') groups.spray.lines.push({ label: 'Money spray', qty, amount })
+    else if (what.startsWith('hype:')) {
+      const tier = what.slice(5) as HypeTier
+      groups.hype.lines.push({ label: HYPE_TIERS[tier]?.label ?? 'Hype', qty, amount })
+    } else {
+      const item = venue.items.find((i) => i.id === what)
+      const line = { label: item?.name ?? what, qty, amount }
+      ;(item?.kind === 'vip' ? groups.entry : groups.food).lines.push(line)
+    }
+  }
+  return {
+    ok: true as const,
+    club: { name: venue.name, emoji: '🪩' },
+    arrivedAt: data.arrived.toISOString(),
+    total,
+    groups: Object.values(groups).filter((g) => g.lines.length),
+  }
 }
 
 /** Ticket for the live crowd socket (you must have paid entry tonight). */

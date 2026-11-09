@@ -2,8 +2,9 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { z } from 'zod'
 import { getSessionUser } from '../auth/current-user.js'
 import { isUuidV4, readIdempotencyKey } from '../game/idempotency.js'
+import { activeSongs } from '../game/promoted-songs.js'
 import { joinLive } from '../game/club-live.js'
-import { buyAtVenue, enterVenue, getVenue, liveTicket, socialAtVenue, sprayAtVenue, venueHeartbeat, venuePeople } from '../game/venues.js'
+import { buyAtVenue, enterVenue, getTab, hypeAtVenue, getVenue, liveTicket, socialAtVenue, sprayAtVenue, venueHeartbeat, venuePeople } from '../game/venues.js'
 
 const notLoggedIn = (reply: FastifyReply) => reply.code(401).send({ ok: false, error: 'Log in to play.' })
 
@@ -28,6 +29,7 @@ function send(reply: FastifyReply, result: Result) {
 const venueParams = z.object({ id: z.string().min(1).max(40) })
 const buySchema = z.object({ itemId: z.string().min(1).max(40) })
 const spraySchema = z.object({ amount: z.number().int().positive() })
+const hypeSchema = z.object({ tier: z.enum(['hype', 'mega', 'round', 'shutdown']), target: z.string().min(1).max(64).optional() })
 const socialSchema = z.object({
   kind: z.enum(['hello', 'gist', 'joke', 'compliment']),
   target: z.string().min(1).max(80),
@@ -84,6 +86,31 @@ export async function venueRoutes(app: FastifyInstance) {
     const parsed = spraySchema.safeParse(request.body)
     if (!parsed.success) return reply.code(400).send({ ok: false, error: 'Pick an amount to spray.' })
     return send(reply, await sprayAtVenue(user.id, id, parsed.data.amount, key))
+  })
+
+  app.post('/venues/:id/hype', rate, async (request, reply) => {
+    const user = await getSessionUser(request)
+    if (!user) return notLoggedIn(reply)
+    const key = idemKey(request, reply)
+    if (!key) return
+    const { id } = venueParams.parse(request.params)
+    const parsed = hypeSchema.safeParse(request.body)
+    if (!parsed.success) return reply.code(400).send({ ok: false, error: 'Pick a hype.' })
+    return send(reply, await hypeAtVenue(user.id, id, parsed.data.tier, parsed.data.target ?? null, key))
+  })
+
+  // Songs promoted on the club LED screen (managed by admins only)
+  app.get('/venues/:id/songs', async (request, reply) => {
+    const user = await getSessionUser(request)
+    if (!user) return notLoggedIn(reply)
+    return reply.send({ ok: true, songs: await activeSongs() })
+  })
+
+  app.get('/venues/:id/tab', async (request, reply) => {
+    const user = await getSessionUser(request)
+    if (!user) return notLoggedIn(reply)
+    const { id } = venueParams.parse(request.params)
+    return send(reply, await getTab(user.id, id))
   })
 
   app.post('/venues/:id/live-ticket', rate, async (request, reply) => {

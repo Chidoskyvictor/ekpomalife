@@ -93,6 +93,9 @@ export function PlaceSheet({
   )
 }
 
+/** Class for a custom chip placed in a PlaceSpots row via `lead`, so it matches the spot chips. */
+export const placeChipClass = styles.chip
+
 /** "Spots here" chip row: tap one to go there / see what you can do. */
 export function PlaceSpots<T extends string>({
   label = 'Spots here',
@@ -100,12 +103,15 @@ export function PlaceSpots<T extends string>({
   spots,
   value,
   onChange,
+  lead,
 }: {
   label?: string
   hint?: string
   spots: { id: T; emoji: string; label: string }[]
   value: T | null
   onChange: (id: T) => void
+  /** Extra chip(s) at the start of the row (e.g. a club's "Your tab" receipt). */
+  lead?: ReactNode
 }) {
   return (
     <div className={styles.block}>
@@ -114,6 +120,7 @@ export function PlaceSpots<T extends string>({
         {hint ? <small>{hint}</small> : null}
       </div>
       <div className={styles.chips}>
+        {lead}
         {spots.map((s) => (
           <button key={s.id} type="button" className={`${styles.chip} ${value === s.id ? styles.chipOn : ''}`} onClick={() => onChange(s.id)}>
             <span aria-hidden="true">{s.emoji}</span>
