@@ -1,7 +1,7 @@
 'use client'
 
 import { PlayerFace } from '@/components/look/player-face'
-import { Bell, Check, CheckCheck, ChevronLeft, DoorOpen, Home, MoreHorizontal, Reply, Search, Send, Smile, SquarePen, User, Users, X, Lock, Mic } from 'lucide-react'
+import { Bell, Check, CheckCheck, ChevronLeft, DoorOpen, Home, MoreHorizontal, Reply, Search, Send, Smile, SquarePen, User, Users, X, Lock, Mic, ChevronUp, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import { PlayerProfilePanel } from '@/components/profile/player-profile-panel'
@@ -622,12 +622,21 @@ function ChatView({
     return res.ok
   }
 
-  // —— Voice notes: hold the mic to record, release to send, slide left to cancel ——
+  // —— Voice notes (like WhatsApp): hold the mic to record, release to send, slide left to cancel,
+  // slide up to lock and keep talking hands-free (then 🗑 deletes, ➤ sends) ——
   const holdX = useRef<number | null>(null)
+  const holdY = useRef<number | null>(null)
   const [voiceHint, setVoiceHint] = useState<string | null>(null)
   const [slideCancel, setSlideCancel] = useState(false)
+  const [locked, setLocked] = useState(false)
+  /** How far up the finger has slid (0..1 of the way to locking), to animate the lock pill. */
+  const [lift, setLift] = useState(0)
+  const LOCK_PX = 70
   const finishVoice = async () => {
     holdX.current = null
+    holdY.current = null
+    setLocked(false)
+    setLift(0)
     const take = await recorder.stop()
     if (!take) {
       setVoiceHint('Hold to record, release to send')
@@ -651,26 +660,48 @@ function ChatView({
     e.preventDefault()
     e.currentTarget.setPointerCapture?.(e.pointerId)
     holdX.current = e.clientX
+    holdY.current = e.clientY
     setSlideCancel(false)
+    setLocked(false)
+    setLift(0)
     setVoiceHint(null)
     setStickersOpen(false)
     const started = await recorder.start()
     if (started === 'denied') setVoiceHint('Allow the microphone to send voice notes')
   }
   const micMove = (e: ReactPointerEvent<HTMLButtonElement>) => {
-    if (holdX.current == null || !recorder.recording) return
-    const far = holdX.current - e.clientX > 90
-    setSlideCancel(far)
+    if (holdX.current == null || holdY.current == null || !recorder.recording || locked) return
+    const up = holdY.current - e.clientY
+    const left = holdX.current - e.clientX
+    if (up >= LOCK_PX && left < 40) {
+      // Locked: letting go no longer sends; the strip shows 🗑 and ➤ instead
+      setLocked(true)
+      setLift(0)
+      setSlideCancel(false)
+      holdX.current = null
+      holdY.current = null
+      if (navigator.vibrate) navigator.vibrate(15)
+      return
+    }
+    setLift(Math.max(0, Math.min(1, up / LOCK_PX)))
+    setSlideCancel(left > 90 && up < 30)
   }
   const micUp = () => {
     if (holdX.current == null) return
+    holdX.current = null
+    holdY.current = null
+    setLift(0)
     if (slideCancel) {
-      holdX.current = null
       setSlideCancel(false)
       recorder.cancel()
       return
     }
     void finishVoice()
+  }
+  const deleteVoice = () => {
+    setLocked(false)
+    setSlideCancel(false)
+    recorder.cancel()
   }
   const showMic = !draft.trim() && canRecordVoice()
 
@@ -925,12 +956,19 @@ function ChatView({
         <div className={styles.composerRow}>
           {recorder.recording ? (
             <div className={`${styles.recStrip} ${slideCancel ? styles.recCancel : ''}`} aria-live="polite">
+              {locked ? (
+                <button type="button" className={styles.recTrash} onClick={deleteVoice} aria-label="Delete voice note">
+                  <Trash2 size={20} aria-hidden="true" />
+                </button>
+              ) : null}
               <span className={styles.recDot} style={{ transform: `scale(${1 + recorder.level * 0.6})` }} aria-hidden="true" />
               <span className={styles.recTime}>
                 {clock(recorder.elapsed)}
                 <span className={styles.recMax}> / {clock(VOICE_MAX_MS)}</span>
               </span>
-              <span className={styles.recSlide}>{slideCancel ? 'Release to cancel' : '‹ Slide to cancel'}</span>
+              <span className={styles.recSlide}>
+                {locked ? 'Recording…' : slideCancel ? 'Release to cancel' : '‹ Slide to cancel'}
+              </span>
             </div>
           ) : null}
           <button
@@ -941,7 +979,7 @@ function ChatView({
             aria-expanded={stickersOpen}
             onClick={() => setStickersOpen((open) => !open)}
           >
-            <Smile size={20} aria-hidden="true" />
+            <Smile size={24} aria-hidden="true" />
           </button>
           <textarea
             ref={draftBox}
@@ -966,7 +1004,18 @@ function ChatView({
               ₦
             </button>
           ) : null}
-          {showMic ? (
+          {recorder.recording && locked ? (
+            <button type="button" className={styles.send} onClick={() => void finishVoice()} aria-label="Send voice note">
+              <Send size={19} aria-hidden="true" />
+            </button>
+          ) : showMic ? (
+            <span className={styles.micWrap}>
+              {recorder.recording && !slideCancel ? (
+                <span className={styles.lockPill} style={{ transform: `translateY(${-lift * 24}px)` }} aria-hidden="true">
+                  <Lock size={16} />
+                  <ChevronUp size={14} />
+                </span>
+              ) : null}
             <button
               type="button"
               className={`${styles.send} ${styles.mic} ${recorder.recording ? styles.micOn : ''}`}
@@ -978,11 +1027,12 @@ function ChatView({
               onPointerCancel={micUp}
               onContextMenu={(e) => e.preventDefault()}
             >
-              <Mic size={16} aria-hidden="true" />
+              <Mic size={20} aria-hidden="true" />
             </button>
+            </span>
           ) : (
             <button type="submit" className={styles.send} disabled={!draft.trim() || sending} aria-label="Send">
-              <Send size={15} aria-hidden="true" />
+              <Send size={19} aria-hidden="true" />
             </button>
           )}
         </div>
@@ -1044,7 +1094,8 @@ function MessageRow({
   if (message.kind === 'bae') return <FamilyRequestCard id={message.body} />
   const sender = message.sender
   const content = <MessageContent message={message} onVisit={onVisit} />
-  const special = message.kind !== 'text'
+  // Stickers and cards sit on their own; text and voice notes get the chat bubble
+  const special = message.kind !== 'text' && message.kind !== 'voice'
   const reactions = message.reactions ?? []
   const quote = message.replyTo ? (
     <button

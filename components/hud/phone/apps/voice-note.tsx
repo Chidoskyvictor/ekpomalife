@@ -1,6 +1,6 @@
 'use client'
 
-import { Pause, Play } from 'lucide-react'
+import { Mic, Pause, Play } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { voiceNoteUrl } from '@/lib/game/hostels-api'
 import styles from './messages.module.css'
@@ -164,12 +164,20 @@ function parseBody(body: string): VoiceBody {
 /** Only one voice note plays at a time. */
 let playing: HTMLAudioElement | null = null
 
-/** A voice note in the chat: play/pause, waveform that fills as it plays, and its length. */
+const SPEEDS = [1, 1.5, 2] as const
+
+/**
+ * A voice note in the chat bubble: a round play button with a mic badge, a waveform with a seek knob
+ * (tap or drag to jump), the time underneath and a 1× / 1.5× / 2× speed pill once it has been played.
+ */
 export function VoiceBubble({ messageId, body, mine }: { messageId: string; body: string; mine: boolean }) {
   const { ms, peaks } = parseBody(body)
   const audio = useRef<HTMLAudioElement | null>(null)
+  const track = useRef<HTMLSpanElement | null>(null)
   const [state, setState] = useState<'idle' | 'loading' | 'playing' | 'paused' | 'error'>('idle')
   const [progress, setProgress] = useState(0)
+  const [speed, setSpeed] = useState<(typeof SPEEDS)[number]>(1)
+  const [started, setStarted] = useState(false)
 
   useEffect(
     () => () => {
@@ -178,57 +186,147 @@ export function VoiceBubble({ messageId, body, mine }: { messageId: string; body
     [],
   )
 
-  const toggle = async () => {
-    if (state === 'playing') {
-      audio.current?.pause()
-      return
+  const totalSec = () => {
+    const el = audio.current
+    return el && Number.isFinite(el.duration) && el.duration > 0 ? el.duration : ms / 1000
+  }
+
+  /** Load the audio once (with the login cookie); null if it can't be fetched. */
+  const ensure = async (): Promise<HTMLAudioElement | null> => {
+    if (audio.current) return audio.current
+    setState('loading')
+    const url = await voiceNoteUrl(messageId)
+    if (!url) {
+      setState('error')
+      return null
     }
-    if (!audio.current) {
-      setState('loading')
-      const url = await voiceNoteUrl(messageId)
-      if (!url) {
-        setState('error')
-        return
-      }
-      const el = new Audio(url)
-      el.ontimeupdate = () => {
-        const total = Number.isFinite(el.duration) && el.duration > 0 ? el.duration : ms / 1000
-        setProgress(total ? Math.min(1, el.currentTime / total) : 0)
-      }
-      el.onplay = () => setState('playing')
-      el.onpause = () => setState('paused')
-      el.onended = () => {
-        setState('idle')
-        setProgress(0)
-      }
-      audio.current = el
+    const el = new Audio(url)
+    el.playbackRate = speed
+    el.ontimeupdate = () => {
+      const total = totalSec()
+      setProgress(total ? Math.min(1, el.currentTime / total) : 0)
     }
-    if (playing && playing !== audio.current) playing.pause()
-    playing = audio.current
+    el.onplay = () => setState('playing')
+    el.onpause = () => setState((s) => (s === 'loading' ? s : 'paused'))
+    el.onended = () => {
+      setState('idle')
+      setProgress(0)
+    }
+    audio.current = el
+    setState('paused')
+    return el
+  }
+
+  const play = async (el: HTMLAudioElement) => {
+    if (playing && playing !== el) playing.pause()
+    playing = el
+    setStarted(true)
     try {
-      await audio.current.play()
+      await el.play()
     } catch {
       setState('error')
     }
   }
 
-  const shownMs = state === 'playing' || state === 'paused' ? ms * (1 - progress) : ms
+  const toggle = async () => {
+    if (state === 'playing') {
+      audio.current?.pause()
+      return
+    }
+    const el = await ensure()
+    if (el) await play(el)
+  }
+
+  /** Tap or drag on the waveform to jump there. */
+  const seekTo = async (clientX: number) => {
+    const box = track.current?.getBoundingClientRect()
+    if (!box || !box.width) return
+    const at = Math.min(1, Math.max(0, (clientX - box.left) / box.width))
+    setProgress(at)
+    const el = await ensure()
+    if (!el) return
+    el.currentTime = at * totalSec()
+  }
+
+  const cycleSpeed = () => {
+    const next = SPEEDS[(SPEEDS.indexOf(speed) + 1) % SPEEDS.length]!
+    setSpeed(next)
+    if (audio.current) audio.current.playbackRate = next
+  }
+
+  const shownMs = started ? ms * progress : ms
   const label = state === 'playing' ? 'Pause voice note' : `Play voice note, ${clock(ms)}`
   return (
     <div className={`${styles.voice} ${mine ? styles.voiceMine : ''}`}>
-      <button type="button" className={styles.voicePlay} onClick={() => void toggle()} aria-label={label}>
-        {state === 'playing' ? <Pause size={16} aria-hidden="true" /> : <Play size={16} aria-hidden="true" />}
-      </button>
-      <span className={styles.voiceBars} aria-hidden="true">
-        {peaks.map((p, i) => (
-          <span
-            key={i}
-            className={`${styles.voiceBar} ${i / peaks.length < progress ? styles.voiceBarOn : ''}`}
-            style={{ height: `${Math.round(Math.max(0.12, p) * 100)}%` }}
-          />
-        ))}
+      <span className={styles.voicePlayWrap}>
+        <button type="button" className={styles.voicePlay} onClick={(e) => {
+            e.stopPropagation()
+            void toggle()
+          }}
+          aria-label={label}
+        >
+          {state === 'loading' ? (
+            <span className={styles.voiceSpin} aria-hidden="true" />
+          ) : state === 'playing' ? (
+            <Pause size={18} aria-hidden="true" fill="currentColor" />
+          ) : (
+            <Play size={18} aria-hidden="true" fill="currentColor" />
+          )}
+        </button>
+        <span className={styles.voiceBadge} aria-hidden="true">
+          <Mic size={10} />
+        </span>
       </span>
-      <span className={styles.voiceTime}>{state === 'loading' ? '…' : state === 'error' ? '!' : clock(shownMs)}</span>
+      <span className={styles.voiceMain}>
+        <span
+          ref={track}
+          className={styles.voiceTrack}
+          role="slider"
+          tabIndex={0}
+          aria-label="Voice note position"
+          aria-valuemin={0}
+          aria-valuemax={Math.round(ms / 1000)}
+          aria-valuenow={Math.round((ms / 1000) * progress)}
+          onPointerDown={(e) => {
+            e.stopPropagation()
+            e.currentTarget.setPointerCapture?.(e.pointerId)
+            void seekTo(e.clientX)
+          }}
+          onPointerMove={(e) => {
+            if (e.buttons) void seekTo(e.clientX)
+          }}
+          onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => {
+            if (e.key === 'ArrowRight') void seekTo((track.current?.getBoundingClientRect().left ?? 0) + (progress + 0.1) * (track.current?.offsetWidth ?? 0))
+            if (e.key === 'ArrowLeft') void seekTo((track.current?.getBoundingClientRect().left ?? 0) + (progress - 0.1) * (track.current?.offsetWidth ?? 0))
+          }}
+        >
+          {peaks.map((p, i) => (
+            <span
+              key={i}
+              className={`${styles.voiceBar} ${i / peaks.length < progress ? styles.voiceBarOn : ''}`}
+              style={{ height: `${Math.round(Math.max(0.15, p) * 100)}%` }}
+            />
+          ))}
+          {started ? <span className={styles.voiceKnob} style={{ left: `${progress * 100}%` }} aria-hidden="true" /> : null}
+        </span>
+        <span className={styles.voiceMeta}>
+          <span className={styles.voiceTime}>{state === 'error' ? 'Couldn’t load' : clock(shownMs)}</span>
+          {started ? (
+            <button
+              type="button"
+              className={styles.voiceSpeed}
+              onClick={(e) => {
+                e.stopPropagation()
+                cycleSpeed()
+              }}
+              aria-label={`Playback speed ${speed}×`}
+            >
+              {speed}×
+            </button>
+          ) : null}
+        </span>
+      </span>
     </div>
   )
 }
