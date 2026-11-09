@@ -31,7 +31,6 @@ import { OPEN_CHAT_EVENT, takePendingChat } from '@/lib/game/open-chat'
 import { requestOpenGames } from '@/lib/game/open-games'
 import type { PhoneNotificationsResponse } from '@/lib/game/phone-api'
 import { FamilyRequestCard } from './family-request-card'
-import { UpdateBanner } from '../update-banner'
 import { canRecordVoice, clock, useVoiceRecorder, VoiceBubble, VOICE_MAX_MS } from './voice-note'
 import styles from './messages.module.css'
 
@@ -257,8 +256,6 @@ export function MessagesApp({
       </label>
 
       <div className={styles.scroll}>
-        {/* Players often jump straight into Messages, so the "New update · Refresh" card shows here too */}
-        <UpdateBanner />
         {chats == null ? <ChatListSkeleton /> : null}
 
         {pinned.map((chat) => (
