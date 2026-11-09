@@ -43,9 +43,22 @@ async function blocked(a: string, b: string) {
 /* —— Closeness —— */
 
 export async function closenessOf(a: string, b: string): Promise<number> {
-  const [x, y] = pairOf(a, b)
-  const r = await pool.query<{ points: number }>(`SELECT points FROM player_relations WHERE a_id = $1 AND b_id = $2`, [x, y])
-  return r.rows[0]?.points ?? 0
+  // Closeness toward "bae" = direct text messages between the two: a sender's message counts only if their
+  // previous one was 20+ seconds earlier, and each side adds at most half (20). Existing messages count.
+  const r = await pool.query<{ n: number }>(
+    `WITH msgs AS (
+       SELECT m.sender_id, m.created_at,
+              LAG(m.created_at) OVER (PARTITION BY m.sender_id ORDER BY m.created_at) AS prev
+       FROM chat_messages m JOIN chats c ON c.id = m.chat_id AND c.kind = 'direct'
+       WHERE m.kind = 'text' AND c.direct_key = $1
+     ), per AS (
+       SELECT sender_id, LEAST($2::int, COUNT(*) FILTER (WHERE prev IS NULL OR created_at - prev >= INTERVAL '20 seconds'))::int AS n
+       FROM msgs GROUP BY sender_id
+     )
+     SELECT COALESCE(SUM(n), 0)::int AS n FROM per`,
+    [[a, b].sort().join(':'), BAE_CLOSENESS_NEEDED / 2],
+  )
+  return r.rows[0]?.n ?? 0
 }
 
 /** Add closeness points, at most once per `everySec` per kind (so chatting back and forth can't be farmed). */
@@ -531,15 +544,19 @@ export async function recordInteraction(from: string, to: string, action: string
 }
 
 /** Dev only: jump a pair to the closeness needed (so two test accounts can try the flow). */
-export async function devSeedCloseness(userId: string, username: string, points = BAE_CLOSENESS_NEEDED) {
+export async function devSeedCloseness(userId: string, username: string) {
   const other = await userByName(username)
   if (!other || other.id === userId) return fail(404, 'No such player.')
-  const [a, b] = pairOf(userId, other.id)
-  await pool.query(
-    `INSERT INTO player_relations (a_id, b_id, points) VALUES ($1, $2, $3) ON CONFLICT (a_id, b_id) DO UPDATE SET points = GREATEST(player_relations.points, EXCLUDED.points)`,
-    [a, b, points],
-  )
-  return { ok: true as const, points }
+  const chat = await openDirectChat(userId, other.id)
+  if (!chat.ok) return fail(400, 'Could not open chat.')
+  for (const who of [userId, other.id]) {
+    await pool.query(
+      `INSERT INTO chat_messages (chat_id, sender_id, kind, body, created_at)
+       SELECT $1, $2, 'text', 'dev seed ' || g, NOW() - make_interval(secs => g * 30 + 3600) FROM generate_series(1, 20) g`,
+      [chat.chat.id, who],
+    )
+  }
+  return { ok: true as const, points: await closenessOf(userId, other.id) }
 }
 
 /** Phone notification items for the Family app. */

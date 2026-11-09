@@ -574,8 +574,6 @@ export async function sendMessage(
   }
 
   const seq = await insertMessage(pool, userId, chatId, kind, body, replyTo ?? null)
-  // Closeness for the bae feature (lazy import: bae.ts depends on this file)
-  if (kind === 'text') void import('./bae.js').then((m) => m.chatCloseness(userId, chatId)).catch(() => {})
   const row = await pool.query<MessageRow>(`${MESSAGE_SELECT} WHERE m.seq = $1`, [seq])
   return { ok: true, message: toMessage(row.rows[0]!, userId) }
 }
