@@ -27,5 +27,6 @@ All clips CC0 (Creative Commons 0) from Freesound; files are the HQ MP3 previews
 | spray.mp3 | Flutter.wav | Aquafeniz | https://freesound.org/people/Aquafeniz/sounds/468113/ | 1.82 | CC0 1.0 |
 | login.mp3 | Chime.wav | Psykoosiossi | https://freesound.org/people/Psykoosiossi/sounds/398661/ | 1.36 | CC0 1.0 |
 | spin.mp3 | slot machine reels sound.m4a (2s excerpt from 3s) | aghirlandaio | https://freesound.org/people/aghirlandaio/sounds/415074/ | 2.06 | CC0 1.0 |
+| invite.mp3 | new notification 040 | Universfield | https://pixabay.com/sound-effects/ (Universfield, "new notification 040") | 34 KB | Pixabay Content License |
 
 Processing: all files mono 22.05 kHz MP3 (~64 kbps or lower) to stay under 50 KB; signup.mp3 and win.mp3 re-encoded only.
