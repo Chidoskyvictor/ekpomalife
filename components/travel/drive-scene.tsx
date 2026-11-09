@@ -4,6 +4,7 @@ import { useGLTF } from '@react-three/drei'
 import { useFrame, useThree } from '@react-three/fiber'
 import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, type RefObject } from 'react'
 import {
+  Box3,
   BoxGeometry,
   AdditiveBlending,
   CanvasTexture,
@@ -297,9 +298,9 @@ function LampGlow({ lamps, tiles, level }: { lamps: Vector3[]; tiles: Matrix4[];
     for (const tile of tiles) {
       for (const lamp of lamps) {
         // Pool on the road under the head (the arm reaches over the road toward the centre)
-        local.makeTranslation(lamp.x * 0.72, 0.06, lamp.z)
+        local.makeTranslation(lamp.x, 0.06, lamp.z)
         poolMatrices.push(tile.clone().multiply(local))
-        local.makeTranslation(lamp.x, lamp.y - 0.15, lamp.z)
+        local.makeTranslation(lamp.x, lamp.y - 0.1, lamp.z)
         haloMatrices.push(tile.clone().multiply(local))
       }
     }
@@ -429,8 +430,10 @@ function Highway({ offset, plan, gateZ, level = 'day', tier }: { offset: Offset;
     root.updateMatrixWorld(true)
     // Where the lamp heads are in one tile (Light_Centre_*, Light_Side_*)
     const lampsFound: Vector3[] = []
+    // The glow sits on the bulb itself (the lamp head up top), not on the pole's origin halfway down
     root.traverse((o) => {
-      if (/^Light_/.test(o.name)) lampsFound.push(o.getWorldPosition(new Vector3()))
+      const mesh = o as Mesh
+      if (mesh.isMesh && !Array.isArray(mesh.material) && mesh.material.name === 'HW_Lamp_Light') lampsFound.push(new Box3().setFromObject(mesh).getCenter(new Vector3()))
     })
     if (node) wallRoot.attach(node)
     const wallParts = node ? bakeStaticParts(wallRoot) : []
