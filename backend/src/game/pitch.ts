@@ -55,6 +55,15 @@ export async function pitchStatus(userId: string) {
   }
 }
 
+/** Has this player ever pitched (any pitch, won or not, even one still under review)? Drives the launch invite. */
+export async function launchStatus(userId: string) {
+  const r = await pool.query(
+    `SELECT 1 FROM hub_pitches p JOIN characters c ON c.id = p.character_id WHERE c.user_id = $1 LIMIT 1`,
+    [userId],
+  )
+  return { ok: true as const, hasPitched: (r.rowCount ?? 0) > 0 }
+}
+
 export async function startPitch(userId: string, idea: string) {
   const ch = await characterOf(userId)
   if (!ch) return fail(409, 'Create your character first.')

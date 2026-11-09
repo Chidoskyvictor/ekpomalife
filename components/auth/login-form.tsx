@@ -9,6 +9,7 @@ import { LobbyButton } from './lobby-button'
 import { LobbyField } from './lobby-field'
 import styles from './auth.module.css'
 import { playSfx } from '@/lib/audio/sfx'
+import { resetLaunchInvite } from '@/lib/game/launch-invite'
 
 export function LoginForm({ onShake }: { onShake: () => void }) {
   const search = useSearchParams()
@@ -35,6 +36,7 @@ export function LoginForm({ onShake }: { onShake: () => void }) {
       return
     }
     playSfx('login')
+    resetLaunchInvite()
     await redirectAfterAuth(result.account)
   }
 

@@ -17,6 +17,7 @@ export const SFX = {
   error: { file: 'error', volume: 0.6 }, // failed form, rejected action
   success: { file: 'success', volume: 0.6 }, // action worked (green toast)
   notify: { file: 'notify', volume: 0.55 }, // info notice, new message arriving
+  invite: { file: 'notify', volume: 0.6 }, // launch invite card (Innovation Hub). Owner's own sound: add public/audio/sfx/invite.mp3 and set file to 'invite'
   sent: { file: 'sent', volume: 0.45 }, // chat message sent
   coin: { file: 'coin', volume: 0.6 }, // money received
   spend: { file: 'spend', volume: 0.55 }, // money paid
