@@ -298,6 +298,8 @@ white_top_m = mat("DeskWhite", (0.96, 0.96, 0.94), rough=0.35)
 marble_m = mat("Marble", (0.90, 0.90, 0.88), rough=0.2)
 glass_m = mat("ClassWindowGlow", (0.62, 0.78, 0.88), rough=0.1)   # lit from inside at night
 frame_m = mat("WindowFrame", (0.13, 0.14, 0.15), rough=0.4, metal=0.6)
+laptop_m = mat("Laptop", (0.55, 0.57, 0.60), rough=0.3, metal=0.8)
+screen_blue_m = mat("WallScreen", (0.05, 0.16, 0.38), rough=0.3, emit=(0.04, 0.12, 0.30))
 chrome_m = mat("Chrome", (0.75, 0.76, 0.78), rough=0.2, metal=0.9)
 monitor_m = mat("Monitor", (0.02, 0.03, 0.05), rough=0.25, emit=(0.02, 0.05, 0.09))
 bulb_m = mat("LampBulb", (1.0, 0.85, 0.6), rough=0.4, emit=(1.0, 0.72, 0.4))
@@ -342,7 +344,10 @@ for i, (x, m_) in enumerate(((-8.6, art1_m), (-7.2, art2_m), (-5.8, art3_m))):
     box(f"ArtA{i}", x - 0.55, HZ0 + 0.12, x + 0.55, HZ0 + 0.14, 1.22, 2.28, m_)
 # wall screen (presentation display) on the slat wall near the meeting table
 box("ScreenBezel", -3.4, HZ0 + 0.06, -0.6, HZ0 + 0.16, 1.05, 2.65, charcoal_m)
-box("ScreenPanel", -3.34, HZ0 + 0.16, -0.66, HZ0 + 0.18, 1.11, 2.59, monitor_m)
+box("ScreenPanel", -3.34, HZ0 + 0.16, -0.66, HZ0 + 0.18, 1.11, 2.59, screen_blue_m)
+text("ScreenPhD", "PhD", -2.0, 2.15, HZ0 + 0.2, 0.5, white_m, '+z', 0.01)
+text("ScreenTitle", "in Ekpoma Life", -2.0, 1.7, HZ0 + 0.2, 0.24, white_m, '+z', 0.01)
+text("ScreenSub", "Today's session", -2.0, 1.3, HZ0 + 0.2, 0.14, white_m, '+z', 0.01)
 
 # right wall with a row of tall windows (sill 0.85, head 2.8)
 box("WallRightLow", HX1, HZ0 - 0.25, HX1 + 0.25, HZ1, 0.0, 0.85, plaster_m, tile=(3.0, WH))
@@ -416,7 +421,7 @@ def chair(tag, cx, cz, m_seat=None, d=1):
     box(f"{tag}Arm2", cx + 0.23, cz - 0.12, cx + 0.26, cz + 0.16, 0.6, 0.64, charcoal_m)
 
 
-def work_desk(idx, x0, z0, accent):
+def work_desk(idx, x0, z0, accent, laptop=False):
     x1, z1 = x0 + 1.5, z0 + 0.75
     box(f"Desk{idx}Top", x0, z0, x1, z1, 0.72, 0.77, white_top_m)
     box(f"Desk{idx}Edge", x0, z1 - 0.02, x1, z1, 0.72, 0.77, accent)
@@ -424,8 +429,17 @@ def work_desk(idx, x0, z0, accent):
         for lz in (z0 + 0.04, z1 - 0.08):
             box(f"Desk{idx}Leg", lx, lz, lx + 0.04, lz + 0.04, 0.0, 0.72, chrome_m)
     box(f"Desk{idx}Drawers", x1 - 0.5, z0 + 0.05, x1 - 0.06, z1 - 0.08, 0.2, 0.72, white_top_m)
-    # monitor on the desk facing +z, keyboard in front of it
     mx = x0 + 0.55
+    if laptop:
+        # someone works here: an open laptop, screen toward the chair (+z), a notebook beside it
+        box(f"Desk{idx}LapBase", mx - 0.2, z0 + 0.3, mx + 0.2, z0 + 0.58, 0.77, 0.795, laptop_m)
+        box(f"Desk{idx}LapKeys", mx - 0.16, z0 + 0.34, mx + 0.16, z0 + 0.5, 0.795, 0.8, charcoal_m)
+        box(f"Desk{idx}LapLid", mx - 0.2, z0 + 0.27, mx + 0.2, z0 + 0.3, 0.795, 1.05, laptop_m)
+        box(f"Desk{idx}LapScreen", mx - 0.18, z0 + 0.3, mx + 0.18, z0 + 0.305, 0.82, 1.03, monitor_m)
+        box(f"Desk{idx}Notebook", x0 + 1.0, z0 + 0.3, x0 + 1.25, z0 + 0.56, 0.77, 0.79, art2_m)
+        box(f"Desk{idx}Mug", x1 - 0.65, z0 + 0.45, x1 - 0.55, z0 + 0.55, 0.77, 0.85, accent)
+        return
+    # monitor on the desk facing +z, keyboard in front of it
     box(f"Desk{idx}Stand", mx - 0.04, z0 + 0.18, mx + 0.04, z0 + 0.26, 0.77, 0.95, charcoal_m)
     box(f"Desk{idx}Mon", mx - 0.3, z0 + 0.14, mx + 0.3, z0 + 0.2, 0.93, 1.3, monitor_m)
     box(f"Desk{idx}Keys", mx - 0.2, z0 + 0.45, mx + 0.2, z0 + 0.6, 0.77, 0.79, charcoal_m)
@@ -436,7 +450,8 @@ ACCENTS = [teal_m, art1_m, art2_m, art3_m, teal_m, art1_m]
 n_desk = 0
 for row_z in (1.55, -0.85):
     for dx in (0.25, -1.95, -4.15):
-        work_desk(n_desk, dx - 0.75, row_z, ACCENTS[n_desk])
+        # desks 0, 1, 2 (front row) and 4 (back middle) have an NPC working at them: laptops there
+        work_desk(n_desk, dx - 0.75, row_z, ACCENTS[n_desk], laptop=n_desk in (0, 1, 2, 4))
         chair(f"Chair{n_desk}", dx + 0.2, row_z + 1.3)
         n_desk += 1
 
