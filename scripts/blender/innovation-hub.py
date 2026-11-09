@@ -344,10 +344,7 @@ for i, (x, m_) in enumerate(((-8.6, art1_m), (-7.2, art2_m), (-5.8, art3_m))):
     box(f"ArtA{i}", x - 0.55, HZ0 + 0.12, x + 0.55, HZ0 + 0.14, 1.22, 2.28, m_)
 # wall screen (presentation display) on the slat wall near the meeting table
 box("ScreenBezel", -3.4, HZ0 + 0.06, -0.6, HZ0 + 0.16, 1.05, 2.65, charcoal_m)
-box("ScreenPanel", -3.34, HZ0 + 0.16, -0.66, HZ0 + 0.18, 1.11, 2.59, screen_blue_m)
-text("ScreenPhD", "PhD", -2.0, 2.15, HZ0 + 0.2, 0.5, white_m, '+z', 0.01)
-text("ScreenTitle", "in Ekpoma Life", -2.0, 1.7, HZ0 + 0.2, 0.24, white_m, '+z', 0.01)
-text("ScreenSub", "Today's session", -2.0, 1.3, HZ0 + 0.2, 0.14, white_m, '+z', 0.01)
+# (the screen itself is drawn live by the game: components/hub/hub-npcs.tsx HubScreen, x -3.34..-0.66, y 1.11..2.59, z -4.335)
 
 # right wall with a row of tall windows (sill 0.85, head 2.8)
 box("WallRightLow", HX1, HZ0 - 0.25, HX1 + 0.25, HZ1, 0.0, 0.85, plaster_m, tile=(3.0, WH))
