@@ -17,9 +17,8 @@ export const SFX = {
   error: { file: 'error', volume: 0.6 }, // failed form, rejected action
   success: { file: 'success', volume: 0.6 }, // action worked (green toast)
   notify: { file: 'notify', volume: 0.55 }, // info notice, new message arriving
-  invite: { file: 'invite', volume: 0.6 }, // launch invite card (Innovation Hub): owner's chosen sound
+  invite: { file: 'invite', volume: 0.6 }, // launch invite card (Innovation Hub) and other invites: dragon-studio clip
   sent: { file: 'sent', volume: 0.45 }, // chat message sent
-  invite: { file: 'invite', volume: 0.6 }, // an invitation to go somewhere arrives
   coin: { file: 'coin', volume: 0.6 }, // money received
   spend: { file: 'spend', volume: 0.55 }, // money paid
   signup: { file: 'signup', volume: 0.7 }, // account created
