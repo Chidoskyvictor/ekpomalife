@@ -22,6 +22,11 @@ export type ApiFail = {
 
 const CODE_SET = new Set<string>(API_ERROR_CODES)
 
+/** The server refused because the phone's state was a step behind (nothing was applied). */
+export function isVersionConflict(fail: ApiFail): boolean {
+  return Boolean(fail.conflict) || fail.code === 'VERSION_CONFLICT' || /stale state|VERSION_CONFLICT/i.test(fail.error ?? '')
+}
+
 export function asApiErrorCode(value: string | undefined | null): ApiErrorCode | undefined {
   if (!value) return undefined
   if (CODE_SET.has(value)) return value as ApiErrorCode

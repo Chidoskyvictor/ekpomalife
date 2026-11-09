@@ -20,6 +20,7 @@ import type { TraitId } from '@/lib/game/traits'
 import { setMusicSignedIn } from '@/lib/audio/music'
 import type { ActionId, EventChoice, GameEvent, GameState, TimePeriod, TravelMode } from '@/lib/game/types'
 import { playSfx } from '@/lib/audio/sfx'
+import { isVersionConflict } from '@/lib/api/errors'
 
 /** Optional button on a toast, e.g. "Go to my room" → /room. */
 export type ToastAction = { label: string; href: string }
@@ -393,14 +394,23 @@ export function GameProvider({
         notify('That action is not available yet.', false)
         return null
       }
-      const result = await postGameAction({
-        actionId: serverId,
-        targetPlaceId: selectedId ?? state.locationId,
-        version: versionRef.current,
-        payload: opts?.payload,
-        traits: state.traits,
-        atHome: opts?.atHome,
-      })
+      // Needs tick, money moves and other actions bump the state version, so a tap can arrive
+      // "stale". The server rolls that back and changes nothing, so refresh and send it again
+      // instead of dropping the tap (players were having to tap 2–3 times).
+      const send = () =>
+        postGameAction({
+          actionId: serverId,
+          targetPlaceId: selectedId ?? state.locationId,
+          version: versionRef.current,
+          payload: opts?.payload,
+          traits: state.traits,
+          atHome: opts?.atHome,
+        })
+      let result = await send()
+      for (let retry = 0; retry < 2 && !result.ok && isVersionConflict(result); retry++) {
+        await refreshServer()
+        result = await send()
+      }
       if (!result.ok) {
         const { handleApiFail } = await import('@/lib/api/handle-fail')
         await handleApiFail(result, {
@@ -428,11 +438,12 @@ export function GameProvider({
           setSelectedId(locationId)
           return
         }
-        const result = await postGameAction({
-          actionId: 'travel',
-          targetPlaceId: locationId,
-          version: versionRef.current,
-        })
+        const send = () => postGameAction({ actionId: 'travel', targetPlaceId: locationId, version: versionRef.current })
+        let result = await send()
+        for (let retry = 0; retry < 2 && !result.ok && isVersionConflict(result); retry++) {
+          await refreshServer()
+          result = await send()
+        }
         if (!result.ok) {
           const { handleApiFail } = await import('@/lib/api/handle-fail')
           await handleApiFail(result, {
