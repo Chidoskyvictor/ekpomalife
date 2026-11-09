@@ -1,24 +1,31 @@
-.root { display: flex; flex-direction: column; height: calc(100% + 24px); min-height: 0; margin: -12px; /* fill the phone edge to edge (the app body pads 12px) */ background: linear-gradient(180deg, #052e1a, #0b3d24 60%, #072b19); color: #fdf6dc; }
-.scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 12px 12px 8px; }
-.title { margin: 0; font-size: 22px; font-weight: 800; color: #f5c542; letter-spacing: 0.01em; }
-.sub { margin: 2px 0 0; font-size: 12px; opacity: 0.8; }
-.fresh { font-size: 11px; opacity: 0.6; margin: 2px 0 10px; }
-.podium { display: grid; grid-template-columns: repeat(3, 1fr); align-items: end; gap: 6px; margin: 8px 0 14px; }
-.pCol { display: flex; flex-direction: column; align-items: center; min-width: 0; background: none; border: 0; color: inherit; padding: 0; cursor: pointer; }
-.crown { font-size: 22px; line-height: 1; }
-.pName { max-width: 100%; font-size: 12px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 4px; }
-.pWorth { font-size: 11px; color: #86efac; font-weight: 700; }
-.block { width: 100%; margin-top: 4px; border-radius: 10px 10px 0 0; display: grid; place-items: center; font-weight: 800; font-size: 20px; color: #3b2a00; }
-.gold { height: 78px; background: linear-gradient(180deg, #ffe27a, #d9a21b); }
-.silver { height: 58px; background: linear-gradient(180deg, #eef1f5, #aeb6c2); }
-.bronze { height: 44px; background: linear-gradient(180deg, #e8a971, #b06a2c); }
+.root { position: fixed; inset: 0; z-index: 200; display: flex; flex-direction: column; background: #15171c; color: #eef0f4; padding-top: env(safe-area-inset-top); padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); }
+.head { flex: none; display: flex; align-items: center; gap: 8px; padding: 6px 12px 8px 6px; }
+.close { flex: none; width: 44px; height: 44px; display: grid; place-items: center; border: 0; border-radius: 12px; background: rgba(255, 255, 255, 0.08); color: inherit; cursor: pointer; }
+.headText { min-width: 0; }
+.title { margin: 0; font-size: 20px; font-weight: 800; letter-spacing: 0.01em; }
+.sub { margin: 1px 0 0; font-size: 12px; opacity: 0.65; }
+.scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 4px 12px 12px; }
+.top3 { display: grid; grid-template-columns: 1fr 1.12fr 1fr; align-items: stretch; gap: 8px; margin: 4px 0 16px; }
+.card { display: flex; flex-direction: column; align-items: center; min-width: 0; padding: 12px 6px 10px; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 16px; background: #1f2229; color: inherit; cursor: pointer; text-align: center; position: relative; }
+.first { background: #262320; border-color: rgba(245, 197, 66, 0.35); }
+.crown { position: absolute; top: -14px; font-size: 24px; line-height: 1; }
+.ring { display: grid; place-items: center; padding: 3px; border-radius: 999px; margin-top: 4px; }
+.gold { box-shadow: 0 0 0 3px #f5c542, 0 0 18px 4px rgba(245, 197, 66, 0.55); }
+.silver { box-shadow: 0 0 0 3px #c4cad4, 0 0 16px 3px rgba(196, 202, 212, 0.45); }
+.bronze { box-shadow: 0 0 0 3px #cd7f32, 0 0 16px 3px rgba(205, 127, 50, 0.45); }
+.cName { max-width: 100%; margin-top: 10px; font-size: 13px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cDetail { max-width: 100%; font-size: 10px; opacity: 0.6; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cWorth { margin-top: 4px; font-size: 12px; font-weight: 800; color: #4ade80; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
-.row { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 52px; padding: 6px 10px; border-radius: 12px; border: 1px solid rgba(245, 197, 66, 0.18); background: rgba(255, 255, 255, 0.06); color: inherit; text-align: left; cursor: pointer; }
-.rank { width: 28px; flex: none; text-align: center; font-weight: 800; color: #f5c542; font-size: 13px; }
+.list li { content-visibility: auto; contain-intrinsic-size: auto 56px; }
+.row { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 56px; padding: 8px 10px; border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 12px; background: #1c1f26; color: inherit; text-align: left; cursor: pointer; }
+.mine { border-color: rgba(74, 222, 128, 0.5); }
+.rank { width: 30px; flex: none; text-align: center; font-weight: 800; font-size: 13px; opacity: 0.7; }
+.faceSlot { flex: none; display: inline-block; }
 .who { flex: 1; min-width: 0; }
 .name { display: block; font-size: 14px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.detail { display: block; font-size: 11px; opacity: 0.7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.worth { flex: none; font-weight: 800; font-size: 13px; color: #86efac; }
-.me { flex: none; display: flex; justify-content: space-between; gap: 8px; padding: 12px 14px calc(12px + env(safe-area-inset-bottom)); background: linear-gradient(90deg, #d9a21b, #f5c542); color: #2b1d00; font-weight: 800; font-size: 14px; }
-.meWorth { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.note { padding: 24px 12px; text-align: center; opacity: 0.8; font-size: 13px; }
+.detail { display: block; font-size: 11px; opacity: 0.6; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.worth { flex: none; font-weight: 800; font-size: 13px; color: #4ade80; max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sentinel { min-height: 24px; text-align: center; font-size: 12px; opacity: 0.5; padding: 8px 0; }
+.me { flex: none; width: 100%; min-height: 48px; border: 0; border-top: 1px solid rgba(255, 255, 255, 0.1); background: #232730; color: #eef0f4; font-weight: 800; font-size: 14px; padding: 12px 14px calc(12px + env(safe-area-inset-bottom)); cursor: pointer; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.note { padding: 24px 12px; text-align: center; opacity: 0.75; font-size: 13px; }

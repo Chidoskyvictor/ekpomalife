@@ -290,7 +290,7 @@ export function PhoneShell({
                   <div className={styles.content}>
                     <PhoneStatusBar clock={phoneClock} phone={deviceState} onApp={Boolean(appId)} />
                     {appId ? (
-                      <AppFrame appId={appId} offline={offline} onHome={goHome} bare={appId === 'messages' || appId === 'games' || appId === 'spaces' || appId === 'prodigy' || appId === 'anonymous'}>
+                      <AppFrame appId={appId} offline={offline} onHome={goHome} bare={appId === 'forbes' || appId === 'messages' || appId === 'games' || appId === 'spaces' || appId === 'prodigy' || appId === 'anonymous'}>
                         {appId === 'jobs' ? <JobsApp /> : null}
                         {appId === 'bank' ? <BankApp /> : null}
                         {appId === 'gist' ? <GistApp /> : null}
@@ -334,7 +334,7 @@ export function PhoneShell({
                         {appId === 'games' ? <GamesApp onHome={goHome} /> : null}
                         {appId === 'anonymous' ? <AnonymousApp onHome={goHome} /> : null}
                         {appId === 'family' ? <FamilyApp /> : null}
-                        {appId === 'forbes' ? <ForbesApp /> : null}
+                        {appId === 'forbes' ? <ForbesApp onClose={goHome} /> : null}
                         {appId === 'spaces' ? (
                           <SpacesApp currentPlaceId={mobileApi.location?.placeId ?? state?.locationId ?? null} onHome={goHome} />
                         ) : null}
