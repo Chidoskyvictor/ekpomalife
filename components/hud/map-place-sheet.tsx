@@ -99,6 +99,16 @@ export function MapPlaceSheet({ hidden = false }: { hidden?: boolean }) {
     }
   }, [placeId, signedIn, here, state?.locationId])
 
+  // Open the ways to get there: start fetching the ride's models now, so they're usually ready by the time Go is tapped
+  useEffect(() => {
+    if (!placeId || !signedIn || here) return
+    const id = window.setTimeout(() => {
+      void import('@/components/travel/drive-scene').then((m) => m.preloadRide())
+      void import('@/components/travel/drive-canvas')
+    }, 300)
+    return () => window.clearTimeout(id)
+  }, [placeId, signedIn, here])
+
   useEffect(() => {
     if (!placeId) return
     const onKey = (event: KeyboardEvent) => {
