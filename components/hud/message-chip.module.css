@@ -1,11 +1,11 @@
-/* Under the cash pill, right edge. Hidden off-screen until a new message arrives. */
+/* Same row as the missions card, right side, left of the round filter button. Off-screen until a new message arrives. */
 .wrap {
   position: absolute;
   z-index: calc(var(--z-hud) + 2);
-  right: max(12px, env(safe-area-inset-right));
-  top: calc(max(12px, env(safe-area-inset-top)) + 58px);
+  right: calc(max(12px, env(safe-area-inset-right)) + 56px);
+  top: calc(max(12px, env(safe-area-inset-top)) + 94px);
   pointer-events: none;
-  transform: translateX(calc(100% + 24px));
+  transform: translateX(calc(100% + 80px));
   opacity: 0;
   transition: transform 0.28s ease, opacity 0.2s ease;
 }
@@ -20,7 +20,7 @@
   align-items: center;
   gap: 5px;
   min-width: 44px;
-  min-height: 44px;
+  min-height: 40px;
   padding: 0 12px;
   border: 1.5px solid rgba(17, 24, 39, 0.22);
   border-radius: 14px;
