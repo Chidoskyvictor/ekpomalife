@@ -129,8 +129,11 @@ export async function getSpace(userId: string, spaceId: string) {
   const isHost = row.host_id === userId
   const member = await pool.query(`SELECT 1 FROM space_members WHERE space_id = $1 AND user_id = $2`, [spaceId, userId])
   if (row.visibility === 'invite' && !isHost && !member.rowCount) return fail(403, 'INVITE_ONLY', 'This Space is invite-only. Ask the host for the code.')
-  const people = await pool.query<{ user_id: string; username: string; role: SpaceRole; speak_requested_at: Date | null }>(
-    `SELECT m.user_id, u.username, m.role, m.speak_requested_at FROM space_members m
+  // look = appearance only (drawn as their 3D face); no other character data
+  const people = await pool.query<{ user_id: string; username: string; role: SpaceRole; speak_requested_at: Date | null; look: unknown }>(
+    `SELECT m.user_id, u.username, m.role, m.speak_requested_at,
+            (SELECT c.appearance FROM characters c WHERE c.user_id = m.user_id LIMIT 1) AS look
+     FROM space_members m
      JOIN users u ON u.id = m.user_id
      WHERE m.space_id = $1 AND m.left_at IS NULL ORDER BY m.joined_at LIMIT 200`,
     [spaceId],
@@ -142,6 +145,7 @@ export async function getSpace(userId: string, spaceId: string) {
       userId: p.user_id,
       username: p.username,
       role: p.role,
+      look: p.look ?? null,
       // Only the host needs the hand-raise queue
       askedToSpeak: isHost ? p.speak_requested_at?.toISOString() ?? null : undefined,
     })),

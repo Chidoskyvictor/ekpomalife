@@ -22,7 +22,8 @@ import {
 } from '@/lib/game/spaces-api'
 import { spaceLink } from '@/lib/game/open-spaces'
 import { useLive } from './spaces-live-context'
-import { Avatar, ReportSheet, Sheet, placeLabel } from './spaces-ui'
+import { PlayerFace } from '@/components/look/player-face'
+import { ReportSheet, Sheet, colorFor, placeLabel } from './spaces-ui'
 import styles from './spaces.module.css'
 
 const SpaceLive = dynamic(() => import('./spaces-live'), { ssr: false })
@@ -259,7 +260,7 @@ function RoomBody({
     const inner = (
       <>
         <span className={styles.face}>
-          <Avatar name={p.username} size={size} />
+          <PlayerFace look={p.look} color={colorFor(p.username)} label={p.username} size={size} />
           {p.role === 'host' ? <span className={styles.crown} aria-label="Host">👑</span> : null}
           {p.role !== 'listener' ? (
             <span className={`${styles.micBadge} ${live.micOn.has(p.userId) ? styles.micBadgeOn : ''}`} aria-hidden="true">

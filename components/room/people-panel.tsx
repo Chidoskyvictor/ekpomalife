@@ -1,6 +1,5 @@
 'use client'
 
-import dynamic from 'next/dynamic'
 import { Camera, Flag, MessageCircle, PartyPopper, ShieldOff, Smile, Users, X } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { hapticTap } from '@/components/hud/haptic'
@@ -22,14 +21,12 @@ import {
   setPartner,
   type Relation,
 } from '@/lib/game/interactions'
-import { normalizeAppearance, type Appearance } from '@/lib/game/look'
+import { PlayerFace } from '@/components/look/player-face'
 import { requestOpenChat } from '@/lib/game/open-chat'
 import { bubbleFor } from '@/lib/game/quick-lines'
 import { BaeRow } from './bae-row'
 import type { RoomPlayerControl } from './room-player'
 import styles from './people-panel.module.css'
-
-const AvatarPortrait = dynamic(() => import('@/components/hud/avatar-portrait').then((m) => m.AvatarPortrait), { ssr: false })
 
 type Live = ReturnType<typeof useClubLive>
 const BUBBLE_MS = 4000
@@ -284,12 +281,7 @@ export function PersonSheet({ peer, homeOwner, onClose, people }: { peer: Peer |
           <span className={styles.handle} aria-hidden="true" />
           <header className={styles.head}>
             <span className={styles.avatar}>
-              <AvatarPortrait
-                appearance={normalizeAppearance(peer.appearance as Partial<Appearance>)}
-                fallbackColor="#2f7cf6"
-                initial={peer.username[0]?.toUpperCase() ?? '?'}
-                className={styles.face}
-              />
+              <PlayerFace look={peer.appearance} color="#2f7cf6" label={peer.username} size={56} className={styles.face} />
             </span>
             <span className={styles.titles}>
               <strong>@{peer.username}</strong>

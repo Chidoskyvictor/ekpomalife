@@ -33,6 +33,8 @@ export type SpacePerson = {
   userId: string
   username: string
   role: SpaceRole
+  /** Their character's appearance, drawn as a 3D face (null = letter circle) */
+  look?: unknown
   /** Host only: when they raised a hand */
   askedToSpeak?: string | null
 }
