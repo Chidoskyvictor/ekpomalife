@@ -123,13 +123,18 @@ export const STORY_EVENTS: StoryEvent[] = [
   },
 ]
 
+/** Lectures, lecturers, coursemates, exams, handouts: only for players who are students. */
+export const SCHOOL_STORY_IDS = new Set(['lecturer-sleeping', 'nepa-light', 'borrow-money', 'group-project', 'cbt-rumour', 'fresher-lost', 'handout-sale'])
+
 export const STORY_BY_ID = new Map(STORY_EVENTS.map((e) => [e.id, e]))
 export const MAX_STORIES_PER_DAY = 2
 
 /** Pick an event this player has not seen recently (cycles once all are seen). `seen` is oldest → newest. */
-export function pickStory(rand: number, seen: string[]): StoryEvent {
-  let pool = STORY_EVENTS.filter((e) => !seen.includes(e.id))
-  if (!pool.length) pool = STORY_EVENTS.filter((e) => e.id !== seen[seen.length - 1])
+export function pickStory(rand: number, seen: string[], student = true): StoryEvent {
+  // Non-students only get life and street moments
+  const all = student ? STORY_EVENTS : STORY_EVENTS.filter((e) => !SCHOOL_STORY_IDS.has(e.id))
+  let pool = all.filter((e) => !seen.includes(e.id))
+  if (!pool.length) pool = all.filter((e) => e.id !== seen[seen.length - 1])
   return pool[Math.floor(rand * pool.length) % pool.length]!
 }
 

@@ -6,6 +6,8 @@ import type { ChatSummary } from './hostels-api'
  */
 
 export const OPEN_CHAT_EVENT = 'ekpoma:open-chat'
+/** The Messages app was opened (any way): the new-message chip goes away. */
+export const MESSAGES_OPENED_EVENT = 'ekpoma:messages-opened'
 
 let pending: ChatSummary | null = null
 

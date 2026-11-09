@@ -70,3 +70,14 @@ describe('tutorial missions', () => {
     for (const id of ['tut-eat', 'tut-ride', 'tut-text']) expect(MISSION_BY_ID.get(id)!.auto).toBeTruthy()
   })
 })
+
+describe('missions and student status', () => {
+  it('only students get student (lecture / faculty / handout) missions', () => {
+    for (const type of ['casual', null, 'graduate', 'lecturer', 'indigene']) {
+      for (let day = 0; day < 60; day++) {
+        const ids = pickDailyMissions(`p:${day}`, type, new Set()).ids
+        expect(ids.some((id) => MISSION_BY_ID.get(id)!.role === 'student'), `${type} day ${day}`).toBe(false)
+      }
+    }
+  })
+})

@@ -264,20 +264,21 @@
   pointer-events: auto;
   display: flex;
   align-items: center;
-  gap: 6px;
-  max-width: 100%;
-  margin-top: 8px;
-  padding: 4px 4px 4px 10px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.95);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.22);
+  gap: 4px;
+  max-width: min(100%, 220px);
+  margin-top: 6px;
+  padding: 3px 3px 3px 8px;
+  border-radius: 12px;
+  border: 1.5px solid rgba(17, 24, 39, 0.22);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
   color: #111;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
 }
 
 .topPillOpen {
-  width: min(100%, 22rem);
+  width: min(100%, 220px);
 }
 
 .topText {
@@ -302,9 +303,9 @@
 .topGo {
   flex: none;
   min-height: 32px;
-  padding: 0 14px;
+  padding: 0 10px;
   border: 0;
-  border-radius: 999px;
+  border-radius: 9px;
   background: var(--primary);
   color: #fff;
   font: inherit;
@@ -314,11 +315,11 @@
 .topChevron {
   flex: none;
   display: grid;
-  width: 32px;
+  width: 28px;
   height: 32px;
   place-items: center;
   border: 0;
-  border-radius: 999px;
+  border-radius: 9px;
   background: #f3f6fa;
   color: #374151;
 }

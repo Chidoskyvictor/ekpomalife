@@ -184,7 +184,8 @@ export async function nextStory(
       await client.query('COMMIT')
       return { ok: true, story: null }
     }
-    const ev = pickStory(opts.rand ?? Math.random(), rows.map((r) => r.event_id))
+    const kind = await client.query<{ character_type: string | null }>(`SELECT character_type FROM characters WHERE id = $1`, [characterId])
+    const ev = pickStory(opts.rand ?? Math.random(), rows.map((r) => r.event_id), kind.rows[0]?.character_type === 'student')
     const seq = today.length + 1
     await client.query(`INSERT INTO story_events (character_id, day, seq, event_id) VALUES ($1, $2, $3, $4)`, [characterId, day, seq, ev.id])
     await client.query('COMMIT')
