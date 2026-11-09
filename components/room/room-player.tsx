@@ -178,6 +178,10 @@ export type RoomPlayerControl = {
   stop?: () => void
   /** Hold a pose in place (e.g. dancing while a tap-yourself action runs); null goes back to idle. */
   pose?: (pose: FigurePose | null) => void
+  /** Walk to a spot, face a way and hold a paired pose (hug, kiss...) for a few seconds. */
+  goPair?: (spot: { x: number; z: number; h: number; pose: FigurePose }, seconds: number) => void
+  /** Where my character stands (x, z). */
+  where?: () => [number, number]
 }
 
 /** onStart: sat / lay down · onDone: the time ran out · onAbort: stopped early (walked away, tapped stop). */
@@ -220,6 +224,8 @@ export function RoomPlayer({
   const heading = useRef(-Math.PI / 4)
   const moving = useRef(false)
   const pose = useRef<FigurePose | null>(null)
+  /** A paired affectionate pose in progress: walk to the spot, then hold the pose until `until`. */
+  const pairTask = useRef<{ h: number; pose: FigurePose; seconds: number; phase: 'walk' | 'hold'; until: number } | null>(null)
   /** Furniture the character is heading to or using right now. */
   const task = useRef<{
     furniture: SpotKey
@@ -274,7 +280,17 @@ export function RoomPlayer({
     control.pose = (p) => {
       pose.current = p
     }
+    control.goPair = (spot, seconds) => {
+      stopUsing()
+      held.current.clear()
+      pairTask.current = { h: spot.h, pose: spot.pose, seconds, phase: 'walk', until: 0 }
+      // A blocked spot gives no path: hold the pose where we stand (graceful fallback)
+      path.current = nav.blocked(spot.x, spot.z) ? [] : findPath(pos.current, [spot.x, spot.z])
+    }
+    control.where = () => pos.current
     return () => {
+      control.goPair = undefined
+      control.where = undefined
       control.use = undefined
       control.stop = undefined
       control.pose = undefined
@@ -350,6 +366,24 @@ export function RoomPlayer({
     group.rotation.x = 0
     group.rotation.z = 0
 
+    // —— Paired pose: walk to the spot, then hold it (any key or tap ends it) ——
+    const pt = pairTask.current
+    if (pt) {
+      const arrived = !held.current.size && !path.current.length
+      if (pt.phase === 'walk') {
+        if (held.current.size) pairTask.current = null
+        else if (arrived) {
+          pt.phase = 'hold'
+          pt.until = now + pt.seconds
+          pose.current = pt.pose
+          heading.current = pt.h
+        }
+      } else if (now >= pt.until || held.current.size || path.current.length || task.current) {
+        pairTask.current = null
+        pose.current = null
+      }
+    }
+
     let dx = 0
     let dz = 0
 
@@ -417,7 +451,8 @@ export function RoomPlayer({
       y: 0,
       z: group.position.z,
       h: group.rotation.y,
-      pose: moving.current ? 'walk' : 'idle',
+      // Paired poses are shared so everyone else sees the hug too
+      pose: moving.current ? 'walk' : pairTask.current?.phase === 'hold' && pose.current ? pose.current : 'idle',
       moving: moving.current,
     })
   })
@@ -433,6 +468,10 @@ export function RoomPlayer({
     const z = Math.min(BOUNDS.maxZ, Math.max(BOUNDS.minZ, local.z))
     stopUsing()
     held.current.clear()
+    if (pairTask.current) {
+      pairTask.current = null
+      pose.current = null
+    }
     path.current = findPath(pos.current, [x, z])
   }
 

@@ -3,6 +3,7 @@ import type { WebSocket } from 'ws'
 import { pool } from '../db.js'
 import { applyCash } from './game-state.js'
 import { liveSpaceMoneyBlock } from './spaces-money.js'
+import { PAIR_POSES } from './bae-rules.js'
 
 /*
  * Live crowd in a club. Every player inside is in a crowd group (venue_visits.group_no,
@@ -15,8 +16,8 @@ import { liveSpaceMoneyBlock } from './spaces-money.js'
  * ticket over the normal logged-in API, then opens the socket with it.
  */
 
-export type LivePose = 'idle' | 'walk' | 'sit' | 'dance' | 'bath'
-const POSES = new Set<LivePose>(['idle', 'walk', 'sit', 'dance', 'bath'])
+export type LivePose = 'idle' | 'walk' | 'sit' | 'dance' | 'bath' | (typeof PAIR_POSES)[number]
+const POSES = new Set<LivePose>(['idle', 'walk', 'sit', 'dance', 'bath', ...PAIR_POSES])
 
 type PlayerInfo = {
   userId: string
@@ -323,4 +324,10 @@ export function announceHome(ownerId: string, message: unknown) {
 export function tellHomeUser(ownerId: string, userId: string, message: unknown) {
   const member = rooms.get(homeKey(ownerId))?.get(userId)
   if (member) send(member.socket, message)
+}
+
+/** Where a player stands in a home right now (null if unknown), for placing paired animations. */
+export function homePosition(ownerId: string, userId: string): { x: number; z: number } | null {
+  const s = rooms.get(homeKey(ownerId))?.get(userId)?.state
+  return s ? { x: s.x, z: s.z } : null
 }

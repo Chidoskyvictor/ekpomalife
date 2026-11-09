@@ -50,6 +50,12 @@ type Incoming =
   | { t: 'act'; action: string; from: string; to: string; fromUsername: string; toUsername: string; landed: boolean }
   | { t: 'ask'; id: string; action: string; from: string; fromUsername: string; expiresIn: number }
   | { t: 'declined'; action: string; by: string }
+  | { t: 'pair'; action: string; seconds: number; spots: Record<string, PairSpot> | null }
+
+/** Where one character stands for a paired animation, which way it faces, and the pose it holds. */
+export type PairSpot = { x: number; z: number; h: number; pose: FigurePose }
+/** A paired affectionate action that was accepted: both characters walk to their spot and hold the pose. */
+export type Pair = { id: number; at: number; action: string; seconds: number; spots: Record<string, PairSpot> | null }
 
 /** Someone asked me for a hug / romantic action: nothing plays until I accept. */
 export type Ask = { id: string; action: string; from: string; fromUsername: string; until: number }
@@ -81,6 +87,7 @@ export function useClubLive(venueId: string, enabled: boolean, myUsername?: stri
   const [said, setSaid] = useState<Said[]>([])
   const [asks, setAsks] = useState<Ask[]>([])
   const [acts, setActs] = useState<Act[]>([])
+  const [pairs, setPairs] = useState<Pair[]>([])
   const [declined, setDeclined] = useState<{ action: string; at: number } | null>(null)
   const socket = useRef<WebSocket | null>(null)
   const lastSent = useRef<{ at: number; key: string }>({ at: 0, key: '' })
@@ -136,6 +143,8 @@ export function useClubLive(venueId: string, enabled: boolean, myUsername?: stri
           setActs((list) => [...list.slice(-9), { ...msg, id: Math.random(), at: Date.now() }])
         } else if (msg.t === 'ask') {
           setAsks((list) => [...list.filter((a) => a.id !== msg.id), { id: msg.id, action: msg.action, from: msg.from, fromUsername: msg.fromUsername, until: Date.now() + msg.expiresIn * 1000 }])
+        } else if (msg.t === 'pair') {
+          setPairs((list) => [...list.slice(-5), { id: Math.random(), at: Date.now(), action: msg.action, seconds: msg.seconds, spots: msg.spots }])
         } else if (msg.t === 'declined') {
           setDeclined({ action: msg.action, at: Date.now() })
         } else if (msg.t === 'spray') {
@@ -208,5 +217,5 @@ export function useClubLive(venueId: string, enabled: boolean, myUsername?: stri
 
   const dismissAsk = useCallback((id: string) => setAsks((list) => list.filter((a) => a.id !== id)), [])
 
-  return { peers, roster, sprays, lastGot, connected, sendState, pick, addOwnSpray, said, say, asks, dismissAsk, acts, declined }
+  return { peers, roster, sprays, lastGot, connected, sendState, pick, addOwnSpray, said, say, asks, dismissAsk, acts, declined, pairs }
 }

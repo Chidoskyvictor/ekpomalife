@@ -218,7 +218,10 @@
 .ask {
   position: fixed;
   inset-inline: 12px;
-  top: calc(env(safe-area-inset-top, 0px) + 80px);
+  top: 50%;
+  max-width: 340px;
+  margin-inline: auto;
+  transform: translateY(-50%);
   z-index: var(--z-toast);
   display: flex;
   align-items: center;

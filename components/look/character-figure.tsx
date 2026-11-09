@@ -11,6 +11,7 @@ import {
   Matrix4,
   Mesh,
   MeshStandardMaterial,
+  Quaternion,
   SkinnedMesh,
   Vector3,
   type AnimationAction,
@@ -19,6 +20,7 @@ import {
 } from 'three'
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js'
 import { hairFitFor, type HairFit } from '@/lib/game/hair-config'
+import { applyPairPose, findPairBones, isPairPose, type PairBones, type PairPose } from './pair-pose'
 import { meshoptDecoder } from '@/lib/game/meshopt'
 import {
   CHARACTER_GLB,
@@ -585,7 +587,7 @@ function FittedHair({
 }
 
 /** Clips baked into the rigged body GLBs (see blender/rig.py). */
-export type FigurePose = 'idle' | 'walk' | 'sit' | 'bath' | 'dance'
+export type FigurePose = 'idle' | 'walk' | 'sit' | 'bath' | 'dance' | PairPose
 
 /**
  * Plays the model's clips: `pose.current` picks one; otherwise "walk" while
@@ -598,6 +600,8 @@ function useFigureClips(
   pose?: RefObject<FigurePose | null>,
 ) {
   const state = useRef<{ mixer: AnimationMixer; actions: Map<string, AnimationAction>; current: string } | null>(null)
+  /** Paired pose (hug, kiss...) blended over idle: bones + current blend weight. */
+  const pair = useRef<{ bones: PairBones | null; weight: number; pose: PairPose | null; clock: number }>({ bones: null, weight: 0, pose: null, clock: 0 })
 
   useEffect(() => {
     if (clips.length === 0) return
@@ -605,6 +609,7 @@ function useFigureClips(
     const actions = new Map(clips.map((clip) => [clip.name.toLowerCase(), mixer.clipAction(clip)]))
     actions.get('idle')?.play()
     state.current = { mixer, actions, current: 'idle' }
+    pair.current = { bones: findPairBones(root), weight: 0, pose: null, clock: 0 }
     return () => {
       mixer.stopAllAction()
       mixer.uncacheRoot(root)
@@ -615,7 +620,9 @@ function useFigureClips(
   useFrame((_, delta) => {
     const anim = state.current
     if (!anim) return
-    const want = pose?.current ?? (moving?.current ? 'walk' : 'idle')
+    const asked = pose?.current ?? null
+    const pairPose = isPairPose(asked) ? asked : null
+    const want = pairPose ? 'idle' : (asked ?? (moving?.current ? 'walk' : 'idle'))
     if (want !== anim.current && anim.actions.has(want)) {
       const to = anim.actions.get(want)!
       to.reset().setEffectiveWeight(1).fadeIn(0.25).play()
@@ -623,6 +630,16 @@ function useFigureClips(
       anim.current = want
     }
     anim.mixer.update(Math.min(delta, 0.1))
+    // Paired pose (hug, kiss...): eases in and out, applied after the clip so it sits on top of the idle
+    const p = pair.current
+    if (pairPose) p.pose = pairPose
+    p.weight = Math.max(0, Math.min(1, p.weight + (pairPose ? 1 : -1) * Math.min(delta, 0.1) * 3.5))
+    p.clock += delta
+    if (p.bones && p.pose && p.weight > 0) {
+      root.parent?.updateWorldMatrix(true, false)
+      const frame = (root.parent ?? root).getWorldQuaternion(new Quaternion())
+      applyPairPose(p.bones, p.pose, frame, p.weight, p.clock)
+    }
   })
 }
 

@@ -1,0 +1,70 @@
+.row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0 4px 8px;
+}
+.status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+}
+.pill {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 800;
+}
+.btn {
+  display: flex;
+  min-height: 44px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 999px;
+  background: #fff;
+  color: #334155;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.btn small {
+  color: #6b7280;
+  font-size: 11px;
+  font-weight: 700;
+}
+.btn:disabled {
+  opacity: 0.7;
+}
+.main {
+  border-color: #db2777;
+  background: #db2777;
+  color: #fff;
+}
+.danger {
+  color: #b91c1c;
+}
+.two {
+  display: flex;
+  gap: 8px;
+}
+.two > button {
+  flex: 1;
+}
+.picks {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.picks small {
+  grid-column: 1 / -1;
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 700;
+}

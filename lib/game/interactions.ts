@@ -39,8 +39,10 @@ export const INTERACTIONS: Interaction[] = [
   { id: 'japa-plans', emoji: '✈️', label: 'Japa plans', tier: 'friendly', gains: ['+Fun', '+Social'], bubble: '✈️ Japa plans...' },
   { id: 'together', emoji: '📸', label: 'Together', tier: 'friendly', gains: ['+Fun', '+Social', '+Padi'], lively: true, bubble: '📸 Memory kept!' },
   { id: 'hug', emoji: '🤗', label: 'Hug', tier: 'close', gains: ['+Social', '+Fun'], bubble: '🤗 Hug' },
+  { id: 'kiss-cheek', emoji: '😚', label: 'Cheek kiss', tier: 'close', gains: ['+Social', '+Fun'], bubble: '😚 Kiss on the cheek' },
   { id: 'hold-hands', emoji: '🤝', label: 'Hold hands', tier: 'romantic', gains: ['+Social', '+Fun'], bubble: '🤝 Holding hands' },
   { id: 'cuddle', emoji: '🛋️', label: 'Cuddle on sofa', tier: 'romantic', gains: ['+Social', '+Fun'], bubble: '🛋️ Cuddling' },
+  { id: 'slow-dance', emoji: '💃🏾', label: 'Slow dance', tier: 'romantic', gains: ['+Social', '+Fun'], bubble: '💃🏾 Slow dance' },
   { id: 'kiss', emoji: '💋', label: 'Kiss', tier: 'romantic', gains: ['+Social', '+Fun'], bubble: '💋 Kiss' },
 ]
 

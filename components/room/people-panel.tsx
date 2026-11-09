@@ -25,6 +25,7 @@ import {
 import { normalizeAppearance, type Appearance } from '@/lib/game/look'
 import { requestOpenChat } from '@/lib/game/open-chat'
 import { bubbleFor } from '@/lib/game/quick-lines'
+import { BaeRow } from './bae-row'
 import type { RoomPlayerControl } from './room-player'
 import styles from './people-panel.module.css'
 
@@ -38,7 +39,7 @@ const BUBBLE_MS = 4000
  * state for the sheet (who is selected). Both characters show an interaction: a bubble over each,
  * and a hop (dance pose) for the lively ones. Asks (hug / romantic) wait for your answer.
  */
-export function useHomePeople(live: Live, control: RoomPlayerControl, homeOwner: string | null) {
+export function useHomePeople(live: Live, control: RoomPlayerControl, homeOwner: string | null, myUsername: string | null = null) {
   const { notifyToast, refreshServer } = useGame()
   const [bubbles, setBubbles] = useState<Record<string, string>>({})
   const [target, setTarget] = useState<Peer | null>(null)
@@ -64,7 +65,10 @@ export function useHomePeople(live: Live, control: RoomPlayerControl, homeOwner:
   const showMine = useCallback(
     (emoji: string, title: string, lively: boolean) => {
       if (lively) control.pose?.('dance')
-      void runTimed({ emoji, title, seconds: 4 }, () => {}).then(() => control.pose?.(null))
+      // Only the hop is cleared afterwards: a paired pose (hug...) ends on its own timer
+      void runTimed({ emoji, title, seconds: 4 }, () => {}).then(() => {
+        if (lively) control.pose?.(null)
+      })
     },
     [control],
   )
@@ -101,6 +105,19 @@ export function useHomePeople(live: Live, control: RoomPlayerControl, homeOwner:
       void refreshServer()
     }
   }, [live.acts, live.peers, showBubble, showMine, notifyToast, refreshServer])
+
+  // Accepted hug / kiss / cuddle / hold hands / slow dance: my character walks to its spot next to theirs
+  // and holds the matching pose; theirs does the same on their phone, and everyone else sees both via the live poses
+  const seenPair = useRef(0)
+  useEffect(() => {
+    for (const p of live.pairs) {
+      if (p.at <= seenPair.current) continue
+      seenPair.current = p.at
+      const me = (myUsername ?? '').toLowerCase()
+      const spot = p.spots ? Object.entries(p.spots).find(([name]) => name.toLowerCase() === me)?.[1] : undefined
+      if (spot) control.goPair?.(spot, p.seconds)
+    }
+  }, [live.pairs, control, myUsername])
 
   const lastDeclined = useRef(0)
   useEffect(() => {
@@ -284,6 +301,7 @@ export function PersonSheet({ peer, homeOwner, onClose, people }: { peer: Peer |
               <X size={18} aria-hidden="true" />
             </button>
           </header>
+          {blocked ? null : <BaeRow username={peer.username} />}
           <div className={styles.grid}>
             {blocked ? (
               <p className={styles.note}>You blocked @{peer.username}. Unblock below to interact again.</p>

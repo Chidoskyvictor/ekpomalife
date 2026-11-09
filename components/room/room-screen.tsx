@@ -187,7 +187,7 @@ export function RoomScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- live.roster is the change signal for the peers ref
     [visitingOther, visiting, live.roster],
   )
-  const people = useHomePeople(live, control, owner)
+  const people = useHomePeople(live, control, owner, state?.username ?? null)
   const effects = useCallback(
     (_root: Object3D) => (
       <ClubPeers peers={live.peers} roster={live.roster} bubbles={people.bubbles} onTap={buy.active ? undefined : people.setTarget} />

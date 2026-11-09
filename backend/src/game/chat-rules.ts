@@ -4,7 +4,7 @@ export const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🙏'
 export const isReactionEmoji = (value: string): boolean => (REACTION_EMOJIS as readonly string[]).includes(value)
 
 /** Kinds you can quote or react to: not the slim system / nudge lines. */
-export const canInteractWith = (kind: string): boolean => kind !== 'system' && kind !== 'nudge'
+export const canInteractWith = (kind: string): boolean => kind !== 'system' && kind !== 'nudge' && kind !== 'bae'
 
 /** A short one-line preview used inside a quote box. */
 export function quotePreview(kind: string, body: string): string {
