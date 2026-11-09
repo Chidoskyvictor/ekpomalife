@@ -30,7 +30,7 @@ export type ChatSender = {
 }
 
 /** text · system ("X joined") · sticker (body = sticker id) · invite (body = host username) · visit (body = visited username) · money (body = naira amount) */
-export type MessageKind = 'text' | 'system' | 'sticker' | 'invite' | 'visit' | 'money' | 'game' | 'nudge'
+export type MessageKind = 'text' | 'system' | 'sticker' | 'invite' | 'visit' | 'money' | 'game' | 'nudge' | 'bae'
 
 /** Naira you can send in one go from a direct chat: at least ₦100, no upper limit (only your balance). */
 export const TRANSFER_MIN = 100
@@ -579,7 +579,7 @@ export async function sendMessage(
 }
 
 /** Quick actions players do to each other in person (Say Hello, Gist, Joke, Compliment). */
-export const NUDGE_KINDS = ['hello', 'gist', 'joke', 'compliment'] as const
+export const NUDGE_KINDS = ['hello', 'gist', 'joke', 'compliment', 'date'] as const
 
 /**
  * A slim "@x said Hello" notice in the direct chat (no editing, swiping or replying), so a quick action

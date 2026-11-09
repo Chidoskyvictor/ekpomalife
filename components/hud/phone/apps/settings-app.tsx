@@ -10,6 +10,7 @@ import {
   type WallpaperId,
 } from '@/lib/game/phone'
 import { fetchChatSettings, saveChatSettings } from '@/lib/game/hostels-api'
+import { fetchFamily, saveHideStatus } from '@/lib/game/family-api'
 import { notificationsSupported, setNotifications, useNotificationsOn } from '@/lib/notify'
 import styles from '../phone.module.css'
 
@@ -95,6 +96,7 @@ export function SettingsApp({
 
       <h3 className={styles.sectionTitle}>Privacy</h3>
       <ReadReceiptsToggle onMessage={setMsg} />
+      <HideStatusToggle onMessage={setMsg} />
 
       {msg ? <p className={styles.listMeta}>{msg}</p> : null}
 
@@ -185,6 +187,51 @@ function ReadReceiptsToggle({ onMessage }: { onMessage: (msg: string | null) => 
           }}
         >
           {on === null ? '…' : on ? 'On' : 'Off'}
+        </button>
+      </li>
+    </ul>
+  )
+}
+
+/** Hide “In a relationship / Single” on your player card. Saved on the server. */
+function HideStatusToggle({ onMessage }: { onMessage: (msg: string | null) => void }) {
+  const [hidden, setHidden] = useState<boolean | null>(null)
+  const [busy, setBusy] = useState(false)
+  useEffect(() => {
+    let cancelled = false
+    void fetchFamily().then((res) => {
+      if (!cancelled) setHidden(res.ok ? res.hideStatus : false)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+  return (
+    <ul className={styles.list}>
+      <li className={styles.listItem}>
+        <div>
+          <p className={styles.promoTitle} style={{ color: '#111', margin: 0 }}>
+            Hide relationship status
+          </p>
+          <p className={styles.listMeta}>If on, your card won’t say “In a relationship” or “Single”.</p>
+        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={hidden ?? false}
+          className={styles.smallPill}
+          disabled={busy || hidden === null}
+          onClick={() => {
+            void (async () => {
+              setBusy(true)
+              const res = await saveHideStatus(!(hidden ?? false))
+              if (res.ok) setHidden(res.hideStatus)
+              else onMessage(res.error)
+              setBusy(false)
+            })()
+          }}
+        >
+          {hidden === null ? '…' : hidden ? 'On' : 'Off'}
         </button>
       </li>
     </ul>

@@ -30,6 +30,7 @@ import { STICKERS, stickerById } from '@/lib/game/stickers'
 import { OPEN_CHAT_EVENT, takePendingChat } from '@/lib/game/open-chat'
 import { requestOpenGames } from '@/lib/game/open-games'
 import type { PhoneNotificationsResponse } from '@/lib/game/phone-api'
+import { FamilyRequestCard } from './family-request-card'
 import styles from './messages.module.css'
 
 type GameNotification = PhoneNotificationsResponse['items'][number]
@@ -292,6 +293,7 @@ function previewText(message: ChatMessage) {
   if (message.kind === 'money') return `💸 ${message.mine ? 'Sent' : 'Received'} ${naira(Number(message.body))}`
   if (message.kind === 'game') return message.mine ? 'You sent a 🎮 challenge' : '🎮 Challenged you'
   if (message.kind === 'nudge') return nudgeLine(message)
+  if (message.kind === 'bae') return '💕 Request'
   return message.body
 }
 
@@ -301,11 +303,13 @@ const NUDGE: Record<string, { emoji: string; did: string }> = {
   gist: { emoji: '💬', did: 'gisted with' },
   joke: { emoji: '😂', did: 'cracked a joke for' },
   compliment: { emoji: '🌟', did: 'complimented' },
+  date: { emoji: '🍽️', did: 'took out' },
 }
 function nudgeLine(message: ChatMessage) {
   const n = NUDGE[message.body] ?? { emoji: '👋', did: 'said Hello' }
   const name = message.sender?.username ? `@${message.sender.username}` : 'They'
   if (message.body === 'hello') return message.mine ? `${n.emoji} You said Hello` : `${n.emoji} ${name} said Hello`
+  if (message.body === 'date') return message.mine ? `${n.emoji} You took them on a date` : `${n.emoji} ${name} took you on a date`
   return message.mine ? `${n.emoji} You ${n.did} them` : `${n.emoji} ${name} ${n.did} you`
 }
 
@@ -951,6 +955,7 @@ function MessageRow({
   }
   if (message.kind === 'game') return <GameNotice message={message} />
   if (message.kind === 'nudge') return <p className={styles.nudge}>{nudgeLine(message)}</p>
+  if (message.kind === 'bae') return <FamilyRequestCard id={message.body} />
   const sender = message.sender
   const content = <MessageContent message={message} onVisit={onVisit} />
   const special = message.kind !== 'text'

@@ -33,6 +33,7 @@ import { clockFromGameTime, isOpenAt } from './time.js'
 import type { TraitId } from './traits.js'
 import { lodgingDecayMultiplier } from './lodging.js'
 import { ensureRentRow, mapRentPublic } from './rent-ladder.js'
+import { familyNotifications } from './bae.js'
 
 export type PhoneAppId =
   | 'jobs'
@@ -54,6 +55,7 @@ export type PhoneAppId =
   | 'prodigy'
   | 'houses'
   | 'anonymous'
+  | 'family'
   | 'guide'
   | 'support'
 
@@ -141,6 +143,7 @@ export const PHONE_APP_IDS = [
   'prodigy',
   'houses',
   'anonymous',
+  'family',
   'guide',
   'support',
 ] as const satisfies readonly PhoneAppId[]
@@ -812,6 +815,8 @@ export async function listNotifications(userId: string) {
         createdAt: new Date(entry.created_at).toISOString(),
       })
     }
+
+    for (const n of await familyNotifications(userId)) items.push({ ...n, appId: 'family' })
 
     const bizSummary = await getBusinessSummary(client, gate.character.id, row.game_time)
     if (bizSummary) {

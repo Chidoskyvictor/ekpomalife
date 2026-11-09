@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { getSessionUser } from '../auth/current-user.js'
+import { pool } from '../db.js'
 import { createHomeTicket } from '../game/club-live.js'
 import { ensurePlot, listHouses } from '../game/houses.js'
 
@@ -19,6 +20,14 @@ export async function houseRoutes(app: FastifyInstance) {
     if (!/^[A-Za-z0-9_]{1,40}$/.test(username)) return reply.code(400).send({ ok: false, error: 'Bad username.' })
     const ticket = await createHomeTicket(user.id, username)
     if (!ticket) return reply.code(404).send({ ok: false, error: 'No such home.' })
+    // Visiting someone's home builds closeness (once an hour per pair)
+    void pool
+      .query<{ id: string }>('SELECT id FROM users WHERE LOWER(username) = LOWER($1)', [username])
+      .then(async (owner) => {
+        const id = owner.rows[0]?.id
+        if (id && id !== user.id) await (await import('../game/bae.js')).addCloseness(user.id, id, 2, 'visit', 3600)
+      })
+      .catch(() => {})
     return { ok: true, ...ticket }
   })
 

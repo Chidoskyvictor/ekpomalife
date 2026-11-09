@@ -20,6 +20,7 @@ export type PhoneAppId =
   | 'prodigy'
   | 'houses'
   | 'anonymous'
+  | 'family'
   | 'guide'
   | 'support'
 
@@ -127,6 +128,7 @@ export const PHONE_APPS: PhoneAppMeta[] = [
   { id: 'games', label: 'Games', emoji: '🎮', status: 'live', tint: '#0891b2' },
   { id: 'spaces', label: 'Spaces', emoji: '🎙️', status: 'live', tint: '#7c3aed' },
   { id: 'anonymous', label: 'Anonymous', emoji: '🎭', status: 'live', tint: '#4c1d95' },
+  { id: 'family', label: 'Family', emoji: '💘', status: 'live', tint: '#db2777' },
   { id: 'guide', label: 'Guide', emoji: '📖', status: 'live', tint: '#16a34a' },
   { id: 'support', label: 'Support', emoji: '🛟', status: 'live', tint: '#2563eb' },
   { id: 'settings', label: 'Settings', emoji: '⚙️', status: 'live', tint: '#64748b' },
@@ -175,6 +177,7 @@ export const COMING_SOON_COPY: Record<PhoneAppId, string> = {
   settings: '',
   houses: '',
   anonymous: '',
+  family: '',
   guide: '',
   support: '',
 }

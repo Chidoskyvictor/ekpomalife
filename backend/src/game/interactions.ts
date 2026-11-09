@@ -3,9 +3,11 @@ import type { PoolClient } from 'pg'
 import { pool } from '../db.js'
 import { createId } from '../ids.js'
 import { postNudge } from './chat.js'
-import { announceHome, homeHas, tellHomeUser } from './club-live.js'
+import { announceHome, homeHas, homePosition, tellHomeUser } from './club-live.js'
 import { applyNeedDelta, type Needs } from './needs.js'
 import { parseNeeds } from './game-state.js'
+import { PAIR_SECONDS, pairSpots } from './bae-rules.js'
+import { areBaes, endAllBetween, recordInteraction } from './bae.js'
 
 /*
  * Player-to-player interactions inside a home (you visit them, or they visit you).
@@ -47,9 +49,11 @@ export const INTERACTIONS: Record<string, InteractionDef> = {
   'arm-wrestle': { id: 'arm-wrestle', tier: 'friendly', ask: false, chance: 0.5, needs: { fun: 8, social: 4, energy: -4 }, shared: false, points: 2, cooldownSec: 180 },
   'japa-plans': { id: 'japa-plans', tier: 'friendly', ask: false, chance: 1, needs: { fun: 5, social: 6 }, shared: true, points: 2, cooldownSec: 120 },
   together: { id: 'together', tier: 'friendly', ask: false, chance: 1, needs: { fun: 6, social: 10 }, shared: true, points: 5, cooldownSec: 6 * 3600 },
+  'kiss-cheek': { id: 'kiss-cheek', tier: 'close', ask: true, chance: 1, needs: { social: 8, fun: 4 }, shared: true, points: 3, cooldownSec: 300 },
   hug: { id: 'hug', tier: 'close', ask: true, chance: 1, needs: { social: 8, fun: 3 }, shared: true, points: 3, cooldownSec: 300 },
   'hold-hands': { id: 'hold-hands', tier: 'romantic', ask: true, chance: 1, needs: { social: 8, fun: 4 }, shared: true, points: 3, cooldownSec: 300 },
   cuddle: { id: 'cuddle', tier: 'romantic', ask: true, chance: 1, needs: { social: 10, fun: 5, energy: 3 }, shared: true, points: 4, cooldownSec: 600 },
+  'slow-dance': { id: 'slow-dance', tier: 'romantic', ask: true, chance: 1, needs: { social: 10, fun: 8 }, shared: true, points: 4, cooldownSec: 600 },
   kiss: { id: 'kiss', tier: 'romantic', ask: true, chance: 1, needs: { social: 12, fun: 6 }, shared: true, points: 5, cooldownSec: 900 },
 }
 
@@ -105,14 +109,16 @@ export async function relationBetween(me: string, other: string) {
     ),
   ])
   const points = rel.rows[0]?.points ?? 0
+  const bae = await areBaes(me, other)
   const you = opt.rows.some((r) => r.user_id === me)
   const them = opt.rows.some((r) => r.user_id === other)
   return {
     points,
-    level: levelFor(points, you, you && them),
+    level: levelFor(points, you, (you && them) || bae),
     partnerYou: you,
     partnerThem: them,
-    mutualPartners: you && them,
+    mutualPartners: (you && them) || bae,
+    bae,
     blockedByYou: blk.rows.some((r) => r.blocker_id === me),
     blockedYou: blk.rows.some((r) => r.blocker_id === other),
   }
@@ -148,6 +154,7 @@ export async function setBlock(userId: string, username: string, on: boolean) {
     await pool.query(`INSERT INTO player_blocks (blocker_id, blocked_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`, [userId, other.id])
     // Blocking ends any partner opt-in either way
     await pool.query(`DELETE FROM partner_optins WHERE (user_id = $1 AND with_id = $2) OR (user_id = $2 AND with_id = $1)`, [userId, other.id])
+    await endAllBetween(userId, other.id)
   } else {
     await pool.query(`DELETE FROM player_blocks WHERE blocker_id = $1 AND blocked_id = $2`, [userId, other.id])
   }
@@ -217,6 +224,20 @@ async function play(def: InteractionDef, from: string, to: string, fromName: str
   }
   announceHome(homeOwnerId, { t: 'act', action: def.id, from, to, fromUsername: fromName, toUsername: toName, landed })
   if (['hello', 'gist', 'joke', 'compliment'].includes(def.id)) void postNudge(from, to, def.id).catch(() => {})
+  if (landed) void recordInteraction(from, to, def.id).catch(() => {})
+  // Affectionate actions play as one synced pair: both characters walk together and hold the pose
+  const hold = PAIR_SECONDS[def.id]
+  if (landed && hold) {
+    const pa = homePosition(homeOwnerId, from)
+    const pb = homePosition(homeOwnerId, to)
+    const spots = pa && pb ? pairSpots(def.id, pa, pb) : null
+    announceHome(homeOwnerId, {
+      t: 'pair',
+      action: def.id,
+      seconds: hold,
+      spots: spots ? { [fromName]: spots.a, [toName]: spots.b } : null,
+    })
+  }
   return { landed, points }
 }
 
