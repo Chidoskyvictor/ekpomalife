@@ -1,4 +1,4 @@
-.list {
+.body {
   display: grid;
   gap: 10px;
   min-height: 0;
@@ -6,47 +6,100 @@
   padding-bottom: 4px;
 }
 
-.summary {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 4px 2px 12px;
-}
-
-.ring {
-  flex: none;
-  width: 52px;
-  height: 52px;
-  border-radius: 999px;
+.list {
   display: grid;
-  place-items: center;
-  font-size: 15px;
-  font-weight: 800;
-  background:
-    radial-gradient(closest-side, #fff 76%, transparent 78%),
-    conic-gradient(var(--primary) calc(var(--done) * 1%), #e8edf3 0);
+  gap: 10px;
 }
 
-.summaryText {
+/* —— Streak card —— */
+.streak {
+  padding: 12px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #fff4e5, #ffe9d6);
+  border: 1px solid #fbd5a8;
+}
+
+.streakHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.streakHead strong {
+  font-size: 16px;
+  color: #9a3412;
+}
+
+.streakHead span {
+  font-size: 12px;
+  font-weight: 700;
+  color: #b45309;
+}
+
+.segments {
+  display: flex;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.seg {
+  display: grid;
   flex: 1;
   min-width: 0;
-}
-
-.summaryText strong {
-  display: block;
-  font-size: 15px;
-}
-
-.summaryText span {
+  height: 28px;
+  place-items: center;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.75);
+  color: #9a6b3c;
   font-size: 12px;
-  color: #6b7280;
+  font-weight: 800;
 }
 
+.segOn {
+  background: #f97316;
+  color: #fff;
+}
+
+.streakNote {
+  margin: 8px 0 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: #9a3412;
+}
+
+/* —— Daily bonus row —— */
+.bonusRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: #f3f6fa;
+  font-size: 13px;
+}
+
+.bonusRow strong {
+  flex: none;
+  min-width: 38px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: #fff;
+  text-align: center;
+  font-size: 13px;
+}
+
+.bonusRow span {
+  min-width: 0;
+  color: #374151;
+  font-weight: 600;
+}
+
+/* —— Mission card —— */
 .card {
   display: grid;
-  grid-template-columns: 44px 1fr auto;
-  gap: 10px;
-  align-items: center;
+  gap: 8px;
   padding: 12px;
   border-radius: 18px;
   border: 1px solid #e8edf3;
@@ -55,6 +108,13 @@
 
 .cardDone {
   opacity: 0.6;
+}
+
+.cardTop {
+  display: grid;
+  grid-template-columns: 44px 1fr auto;
+  gap: 10px;
+  align-items: start;
 }
 
 .emoji {
@@ -95,50 +155,71 @@
 
 .title {
   margin: 0;
-  font-size: 14px;
+  font-size: 14.5px;
   font-weight: 800;
   line-height: 1.25;
 }
 
-.blurb {
+.where {
   margin: 2px 0 0;
   font-size: 12px;
   line-height: 1.35;
   color: #6b7280;
 }
 
-.meta {
-  margin: 4px 0 0;
+.reward {
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #dcfce7;
+  color: #166534;
   font-size: 12px;
-  font-weight: 700;
-  color: #15803d;
+  font-weight: 800;
+  white-space: nowrap;
 }
 
-.side {
-  display: grid;
-  justify-items: end;
-  gap: 6px;
+.how {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: #4b5563;
+}
+
+.how b {
+  color: #111;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
 }
 
 .go {
-  min-width: 64px;
-  min-height: 40px;
+  flex: 1;
+  min-height: 46px;
   border-radius: 999px;
   border: 0;
-  padding: 0 14px;
   background: var(--primary);
   color: #fff;
   font-weight: 800;
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .go:disabled {
   opacity: 0.45;
 }
 
+.auto {
+  flex: 1;
+  align-self: center;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #6b7280;
+}
+
 .swap {
-  width: 32px;
-  height: 32px;
+  flex: none;
+  width: 46px;
+  height: 46px;
   border-radius: 999px;
   border: 1px solid #e8edf3;
   background: #fff;
@@ -148,19 +229,20 @@
 }
 
 .check {
+  margin: 0;
   font-size: 13px;
   font-weight: 800;
   color: #15803d;
 }
 
 .note {
-  margin: 10px 2px 0;
+  margin: 8px 2px 0;
   text-align: center;
   font-size: 12px;
   color: #6b7280;
 }
 
-/* HUD counter */
+/* Status-bar counter */
 .pill {
   display: inline-flex;
   align-items: center;
@@ -174,50 +256,71 @@
   min-height: 32px;
 }
 
-/* Missions button on the left, under the top bar: just the 🎯, with a thin ring that fills as missions get done */
-.fab {
+/*
+ * Slim top pill under the status bar: current mission + Go, collapsible (chevron).
+ * Its own row, so it never sits over the task tiles or other HUD buttons.
+ */
+.topPill {
   pointer-events: auto;
-  /* First in the activity row under the top bar; the task tiles line up to its right */
-  position: relative;
-  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
   margin-top: 8px;
-  width: 40px;
-  height: 40px;
+  padding: 4px 4px 4px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.22);
+  color: #111;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.topPillOpen {
+  width: min(100%, 22rem);
+}
+
+.topText {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
   border: 0;
-  padding: 0;
-  border-radius: 999px;
-  display: grid;
-  place-items: center;
   background: transparent;
-  font-size: 26px;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/* The progress ring (no fill inside) */
-.fab::before {
-  content: '';
-  position: absolute;
-  /* Hugs the 🎯 (just outside it), not a wide circle around it */
-  inset: -2px;
-  border-radius: 999px;
-  background: conic-gradient(var(--primary) calc(var(--done) * 1%), rgba(255, 255, 255, 0.75) 0);
-  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
-  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
+.topCount {
+  flex: none;
+  color: #6b7280;
+  font-size: 12px;
 }
 
-.fabDone {
-  position: absolute;
-  top: -2px;
-  right: -2px;
-  min-width: 18px;
-  height: 18px;
+.topGo {
+  flex: none;
+  min-height: 32px;
+  padding: 0 14px;
+  border: 0;
   border-radius: 999px;
-  background: #16a34a;
+  background: var(--primary);
   color: #fff;
-  font-size: 11px;
+  font: inherit;
   font-weight: 800;
+}
+
+.topChevron {
+  flex: none;
   display: grid;
+  width: 32px;
+  height: 32px;
   place-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: #f3f6fa;
+  color: #374151;
 }
 
 /* The missions sheet sits above every place's own sheet; the phone and toasts stay above it */

@@ -16,7 +16,7 @@ import { HouseSheet } from '@/components/hud/house-sheet'
 import { SchoolCard } from '@/components/school/school-card'
 import { MissionsSheet } from '@/components/missions/missions-sheet'
 import { useMissions } from '@/lib/game/missions-api'
-import missionStyles from '@/components/missions/missions.module.css'
+import { MissionsPill } from '@/components/missions/missions-pill'
 import { MarketHubSheet } from '@/components/hud/market-hub-sheet'
 import { MeCard } from '@/components/hud/me-card'
 import { PhoneDialog } from '@/components/hud/phone-dialog'
@@ -268,23 +268,14 @@ export function Hud() {
             onMood={() => openProfile('needs')}
           />
         </div>
+        {/* Today's missions: slim pill under the status bar, its own row so it never covers other HUD buttons */}
+        {missionsView && !phoneOpen && !buyOpen && !homeBuy.active ? (
+          <div className={styles.missionRow}>
+            <MissionsPill view={missionsView} onOpen={() => setMissionsOpen(true)} />
+          </div>
+        ) : null}
         {/* What you're doing and what's next (Sims-style tiles): fills up, ✕ cancels */}
         <div className={styles.activityRow}>
-          {/* Today's missions: first in the row, so the task tiles sit beside it (never under it) */}
-          {missionsView && !phoneOpen && !buyOpen && !homeBuy.active ? (
-            <button
-              type="button"
-              className={missionStyles.fab}
-              style={{ ['--done' as string]: (missionsView.doneCount / Math.max(1, missionsView.missions.length)) * 100 }}
-              aria-label={`Today's missions: ${missionsView.doneCount} of ${missionsView.missions.length} done`}
-              onClick={() => setMissionsOpen(true)}
-            >
-              🎯
-              {missionsView.doneCount === missionsView.missions.length && missionsView.missions.length > 0 ? (
-                <span className={missionStyles.fabDone} aria-hidden="true">✓</span>
-              ) : null}
-            </button>
-          ) : null}
           <ActionTiles />
           {/* Phones only: Music, Sound and map labels (desktop keeps the icons in the top bar) */}
           {!phoneOpen ? <SettingsMenu /> : null}

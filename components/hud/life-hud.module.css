@@ -1269,3 +1269,11 @@ button.needChip {
     top: 84px;
   }
 }
+
+/* Missions pill row: full width under the status bar, pill hugs the left edge */
+.missionRow {
+  pointer-events: none;
+  display: flex;
+  width: 100%;
+  min-width: 0;
+}

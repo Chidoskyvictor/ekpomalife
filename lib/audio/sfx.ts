@@ -33,6 +33,9 @@ export const SFX = {
   lose: { file: 'lose', volume: 0.6 }, // game lost
   spray: { file: 'spray', volume: 0.6 }, // club: money sprayed
   grab: { file: 'grab', volume: 0.55 }, // club: note grabbed
+  checkin: { file: 'reveal', volume: 0.6 }, // daily check-in card (Tada clip, see CREDITS.md)
+  missionDone: { file: 'success', volume: 0.6 }, // a daily mission finished
+  story: { file: 'notify', volume: 0.6 }, // story moment pops up
 } as const
 
 export type SfxName = keyof typeof SFX
