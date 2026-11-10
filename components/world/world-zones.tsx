@@ -29,6 +29,7 @@ import { placeFor } from '@/lib/game/place-info'
 import { MAP_ZONES, type MapZone, type OpenZoneKind, type ZonePart } from '@/lib/game/world-layout'
 import { bakeStaticGroup, disposeBaked } from './bake-static'
 import { applyGlbTextureAnisotropy } from './glb-textures'
+import { CarLot } from '@/components/cars/car-lot-zone'
 import { Block, paint } from './materials'
 import { ZoneStickerAnchor, ZoneStickerRegistry } from './world-zone-stickers'
 import { useZonePlacement, ZoneExtrasProvider, useZoneExtras } from './zone-debug-context'
@@ -405,6 +406,17 @@ function CustomGlbZone({ zone, url }: { zone: MapZone; url: string }) {
       <Pad w={padW} d={padD} />
       <primitive object={baked} position={[0, 0.06 + modelY, 0]} scale={scale} />
       <ZoneStickerAnchor zoneId={zone.id} label={zone.label} height={labelH} />
+    </group>
+  )
+}
+
+/** Magmus Autos: the open car lot (no building model). */
+function CarLotZone({ zone }: { zone: MapZone }) {
+  const [fw, fd] = zone.footprint
+  return (
+    <group position={[zone.position[0], 0, zone.position[1]]} rotation={[0, zone.rotation, 0]}>
+      <CarLot w={fw} d={fd} />
+      <ZoneStickerAnchor zoneId={zone.id} label={zone.label} height={2.7} />
     </group>
   )
 }
@@ -1027,6 +1039,7 @@ function ZoneFallback({ zone }: { zone: MapZone }) {
     zone.model === 'label' ||
     zone.model.startsWith('billboard') ||
     zone.model === 'cluster' ||
+    zone.model === 'car-lot' ||
     Boolean(zone.open)
   return (
     <group position={[zone.position[0], 0, zone.position[1]]}>
@@ -1039,6 +1052,7 @@ function ZoneMesh({ zone }: { zone: MapZone }) {
   if (zone.open) return <OpenZone zone={zone} />
   if (BILLBOARDS[zone.model]) return <BillboardZone zone={zone} />
   if (zone.model === 'label') return <LabelZone zone={zone} />
+  if (zone.model === 'car-lot') return <CarLotZone zone={zone} />
   if (zone.parts) return <ClusterZone zone={zone} />
   if (zone.model === 'aau-gate' || zone.id === 'aau-gate') return <AauGateZone zone={zone} />
   const customUrl = CUSTOM_GLB[zone.model]

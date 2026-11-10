@@ -35,6 +35,11 @@ import styles from './room.module.css'
 /** Fade to dark, swap scenes, fade back (each way): ~0.5s when the scene is cached. */
 const FADE_MS = 220
 
+import { HomeCarport } from '@/components/cars/home-carport'
+import { CarLotSheet } from '@/components/cars/car-lot-sheet'
+import { openCarLot, useGarage } from '@/lib/game/cars-api'
+import { useHouses } from '@/lib/game/houses-api'
+
 const HomeCanvas = dynamic(
   () => import('./home-canvas').then((m) => m.HomeCanvas),
   {
@@ -188,11 +193,22 @@ export function RoomScreen() {
     [visitingOther, visiting, live.roster],
   )
   const people = useHomePeople(live, control, owner, state?.username ?? null)
+  // Cars parked at this home: yours from your garage, a host's from the houses list ("model:#colour")
+  const garage = useGarage(own && Boolean(state))
+  const { houses } = useHouses(visitingOther && Boolean(state))
+  const parked = useMemo(() => {
+    if (own) return [...(garage?.cars ?? [])].sort((a, b) => Number(b.active) - Number(a.active)).map((c) => `${c.model}:${c.color}`)
+    const name = (visiting ?? '').toLowerCase()
+    return houses.find((h) => h.username.toLowerCase() === name)?.cars ?? []
+  }, [own, garage, houses, visiting])
   const effects = useCallback(
     (_root: Object3D) => (
-      <ClubPeers peers={live.peers} roster={live.roster} bubbles={people.bubbles} onTap={buy.active ? undefined : people.setTarget} />
+      <>
+        <ClubPeers peers={live.peers} roster={live.roster} bubbles={people.bubbles} onTap={buy.active ? undefined : people.setTarget} />
+        <HomeCarport layout={layout} cars={parked} onTap={own && !buy.active ? () => openCarLot('garage') : undefined} />
+      </>
     ),
-    [live.peers, live.roster, people.bubbles, people.setTarget, buy.active],
+    [live.peers, live.roster, people.bubbles, people.setTarget, buy.active, layout, parked, own],
   )
 
   useEffect(() => {
@@ -292,6 +308,7 @@ export function RoomScreen() {
         {owner && !scene.outside && !buy.active && !selfOpen ? <PeopleBar live={live} people={people} onOpen={people.setTarget} /> : null}
         {owner ? <PersonSheet peer={people.target} homeOwner={owner} onClose={() => people.setTarget(null)} people={people} /> : null}
         <AskPrompt live={live} />
+        {own ? <CarLotSheet /> : null}
         {/* No "My room" bar: tap a piece of furniture to use it */}
         <FurnitureSheet
           furniture={furniture}

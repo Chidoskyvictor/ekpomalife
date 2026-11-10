@@ -5,7 +5,7 @@ import { departmentForCourse } from './aau-courses.js'
 import { shownDepartment } from './profile-constants.js'
 
 /*
- * Net worth = live cash (game_state.cash) + furniture paid for + rides + land + businesses.
+ * Net worth = live cash (game_state.cash) + furniture paid for + rides + land + businesses + cars.
  * Computed here, cached for a minute. Bank/crypto wallets are not counted.
  */
 
@@ -35,6 +35,7 @@ async function loadRows(): Promise<WorthRow[]> {
              + COALESCE((SELECT SUM(bought_price) FROM ride_holdings r WHERE r.character_id = c.id), 0)
              + COALESCE((SELECT SUM(value) FROM land_holdings l WHERE l.character_id = c.id), 0)
              + COALESCE((SELECT SUM(bought_price) FROM business_holdings b WHERE b.character_id = c.id), 0)
+             + COALESCE((SELECT SUM(bought_price) FROM car_holdings k WHERE k.character_id = c.id), 0)
             )::text AS net_worth
      FROM characters c
      JOIN users u ON u.id = c.user_id

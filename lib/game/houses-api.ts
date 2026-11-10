@@ -13,6 +13,8 @@ export type HouseView = {
   /** Signed in lately and at their house right now. */
   home: boolean
   items: number
+  /** Cars parked there, the one they drive first: "model:#colour". */
+  cars?: string[]
 }
 
 /*

@@ -1,7 +1,7 @@
 'use client'
 
 import { actionSeconds } from '@/lib/game/action-seconds'
-import { BookOpen, Map as MapIcon, Mic, Users, UtensilsCrossed } from 'lucide-react'
+import { BookOpen, Car, KeyRound, Map as MapIcon, Mic, Users, UtensilsCrossed } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -17,6 +17,10 @@ import { ORDER_SPOT, type FoodNpc } from '@/lib/game/food-room'
 import { HubDeskPanel } from '@/components/hub/hub-desk-panel'
 import { NPC_PEWS } from '@/lib/game/church-npcs'
 import { HubNpcs } from '@/components/hub/hub-npcs'
+import { CarLotSheet } from '@/components/cars/car-lot-sheet'
+import { ShowroomCars } from '@/components/cars/showroom-cars'
+import { AUTOS } from '@/lib/game/autos-room'
+import { openCarLot, useCarLot } from '@/lib/game/cars-api'
 import { HUB_DESKS, HUB_SEATS, hubSpotKey, type HubDeskId } from '@/lib/game/hub-desks'
 
 /** The hub's free chairs and bar stools as hall seats (the sit flow walks to `seat:<id>`). */
@@ -63,6 +67,7 @@ function spaceFor(id: string): Space | null {
   // The pews the church NPCs sit on are never offered to players
   const food = office?.layout === 'food' ? FOOD_PLACES[id] : undefined
   if (food) return { name: food.name, layout: food.layout, seats: food.seats, icon: food.icon, office: true }
+  if (office?.layout === 'autos') return { name: office.name, layout: AUTOS, seats: [], icon: '🚗', office: true }
   if (office?.layout === 'church') return { name: office.name, layout: CHURCH, seats: CHURCH_SEATS.filter((s) => !NPC_PEWS.has(s.id)), icon: '⛪', office: true }
   if (office) return { name: office.name, paint: office.color ?? undefined, layout: office.layout === 'innovation-hub' ? INNOVATION_HUB : OFFICE, seats: office.layout === 'innovation-hub' ? HUB_HALL_SEATS : [], icon: '🏛️', office: true }
   return null
@@ -86,6 +91,9 @@ export function HallScreen({ hallId }: { hallId: string }) {
   // Innovation Hub: the desk whose task is open (after walking up to its NPC)
   const isHub = hallId === 'innovation-hub'
   const isChurch = officeFor(hallId)?.layout === 'church'
+  // Magmus Autos: cars on the bays, Showroom / My garage on the bar
+  const isAutos = officeFor(hallId)?.layout === 'autos'
+  const carLot = useCarLot()
   // Spot Rite: order at the counter (like Wise Gourmet), eat at a table
   const food = officeFor(hallId)?.layout === 'food' ? FOOD_PLACES[hallId] : undefined
   const isFood = Boolean(food)
@@ -294,6 +302,7 @@ export function HallScreen({ hallId }: { hallId: string }) {
       {hallFor(hallId) ? <ClassSigns root={root} names={hallNeighbours(hallId)} /> : null}
       {isHub ? <HubNpcs onTap={(id) => goToDesk(id)} onSeat={(id) => sit(undefined, id)} /> : null}
       {isChurch ? <ChurchNpcs /> : null}
+      {isAutos ? <ShowroomCars onTap={(id) => openCarLot('showroom', id)} /> : null}
       {food ? <FoodNpcs npcs={food.npcs} onTap={onFoodNpc} bubbles={social.bubbles} /> : null}
       {stage ? <StageScreen live={stageLive} at={stage.screen.at} size={stage.screen.size} /> : null}
       <ClubPeers
@@ -305,7 +314,7 @@ export function HallScreen({ hallId }: { hallId: string }) {
       </>
     ),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- goToDesk only uses the stable control
-    [live.peers, live.roster, social, isHub, isChurch, food, stage, stageLive, hallId],
+    [live.peers, live.roster, social, isHub, isChurch, isAutos, food, stage, stageLive, hallId],
   )
 
   /** Nearest chair to you that nobody in your group is sitting on (or standing at). */
@@ -391,20 +400,26 @@ export function HallScreen({ hallId }: { hallId: string }) {
         <StageAudio live={stageLive} join={stageJoin} onJoin={setStageJoin} onDrop={dropStage} onSpeaking={onSpeaking} />
       ) : null}
       {social.talk ? <PlaceTalkCard social={social} placeName={hall.name} /> : null}
-      {social.talk ? null : (
+      {isAutos ? <CarLotSheet /> : null}
+      {social.talk || carLot ? null : (
       <PlaceSheet
         icon={hall.icon}
         title={hall.name}
         subtitle={subtitle}
         buttons={[
-          ...(inside
+          ...(inside && !isAutos
             ? [{ icon: <Users size={18} />, label: 'People', onClick: () => setPeopleOpen(true), badge: count > 1 ? Math.min(count, 99) : undefined }]
             : []),
           ...(stage
             ? [{ icon: <Mic size={18} />, label: 'Host a Space', onClick: () => { setStageOpen((o) => !o); setExpanded(true) }, badge: stageLive ? 1 : undefined }]
             : isFood && !food?.play
               ? [{ icon: <UtensilsCrossed size={18} />, label: 'Order', onClick: () => (menuOpen ? setMenuOpen(false) : goToCounter()) }]
-              : []),
+              : isAutos
+                ? [
+                    { icon: <Car size={18} />, label: 'Showroom', onClick: () => openCarLot('showroom') },
+                    { icon: <KeyRound size={18} />, label: 'My garage', onClick: () => openCarLot('garage') },
+                  ]
+                : []),
           { icon: <MapIcon size={18} />, label: 'Map', onClick: leave },
         ]}
         expanded={expanded}
