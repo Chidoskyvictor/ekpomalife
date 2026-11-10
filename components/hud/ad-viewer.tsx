@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { BodyPortal } from '@/components/ui/body-portal'
 import { OPEN_AD_EVENT, drawAdPlaceholder } from '@/lib/game/billboard-ad'
 import { BOARD_SPOTS, adForBoard, boardNumber } from '@/lib/game/billboard-ads'
+import { logAdClick } from '@/lib/game/admin-api'
 import { MAP_ZONES } from '@/lib/game/world-layout'
 import styles from './ad-viewer.module.css'
 
@@ -50,9 +51,16 @@ export function AdViewer() {
     return () => window.removeEventListener('keydown', onKey)
   }, [billboardId, ad, placeholder, close])
 
+  // One "open" per pop-up shown with a real ad
+  useEffect(() => {
+    if (billboardId && ad) logAdClick(n, ad.id, 'open')
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- log once per board opened
+  }, [billboardId])
+
   if (!billboardId) return null
 
   const share = async () => {
+    if (ad) logAdClick(n, ad.id, 'share')
     const url = `${window.location.origin}/?billboard=${n}`
     try {
       await navigator.clipboard.writeText(url)
@@ -101,18 +109,18 @@ export function AdViewer() {
                 <p className={styles.text}>{ad.tagline}</p>
                 <div className={styles.ctas}>
                   {ad.whatsapp ? (
-                    <a className={styles.whatsapp} href={ad.whatsapp} target="_blank" rel="noopener noreferrer">
+                    <a className={styles.whatsapp} href={ad.whatsapp} onClick={() => logAdClick(n, ad.id, 'whatsapp')} target="_blank" rel="noopener noreferrer">
                       <MessageCircle size={16} aria-hidden="true" /> WhatsApp
                     </a>
                   ) : null}
                   {ad.phone ? (
-                    <a className={styles.call} href={`tel:${ad.phone}`}>
+                    <a className={styles.call} href={`tel:${ad.phone}`} onClick={() => logAdClick(n, ad.id, 'call')}>
                       <Phone size={15} aria-hidden="true" /> {ad.phone}
                     </a>
                   ) : null}
                 </div>
                 {ad.group ? (
-                  <a className={styles.group} href={ad.group} target="_blank" rel="noopener noreferrer">
+                  <a className={styles.group} href={ad.group} onClick={() => logAdClick(n, ad.id, 'group')} target="_blank" rel="noopener noreferrer">
                     <Users size={16} aria-hidden="true" /> Join our WhatsApp group
                   </a>
                 ) : null}

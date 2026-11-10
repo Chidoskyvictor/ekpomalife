@@ -21,3 +21,15 @@ export const adminEndSpace = (spaceId: string) =>
 
 export const adminBanHost = (spaceId: string) =>
   apiPost<{ ok: true; hostId: string }>(`/admin/spaces/${encodeURIComponent(spaceId)}/ban-host`, {})
+
+/* Billboard ad tracking (backend/src/game/ad-clicks.ts) */
+export type AdAction = 'open' | 'whatsapp' | 'call' | 'group' | 'share'
+export type AdTotals = { adId: string; board: number; action: AdAction; total: number; players: number; guests: number }
+export type AdClickRow = { adId: string; board: number; action: AdAction; username: string | null; at: string }
+
+export const fetchAdClicks = () => apiGet<{ ok: true; totals: AdTotals[]; recent: AdClickRow[] }>('/admin/ad-clicks')
+
+/** Fire-and-forget: a lost click never gets in the player's way. */
+export function logAdClick(board: number, adId: string, action: AdAction) {
+  void apiPost<{ ok: true }>('/ads/click', { board, adId, action }).catch(() => {})
+}

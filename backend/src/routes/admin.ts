@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { z } from 'zod'
 import { getSessionUser, type SessionUser } from '../auth/current-user.js'
 import { env } from '../env.js'
+import { AD_ACTIONS, adClickReport, logAdClick } from '../game/ad-clicks.js'
 import { deleteSong, listAllSongs, saveSong } from '../game/promoted-songs.js'
 import { adminAnonAction, listAnonReports } from '../game/anonymous.js'
 import { adminBanHost, adminEndSpace, listSpaceReports, type SpacesFail } from '../game/spaces.js'
@@ -57,7 +58,27 @@ const songSchema = z.object({
   endsAt: z.string().max(40).nullish(),
 })
 
+const adClickSchema = z.object({
+  board: z.number().int().min(1).max(999),
+  adId: z.string().min(1).max(64).regex(/^[a-z0-9-]+$/),
+  action: z.enum(AD_ACTIONS),
+})
+
 export async function adminRoutes(app: FastifyInstance) {
+  // Billboard tracking: any player (or guest) logs an ad open / button tap; admins read the report.
+  app.post('/ads/click', rate(40), async (request, reply) => {
+    const parsed = adClickSchema.safeParse(request.body)
+    if (!parsed.success) return reply.code(400).send({ ok: false, error: 'Bad click.' })
+    const user = await getSessionUser(request)
+    await logAdClick(parsed.data.board, parsed.data.adId, parsed.data.action, user?.id ?? null)
+    return reply.send({ ok: true })
+  })
+
+  app.get('/admin/ad-clicks', rate(60), async (request, reply) => {
+    if (!(await requireAdmin(request, reply))) return
+    return reply.send({ ok: true, ...(await adClickReport()) })
+  })
+
   // Promoted songs shown on the club LED screen. Admin-only: players cannot submit songs.
   app.get('/admin/songs', rate(60), async (request, reply) => {
     if (!(await requireAdmin(request, reply))) return

@@ -48,7 +48,7 @@ export default function AdminPage() {
         <h1 className="text-xl font-bold">Ekpoma Life admin</h1>
         <span className="text-sm text-neutral-500">@{me}</span>
       </header>
-      <nav className="mt-2 flex gap-4 text-sm">
+      <nav className="mt-2 flex flex-wrap gap-x-4 gap-y-2 text-sm">
         <Link href="/" className="text-[#1a6fb0] underline">
           Game
         </Link>
@@ -60,6 +60,9 @@ export default function AdminPage() {
         </Link>
         <Link href="/admin/songs" className="text-[#1a6fb0] underline">
           Club songs
+        </Link>
+        <Link href="/admin/billboards" className="text-[#1a6fb0] underline">
+          Billboards
         </Link>
       </nav>
       <Stats />
