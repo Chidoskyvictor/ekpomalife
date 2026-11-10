@@ -74,7 +74,10 @@ export function useVoiceRecorder(onLimit: () => void) {
     wanted.current = true
     let stream: MediaStream
     try {
-      stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } })
+      stream = await navigator.mediaDevices.getUserMedia({
+        // Mono voice; auto gain lifts quiet/far voices so the receiver hears them clearly
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1, sampleRate: 48_000 },
+      })
     } catch {
       wanted.current = false
       return 'denied'
@@ -85,7 +88,7 @@ export function useVoiceRecorder(onLimit: () => void) {
       return false
     }
     const mimeType = pickMime()
-    const recorder = new MediaRecorder(stream, { ...(mimeType ? { mimeType } : {}), audioBitsPerSecond: 32_000 })
+    const recorder = new MediaRecorder(stream, { ...(mimeType ? { mimeType } : {}), audioBitsPerSecond: 64_000 })
     const ctx = new AudioContext()
     const analyser = ctx.createAnalyser()
     analyser.fftSize = 512
