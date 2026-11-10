@@ -12,7 +12,7 @@ import styles from './launch-invite.module.css'
 
 const SAZZA = 'sazza'
 /** Shown once per player (per device): bump the version for a future announcement. */
-const KEY = 'ekpoma-sazza-live-v1'
+const KEY = 'ekpoma-sazza-live-v2'
 
 function seen(): boolean {
   try {

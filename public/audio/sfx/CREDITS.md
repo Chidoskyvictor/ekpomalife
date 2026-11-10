@@ -42,4 +42,5 @@ Processing: all files mono 22.05 kHz MP3 (~64 kbps or lower) to stay under 50 KB
 No new files: `checkin` reuses reveal.mp3 (Tada!, Yoshicakes77), `missionDone` reuses success.mp3 (PiesHelpfulOven) and `story` reuses notify.mp3 (LegitCheese). All CC0 and already credited above; they are registered under their own names in `lib/audio/sfx.ts` so a dedicated clip can be dropped in later.
 
 - `public/audio/club/club-night.mp3`: club song for Sazza and Forbes, supplied by the owner (2026-11-09).
+- `public/audio/club/club-set-2.mp3`, `club-set-3.m4a`: the next two club tracks, supplied by the owner (2026-11-10). They play after `club-night.mp3`, then the set repeats.
 - `public/audio/sfx/air-horn.mp3`, `money-flutter.mp3`: downloaded by the owner from Pixabay (2026-11-09).
