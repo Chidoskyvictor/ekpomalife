@@ -42,6 +42,13 @@
   line-height: 1.2;
 }
 
+.place {
+  margin: 0;
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .why {
   margin: 0;
   color: #4b5563;
@@ -75,6 +82,16 @@
   font-size: 15px;
   font-weight: 800;
   cursor: pointer;
+}
+
+.stack {
+  flex-direction: column;
+}
+
+.stack button {
+  width: 100%;
+  padding: 10px 14px;
+  line-height: 1.2;
 }
 
 .cancel {
