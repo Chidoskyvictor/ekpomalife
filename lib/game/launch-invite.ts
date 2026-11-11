@@ -1,7 +1,7 @@
 /*
- * The Innovation Hub launch invite shows once per login. The flag lives in sessionStorage:
- * login and signup clear it (so the next landing shows the card), and showing it marks it shown
- * (so a reload or Cancel doesn't bring it back until the next login).
+ * Older once-per-login flag. The card on screen now is LaunchInvite, once per device
+ * (localStorage ekpoma-hub-live-v1). Login and signup still clear this session flag; that does
+ * not bring the card back.
  */
 const KEY = 'ekpoma-launch-invite'
 const SHOWN = 'shown'

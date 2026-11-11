@@ -6,18 +6,34 @@ import { useEffect, useState } from 'react'
 import { BodyPortal } from '@/components/ui/body-portal'
 import { useGame } from '@/hooks/use-game'
 import { playSfx } from '@/lib/audio/sfx'
-import { fetchLaunch } from '@/lib/game/hub-api'
-import { launchInviteDue, markLaunchInviteShown } from '@/lib/game/launch-invite'
 import { useTrip } from '@/lib/game/trip'
 import { pushNavigation } from '@/lib/navigation/safe-nav'
 import styles from './launch-invite.module.css'
 
 const HUB = 'innovation-hub'
+/** Shown once per player (per device): bump the version for a future announcement. */
+const KEY = 'ekpoma-hub-live-v1'
+
+function seen(): boolean {
+  try {
+    return window.localStorage.getItem(KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+function markSeen() {
+  try {
+    window.localStorage.setItem(KEY, '1')
+  } catch {
+    /* storage blocked: it can show again next visit, that's fine */
+  }
+}
 
 /*
- * Launch invite: a centred card for players who haven't pitched yet, once per login (right after
- * login or signup). Go opens the Innovation Hub on the map (its place sheet, with the ride choices).
- * Cancel hides it until the next login. Never shows at the Hub or during a ride.
+ * "Innovation Hub is active" once per player, with Go to the Hub (opens it on the map with its
+ * ride choices) and Cancel. Same card as the Sazza-open notice. Never shows to guests, during a
+ * ride, or when you're already at the Hub.
  */
 export function LaunchInvite() {
   const { state, isGuest, select } = useGame()
@@ -29,26 +45,15 @@ export function LaunchInvite() {
 
   const eligible = !isGuest && Boolean(state) && state?.locationId !== HUB && !trip
 
-  // Ask the server once (logged-in players who have never pitched), then show it
   useEffect(() => {
-    if (!eligible || !launchInviteDue()) return
-    let cancelled = false
-    void fetchLaunch()
-      .then((res) => {
-        if (cancelled || !res.ok || res.hasPitched) return
-        markLaunchInviteShown()
-        setOpen(true)
-        playSfx('invite')
-      })
-      .catch(() => {
-        /* offline: no invite this time */
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [eligible])
-
-  const close = () => setOpen(false)
+    if (!eligible || open || seen()) return
+    const timer = window.setTimeout(() => {
+      markSeen()
+      setOpen(true)
+      playSfx('invite')
+    }, 1500)
+    return () => window.clearTimeout(timer)
+  }, [eligible, open])
 
   useEffect(() => {
     if (!open) return
@@ -58,6 +63,8 @@ export function LaunchInvite() {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [open])
+
+  const close = () => setOpen(false)
 
   if (!open || !eligible) return null
   return (
@@ -77,10 +84,9 @@ export function LaunchInvite() {
             🚀
           </span>
           <h2 id="launch-invite-title" className={styles.title}>
-            Pitch your idea at the Innovation Hub
+            Innovation Hub is active
           </h2>
-          <p className={styles.why}>Ekpoma&apos;s first Pitch Day is today. Ride over, see the town, and pitch.</p>
-          <p className={styles.reward}>Win ₦1M–₦5M if an investor says yes</p>
+          <p className={styles.why}>The desks are open. Ride over and pitch your idea.</p>
           <div className={styles.actions}>
             <button type="button" className={styles.cancel} onClick={close}>
               Cancel
@@ -94,7 +100,7 @@ export function LaunchInvite() {
                 if (pathname !== '/') pushNavigation(router, '/', pathname)
               }}
             >
-              Go
+              Go to the Hub
             </button>
           </div>
         </motion.div>
