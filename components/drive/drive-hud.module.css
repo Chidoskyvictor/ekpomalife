@@ -490,3 +490,53 @@
   gap: 8px;
   pointer-events: none;
 }
+
+/* —— phone on its side: same controls, placed for two thumbs ——
+   Short and wide: less space above the road, speed between the thumbs, sheets nearly full height
+   and kept to the middle so they don't cover both controls. */
+@media (orientation: landscape) and (max-height: 520px) {
+  .root {
+    padding-top: calc(62px + env(safe-area-inset-top));
+    padding-bottom: calc(6px + env(safe-area-inset-bottom));
+  }
+
+  .pill {
+    max-width: 34%;
+  }
+
+  .guide {
+    margin-top: 6px;
+  }
+
+  /* speed sits low between the steering pad and the pedals instead of above them */
+  .dial {
+    position: absolute;
+    bottom: calc(14px + env(safe-area-inset-bottom));
+    left: 50%;
+    margin: 0;
+    transform: translateX(-50%);
+  }
+
+  .park {
+    position: absolute;
+    bottom: calc(70px + env(safe-area-inset-bottom));
+    left: 50%;
+    margin: 0;
+    transform: translateX(-50%);
+  }
+
+  .credit {
+    position: absolute;
+    right: max(12px, env(safe-area-inset-right));
+    bottom: 0;
+    margin: 0;
+  }
+
+  .sheet {
+    left: 50%;
+    right: auto;
+    width: min(460px, 70vw);
+    max-height: 86%;
+    transform: translateX(-50%);
+  }
+}

@@ -414,3 +414,14 @@
   font-size: 13px;
   line-height: 1.4;
 }
+
+/* Phone on its side: the race sheet is taller and kept to the middle */
+@media (orientation: landscape) and (max-height: 520px) {
+  .sheet {
+    left: 50%;
+    right: auto;
+    width: min(460px, 70vw);
+    max-height: 88%;
+    transform: translateX(-50%);
+  }
+}
