@@ -126,10 +126,8 @@ export function DriveHud() {
       const spot = Math.abs(driveTelemetry.speed) < 1.6 ? roadPlaceNear(x, z, destId) : null
       setNear((prev) => (prev?.id === spot?.id ? prev : spot))
       setRoadName(roadUnder(x, z)?.road.name ?? '')
-      setDents((prev) => {
-        if (driveTelemetry.dents > prev) notifyToast('Ouch! That left a dent.', false)
-        return driveTelemetry.dents
-      })
+      // Dents show quietly in the pill under the guide: no pop-up, so no error sound on every knock
+      setDents(driveTelemetry.dents)
       const g = destId ? guide(x, z, h, destId) : null
       if (!g) {
         setWay(null)
