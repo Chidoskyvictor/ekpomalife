@@ -20,7 +20,7 @@ export const AUTOS_BAYS: AutosBay[] = [
 export const AUTOS: RoomLayout = {
   id: 'office',
   label: 'Magmus Autos',
-  glb: '/models/magmus-autos.glb?v=2',
+  glb: '/models/magmus-autos.glb?v=3',
   floors: [[-9.8, -6.8, 9.8, 6.8]],
   blocks: [
     ...AUTOS_BAYS.map((b): [number, number, number, number] => [b.x - 1.6, b.z - 2.9, b.x + 1.6, b.z + 2.9]),

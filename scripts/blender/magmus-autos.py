@@ -1,5 +1,5 @@
 """
-Magmus Autos showroom interior -> public/models/magmus-autos.glb.
+Magmus Autos showroom, with the street around it -> public/models/magmus-autos.glb.
 Headless:  blender -b --factory-startup -P scripts/blender/magmus-autos.py -- <out.glb>
 
 A STAND-IN room: an open tokunbo-style car hall with seven display bays, a sales desk, bunting,
@@ -89,7 +89,147 @@ LIGHT = mat("Light", (1.0, 0.97, 0.88), 0.4, emit=(1.0, 0.95, 0.8), strength=2.0
 hw, hd = W / 2, D / 2
 
 # Ground outside, then the showroom floor with a dark border
-box("Yard", (0, -0.06, 0), (W + 14, 0.1, D + 14), LATERITE)
+# ================= OUTSIDE: a paved forecourt, a kerb, the ring road and the street around it
+# (the same idea as the Innovation Hub / Student Conference courtyards, in our own pieces) =================
+ASPHALT = mat("Asphalt", (0.17, 0.18, 0.19), 0.95)
+PAVING = mat("Paving", (0.60, 0.58, 0.55), 0.9)
+KERB = mat("Kerb", (0.86, 0.86, 0.84), 0.7)
+KERB_Y = mat("KerbYellow", (0.92, 0.72, 0.10), 0.6)
+LINE = mat("Line", (0.95, 0.95, 0.93), 0.6)
+CREAM = mat("Cream", (0.91, 0.85, 0.70), 0.85)
+TRIM = mat("Trim", (0.55, 0.50, 0.44), 0.8)
+ROOF = mat("Roof", (0.42, 0.20, 0.14), 0.8)
+WINDOW = mat("Window", (0.32, 0.45, 0.52), 0.15, 0.3)
+GRASS = mat("Grass", (0.30, 0.48, 0.20), 0.95)
+TRUNK = mat("Trunk", (0.36, 0.25, 0.16), 0.9)
+SIGN_BG = mat("SignBg", (0.07, 0.30, 0.17), 0.6)
+CAR_PAINTS = [mat("CarWhite", (0.92, 0.92, 0.90), 0.35, 0.3), mat("CarSilver", (0.70, 0.72, 0.75), 0.3, 0.6),
+              mat("CarRed", (0.62, 0.08, 0.10), 0.35, 0.3), mat("CarBlack", (0.06, 0.06, 0.07), 0.3, 0.4),
+              mat("CarBlue", (0.12, 0.24, 0.55), 0.35, 0.3)]
+
+# Road: one big asphalt slab under everything; paving + grass verges sit on top of it
+box("Asphalt", (0, -0.1, 0), (84, 0.1, 80), ASPHALT)
+box("Forecourt", (0, -0.04, 0), (W + 7, 0.06, D + 7), PAVING)
+fx, fz = (W + 7) / 2, (D + 7) / 2
+for i, (cx, cz, sx, sz) in enumerate(((0, -fz, W + 7.3, 0.3), (0, fz, W + 7.3, 0.3), (-fx, 0, 0.3, D + 7.3), (fx, 0, 0.3, D + 7.3))):
+    box("Kerb", (cx, 0.0, cz), (sx, 0.16, sz), KERB)
+# black-and-yellow kerb paint on the front, where cars pull in
+for i in range(14):
+    x = -fx + 0.9 + i * (2 * fx - 1.8) / 13
+    box("KerbPaint", (x, 0.085, fz), (0.9, 0.02, 0.32), KERB_Y)
+
+# Lane dashes down the middle of the ring road (back, right, front, left)
+RB, RR, RF, RL = -fz - 5.5, fx + 5.5, fz + 5.5, -fx - 5.5
+for i in range(22):
+    x = -34 + i * 3.2
+    box("Dash", (x, -0.045, RB), (1.6, 0.01, 0.16), LINE)
+    box("Dash", (x, -0.045, RF), (1.6, 0.01, 0.16), LINE)
+for i in range(20):
+    z = -31 + i * 3.2
+    box("Dash", (RR, -0.045, z), (0.16, 0.01, 1.6), LINE)
+    box("Dash", (RL, -0.045, z), (0.16, 0.01, 1.6), LINE)
+
+# Grass verges along the far side of the road, under the blocks
+for (cx, cz, sx, sz) in ((0, -31, 84, 18), (33, 0, 18, 44), (-33, 0, 18, 44), (0, 33, 84, 14)):
+    box("Verge", (cx, -0.035, cz), (sx, 0.05, sz), GRASS)
+
+
+def block(tag, x0, z0, x1, z1, floors, face, sign=None):
+    """A cream campus-style block with a window band on every floor of the side facing the road."""
+    FH = 3.2
+    h = floors * FH
+    cx, cz = (x0 + x1) / 2, (z0 + z1) / 2
+    sx, sz = x1 - x0, z1 - z0
+    box(tag + "Body", (cx, h / 2, cz), (sx, h, sz), CREAM)
+    box(tag + "Base", (cx, 0.3, cz), (sx + 0.2, 0.6, sz + 0.2), TRIM)
+    box(tag + "Roof", (cx, h + 0.18, cz), (sx + 0.6, 0.36, sz + 0.6), ROOF)
+    cyl(tag + "Tank", (x0 + sx * 0.3, h + 1.0, z0 + sz * 0.4), 0.75, 1.3, STEEL, 12)
+    for f in range(floors):
+        y = f * FH + 1.7
+        if face == '+z':
+            box(tag + "Win", (cx, y, z1 + 0.03), (sx - 1.6, 1.3, 0.06), WINDOW)
+            box(tag + "Sill", (cx, y - 0.72, z1 + 0.08), (sx - 1.4, 0.12, 0.16), TRIM)
+        elif face == '-x':
+            box(tag + "Win", (x0 - 0.03, y, cz), (0.06, 1.3, sz - 1.6), WINDOW)
+            box(tag + "Sill", (x0 - 0.08, y - 0.72, cz), (0.16, 0.12, sz - 1.4), TRIM)
+        else:  # '+x'
+            box(tag + "Win", (x1 + 0.03, y, cz), (0.06, 1.3, sz - 1.6), WINDOW)
+            box(tag + "Sill", (x1 + 0.08, y - 0.72, cz), (0.16, 0.12, sz - 1.4), TRIM)
+    if sign and face == '+z':
+        w = min(sx - 2, len(sign) * 0.7)
+        box(tag + "SignBoard", (cx, h + 1.3, z1 - 0.4), (w, 1.4, 0.16), SIGN_BG)
+        body = bpy.data.curves.new(tag + "SignText", 'FONT')
+        body.body = sign
+        body.size = 0.9
+        body.align_x = 'CENTER'
+        body.align_y = 'CENTER'
+        body.extrude = 0.03
+        o = bpy.data.objects.new(tag + "SignText", body)
+        o.location = (cx, -(z1 - 0.3), h + 1.3)
+        o.rotation_euler = (math.pi / 2, 0, 0)
+        o.data.materials.append(WHITE)
+        link(o)
+    elif sign and face == '-x':
+        w = min(sz - 2, len(sign) * 0.7)
+        box(tag + "SignBoard", (x0 + 0.4, h + 1.3, cz), (0.16, 1.4, w), SIGN_BG)
+        body = bpy.data.curves.new(tag + "SignText", 'FONT')
+        body.body = sign
+        body.size = 0.9
+        body.align_x = 'CENTER'
+        body.align_y = 'CENTER'
+        body.extrude = 0.03
+        o = bpy.data.objects.new(tag + "SignText", body)
+        o.location = (x0 + 0.3, -cz, h + 1.3)
+        o.rotation_euler = (math.pi / 2, 0, -math.pi / 2)
+        o.data.materials.append(WHITE)
+        link(o)
+
+
+# Blocks across the road: behind (what the room camera sees most) and to the right
+block("Mech", -32.0, -38.0, -6.0, -24.0, 3, '+z', "MECHANIC VILLAGE")
+block("Plaza", 0.0, -38.0, 28.0, -25.0, 4, '+z', "AUTO PLAZA")
+block("Spare", 25.0, -20.0, 38.0, 14.0, 3, '-x', "SPARE PARTS")
+
+
+def parked(tag, cx, cz, along, paint):
+    """A low-poly car (4.2 x 1.8) parked at the kerb; long axis along 'x' or 'z'."""
+    L, Wd = 4.2, 1.8
+    sx, sz = (L, Wd) if along == 'x' else (Wd, L)
+    box(tag + "Body", (cx, 0.58, cz), (sx, 0.55, sz), paint)
+    cs = (2.1, 0.5, Wd - 0.16) if along == 'x' else (Wd - 0.16, 0.5, 2.1)
+    box(tag + "Cabin", (cx, 1.1, cz), cs, GLASS)
+    for dx in (-1.35, 1.35):
+        for side in (-1, 1):
+            wx, wz = (cx + dx, cz + side * (Wd / 2 - 0.05)) if along == 'x' else (cx + side * (Wd / 2 - 0.05), cz + dx)
+            bpy.ops.mesh.primitive_cylinder_add(vertices=12, radius=0.33, depth=0.24, location=(wx, -wz, 0.33))
+            o = bpy.context.active_object
+            o.name = tag + "Wheel"
+            o.rotation_euler = (math.pi / 2, 0, 0) if along == 'x' else (0, math.pi / 2, 0)
+            o.data.materials.append(RUBBER)
+            link(o)
+
+
+# Parked along the far kerbs, in front of the blocks
+for i, (x, z, along, k) in enumerate(((-22, RB - 4.2, 'x', 0), (-14, RB - 4.2, 'x', 2), (6, RB - 4.2, 'x', 1), (14, RB - 4.2, 'x', 3),
+                                      (RR + 4.2, -8, 'z', 4), (RR + 4.2, 4, 'z', 0), (RL - 4.2, -6, 'z', 1), (-6, RF + 4.2, 'x', 3))):
+    parked(f"Parked{i}", x, z, along, CAR_PAINTS[k])
+
+
+def tree(tag, x, z, s=1.0):
+    cyl(tag + "Trunk", (x, 1.4 * s, z), 0.22 * s, 2.8 * s, TRUNK, 8)
+    bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=1, radius=1.6 * s, location=(x, -z, 3.4 * s))
+    o = bpy.context.active_object
+    o.name = tag + "Crown"
+    o.scale = (1.0, 1.0, 0.8)
+    o.data.materials.append(LEAF)
+    link(o)
+
+
+# Trees on the verges and the forecourt corners
+for i, (x, z, sc) in enumerate(((-30, -21, 1.1), (-10, -21.5, 0.9), (22, -21.5, 1.0), (23, 18, 1.0), (-24, 18, 0.9),
+                                (-24, -2, 1.0), (24, 22, 0.8), (12, 22, 0.9), (-fx + 1.2, -fz + 1.2, 0.7), (fx - 1.2, fz - 1.2, 0.7))):
+    tree(f"Tree{i}", x, z, sc)
+
 box("FloorEdge", (0, 0.0, 0), (W, 0.06, D), TILE_DARK)
 box("Floor", (0, 0.02, 0), (W - 0.5, 0.06, D - 0.5), TILE)
 
@@ -176,6 +316,12 @@ for x in (-9.4, -3.6, 1.6, 7.0):
     box("FlagWhite", (x + 0.33, 2.25, 6.75), (0.6, 0.7, 0.03), WHITE)
     box("FlagGreenLow", (x + 0.33, 1.55, 6.75), (0.6, 0.7, 0.03), GREEN)
 
+for o in list(col.objects):
+    if o.type == 'FONT':
+        bpy.ops.object.select_all(action='DESELECT')
+        o.select_set(True)
+        bpy.context.view_layer.objects.active = o
+        bpy.ops.object.convert(target='MESH')
 bpy.ops.object.select_all(action='DESELECT')
 for o in col.objects:
     o.select_set(True)

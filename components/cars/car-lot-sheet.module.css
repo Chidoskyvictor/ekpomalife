@@ -1,8 +1,10 @@
-/* Car lot sheet: sits on the place sheet shell, one step above it. Kept short so the map shows. */
+/* Car lot sheet: sits on the place sheet shell, one step above it. Tall, so the car, its price and
+   Buy all show without a cramped half sheet; the top bar (wallet) stays visible above it. */
 
 .sheet {
   z-index: calc(var(--z-hud) + 5);
-  max-height: min(calc(100dvh - 96px - env(safe-area-inset-top)), max(46dvh, 350px));
+  height: min(calc(100dvh - 84px - env(safe-area-inset-top)), 88dvh);
+  max-height: min(calc(100dvh - 84px - env(safe-area-inset-top)), 88dvh);
 }
 
 .head {
