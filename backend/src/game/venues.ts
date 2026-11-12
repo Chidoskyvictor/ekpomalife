@@ -115,6 +115,7 @@ const HALLS: [string, string][] = [
   // Offices (same free walk-in crowd as the halls)
   ['admin-block', 'Admin Block'],
   ['innovation-hub', 'Innovation Hub'],
+  ['magmus-autos', 'Magmus Autos'],
 ]
 for (const [id, name] of HALLS) {
   // Open all day: you can always walk in; the school day (class and exam hours) is in school-rules.ts

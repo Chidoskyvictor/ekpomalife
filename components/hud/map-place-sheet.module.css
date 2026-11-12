@@ -346,3 +346,25 @@
   font-weight: 600;
   line-height: 1.35;
 }
+
+/* "Drive my car": a full-width row under the three rides */
+.modeCar {
+  min-height: 56px;
+  flex-direction: row;
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 6px 14px;
+  text-align: left;
+}
+
+.modeCar small {
+  margin-left: auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.modeCar:disabled {
+  opacity: 0.6;
+  cursor: default;
+}

@@ -479,13 +479,8 @@ const SOUTH_ZONES: MapZone[] = [
   // Supermarket: same tall glass tower as Spot Rite outside, its own shop room inside (dublous.glb)
   southZone('dubious', 'Dublous', 0.17, 0.2, 'building-skyscraper-a', [10, 10], { scale: 5.6 }),
   southZone('innovation-hub', 'Innovation Hub', 0.29, 0.2, 'building-l', [10, 8], { scale: 4.9, tint: lilac }),
-  // Mechanic: small workshop + a stretch of the parking-lot model (it has cars) as the yard
-  southZone('magmus-autos', 'Magmus Autos', 0.41, 0.14, 'cluster', [14, 8], {
-    parts: [
-      { model: 'building-a', dx: -3.2, dz: 0, scale: 4.3, tint: earth },
-      { model: 'parking-lot', dx: 4, dz: 0, size: [6, 6.5], noPad: true },
-    ],
-  }),
+  // Car dealership: an open tokunbo-style lot drawn in components/cars/car-lot-zone.tsx
+  southZone('magmus-autos', 'Magmus Autos', 0.41, 0.14, 'car-lot', [14, 8]),
   // Hand-made low-poly GLB (public/models/above-the-hills.glb): cream hall with a hip roof, built in Blender
   southZone('above-the-hills-church', 'Above the Hills Church', 0.3002, 0.6573, 'above-the-hills', [16, 9], { rotation: 0 }),
   // Landmark name on the slab (no road drawn)

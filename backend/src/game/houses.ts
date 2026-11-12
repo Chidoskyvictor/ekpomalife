@@ -87,6 +87,8 @@ export type HouseView = {
   home: boolean
   /** Furniture they've bought for their place. */
   items: number
+  /** Cars parked at the house, the one they drive first: "model:#colour". */
+  cars: string[]
 }
 
 /** Every taken plot with its owner, for the map. */
@@ -99,13 +101,16 @@ export async function listHouses(): Promise<HouseView[]> {
     location_id: string | null
     online: boolean
     items: number
+    cars: string[] | null
   }>(
     `SELECT hp.plot, u.id AS user_id, u.username, c.lodging_id, gs.location_id,
             EXISTS (
               SELECT 1 FROM sessions s
               WHERE s.user_id = u.id AND s.last_seen_at > NOW() - $1::interval AND s.expires_at > NOW()
             ) AS online,
-            (SELECT COUNT(*)::int FROM home_placements p WHERE p.character_id = c.id) AS items
+            (SELECT COUNT(*)::int FROM home_placements p WHERE p.character_id = c.id) AS items,
+            (SELECT ARRAY_AGG(k.model || ':' || k.color ORDER BY k.active DESC, k.created_at)
+               FROM car_holdings k WHERE k.character_id = c.id) AS cars
      FROM house_plots hp
      JOIN users u ON u.id = hp.user_id
      LEFT JOIN characters c ON c.user_id = u.id
@@ -121,5 +126,6 @@ export async function listHouses(): Promise<HouseView[]> {
     area: areaOfPlot(r.plot)?.name ?? 'Ekpoma',
     home: r.online && (r.location_id === 'home' || r.location_id === null),
     items: r.items,
+    cars: r.cars ?? [],
   }))
 }

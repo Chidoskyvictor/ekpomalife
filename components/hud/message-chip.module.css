@@ -5,13 +5,18 @@
   right: calc(max(12px, env(safe-area-inset-right)) + 56px);
   top: calc(max(12px, env(safe-area-inset-top)) + 94px);
   pointer-events: none;
-  transform: translateX(calc(100% + 80px));
+  /* Slides in a short way only: parked further out it widened the page past the screen, and a
+     focused text box then scrolled the whole game sideways */
+  transform: translateX(28px);
   opacity: 0;
-  transition: transform 0.28s ease, opacity 0.2s ease;
+  visibility: hidden;
+  transition: transform 0.28s ease, opacity 0.2s ease, visibility 0s linear 0.28s;
 }
 .in {
   transform: translateX(0);
   opacity: 1;
+  visibility: visible;
+  transition: transform 0.28s ease, opacity 0.2s ease, visibility 0s;
 }
 
 .chip {

@@ -14,6 +14,11 @@ import { homeAddress } from '@/lib/game/home-place'
 import { ACTION_LABELS } from '@/lib/game/places'
 import { isComingSoon, placeFor, placeInfo, placeLink } from '@/lib/game/place-info'
 import { fareOf, fetchTravelOptions, type TravelOptions, type TripMode } from '@/lib/game/travel-api'
+import { carPlace, useGarage } from '@/lib/game/cars-api'
+import { carById } from '@/lib/game/cars-rules'
+import { startDrive } from '@/lib/game/drive'
+import { driveStartFrom } from '@/lib/game/drive-road'
+import { getPlace } from '@/lib/game/places'
 import styles from './map-place-sheet.module.css'
 
 const TYPE_EMOJI: Record<string, string> = {
@@ -49,7 +54,7 @@ export function MapPlaceSheet({ hidden = false }: { hidden?: boolean }) {
   const router = useRouter()
   const { go, travelling } = useGoTo()
   const place = placeFor(selectedId)
-  const [mode, setMode] = useState<TripMode>('trek')
+  const [mode, setMode] = useState<TripMode | 'car'>('trek')
   const [options, setOptions] = useState<TravelOptions | null>(null)
   const [failed, setFailed] = useState(false)
   const linked = useRef(false)
@@ -75,6 +80,11 @@ export function MapPlaceSheet({ hidden = false }: { hidden?: boolean }) {
   }, [placeId])
   const here = Boolean(state && placeId && state.locationId === placeId)
   const signedIn = Boolean(state)
+  // The car you drive, and whether it is parked where you are standing
+  const garage = useGarage(signedIn && Boolean(placeId))
+  const myCar = garage?.cars.find((c) => c.active) ?? null
+  const carAt = myCar ? carPlace(myCar, garage?.homePlaceId) : null
+  const carHere = Boolean(myCar && state && carAt === state.locationId)
 
   // Tapping your own house while you're home goes straight inside (no sheet)
   useEffect(() => {
@@ -128,7 +138,7 @@ export function MapPlaceSheet({ hidden = false }: { hidden?: boolean }) {
   const open = isPlaceOpen(place, gameTime)
   const locked = placeLock(place.id)
   const closed = Boolean(locked) || (!open && place.id !== 'home')
-  const fare = option ? fareOf(option, mode) : 0
+  const fare = option && mode !== 'car' ? fareOf(option, mode) : 0
   const cash = state?.cash ?? 0
   const short = fare > cash
 
@@ -147,6 +157,16 @@ export function MapPlaceSheet({ hidden = false }: { hidden?: boolean }) {
   }
 
   const minutes = (id: TripMode) => (option ? option.minutes[id] : null)
+
+  /** Get in and drive: from this place's kerb if it is on the driving roads (else the start of the main road), to `dest` or just around. */
+  const driveOff = (dest: { id: string; label: string } | null) => {
+    if (!myCar || !state) return
+    const from = state.locationId
+    const start = driveStartFrom(from, dest?.id)
+    startDrive({ dest, car: { id: myCar.id, model: myCar.model, color: myCar.color }, start, fromPlace: from })
+    select(null)
+    if (window.location.pathname !== '/') pushNavigation(router, '/')
+  }
   // Your own house: show your address, no share link, and "Go home"
   const isHome = place.id === 'home'
   const home = isHome ? homeAddress(state?.lodgingId) : null
@@ -231,6 +251,11 @@ export function MapPlaceSheet({ hidden = false }: { hidden?: boolean }) {
           </>
         ) : null}
 
+        {signedIn && here && carHere && !isHome ? (
+          <button type="button" className={styles.share} onClick={() => driveOff(null)}>
+            <span aria-hidden="true">🚗</span> Drive my car around
+          </button>
+        ) : null}
         {signedIn && !here ? (
           <>
             <h3 className={styles.sub}>Ways to get there</h3>
@@ -257,6 +282,22 @@ export function MapPlaceSheet({ hidden = false }: { hidden?: boolean }) {
                 )
               })}
             </div>
+            {myCar ? (
+              <button
+                type="button"
+                role="radio"
+                aria-checked={mode === 'car'}
+                disabled={!carHere}
+                className={`${styles.mode} ${styles.modeCar} ${mode === 'car' ? styles.modeOn : ''}`}
+                onClick={() => setMode('car')}
+              >
+                <span className={styles.modeEmoji} aria-hidden="true">
+                  🚗
+                </span>
+                <strong>Drive my car</strong>
+                <small>{carHere ? `${carById(myCar.model)?.name ?? 'Car'} · Free` : `Parked at ${getPlace(carAt)?.label ?? 'home'}`}</small>
+              </button>
+            ) : null}
             {failed ? <p className={styles.note}>Could not load fares. Close this and tap the place again.</p> : null}
           </>
         ) : null}
@@ -274,10 +315,14 @@ export function MapPlaceSheet({ hidden = false }: { hidden?: boolean }) {
           <button
             type="button"
             className={styles.go}
-            disabled={!options || !option || travelling || short || closed}
-            onClick={() => options && option && void go(options, option, mode, () => select(null))}
+            // Your own car goes anywhere, open or closed
+            disabled={mode === 'car' ? !carHere || travelling : !options || !option || travelling || short || closed}
+            onClick={() => {
+              if (mode === 'car') driveOff({ id: place.id, label: place.label })
+              else if (options && option) void go(options, option, mode, () => select(null))
+            }}
           >
-            {locked ? 'Opens tonight at 10pm' : closed && hours ? `Closed · opens ${formatOpenHour(hours.open)}` : short ? `Need ${naira(fare)}` : `${isHome ? 'Go home' : 'Go'} · ${fare ? naira(fare) : 'Free'}`}
+            {mode === 'car' ? 'Drive there' : locked ? 'Opens tonight at 10pm' : closed && hours ? `Closed · opens ${formatOpenHour(hours.open)}` : short ? `Need ${naira(fare)}` : `${isHome ? 'Go home' : 'Go'} · ${fare ? naira(fare) : 'Free'}`}
           </button>
         </footer>
       ) : null}

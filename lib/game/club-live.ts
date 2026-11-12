@@ -18,6 +18,8 @@ export type Peer = {
   displayName: string
   appearance: unknown
   vip: boolean
+  /** Map room only: the car they drive, "model:#colour". */
+  car?: string
   /** Latest position from the server; the scene glides toward it. */
   state: PeerState | null
 }

@@ -30,6 +30,7 @@ import { ZoneStickerOverlay, ZoneStickerProjector, ZoneStickerProvider } from '.
 import { ZoneDebugProvider } from './zone-debug-context'
 import { markSceneReady, useTrip } from '@/lib/game/trip'
 import { usePhoneOpenFlag } from '@/lib/game/phone-open'
+import { useDrive } from '@/lib/game/drive'
 
 const PITCH = (32 * Math.PI) / 180
 const HEADING = 0
@@ -238,7 +239,8 @@ export function WorldCanvas() {
   const period = 'afternoon' as const
   const night = false
   const trip = useTrip()
-  const driving = Boolean(trip?.drive && !trip.done)
+  // A ride's road view, or your own car's street view, covers the map
+  const driving = Boolean(trip?.drive && !trip.done) || Boolean(useDrive())
   const phoneOpen = usePhoneOpenFlag()
   const { targetPercent, assetsDone, onProgress } = useMapLoadProgress()
   // A trip to a campus place waits for the map to finish loading

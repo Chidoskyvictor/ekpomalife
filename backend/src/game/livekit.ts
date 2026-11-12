@@ -44,12 +44,14 @@ export function verifyJwt(token: string, secret: string, nowSec = Math.floor(Dat
 }
 
 export const roomName = (spaceId: string) => `space_${spaceId}`
+/** A drag race's voice room. Not a Space: the Spaces webhook ignores it. */
+export const raceRoom = (raceId: string) => `race_${raceId}`
 export const spaceIdFromRoom = (room: string) => (room.startsWith('space_') ? room.slice('space_'.length) : null)
 
 /** Join token: everyone can listen; only `canPublish` people get the microphone. */
 export function joinToken(
   cfg: LiveKitConfig,
-  input: { spaceId: string; userId: string; name: string; canPublish: boolean; ttlSeconds: number; metadata?: string },
+  input: { spaceId: string; userId: string; name: string; canPublish: boolean; ttlSeconds: number; metadata?: string; /** Another room (a race's voice room) instead of the Space's. */ room?: string },
   nowSec = Math.floor(Date.now() / 1000),
 ): string {
   return signJwt(
@@ -61,7 +63,7 @@ export function joinToken(
       exp: nowSec + Math.max(60, Math.floor(input.ttlSeconds)),
       metadata: input.metadata ?? '',
       video: {
-        room: roomName(input.spaceId),
+        room: input.room ?? roomName(input.spaceId),
         roomJoin: true,
         canSubscribe: true,
         canPublish: input.canPublish,

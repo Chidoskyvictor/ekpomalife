@@ -5,7 +5,7 @@ const BY_ID: Record<string, string> = {
   'market-square': '🧺',
   dubious: '🛒',
   'innovation-hub': '💡',
-  'magmus-autos': '🔧',
+  'magmus-autos': '🚗',
   'above-the-hills-church': '⛪',
   'wise-gourmet': '🍽️',
   'market-hub': '🚧',

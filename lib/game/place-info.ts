@@ -287,10 +287,10 @@ export const PLACE_INFO: Record<string, PlaceInfo> = {
   },
   'magmus-autos': {
     area: TOWN,
-    about: 'Magmus Autos. Mechanic workshop and car yard.',
+    about: 'Magmus Autos. Tokunbo and brand new cars, from Corolla to GT3.',
     doing: [
-      { emoji: '🔧', text: 'See the mechanics' },
-      { emoji: '🤝', text: 'Hang out' },
+      { emoji: '🚗', text: 'Buy a car' },
+      { emoji: '🎨', text: 'Paint or sell yours' },
     ],
   },
   'above-the-hills-church': {
