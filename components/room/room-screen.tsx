@@ -280,6 +280,7 @@ export function RoomScreen() {
                     onNearCar: setNearCar,
                     boyWord: state?.appearance?.body === 'woman' ? 'Sister' : 'Brother',
                     stick: walkStick,
+                    area: homeArea(state?.lodgingId),
                   }
                 : null
             }
@@ -380,6 +381,14 @@ export function RoomScreen() {
         ) : null}
       </div>
   )
+}
+
+/** The area your home is in, for the green sign over your gate. */
+function homeArea(lodgingId: string | null | undefined) {
+  if (lodgingId === 'selfcon-g2') return 'G2'
+  if (lodgingId === 'onebed-ojo') return 'Ojo Street'
+  if (lodgingId === 'hostel-poultry' || lodgingId === 'single-poultry') return 'Poultry Road'
+  return 'Ekpoma'
 }
 
 /**

@@ -19,6 +19,7 @@ import {
   type StreetTemplate,
 } from '@/lib/game/street'
 import { InstancedShapes, type Shape } from './instanced-shapes'
+import { HomeSign, OrbitStreetCamera, PassingCars, StreetDressing, streetView } from './street-dressing'
 import { PARKED_CAR, ParkedCar, StreetBoy } from './street-extras'
 import styles from './street.module.css'
 
@@ -41,6 +42,8 @@ export type StreetProps = {
   boyWord?: string
   /** The on-screen joystick (screen directions, -1..1). */
   stick?: { x: number; z: number }
+  /** Your area, on the green sign over your gate (G2, Poultry Road…). */
+  area?: string
 }
 
 /** Neighbours' walls: Ekpoma cream, sky blue, mint, peach… */
@@ -116,18 +119,12 @@ function buildGround(width: number) {
     { p: [0, -0.02, -6], s: [width + 60, 0.02, 40], c: '#c48a5a' }, // laterite
     { p: [0, 0.01, ROAD.z0 + 0.6], s: [width + 60, 0.03, 1.5], c: '#cfc8ba' }, // pavement
     { p: [0, 0.005, 3.8], s: [width + 60, 0.02, 4.4], c: '#5d6168' }, // road
-    { p: [0, 0.005, 9.5], s: [width + 60, 0.02, 7], c: '#86b46b' }, // verge across the road
   ]
   for (let x = -width / 2 - 20; x < width / 2 + 20; x += 3) {
     boxes.push({ p: [x, 0.02, 3.8], s: [1.4, 0.01, 0.12], c: '#f1f1ea' })
   }
   const trunks: Shape[] = []
   const canopies: Shape[] = []
-  for (let x = -width / 2 - 12; x <= width / 2 + 12; x += 6.5) {
-    const z = 7.6 + ((x * 13) % 3) * 0.4
-    trunks.push({ p: [x, 0.9, z], s: [0.26, 1.8, 0.26], c: '#6b4a2b' })
-    canopies.push({ p: [x, 2.5, z], s: [2.3, 1.9, 2.3], c: '#4f8a3c' })
-  }
   return { boxes, trunks, canopies }
 }
 
@@ -207,7 +204,7 @@ function StreetCamera({ player, half }: { player: React.RefObject<[number, numbe
  * (all walls, gates and houses are a few instanced meshes). Only the road is walkable; your
  * gate has your house number and the floating "Your house" tag.
  */
-export function StreetScene({ lodgingId, houseNumber, paint, appearance, clock, preloadGlb, onNearGate, car, onNearCar, boyWord = 'Brother', stick }: StreetProps) {
+export function StreetScene({ lodgingId, houseNumber, paint, appearance, clock, preloadGlb, onNearGate, car, onNearCar, boyWord = 'Brother', stick, area = 'Ekpoma' }: StreetProps) {
   const t = streetForLodging(lodgingId)
   const { own, numbers } = lotsFor(houseNumber)
   const half = (LOTS * t.lotW) / 2
@@ -232,6 +229,25 @@ export function StreetScene({ lodgingId, houseNumber, paint, appearance, clock, 
   const player = useRef<[number, number]>(gate)
   const near = useRef<boolean | null>(null)
   const nearCar = useRef<boolean | null>(null)
+  // The joystick in screen directions, turned to match the camera: "up" walks away from it
+  const turnedStick = useMemo(
+    () =>
+      stick
+        ? {
+            get x() {
+              const c = Math.cos(streetView.yaw)
+              const s = Math.sin(streetView.yaw)
+              return c * stick.x + s * stick.z
+            },
+            get z() {
+              const c = Math.cos(streetView.yaw)
+              const s = Math.sin(streetView.yaw)
+              return -s * stick.x + c * stick.z
+            },
+          }
+        : undefined,
+    [stick],
+  )
   const plateY = t.kind === 'block' ? 2.45 : t.fenceH + 0.55
   const day = clock ?? (() => 12 * 60)
 
@@ -281,15 +297,15 @@ export function StreetScene({ lodgingId, houseNumber, paint, appearance, clock, 
           <span className={i === own ? `${styles.plate} ${styles.plateOwn}` : styles.plate}>No. {n}</span>
         </Html>
       ))}
-      <Html position={[gate[0] - (t.kind === 'block' ? 0.5 : 0), plateY + 1.1, 0.25]} center zIndexRange={[11, 0]} style={{ pointerEvents: 'none' }}>
-        <span className={styles.ownTag}>🏠 Your house</span>
-      </Html>
+      <HomeSign area={area} x={gate[0] - (t.kind === 'block' ? 0.5 : 0)} y={plateY + 1.35} z={0.3} />
+      <StreetDressing width={LOTS * t.lotW} gateX={gate[0]} />
+      <PassingCars width={LOTS * t.lotW} skipNear={car ? { x: carX, length: PARKED_CAR.length + 3 } : undefined} />
 
       {car ? <ParkedCar model={car.model} color={car.color} x={carX} z={CAR_Z} /> : null}
       <StreetBoy player={player} minX={-half + 2} maxX={half - 2} z={4.6} word={boyWord} />
 
-      <RoomPlayer key={`street-${t.id}-${own}-${car ? 'car' : 'none'}`} layout={layout} spawn={gate} appearance={appearance} onMove={onMove} stick={stick} />
-      <StreetCamera player={player} half={half} />
+      <RoomPlayer key={`street-${t.id}-${own}-${car ? 'car' : 'none'}`} layout={layout} spawn={gate} appearance={appearance} onMove={onMove} stick={turnedStick} />
+      <OrbitStreetCamera player={player} />
     </>
   )
 }
