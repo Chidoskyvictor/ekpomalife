@@ -72,7 +72,7 @@ export function RouteArrows() {
     clock.current += delta
     if (clock.current < 0.25) return
     clock.current = 0
-    const points = destId ? routeAhead(driveTelemetry.x, driveTelemetry.z, destId, STEP, STEP * (STEPS - 2)) : []
+    const points = destId ? routeAhead(driveTelemetry.x, driveTelemetry.z, driveTelemetry.h, destId, STEP, STEP * (STEPS - 2)) : []
     const n = Math.min(STEPS, points.length)
     const pos = kit.strip.getAttribute('position') as BufferAttribute
     for (let i = 0; i < n; i++) {

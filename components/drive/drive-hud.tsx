@@ -187,17 +187,15 @@ export function DriveHud() {
   const g = way?.g ?? null
   const wanted = query.trim().toLowerCase()
   const list = ROAD_PLACES.filter((p) => !wanted || p.label.toLowerCase().includes(wanted))
-  // Behind you (the far side of the highway, or you set off the wrong way): say so plainly
-  const behind = Boolean(way && Math.abs(way.bearing) > 2.2 && g && g.turn !== 'left' && g.turn !== 'right')
   const headline = !g
     ? ''
-    : behind
-      ? `Turn around: ${drive.dest?.label ?? g.onto} is behind you`
+    : g.turn === 'uturn'
+      ? 'Turn around'
       : g.turn === 'arrive'
-      ? `${g.onto} is on your ${g.side}`
-      : g.turn === 'straight'
-        ? `Straight on to ${g.onto}`
-        : `Turn ${g.turn} onto ${g.onto}`
+        ? `On your ${g.side}`
+        : g.turn === 'straight'
+          ? `Straight: ${g.onto}`
+          : `${g.turn === 'left' ? 'Left' : 'Right'}: ${g.onto}`
 
   return (
     <div className={styles.root} aria-label="Driving controls">
@@ -220,15 +218,18 @@ export function DriveHud() {
             </span>
           ) : null}
           <div className={styles.guideText}>
-            <strong>{g ? headline : `Going to ${drive.dest.label}`}</strong>
-            <small>{g ? (g.turn === 'arrive' ? `${far(g.in)} to go` : `in ${far(g.in)} · ${far(g.left)} to go`) : 'Not on these roads yet'}</small>
+            <strong>{g ? far(g.in) : 'No road'}</strong>
+            <small>{g ? headline : 'Not on these roads yet'}</small>
           </div>
-          <button type="button" className={styles.skip} disabled={busy} onClick={skip}>
-            Skip ▸
-          </button>
-          <button type="button" className={styles.clear} aria-label="Clear destination" onClick={() => setDriveDest(null)}>
-            <X size={14} aria-hidden="true" />
-          </button>
+          <div className={styles.guideEnd}>
+            {g && g.turn !== 'arrive' ? <small>{far(g.left)} left</small> : <span />}
+            <button type="button" className={styles.skip} disabled={busy} onClick={skip}>
+              Skip ▸
+            </button>
+            <button type="button" className={styles.clear} aria-label="Clear destination" onClick={() => setDriveDest(null)}>
+              <X size={13} aria-hidden="true" />
+            </button>
+          </div>
         </div>
       ) : null}
       {dents > 0 ? <p className={styles.dents}>🔧 {dents} new {dents === 1 ? 'dent' : 'dents'}</p> : null}

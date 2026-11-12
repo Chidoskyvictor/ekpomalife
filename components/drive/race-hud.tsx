@@ -7,7 +7,8 @@ import { RACE_FEE, RACE_MAX_RACERS, RACE_STAKES, racePrize } from '@/lib/game/ca
 import { driveCommand, driveTelemetry, setDriveDest } from '@/lib/game/drive'
 import { ROAD_PLACES, placeSpot } from '@/lib/game/drive-road'
 import { formatNaira } from '@/lib/game/live'
-import { finishRace, hostRace, joinRace, leaveRace, loadRaces, startRace, useRaces, type Race } from '@/lib/game/races-api'
+import { searchPlayers, type PlayerCard } from '@/lib/game/hostels-api'
+import { finishRace, hostRace, inviteToRace, joinRace, leaveRace, loadRaces, startRace, useRaces, type Race } from '@/lib/game/races-api'
 import { newIdempotencyKey } from '@/lib/game/room-api'
 import styles from './race-hud.module.css'
 
@@ -21,7 +22,7 @@ const live = (race: Race | null): race is Race => Boolean(race && (race.status =
 /** The pill in the top row: opens the race sheet, and shows how full your race is. */
 export function RaceButton({ onClick }: { onClick: () => void }) {
   const { mine, open } = useRaces()
-  const label = live(mine) ? (mine.status === 'open' ? `${mine.racers.length}/${RACE_MAX_RACERS}` : 'Racing') : open.length > 0 ? `Race · ${open.length}` : 'Race'
+  const label = live(mine) ? (mine.status === 'open' ? `${mine.racers.length}/${RACE_MAX_RACERS}` : 'Racing') : open.some((r) => r.invited) ? 'Invited!' : open.length > 0 ? `Race · ${open.length}` : 'Race'
   return (
     <button type="button" className={`${styles.pill} ${live(mine) || open.length > 0 ? styles.hot : ''}`} onClick={onClick}>
       <Flag size={15} aria-hidden="true" />
@@ -43,6 +44,9 @@ export function RaceHud({ open, onClose }: { open: boolean; onClose: () => void 
   const [stake, setStake] = useState(RACE_STAKES[1]!)
   const [count, setCount] = useState<string | null>(null)
   const [result, setResult] = useState<Race | null>(null)
+  const [name, setName] = useState('')
+  const [found, setFound] = useState<PlayerCard[]>([])
+  const [asked, setAsked] = useState<string[]>([])
   const lined = useRef('')
   const told = useRef('')
   const claiming = useRef(0)
@@ -56,6 +60,25 @@ export function RaceHud({ open, onClose }: { open: boolean; onClose: () => void 
     const id = window.setInterval(() => void loadRaces(), active ? 2000 : open ? 3500 : 10000)
     return () => window.clearInterval(id)
   }, [active, open])
+
+  // Invite by name: search as you type (a short pause first)
+  useEffect(() => {
+    const q = name.trim().replace(/^@/, '')
+    if (q.length < 2) {
+      setFound([])
+      return
+    }
+    let stale = false
+    const id = window.setTimeout(() => {
+      void searchPlayers(q).then((res) => {
+        if (!stale && res.ok) setFound(res.players.slice(0, 4))
+      })
+    }, 350)
+    return () => {
+      stale = true
+      window.clearTimeout(id)
+    }
+  }, [name])
 
   // The race started: onto the line, engine held, destination set (which lights the lane)
   useEffect(() => {
@@ -194,6 +217,30 @@ export function RaceHud({ open, onClose }: { open: boolean; onClose: () => void 
                   </span>
                 ))}
               </div>
+              {mine.status === 'open' && mine.youHost ? (
+                <>
+                  <label className={styles.field}>
+                    <span>Invite</span>
+                    <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Search a name" aria-label="Search a player to invite" autoCapitalize="none" autoCorrect="off" />
+                  </label>
+                  {found.map((p) => (
+                    <div key={p.userId} className={styles.open}>
+                      <div>
+                        <strong>{p.displayName}</strong>
+                        <small>@{p.username}</small>
+                      </div>
+                      <button
+                        type="button"
+                        className={styles.primary}
+                        disabled={busy || asked.includes(p.userId)}
+                        onClick={() => void run(() => inviteToRace(mine.id, p.userId)).then((ok) => ok && setAsked((list) => [...list, p.userId]))}
+                      >
+                        {asked.includes(p.userId) ? 'Invited' : 'Invite'}
+                      </button>
+                    </div>
+                  ))}
+                </>
+              ) : null}
               {mine.status === 'open' ? (
                 <div className={styles.row}>
                   <button type="button" className={styles.ghost} disabled={busy} onClick={() => void run(() => leaveRace(mine.id))}>
@@ -221,9 +268,9 @@ export function RaceHud({ open, onClose }: { open: boolean; onClose: () => void 
                   {openRaces.map((race) => (
                     <div key={race.id} className={styles.open}>
                       <div>
-                        <strong>To {race.dest.label}</strong>
+                        <strong>{race.invited ? `@${race.host} invited you` : `To ${race.dest.label}`}</strong>
                         <small>
-                          @{race.host} · {race.racers.length}/{RACE_MAX_RACERS} · {race.stake > 0 ? `${formatNaira(race.stake)} stake` : 'no stake'}
+                          {race.invited ? `To ${race.dest.label}` : `@${race.host}`} · {race.racers.length}/{RACE_MAX_RACERS} · {race.stake > 0 ? `${formatNaira(race.stake)} stake` : 'no stake'}
                         </small>
                       </div>
                       <button

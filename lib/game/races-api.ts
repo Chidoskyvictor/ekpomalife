@@ -26,6 +26,8 @@ export type Race = {
   prize: number | null
   mine: boolean
   youHost: boolean
+  /** The host asked you by name. */
+  invited: boolean
 }
 
 type Races = { mine: Race | null; open: Race[]; /** server clock minus this phone's clock (ms) */ skew: number }
@@ -74,4 +76,5 @@ export const hostRace = (input: { destId: string; stake: number; x: number; z: n
 export const joinRace = (raceId: string, key: string) => write('/cars/races/join', { raceId }, key)
 export const startRace = (raceId: string) => write('/cars/races/start', { raceId })
 export const finishRace = (raceId: string, x: number, z: number) => write('/cars/races/finish', { raceId, x: round(x), z: round(z) })
+export const inviteToRace = (raceId: string, userId: string) => write('/cars/races/invite', { raceId, userId })
 export const leaveRace = (raceId: string) => write('/cars/races/leave', { raceId })

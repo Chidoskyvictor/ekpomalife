@@ -229,7 +229,7 @@ export type Guidance = {
   /** Metres still to drive (game metres). */
   left: number
   /** What to do at the next point. */
-  turn: 'left' | 'right' | 'straight' | 'arrive'
+  turn: 'left' | 'right' | 'straight' | 'arrive' | 'uturn'
   /** The road to turn onto, or the place you are arriving at. */
   onto: string
   /** Metres to that point. */
@@ -316,6 +316,26 @@ function plan(x: number, z: number, placeId: string): { legs: Leg[]; total: numb
 }
 
 /**
+ * Facing away from the way the trip starts? Then where to turn around: the next gap in the
+ * highway's divider, or just up the road on the others. `away` is the way the car is heading
+ * along the road (+1 / -1), `s` where it is, `turnS` where to turn.
+ */
+function turnBack(x: number, z: number, h: number, first: Leg): { s: number; turnS: number; away: number } | null {
+  const dir = Math.sign(first.to - first.from) || 1
+  const at = locateOn(first.road, x, z)
+  const t = pointAt(first.road, at.s)
+  if ((Math.sin(h) * t.dx + Math.cos(h) * t.dz) * dir > -0.25) return null
+  const away = -dir
+  let turnS = at.s + away * 34
+  if (first.road.kind === 'highway') {
+    const gap = JUNCTIONS.filter((j) => j.road === first.road.id && (j.s - at.s) * away > 18).sort((a, b) => (a.s - b.s) * away)[0]
+    if (gap) turnS = gap.s
+  }
+  turnS = Math.max(8, Math.min(first.road.length - 8, turnS))
+  return { s: at.s, turnS, away }
+}
+
+/**
  * Turn-by-turn from where the car is (and which way it faces) to a place on these roads:
  * the next thing to do, how far it is, and how far the whole trip still is. Null when the place
  * is not on the driving roads.
@@ -326,6 +346,12 @@ export function guide(x: number, z: number, h: number, placeId: string): Guidanc
   const goal = placeSpot(placeId)!
   const first = route.legs[0]!
   const next = route.legs[1]
+  const back = turnBack(x, z, h, first)
+  if (back) {
+    const p = pointAt(first.road, back.turnS)
+    const out = Math.abs(back.turnS - back.s)
+    return { left: route.total + out * 2, turn: 'uturn', onto: route.place.label, in: out, x: p.x, z: p.z }
+  }
   if (!next) {
     const fx = Math.sin(h)
     const fz = Math.cos(h)
@@ -348,13 +374,32 @@ export function guide(x: number, z: number, h: number, placeId: string): Guidanc
  * Points down the lane you should drive in, from the car toward the place: [x, z, heading], one
  * every `step` metres, at most `reach` metres ahead. For the arrows painted on the road.
  */
-export function routeAhead(x: number, z: number, placeId: string, step = 9, reach = 330): [number, number, number][] {
+export function routeAhead(x: number, z: number, h: number, placeId: string, step = 9, reach = 330): [number, number, number][] {
   const route = plan(x, z, placeId)
   if (!route) return []
   const out: [number, number, number][] = []
   let gone = 0
   let carry = step * 1.4 // the first arrow sits a little ahead of the bonnet
-  for (const leg of route.legs) {
+  let legs = route.legs
+  // The place is behind you: lead on up your own lane to where you can turn, across, and back
+  const back = turnBack(x, z, h, legs[0]!)
+  if (back) {
+    const road = legs[0]!.road
+    const lane = LANE[road.kind]
+    const run = Math.abs(back.turnS - back.s)
+    for (let d = carry; d < run; d += step) {
+      const p = spotAt(road.id, back.s + back.away * d, back.away * lane)
+      out.push([p.x, p.z, Math.atan2(p.dx * back.away, p.dz * back.away)])
+    }
+    const a = spotAt(road.id, back.turnS, back.away * lane)
+    const b = spotAt(road.id, back.turnS, -back.away * lane)
+    const across = Math.atan2(b.x - a.x, b.z - a.z)
+    for (const k of [0.2, 0.5, 0.8]) out.push([a.x + (b.x - a.x) * k, a.z + (b.z - a.z) * k, across])
+    gone = run
+    carry = step * 0.6
+    legs = [{ ...legs[0]!, from: back.turnS }, ...legs.slice(1)]
+  }
+  for (const leg of legs) {
     const dir = Math.sign(leg.to - leg.from) || 1
     const len = Math.abs(leg.to - leg.from)
     for (let d = carry; d <= len; d += step) {

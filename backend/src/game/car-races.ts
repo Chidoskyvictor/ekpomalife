@@ -7,6 +7,7 @@ import { requireEconomySetup } from './economy.js'
 import { liveSpaceMoneyBlock } from './spaces-money.js'
 import { RACE_COUNTDOWN_MS, RACE_MAX_RACERS, RACE_MAX_STAKE, racePrize } from './cars-rules.js'
 import { getPlace } from './places.js'
+import { openDirectChat, sendMessage } from './chat.js'
 
 /*
  * Drag races, point to point. The host picks a finish (a place on the driving roads) and a stake.
@@ -50,6 +51,8 @@ export type RaceView = {
   prize: number | null
   mine: boolean
   youHost: boolean
+  /** The host asked you by name. */
+  invited: boolean
 }
 
 const fail = (error: string, code = 400, reason?: string) => ({ ok: false as const, error, code, reason })
@@ -79,6 +82,8 @@ async function view(db: Db, rows: RaceRow[], characterId: string): Promise<RaceV
     [rows.flatMap((r) => [r.host_character_id, r.winner_character_id]).filter((id): id is string => Boolean(id))],
   )
   const nameOf = new Map(names.rows.map((n) => [n.id, n.username]))
+  const asked = await db.query<{ race_id: string }>(`SELECT race_id FROM car_race_invites WHERE character_id = $1 AND race_id = ANY($2::text[])`, [characterId, rows.map((r) => r.id)])
+  const invitedTo = new Set(asked.rows.map((r) => r.race_id))
   return rows.map((r) => {
     const mine = entries.rows.filter((e) => e.race_id === r.id)
     return {
@@ -95,6 +100,7 @@ async function view(db: Db, rows: RaceRow[], characterId: string): Promise<RaceV
       prize: r.prize == null ? null : asMoney(r.prize),
       mine: mine.some((e) => e.character_id === characterId),
       youHost: r.host_character_id === characterId,
+      invited: invitedTo.has(r.id),
     }
   })
 }
@@ -162,7 +168,8 @@ export async function listRaces(userId: string) {
     ok: true as const,
     now: Date.now(),
     mine: all.find((r) => r.mine && (r.status === 'open' || r.status === 'running')) ?? all.find((r) => r.mine) ?? null,
-    open: all.filter((r) => r.status === 'open' && !r.mine),
+    // Races you were asked to come first
+    open: all.filter((r) => r.status === 'open' && !r.mine).sort((a, b) => Number(b.invited) - Number(a.invited)),
   }
 }
 
@@ -295,6 +302,31 @@ async function step(userId: string, raceId: string, run: (client: PoolClient, ra
   }
   if (out.error) return fail(out.error, 400, out.reason)
   return done(userId, { ok: true as const, message: out.message ?? '', ...out.extra })
+}
+
+/** The host asks a player by name: the race shows as an invitation for them, and a message lands in their chat. */
+export async function inviteToRace(userId: string, raceId: string, friendUserId: string) {
+  if (friendUserId === userId) return fail('That is you.')
+  const friend = await pool.query<{ id: string; username: string }>(`SELECT c.id, u.username FROM characters c JOIN users u ON u.id = c.user_id WHERE c.user_id = $1 LIMIT 1`, [friendUserId])
+  const who = friend.rows[0]
+  if (!who) return fail('That player was not found.', 404)
+  const res = await step(userId, raceId, async (client, race, me) => {
+    if (race.host_character_id !== me) return { error: 'Only the host can invite.' }
+    if (race.status !== 'open') return { error: 'That race has already started or ended.', reason: 'GONE' }
+    await client.query(`INSERT INTO car_race_invites (race_id, character_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`, [raceId, who.id])
+    return { message: `Invited @${who.username}.`, extra: { dest: race.dest_label, stake: asMoney(race.stake) } }
+  })
+  if (res.ok) {
+    // Best effort: the invitation itself is already saved
+    try {
+      const out = res as unknown as { dest: string; stake: number }
+      const chat = await openDirectChat(userId, friendUserId)
+      if (chat.ok) await sendMessage(userId, chat.chat.id, `🏁 Race me to ${out.dest}! ${out.stake > 0 ? `Stake: ${naira(out.stake)}.` : 'No stake.'} Get in your car, tap Race and join.`)
+    } catch {
+      /* the chat is a courtesy */
+    }
+  }
+  return res
 }
 
 /** The host sends everyone to the line: the countdown starts for all racers at the same moment. */

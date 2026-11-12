@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, type MutableRefObject } from 'react'
 import { CanvasTexture, SRGBColorSpace, Vector3, type Group } from 'three'
 import { CarModel } from '@/components/cars/car-model'
 import type { Peer, PeerState } from '@/lib/game/club-live'
-import { driveCommand, driveInput, driveTelemetry, type DriveStart } from '@/lib/game/drive'
+import { driveCommand, driveInput, driveTelemetry, driveView, type DriveStart } from '@/lib/game/drive'
 
 /* Feel of the car, in map units (a car is about 1.9 long there): top speed ≈ 80 on the dial. Multiplied by the world's `unit`. */
 const TOP = 9
@@ -124,11 +124,22 @@ export function DriveCar({
     // Street level: low and close behind the boot, so roads feel wide and buildings tall
     b.shake = Math.max(0, b.shake - dt * 1.6 * u)
     const jolt = b.shake ? (Math.random() - 0.5) * b.shake : 0
-    want.set(b.x - Math.sin(b.h) * 4.6 * u + jolt, 1.9 * u, b.z - Math.cos(b.h) * 4.6 * u + jolt)
-    if (placed.current) camera.position.lerp(want, 1 - Math.exp(-dt * 5))
+    // Looked around? The view swings back behind the car a moment after you let go and drive on
+    const v = driveView
+    if (!v.held && performance.now() - v.at > 2500 && Math.abs(b.v) > 1.5 * u) {
+      const ease = Math.min(1, dt * 2.5)
+      v.yaw -= v.yaw * ease
+      v.tilt -= v.tilt * ease
+    }
+    const around = b.h + v.yaw
+    const back = 4.6 * u * v.zoom
+    want.set(b.x - Math.sin(around) * back + jolt, (1.9 + v.tilt * 4) * u * v.zoom, b.z - Math.cos(around) * back + jolt)
+    if (placed.current) camera.position.lerp(want, 1 - Math.exp(-dt * (v.held ? 14 : 5)))
     else camera.position.copy(want)
     placed.current = true
-    look.set(b.x + Math.sin(b.h) * 4 * u, 0.7 * u, b.z + Math.cos(b.h) * 4 * u)
+    // Straight behind: look up the road. Turned: look at the car
+    const ahead = 4 * u * Math.max(0, Math.cos(v.yaw))
+    look.set(b.x + Math.sin(b.h) * ahead, 0.7 * u, b.z + Math.cos(b.h) * ahead)
     camera.lookAt(look)
 
     driveTelemetry.x = b.x
