@@ -135,6 +135,25 @@ export function roadUnder(x: number, z: number): { road: Road; s: number; off: n
   return best && best.gap < 40 ? best : null
 }
 
+/**
+ * The road the car is driving along: like roadUnder, but where two roads overlap (a junction) the
+ * one that lines up with the car's heading wins, so a car going straight past a side street is
+ * still on its own road.
+ */
+function roadAlong(x: number, z: number, h: number): { road: Road; s: number; off: number } | null {
+  const base = roadUnder(x, z)
+  if (!base) return null
+  let best: { road: Road; s: number; off: number; fit: number } | null = null
+  for (const road of ROADS) {
+    const p = locateOn(road, x, z)
+    if (p.gap > HALF[road.kind]) continue
+    const t = pointAt(road, p.s)
+    const fit = Math.abs(Math.sin(h) * t.dx + Math.cos(h) * t.dz)
+    if (!best || fit > best.fit + 0.05) best = { road, s: p.s, off: p.off, fit }
+  }
+  return best && best.fit > 0.6 ? best : base
+}
+
 /** A place's parking spot at the kerb, on its side of its road. */
 export function placeSpot(placeId: string) {
   const place = ROAD_PLACES.find((p) => p.id === placeId)
@@ -212,17 +231,17 @@ const GRAPH: Map<string, Node> = (() => {
 })()
 
 /** The junction nodes you can reach from a point on a road without leaving it, with the distance to each. */
-function exits(road: Road, s: number): { id: string; d: number }[] {
+function exits(road: Road, s: number): { id: string; d: number; s: number }[] {
   if (road.kind === 'street') {
     return [
-      { id: `${road.id}:start`, d: s },
-      { id: `${road.id}:end`, d: road.length - s },
+      { id: `${road.id}:start`, d: s, s: 0 },
+      { id: `${road.id}:end`, d: road.length - s, s: road.length },
     ].filter((e) => GRAPH.has(e.id))
   }
   const on = JUNCTIONS.filter((j) => j.road === road.id).sort((a, b) => a.s - b.s)
   const before = [...on].reverse().find((j) => j.s <= s)
   const after = on.find((j) => j.s > s)
-  return [before, after].filter((j): j is Junction => Boolean(j)).map((j) => ({ id: `${j.street}:${j.end}`, d: Math.abs(j.s - s) }))
+  return [before, after].filter((j): j is Junction => Boolean(j)).map((j) => ({ id: `${j.street}:${j.end}`, d: Math.abs(j.s - s), s: j.s }))
 }
 
 export type Guidance = {
@@ -243,19 +262,35 @@ export type Guidance = {
 
 type Leg = { road: Road; from: number; to: number }
 
-/** The shortest way from a point to a place, as stretches of road to drive in order. */
-function plan(x: number, z: number, placeId: string): { legs: Leg[]; total: number; place: RoadPlace } | null {
+/** What setting off the wrong way costs, in metres: a turn-around is worth this much extra driving. */
+const BACK_COST = 160
+
+/**
+ * The shortest way from a point to a place, as stretches of road to drive in order. With the car's
+ * heading `h`, a way that starts behind the car costs a turn-around, so the route holds steady
+ * instead of flipping between "ahead" and "behind" as you drive.
+ */
+function plan(x: number, z: number, placeId: string, h?: number): { legs: Leg[]; total: number; place: RoadPlace } | null {
   const place = ROAD_PLACES.find((p) => p.id === placeId)
-  const here = roadUnder(x, z)
+  const here = h === undefined ? roadUnder(x, z) : roadAlong(x, z, h)
   if (!place || !here) return null
   const goalRoad = roadById(place.road)
-  const direct = here.road.id === goalRoad.id ? Math.abs(place.s - here.s) : Infinity
+  // Which way along this road the car points: +1 up it, -1 down it, 0 unknown
+  let fwd = 0
+  if (h !== undefined) {
+    const t = pointAt(here.road, here.s)
+    const along = Math.sin(h) * t.dx + Math.cos(h) * t.dz
+    fwd = Math.abs(along) > 0.3 ? Math.sign(along) : 0
+  }
+  const backCost = (towardS: number) => (fwd !== 0 && Math.sign(towardS - here.s) === -fwd ? BACK_COST : 0)
+  const direct = here.road.id === goalRoad.id ? Math.abs(place.s - here.s) + backCost(place.s) : Infinity
 
   const dist = new Map<string, number>()
   const prev = new Map<string, { from: string; road: string }>()
   const open = new Set<string>()
   for (const e of exits(here.road, here.s)) {
-    dist.set(e.id, e.d)
+    const d = e.d + backCost(e.s)
+    dist.set(e.id, d)
     open.add(e.id)
   }
   const ends = new Map(exits(goalRoad, place.s).map((e) => [e.id, e.d]))
@@ -281,7 +316,7 @@ function plan(x: number, z: number, placeId: string): { legs: Leg[]; total: numb
     }
   }
   if (!Number.isFinite(best)) return null
-  if (last === null) return { legs: [{ road: here.road, from: here.s, to: place.s }], total: best, place }
+  if (last === null) return { legs: [{ road: here.road, from: here.s, to: place.s }], total: Math.abs(place.s - here.s), place }
 
   // The junctions passed, first to last, with the road driven into each
   const nodes: { id: string; roadIn: string }[] = []
@@ -312,7 +347,7 @@ function plan(x: number, z: number, placeId: string): { legs: Leg[]; total: numb
     if (prevLeg && prevLeg.road.id === leg.road.id && Math.abs(prevLeg.to - leg.from) < 1) prevLeg.to = leg.to
     else if (Math.abs(leg.to - leg.from) > 0.5 || leg === legs[legs.length - 1]) tidy.push({ ...leg })
   }
-  return { legs: tidy, total: best, place }
+  return { legs: tidy, total: tidy.reduce((sum, leg) => sum + Math.abs(leg.to - leg.from), 0), place }
 }
 
 /**
@@ -341,7 +376,7 @@ function turnBack(x: number, z: number, h: number, first: Leg): { s: number; tur
  * is not on the driving roads.
  */
 export function guide(x: number, z: number, h: number, placeId: string): Guidance | null {
-  const route = plan(x, z, placeId)
+  const route = plan(x, z, placeId, h)
   if (!route) return null
   const goal = placeSpot(placeId)!
   const first = route.legs[0]!
@@ -375,12 +410,12 @@ export function guide(x: number, z: number, h: number, placeId: string): Guidanc
  * every `step` metres, at most `reach` metres ahead. For the arrows painted on the road.
  */
 export function routeAhead(x: number, z: number, h: number, placeId: string, step = 9, reach = 330): [number, number, number][] {
-  const route = plan(x, z, placeId)
+  const route = plan(x, z, placeId, h)
   if (!route) return []
   const out: [number, number, number][] = []
   let gone = 0
   let carry = step * 1.4 // the first arrow sits a little ahead of the bonnet
-  let legs = route.legs
+  const legs = route.legs
   // The place is behind you: lead on up your own lane to where you can turn, across, and back
   const back = turnBack(x, z, h, legs[0]!)
   if (back) {
@@ -395,16 +430,19 @@ export function routeAhead(x: number, z: number, h: number, placeId: string, ste
     const b = spotAt(road.id, back.turnS, -back.away * lane)
     const across = Math.atan2(b.x - a.x, b.z - a.z)
     for (const k of [0.2, 0.5, 0.8]) out.push([a.x + (b.x - a.x) * k, a.z + (b.z - a.z) * k, across])
-    gone = run
-    carry = step * 0.6
-    legs = [{ ...legs[0]!, from: back.turnS }, ...legs.slice(1)]
+    return out
   }
   for (const leg of legs) {
     const dir = Math.sign(leg.to - leg.from) || 1
     const len = Math.abs(leg.to - leg.from)
     for (let d = carry; d <= len; d += step) {
       const p = spotAt(leg.road.id, leg.from + dir * d, dir * LANE[leg.road.kind])
-      out.push([p.x, p.z, Math.atan2(p.dx * dir, p.dz * dir)])
+      const h = Math.atan2(p.dx * dir, p.dz * dir)
+      // Just round a corner the new lane can start beyond the last arrow: skip arrows that sit
+      // behind it, or the road shows arrows pointing both ways at the junction
+      const last = out[out.length - 1]
+      if (last && (p.x - last[0]) * Math.sin(h) + (p.z - last[1]) * Math.cos(h) < 2) continue
+      out.push([p.x, p.z, h])
       if (gone + d > reach) return out
     }
     carry = step - ((len - carry) % step)
