@@ -20,3 +20,11 @@
     transition: none;
   }
 }
+
+/* Phone on its side: a little smaller so the top corner isn't crowded */
+@media (orientation: landscape) and (max-height: 520px) {
+  .map {
+    transform: scale(0.82);
+    transform-origin: top right;
+  }
+}

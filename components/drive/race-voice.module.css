@@ -40,3 +40,13 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* Phone on its side: the mic sits just above the Brake pedal, out of the crowded top corner */
+@media (orientation: landscape) and (max-height: 520px) {
+  .wrap {
+    position: fixed;
+    right: calc(max(12px, env(safe-area-inset-right)) + 78px + 13px);
+    bottom: calc(6px + 76px + 10px + env(safe-area-inset-bottom));
+    flex-direction: column-reverse;
+  }
+}

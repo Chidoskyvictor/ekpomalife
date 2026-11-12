@@ -8,7 +8,7 @@ import { CharacterFigure } from '@/components/look/character-figure'
 import { driveTelemetry, useDrive } from '@/lib/game/drive'
 import { HALF, LANE, ROADS, locateOn, routeAhead, spotAt, type Road } from '@/lib/game/drive-road'
 import { normalizeAppearance, type Appearance } from '@/lib/game/look'
-import { useRaces } from '@/lib/game/races-api'
+import { racesNow, useRaces } from '@/lib/game/races-api'
 
 /*
  * Life on the driving roads: the lit lane painted toward where you said you are going, other cars
@@ -65,6 +65,9 @@ export function RouteArrows() {
   )
   const dummy = useMemo(() => new Object3D(), [])
   const clock = useRef(1)
+  // What is on the road now, and since when a reversed way has been asked for
+  const shown = useRef<[number, number, number][]>([])
+  const flipSince = useRef<number | null>(null)
   useFrame((_, delta) => {
     const m = chevrons.current
     const b = band.current
@@ -72,7 +75,23 @@ export function RouteArrows() {
     clock.current += delta
     if (clock.current < 0.25) return
     clock.current = 0
-    const points = destId ? routeAhead(driveTelemetry.x, driveTelemetry.z, driveTelemetry.h, destId, STEP, STEP * (STEPS - 2)) : []
+    const fresh = destId ? routeAhead(driveTelemetry.x, driveTelemetry.z, driveTelemetry.h, destId, STEP, STEP * (STEPS - 2)) : []
+    // Steady: if the new arrows point the opposite way to the ones on the road, keep the old ones
+    // until the new way has held for a second (a car turning or sliding across a junction can tip
+    // the route back and forth for a moment, which showed arrows both ways)
+    let points = fresh
+    const was = shown.current[0]
+    const now = fresh[0]
+    const reversed = was && now && Math.abs(Math.atan2(Math.sin(now[2] - was[2]), Math.cos(now[2] - was[2]))) > 2.3
+    if (reversed) {
+      const t = performance.now()
+      flipSince.current ??= t
+      if (t - flipSince.current < 1000) points = shown.current
+      else flipSince.current = null
+    } else {
+      flipSince.current = null
+    }
+    shown.current = points
     const n = Math.min(STEPS, points.length)
     const pos = kit.strip.getAttribute('position') as BufferAttribute
     for (let i = 0; i < n; i++) {
@@ -130,6 +149,8 @@ const endGap = (road: Road) => (road.kind === 'street' ? 24 : 6)
 const CAR_MODELS = ['corolla', 'corolla', 'camry', 'camry', 'es350', 'scout', 'scout', 'gle43', 'suv', 'gt3']
 const CAR_PAINTS = ['#c9ccd1', '#f2f2ef', '#111317', '#7a1c22', '#1f2a44', '#5a6b3a', '#8a8f96', '#3d4a66', '#c8b560']
 const CARS = 12
+/** Cars left on the road while you are in a race. */
+const RACE_CARS = 3
 /** A car this far from you is taken off the road and put back somewhere ahead or behind. */
 const CAR_FAR = 280
 
@@ -183,7 +204,17 @@ export function Traffic() {
   useFrame((_, delta) => {
     const dt = Math.min(delta, 0.05)
     const { x: px, z: pz } = driveTelemetry
+    // Racing: a clear road, only a few cars about
+    const race = racesNow().mine
+    const quiet = Boolean(race && (race.status === 'open' || race.status === 'running'))
     cars.forEach((car, i) => {
+      if (quiet && i >= RACE_CARS) {
+        const g = groups.current[i]
+        if (g) g.visible = false
+        car.x = car.z = 1e6 // nowhere: blocks nobody
+        return
+      }
+      if (groups.current[i]) groups.current[i]!.visible = true
       const p = spotAt(car.road.id, car.s, car.dir * car.lane)
       const fx = p.dx * car.dir
       const fz = p.dz * car.dir
