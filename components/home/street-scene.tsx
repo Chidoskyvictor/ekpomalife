@@ -19,7 +19,7 @@ import {
   type StreetTemplate,
 } from '@/lib/game/street'
 import { InstancedShapes, type Shape } from './instanced-shapes'
-import { HomeSign, OrbitStreetCamera, PassingCars, StreetDressing, streetView } from './street-dressing'
+import { HomeSign, OrbitStreetCamera, PassingCars, StreetBlocks, StreetDressing, streetView } from './street-dressing'
 import { PARKED_CAR, ParkedCar, StreetBoy } from './street-extras'
 import styles from './street.module.css'
 
@@ -299,6 +299,7 @@ export function StreetScene({ lodgingId, houseNumber, paint, appearance, clock, 
       ))}
       <HomeSign area={area} x={gate[0] - (t.kind === 'block' ? 0.5 : 0)} y={plateY + 1.35} z={0.3} />
       <StreetDressing width={LOTS * t.lotW} gateX={gate[0]} />
+      <StreetBlocks width={LOTS * t.lotW} />
       <PassingCars width={LOTS * t.lotW} skipNear={car ? { x: carX, length: PARKED_CAR.length + 3 } : undefined} />
 
       {car ? <ParkedCar model={car.model} color={car.color} x={carX} z={CAR_Z} /> : null}

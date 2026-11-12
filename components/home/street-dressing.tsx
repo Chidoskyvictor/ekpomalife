@@ -1,8 +1,9 @@
 'use client'
 
+import { useGLTF } from '@react-three/drei'
 import { useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useMemo, useRef } from 'react'
-import { CanvasTexture, PerspectiveCamera, SRGBColorSpace, Vector3, type Group } from 'three'
+import { CanvasTexture, PerspectiveCamera, SRGBColorSpace, Vector3, type Group, type Mesh, type MeshStandardMaterial } from 'three'
 import { CarModel } from '@/components/cars/car-model'
 import { InstancedShapes, type Shape } from './instanced-shapes'
 
@@ -19,9 +20,9 @@ const FAR_KERB = 6.0
 const FAR_PAVE = 2.8
 const BUILD_Z = FAR_KERB + FAR_PAVE + 0.3
 
-const WALLS = ['#efe3c8', '#f3d9c4', '#cfe3f0', '#e9e1f2', '#f5edb8', '#d8ecd5']
-const AWNINGS = ['#c0392b', '#1f6f43', '#2563eb', '#d97706', '#7c3aed']
-const SHOP_SIGNS = ['#0f5132', '#7a1c22', '#1e3a8a', '#92400e']
+const BLOCKS_URL = '/models/street-blocks.glb?v=1'
+/** Width of one row of blocks in the model (fronts at z 0, built 8 deep). */
+const ROW_W = 65.5
 
 /** Everything across the road and along the kerbs, as a few instanced meshes. */
 export function StreetDressing({ width, gateX }: { width: number; gateX?: number }) {
@@ -37,46 +38,7 @@ export function StreetDressing({ width, gateX }: { width: number; gateX?: number
     // Paver joints on the far pavement
     for (let x = -span / 2; x < span / 2; x += 1.2) boxes.push({ p: [x, 0.085, FAR_KERB + FAR_PAVE / 2], s: [0.03, 0.01, FAR_PAVE], c: '#a8a194' })
 
-    // Across the road: shops and blocks, left to right
-    let x = -span / 2 + 2
-    let i = 0
-    while (x < span / 2 - 4) {
-      const shop = i % 3 !== 1
-      const w = shop ? 6 + (i % 2) * 2 : 9 + (i % 2) * 2
-      const cx = x + w / 2
-      const wall = WALLS[(i * 5) % WALLS.length]!
-      if (shop) {
-        // One storey shop: shutters, awning, signboard on top
-        const h = 3.6
-        boxes.push({ p: [cx, h / 2, BUILD_Z + 3], s: [w, h, 6], c: wall })
-        boxes.push({ p: [cx, h + 0.15, BUILD_Z + 3], s: [w + 0.3, 0.3, 6.3], c: '#8a8f96' })
-        boxes.push({ p: [cx, 1.15, BUILD_Z - 0.01], s: [w - 1.2, 2.3, 0.06], c: '#9aa3ad' })
-        for (let k = -w / 2 + 0.9; k < w / 2 - 0.6; k += 0.35) boxes.push({ p: [cx + k, 1.15, BUILD_Z - 0.05], s: [0.04, 2.3, 0.02], c: '#7c858f' })
-        boxes.push({ p: [cx, 2.75, BUILD_Z - 0.75], s: [w - 0.4, 0.08, 1.6], r: [0.22, 0, 0], c: AWNINGS[i % AWNINGS.length]! })
-        boxes.push({ p: [cx, h + 0.75, BUILD_Z + 0.1], s: [w - 1, 0.9, 0.12], c: SHOP_SIGNS[i % SHOP_SIGNS.length]! })
-      } else {
-        // Two or three storeys with a balcony rail on each floor
-        const floors = 2 + (i % 2)
-        const fh = 3.1
-        const h = floors * fh
-        boxes.push({ p: [cx, h / 2, BUILD_Z + 4], s: [w, h, 8], c: wall })
-        boxes.push({ p: [cx, h + 0.2, BUILD_Z + 4], s: [w + 0.5, 0.4, 8.5], c: i % 4 === 0 ? '#7d8b99' : '#8d5b3e' })
-        for (let f = 0; f < floors; f++) {
-          const y = f * fh
-          for (let k = -w / 2 + 1.4; k < w / 2 - 1; k += 2.4) {
-            boxes.push({ p: [cx + k + 0.6, y + 1.7, BUILD_Z - 0.01], s: [1.2, 1.2, 0.06], c: '#4a6b80' })
-          }
-          if (f > 0) {
-            boxes.push({ p: [cx, y + 0.05, BUILD_Z - 0.6], s: [w - 0.6, 0.12, 1.2], c: '#d6d0c2' })
-            boxes.push({ p: [cx, y + 0.6, BUILD_Z - 1.15], s: [w - 0.6, 0.08, 0.06], c: '#3b4a5a' })
-            for (let k = -w / 2 + 0.5; k < w / 2 - 0.3; k += 0.5) boxes.push({ p: [cx + k, y + 0.35, BUILD_Z - 1.15], s: [0.04, 0.5, 0.04], c: '#3b4a5a' })
-          }
-        }
-        boxes.push({ p: [cx - w / 2 + 1.4, 1.1, BUILD_Z - 0.02], s: [1.1, 2.2, 0.06], c: '#6b4a2b' })
-      }
-      x += w + 0.6
-      i += 1
-    }
+    // Across the road: the Innovation Hub courtyard's blocks (StreetBlocks, a GLB), not drawn here
 
     // Street lights on both pavements, trees on the far one
     const poles: Shape[] = []
@@ -112,6 +74,41 @@ export function StreetDressing({ width, gateX }: { width: number; gateX?: number
     </>
   )
 }
+
+/**
+ * The buildings across the road: the same cream campus blocks as the Innovation Hub courtyard
+ * (scripts/blender/street-blocks.py), turned to face the road, repeated to fill the street.
+ * Their windows glow only softly by day.
+ */
+export function StreetBlocks({ width }: { width: number }) {
+  const { scene } = useGLTF(BLOCKS_URL)
+  const rows = Math.max(1, Math.ceil((width + 40) / ROW_W))
+  const copies = useMemo(
+    () =>
+      Array.from({ length: rows }, () => {
+        const root = scene.clone(true)
+        root.traverse((o) => {
+          const mesh = o as Mesh
+          if (!mesh.isMesh) return
+          const m = mesh.material as MeshStandardMaterial
+          if (m && 'emissiveIntensity' in m && m.emissiveMap) {
+            mesh.material = m.clone()
+            ;(mesh.material as MeshStandardMaterial).emissiveIntensity = 0.35
+          }
+        })
+        return root
+      }),
+    [scene, rows],
+  )
+  return (
+    <>
+      {copies.map((root, i) => (
+        <primitive key={i} object={root} position={[(i - (rows - 1) / 2) * ROW_W, 0, BUILD_Z]} rotation={[0, Math.PI, 0]} />
+      ))}
+    </>
+  )
+}
+useGLTF.preload(BLOCKS_URL)
 
 const PASSING = [
   { model: 'corolla', color: '#c9ccd1', lane: 2.6, speed: 6.5, from: 0 },
