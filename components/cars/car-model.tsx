@@ -1,8 +1,9 @@
 'use client'
 
 import { useGLTF } from '@react-three/drei'
-import { Suspense, useMemo } from 'react'
+import { createContext, Suspense, useContext, useMemo } from 'react'
 import {
+  AdditiveBlending,
   BoxGeometry,
   BufferGeometry,
   Color,
@@ -11,6 +12,7 @@ import {
   Float32BufferAttribute,
   MeshBasicMaterial,
   MeshStandardMaterial,
+  PlaneGeometry,
   Shape,
   type Mesh,
 } from 'three'
@@ -275,6 +277,21 @@ function tailLamps(id: string): [number, number, number, number, number] {
 }
 const dentBox = new BoxGeometry(0.62, 0.3, 0.08)
 
+/** Headlights on (dusk and night on the driving roads). Off by default: showroom, garage, street. */
+export const CarLightsContext = createContext(false)
+const headMaterial = new MeshBasicMaterial({ color: '#fff7d6', toneMapped: false })
+/** The soft pool of light each car throws on the road ahead. */
+const beamMaterial = new MeshBasicMaterial({ color: '#ffe9a8', transparent: true, opacity: 0.32, depthWrite: false, blending: AdditiveBlending, toneMapped: false })
+const beamPlane = new PlaneGeometry(2.6, 7).rotateX(-Math.PI / 2)
+
+/** Where the headlights sit: the front of the body, as wide and high as the tail lamps. */
+function headLamps(id: string): [number, number, number] {
+  const s = SPECS[id]
+  if (s) return [(s.width / 2) * 0.68, s.lights[0] + 0.02, Math.max(...s.body.map((p) => p[0])) - 0.02]
+  const length = GLB[id]?.length ?? 4.4
+  return [0.62, id === 'gt3' ? 0.66 : 0.9, length / 2 + 0.02]
+}
+
 /** One car by catalogue id, painted `color`, with `dents` crumpled patches. Unknown ids draw nothing. */
 export function CarModel({ id, color, dents = 0 }: { id: string; color: string; dents?: number }) {
   const body =
@@ -287,9 +304,18 @@ export function CarModel({ id, color, dents = 0 }: { id: string; color: string; 
     ) : null
   if (!body) return null
   const [gap, y, z, w, h] = tailLamps(id)
+  const lit = useContext(CarLightsContext)
+  const [hx, hy, hz] = headLamps(id)
   return (
     <group>
       {body}
+      {lit ? (
+        <>
+          <mesh geometry={tailBox} material={headMaterial} position={[-hx, hy, hz]} scale={[0.34, 0.14, 0.06]} />
+          <mesh geometry={tailBox} material={headMaterial} position={[hx, hy, hz]} scale={[0.34, 0.14, 0.06]} />
+          <mesh geometry={beamPlane} material={beamMaterial} position={[0, 0.06, hz + 3.6]} />
+        </>
+      ) : null}
       <mesh geometry={tailBox} material={tailMaterial} position={[-gap, y, z]} scale={[w, h, 0.08]} />
       <mesh geometry={tailBox} material={tailMaterial} position={[gap, y, z]} scale={[w, h, 0.08]} />
       {DENT_SPOTS.slice(0, dents).map(([x, y, z, turn], i) => (

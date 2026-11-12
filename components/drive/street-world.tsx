@@ -54,6 +54,7 @@ import {
 } from '@/lib/game/drive-road'
 import { GFX, useGfxTier } from '@/lib/game/gfx-quality'
 import { mulberry32 } from '@/lib/game/world-layout'
+import { CarLightsContext } from '@/components/cars/car-model'
 import { DriveCar, PeerCars, type DriveWorld } from './map-drive'
 import { Roadside } from './street-buildings'
 import { FinishBeam, RouteArrows, Traffic, Walkers, trafficBlocks } from './street-life'
@@ -378,7 +379,7 @@ function Scene({ car, start, send, peers, roster }: StreetProps) {
   const look = useMemo(() => rideLookAt(rideMinute()), [])
   const mid = useMemo(() => pointAt(ROADS[0]!, ROADS[0]!.length / 2), [])
   return (
-    <>
+    <CarLightsContext.Provider value={look.level !== 'day'}>
       <RideSky look={look} tier={tier} />
       <hemisphereLight args={[look.hemiSky, look.hemiGround, look.hemiInt]} />
       <ambientLight intensity={look.ambient} />
@@ -403,7 +404,7 @@ function Scene({ car, start, send, peers, roster }: StreetProps) {
       </Suspense>
       <PeerCars peers={peers} roster={roster} scale={1} />
       <DriveCar car={car} start={start} send={send} world={STREET_WORLD} />
-    </>
+    </CarLightsContext.Provider>
   )
 }
 
