@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic'
 import { useEffect, useRef } from 'react'
 import { useGame } from '@/hooks/use-game'
 import { useClubLive } from '@/lib/game/club-live'
-import { driveView, useDrive } from '@/lib/game/drive'
+import { drivePeers, driveView, useDrive } from '@/lib/game/drive'
 
 // The street world pulls in the ride's road and buildings: loaded only when a drive starts
 const StreetCanvas = dynamic(() => import('./street-world').then((m) => m.StreetCanvas), { ssr: false })
@@ -44,6 +44,7 @@ export function StreetDrive() {
     driveView.held = touches.current.size > 0
     driveView.at = performance.now()
   }
+  drivePeers.current = live.peers.current
   if (!drive) return null
   return (
     <div

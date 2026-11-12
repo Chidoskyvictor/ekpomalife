@@ -1,0 +1,22 @@
+.map {
+  padding: 0;
+  border: 3px solid rgba(255, 255, 255, 0.95);
+  border-radius: 50%;
+  background: #e7ecdf;
+  overflow: hidden;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
+  pointer-events: auto;
+  transition:
+    width 0.18s ease,
+    height 0.18s ease;
+}
+
+.map canvas {
+  display: block;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map {
+    transition: none;
+  }
+}

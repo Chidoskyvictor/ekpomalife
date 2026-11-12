@@ -3,7 +3,7 @@
 import { Flag, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useGame } from '@/hooks/use-game'
-import { RACE_FEE, RACE_MAX_RACERS, RACE_STAKES, racePrize } from '@/lib/game/cars-rules'
+import { RACE_FEE, RACE_MAX_RACERS, RACE_MAX_STAKE, RACE_STAKES, racePrize } from '@/lib/game/cars-rules'
 import { driveCommand, driveTelemetry, setDriveDest } from '@/lib/game/drive'
 import { ROAD_PLACES, placeSpot } from '@/lib/game/drive-road'
 import { formatNaira } from '@/lib/game/live'
@@ -42,12 +42,16 @@ export function RaceHud({ open, onClose }: { open: boolean; onClose: () => void 
   const [busy, setBusy] = useState(false)
   const [destId, setDestId] = useState('')
   const [stake, setStake] = useState(RACE_STAKES[1]!)
+  const [tab, setTab] = useState<'open' | 'host'>('open')
+  const [where, setWhere] = useState('')
+  const [typed, setTyped] = useState('')
   const [count, setCount] = useState<string | null>(null)
   const [result, setResult] = useState<Race | null>(null)
   const [name, setName] = useState('')
   const [found, setFound] = useState<PlayerCard[]>([])
   const [asked, setAsked] = useState<string[]>([])
   const lined = useRef('')
+  const gridded = useRef('')
   const told = useRef('')
   const claiming = useRef(0)
   const key = useRef('')
@@ -79,6 +83,16 @@ export function RaceHud({ open, onClose }: { open: boolean; onClose: () => void 
       window.clearTimeout(id)
     }
   }, [name])
+
+  // In an open race: straight to your spot on the start grid, so racers wait next to each other
+  useEffect(() => {
+    if (!mine || mine.status !== 'open' || gridded.current === mine.id) return
+    gridded.current = mine.id
+    const slot = mine.racers.find((r) => r.you)?.slot ?? 0
+    const { x, z, h } = mine.start
+    driveCommand.warp = { x: x - Math.sin(h) * GRID_GAP * slot, z: z - Math.cos(h) * GRID_GAP * slot, h }
+    setDriveDest({ id: mine.dest.id, label: mine.dest.label })
+  }, [mine])
 
   // The race started: onto the line, engine held, destination set (which lights the lane)
   useEffect(() => {
@@ -148,12 +162,16 @@ export function RaceHud({ open, onClose }: { open: boolean; onClose: () => void 
   }
 
   // Finishes far enough away to be a race
-  const finishes = ROAD_PLACES.filter((p) => {
-    if (p.inside) return false
-    const spot = placeSpot(p.id)
-    return spot && Math.hypot(spot.x - driveTelemetry.x, spot.z - driveTelemetry.z) > 160
-  })
-  const pick = finishes.find((p) => p.id === destId) ?? finishes[0]
+  const finishes = ROAD_PLACES.flatMap((p) => {
+    const spot = p.inside ? null : placeSpot(p.id)
+    const far = spot ? Math.hypot(spot.x - driveTelemetry.x, spot.z - driveTelemetry.z) : 0
+    return spot && far > 160 ? [{ ...p, far }] : []
+  }).sort((a, b) => a.far - b.far)
+  const wanted = where.trim().toLowerCase()
+  const shown = (wanted ? finishes.filter((p) => p.label.toLowerCase().includes(wanted)) : finishes).slice(0, 6)
+  const pick = finishes.find((p) => p.id === destId) ?? null
+  const km = (m: number) => (m >= 1000 ? `${(m / 1000).toFixed(1)} km` : `${Math.round(m / 10) * 10} m`)
+  const potFor = (each: number, racers: number) => each * racers
 
   const host = () => {
     const spot = pick ? placeSpot(pick.id) : null
@@ -206,7 +224,7 @@ export function RaceHud({ open, onClose }: { open: boolean; onClose: () => void 
             <div className={styles.body}>
               <p className={styles.note}>
                 {mine.stake > 0
-                  ? `${formatNaira(mine.stake)} each · winner takes ${formatNaira(racePrize(mine.stake, mine.racers.length))}`
+                  ? `Pot ${formatNaira(potFor(mine.stake, mine.racers.length))} (${formatNaira(mine.stake)} each) · winner takes ${formatNaira(racePrize(mine.stake, mine.racers.length))}`
                   : 'No stake: racing for the bragging rights.'}
               </p>
               <div className={styles.racers}>
@@ -262,63 +280,103 @@ export function RaceHud({ open, onClose }: { open: boolean; onClose: () => void 
             </div>
           ) : (
             <div className={styles.body}>
-              {openRaces.length > 0 ? (
-                <>
-                  <h3>Join a race</h3>
-                  {openRaces.map((race) => (
+              <div className={styles.tabs} role="tablist">
+                <button type="button" role="tab" aria-selected={tab === 'open'} className={tab === 'open' ? styles.on : ''} onClick={() => setTab('open')}>
+                  Open races{openRaces.length ? ` · ${openRaces.length}` : ''}
+                </button>
+                <button type="button" role="tab" aria-selected={tab === 'host'} className={tab === 'host' ? styles.on : ''} onClick={() => setTab('host')}>
+                  Host a race
+                </button>
+              </div>
+
+              {tab === 'open' ? (
+                openRaces.length > 0 ? (
+                  openRaces.map((race) => (
                     <div key={race.id} className={styles.open}>
                       <div>
                         <strong>{race.invited ? `@${race.host} invited you` : `To ${race.dest.label}`}</strong>
                         <small>
-                          {race.invited ? `To ${race.dest.label}` : `@${race.host}`} · {race.racers.length}/{RACE_MAX_RACERS} · {race.stake > 0 ? `${formatNaira(race.stake)} stake` : 'no stake'}
+                          {race.invited ? `To ${race.dest.label}` : `@${race.host}`} · {race.racers.length}/{RACE_MAX_RACERS} ·{' '}
+                          {race.stake > 0 ? `${formatNaira(race.stake)} stake · pot ${formatNaira(potFor(race.stake, race.racers.length))}` : 'no stake'}
                         </small>
                       </div>
                       <button
                         type="button"
                         className={styles.primary}
-                        disabled={busy}
+                        disabled={busy || race.racers.length >= RACE_MAX_RACERS}
                         onClick={() => {
                           const k = newIdempotencyKey()
                           void run(() => joinRace(race.id, k))
                         }}
                       >
-                        Join
+                        {race.racers.length >= RACE_MAX_RACERS ? 'Full' : race.stake > 0 ? `Join · ${formatNaira(race.stake)}` : 'Join'}
                       </button>
                     </div>
-                  ))}
-                </>
-              ) : null}
-              <h3>Host a race</h3>
-              {pick ? (
+                  ))
+                ) : (
+                  <p className={styles.note}>No open races right now. Host one and invite your guys.</p>
+                )
+              ) : (
                 <>
                   <label className={styles.field}>
                     <span>Finish</span>
-                    <select value={pick.id} onChange={(e) => setDestId(e.target.value)}>
-                      {finishes.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.label}
-                        </option>
-                      ))}
-                    </select>
+                    <input value={where} onChange={(e) => setWhere(e.target.value)} placeholder="Search a place" aria-label="Search where the race ends" autoCapitalize="none" autoCorrect="off" />
                   </label>
+                  <div className={styles.places} role="radiogroup" aria-label="Where the race ends">
+                    {shown.map((p) => (
+                      <button key={p.id} type="button" role="radio" aria-checked={pick?.id === p.id} className={pick?.id === p.id ? styles.on : ''} onClick={() => setDestId(p.id)}>
+                        <strong>{p.label}</strong>
+                        <small>{km(p.far)}</small>
+                      </button>
+                    ))}
+                    {shown.length === 0 ? <p className={styles.note}>{finishes.length ? 'No place with that name.' : 'No finish far enough from here.'}</p> : null}
+                  </div>
+
                   <div className={styles.stakes} role="radiogroup" aria-label="Stake each racer pays">
                     {RACE_STAKES.map((s) => (
-                      <button key={s} type="button" role="radio" aria-checked={stake === s} className={stake === s ? styles.on : ''} onClick={() => setStake(s)}>
-                        {s === 0 ? 'Free' : s >= 1000 ? `₦${s / 1000}k` : formatNaira(s)}
+                      <button
+                        key={s}
+                        type="button"
+                        role="radio"
+                        aria-checked={stake === s && !typed}
+                        className={stake === s && !typed ? styles.on : ''}
+                        onClick={() => {
+                          setTyped('')
+                          setStake(s)
+                        }}
+                      >
+                        {s === 0 ? 'Free' : s >= 1_000_000 ? `₦${s / 1_000_000}m` : `₦${s / 1000}k`}
                       </button>
                     ))}
                   </div>
-                  <p className={styles.note}>
-                    {stake > 0
-                      ? `Everyone pays ${formatNaira(stake)} to join. First to the finish takes the pot, less ${Math.round(RACE_FEE * 100)}%.`
-                      : 'Free to join. The race starts from where your car is now.'}
+                  <label className={styles.field}>
+                    <span>Or any stake (₦)</span>
+                    <input
+                      inputMode="numeric"
+                      value={typed}
+                      placeholder="e.g. 2000000"
+                      aria-label="Type your own stake in naira"
+                      onChange={(e) => {
+                        const digits = e.target.value.replace(/\D/g, '').slice(0, 16)
+                        setTyped(digits)
+                        setStake(digits ? Math.min(RACE_MAX_STAKE, Number(digits)) : RACE_STAKES[1]!)
+                      }}
+                    />
+                  </label>
+                  <p className={styles.pot}>
+                    {stake > 0 ? (
+                      <>
+                        Pot <strong>{formatNaira(potFor(stake, 2))}</strong> with 2 racers, up to <strong>{formatNaira(potFor(stake, RACE_MAX_RACERS))}</strong> with {RACE_MAX_RACERS}. Winner takes it, less{' '}
+                        {Math.round(RACE_FEE * 100)}%.
+                      </>
+                    ) : (
+                      'Free race: for the bragging rights. It starts from where your car is now.'
+                    )}
                   </p>
-                  <button type="button" className={styles.primary} disabled={busy} onClick={host}>
-                    {stake > 0 ? `Host race · ${formatNaira(stake)}` : 'Host race'}
+                  <button type="button" className={styles.primary} disabled={busy || !pick} onClick={host}>
+                    {!pick ? 'Pick a finish' : stake > 0 ? `Host race · pay ${formatNaira(stake)}` : 'Host race'}
                   </button>
                 </>
-              ) : (
-                <p className={styles.note}>No finish far enough from here.</p>
               )}
             </div>
           )}

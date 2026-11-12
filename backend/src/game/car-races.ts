@@ -236,7 +236,7 @@ export function createRace(userId: string, input: NewRace, idemKey: string) {
   return writeRace(userId, idemKey, 'POST /cars/races', input, async ({ client, characterId }) => {
     const place = getPlace(input.destId)
     if (!place) return bad('Pick where the race ends.')
-    if (!Number.isInteger(input.stake) || input.stake < 0 || input.stake > RACE_MAX_STAKE) return bad(`A stake is at most ${naira(RACE_MAX_STAKE)}.`)
+    if (!Number.isInteger(input.stake) || input.stake < 0 || input.stake > RACE_MAX_STAKE) return bad('That stake is too big.')
     if (Math.hypot(input.destX - input.x, input.destZ - input.z) < 150) return bad('Pick a finish further away.')
     if (!(await hasCar(client, characterId))) return bad('You need a car to race.', 400, 'NO_CAR')
     if (await inARace(client, characterId)) return bad('You are already in a race.', 400, 'IN_RACE')
@@ -383,4 +383,20 @@ export function leaveRace(userId: string, raceId: string) {
     else if (others.rows.length === 0) await client.query(`UPDATE car_races SET status = 'cancelled', finished_at = NOW() WHERE id = $1`, [raceId])
     return { message: stake > 0 ? `You gave up the race and your ${naira(stake)} stake.` : 'You gave up the race.' }
   })
+}
+
+/** The race's live voice room: only its racers, while it is open or running. */
+export async function raceVoiceAccess(userId: string, raceId: string) {
+  const { rows } = await pool.query<{ status: string; username: string }>(
+    `SELECT r.status, u.username FROM car_races r
+       JOIN car_race_entries e ON e.race_id = r.id
+       JOIN characters c ON c.id = e.character_id
+       JOIN users u ON u.id = c.user_id
+      WHERE r.id = $1 AND c.user_id = $2`,
+    [raceId, userId],
+  )
+  const row = rows[0]
+  if (!row) return fail('You are not in that race.', 403)
+  if (row.status !== 'open' && row.status !== 'running') return fail('That race is over.', 400, 'GONE')
+  return { ok: true as const, username: row.username }
 }

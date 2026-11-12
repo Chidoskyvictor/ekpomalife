@@ -311,9 +311,11 @@
   font-weight: 700;
 }
 
+/* Six stakes: three to a row so ₦500m still fits at 360px */
 .stakes {
-  display: flex;
+  display: grid;
   flex: none;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
 }
 
@@ -333,4 +335,82 @@
 .stakes .on {
   background: #111827;
   color: #fff;
+}
+
+/* Open races / Host a race */
+.tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.tabs button {
+  min-height: 40px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.tabs button.on {
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+}
+
+/* Finish places: nearest first, with how far */
+.places {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.places button {
+  display: flex;
+  min-height: 48px;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 6px 10px;
+  border: 1.5px solid transparent;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.05);
+  color: inherit;
+  text-align: left;
+}
+
+.places button strong {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.places button small {
+  font-size: 11px;
+  opacity: 0.65;
+}
+
+.places button.on {
+  border-color: #16a34a;
+  background: rgba(22, 163, 74, 0.1);
+}
+
+.places .note {
+  grid-column: 1 / -1;
+}
+
+.pot {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: rgba(245, 158, 11, 0.14);
+  font-size: 13px;
+  line-height: 1.4;
 }

@@ -78,3 +78,6 @@ export const startRace = (raceId: string) => write('/cars/races/start', { raceId
 export const finishRace = (raceId: string, x: number, z: number) => write('/cars/races/finish', { raceId, x: round(x), z: round(z) })
 export const inviteToRace = (raceId: string, userId: string) => write('/cars/races/invite', { raceId, userId })
 export const leaveRace = (raceId: string) => write('/cars/races/leave', { raceId })
+
+/** A seat in the race's voice room (LiveKit). Mic starts off. */
+export const raceVoice = (raceId: string) => apiPost<{ ok: true; url: string; token: string }>('/cars/races/voice', { raceId })

@@ -46,9 +46,10 @@ export const needsParking = (lodgingId: string | null, hasSpace: boolean) => !ha
 /** The house keeps this share of a race's pot. */
 export const RACE_FEE = 0.05
 export const RACE_MAX_RACERS = 6
-export const RACE_MAX_STAKE = 1_000_000
+/** No real cap on stakes: this only keeps the pot (stake × 6) a safe whole number. */
+export const RACE_MAX_STAKE = 1_000_000_000_000_000
 /** Stakes offered when hosting (₦). */
-export const RACE_STAKES = [0, 5_000, 20_000, 100_000, 500_000]
+export const RACE_STAKES = [0, 50_000, 500_000, 5_000_000, 50_000_000, 500_000_000]
 /** From "start" to "GO": time for every phone to line its car up. */
 export const RACE_COUNTDOWN_MS = 8000
 

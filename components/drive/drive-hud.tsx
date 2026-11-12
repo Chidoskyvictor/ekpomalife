@@ -10,7 +10,9 @@ import { OSM_CREDIT, ROAD_PLACES, ROAD_SCALE, guide, placeSpot, roadById, roadPl
 import { hasInterior } from '@/lib/game/home-place'
 import { pushNavigation } from '@/lib/navigation/safe-nav'
 import { leaveRace, racesNow } from '@/lib/game/races-api'
+import { MiniMap } from './mini-map'
 import { RaceButton, RaceHud } from './race-hud'
+import { RaceVoice } from './race-voice'
 import styles from './drive-hud.module.css'
 
 /** Game metres as the distance a driver reads: "300 m", "1.2 km". */
@@ -208,6 +210,12 @@ export function DriveHud() {
           <span>{drive.dest ? drive.dest.label : 'Where to?'}</span>
         </button>
         <RaceButton onClick={() => setRacing(true)} />
+      </div>
+      <div className={styles.sideAnchor}>
+        <div className={styles.side}>
+          <MiniMap destId={destId} />
+          <RaceVoice />
+        </div>
       </div>
 
       {drive.dest ? (

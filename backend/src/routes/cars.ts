@@ -2,8 +2,9 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { z } from 'zod'
 import { getSessionUser } from '../auth/current-user.js'
 import { buyCar, buyParking, driveCar, fixCar, getGarage, paintCar, parkCar, sellCar } from '../game/cars.js'
-import { createRace, finishRace, inviteToRace, joinRace, leaveRace, listRaces, startRace } from '../game/car-races.js'
+import { createRace, finishRace, inviteToRace, raceVoiceAccess, joinRace, leaveRace, listRaces, startRace } from '../game/car-races.js'
 import { createMapTicket } from '../game/club-live.js'
+import { joinToken, liveKitConfig, raceRoom } from '../game/livekit.js'
 import { isUuidV4, readIdempotencyKey } from '../game/idempotency.js'
 
 type Failure = { ok: false; error: string; code: number; reason?: string }
@@ -104,6 +105,19 @@ export async function carRoutes(app: FastifyInstance) {
   raceStep('/cars/races/start', z.object({ raceId }), (u, b) => startRace(u, b.raceId))
   raceStep('/cars/races/finish', z.object({ raceId, x: spot, z: spot }), (u, b) => finishRace(u, b.raceId, b.x, b.z))
   raceStep('/cars/races/invite', z.object({ raceId, userId: z.string().min(1).max(64) }), (u, b) => inviteToRace(u, b.raceId, b.userId))
+  // Live voice for a race's racers (LiveKit, never recorded). Mic starts off; each racer turns their own on.
+  app.post('/cars/races/voice', limit, async (request, reply) => {
+    const user = await getSessionUser(request)
+    if (!user) return reply.code(401).send({ ok: false, error: 'Log in to play.' })
+    const parsed = z.object({ raceId }).safeParse(request.body ?? {})
+    if (!parsed.success) return reply.code(400).send({ ok: false, error: 'Pick a race.' })
+    const cfg = liveKitConfig()
+    if (!cfg) return reply.code(503).send({ ok: false, error: 'Race voice is not available right now.' })
+    const access = await raceVoiceAccess(user.id, parsed.data.raceId)
+    if (!access.ok) return reply.code(access.code).send({ ok: false, error: access.error })
+    const token = joinToken(cfg, { spaceId: parsed.data.raceId, room: raceRoom(parsed.data.raceId), userId: user.id, name: access.username, canPublish: true, ttlSeconds: 30 * 60 })
+    return reply.send({ ok: true, url: cfg.url, token })
+  })
   raceStep('/cars/races/leave', z.object({ raceId }), (u, b) => leaveRace(u, b.raceId))
 
   // Parking moves you and the car; no money moves, so no idempotency key
