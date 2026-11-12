@@ -22,6 +22,8 @@ export type Peer = {
   car?: string
   /** Latest position from the server; the scene glides toward it. */
   state: PeerState | null
+  /** Recent positions with the time they arrived (performance.now()), for smooth playback of moving cars. */
+  trail?: { t: number; x: number; z: number; h: number }[]
 }
 
 export type SprayNote = { note: number; value: number }
@@ -139,7 +141,12 @@ export function useClubLive(venueId: string, enabled: boolean, myUsername?: stri
           setRoster((n) => n + 1)
         } else if (msg.t === 'state') {
           const peer = peers.current.get(msg.userId)
-          if (peer) peer.state = { x: msg.x, y: msg.y ?? 0, z: msg.z, h: msg.h, pose: msg.pose, moving: msg.moving }
+          if (peer) {
+            peer.state = { x: msg.x, y: msg.y ?? 0, z: msg.z, h: msg.h, pose: msg.pose, moving: msg.moving }
+            const trail = (peer.trail ??= [])
+            trail.push({ t: performance.now(), x: msg.x, z: msg.z, h: msg.h })
+            if (trail.length > 12) trail.splice(0, trail.length - 12)
+          }
         } else if (msg.t === 'say' || msg.t === 'social') {
           // A social action arrives as a line "social:<kind>:<landed>"
           const line = msg.t === 'say' ? msg.line : `social:${msg.kind}:${msg.landed ? 1 : 0}`
@@ -203,7 +210,8 @@ export function useClubLive(venueId: string, enabled: boolean, myUsername?: stri
     const now = performance.now()
     const key = `${state.x.toFixed(2)},${state.y.toFixed(2)},${state.z.toFixed(2)},${state.h.toFixed(2)},${state.pose},${state.moving}`
     if (key === lastSent.current.key && now - lastSent.current.at < 2000) return
-    if (now - lastSent.current.at < 160) return
+    // Driving: 10 a second so other phones see a smooth car; walking: ~6
+    if (now - lastSent.current.at < (state.pose === 'sit' ? 100 : 160)) return
     lastSent.current = { at: now, key }
     ws.send(JSON.stringify({ t: 'state', ...state }))
   }, [])

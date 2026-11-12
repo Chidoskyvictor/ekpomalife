@@ -7,6 +7,7 @@ import { DailyMoments } from '@/components/hud/daily-moments'
 import { FeesNotice } from '@/components/hud/fees-notice'
 import { ForbesLive } from '@/components/hud/forbes-live'
 import { InstallApp } from '@/components/hud/install-app'
+import { CarTips } from '@/components/hud/car-tips'
 import type { Toast } from '@/hooks/use-game'
 import type { GameState } from '@/lib/game/types'
 import styles from './toast-layer.module.css'
@@ -29,6 +30,7 @@ export function ToastLayer({
       {state ? <ForbesLive /> : null}
       {state ? <DailyMoments /> : null}
       {state ? <InstallApp /> : null}
+      {state ? <CarTips /> : null}
     </BodyPortal>
   )
 }

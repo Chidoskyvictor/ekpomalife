@@ -185,6 +185,8 @@ function nameTexture(name: string) {
   return hit
 }
 
+const PLAYBACK_DELAY_MS = 250
+
 /** Another player's car, gliding after the positions their phone sends. Hidden until they are at the wheel. */
 function PeerCar({ peer, scale }: { peer: Peer; scale: number }) {
   const group = useRef<Group>(null)
@@ -197,10 +199,39 @@ function PeerCar({ peer, scale }: { peer: Peer; scale: number }) {
     if (driving && !g.visible) g.position.set(s!.x, 0.05, s!.z)
     g.visible = driving
     if (!driving || !s) return
-    const k = 1 - Math.exp(-delta * 10)
-    g.position.x += (s.x - g.position.x) * k
-    g.position.z += (s.z - g.position.z) * k
-    let turn = s.h - g.rotation.y
+    // Play their positions back ~0.25 s late, interpolating between real samples, so the car moves
+    // steadily instead of chasing the newest point and jumping when the next one arrives.
+    const tr = peer.trail
+    let tx = s.x, tz = s.z, th = s.h
+    if (tr && tr.length > 1) {
+      const at = performance.now() - PLAYBACK_DELAY_MS
+      let i = tr.length - 1
+      while (i > 0 && tr[i - 1].t > at) i--
+      const a = tr[Math.max(0, i - 1)]
+      const b = tr[i]
+      if (at >= b.t) {
+        // Past the newest sample (late packet): carry on at their last speed for a moment
+        const p = tr[tr.length - 2]
+        const span = Math.max(1, b.t - p.t)
+        const ahead = Math.min(at - b.t, 300) / span
+        tx = b.x + (b.x - p.x) * ahead
+        tz = b.z + (b.z - p.z) * ahead
+        th = b.h
+      } else if (at > a.t) {
+        const f = (at - a.t) / Math.max(1, b.t - a.t)
+        tx = a.x + (b.x - a.x) * f
+        tz = a.z + (b.z - a.z) * f
+        th = a.h + Math.atan2(Math.sin(b.h - a.h), Math.cos(b.h - a.h)) * f
+      } else {
+        tx = a.x; tz = a.z; th = a.h
+      }
+    }
+    // Snap if far off (teleport / respawn), otherwise a light smoothing on top
+    if (Math.hypot(tx - g.position.x, tz - g.position.z) > 40) g.position.set(tx, 0.05, tz)
+    const k = 1 - Math.exp(-delta * 18)
+    g.position.x += (tx - g.position.x) * k
+    g.position.z += (tz - g.position.z) * k
+    let turn = th - g.rotation.y
     turn = Math.atan2(Math.sin(turn), Math.cos(turn))
     g.rotation.y += turn * k
   })

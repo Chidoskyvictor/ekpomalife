@@ -323,7 +323,7 @@ export const PLACES: Place[] = [
     zoneId: 'magmus-autos',
     type: 'community',
     actions: ['hangout'],
-    openHours: { open: 8, close: 18 },
+    openHours: null, // always open: buy, drive or fix a car any time
   },
   {
     id: 'above-the-hills-church',
