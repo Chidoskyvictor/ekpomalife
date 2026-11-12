@@ -19,6 +19,7 @@ import {
   type StreetTemplate,
 } from '@/lib/game/street'
 import { InstancedShapes, type Shape } from './instanced-shapes'
+import { PARKED_CAR, ParkedCar, StreetBoy } from './street-extras'
 import styles from './street.module.css'
 
 export type StreetProps = {
@@ -32,6 +33,14 @@ export type StreetProps = {
   preloadGlb?: string
   /** Fires when you walk within reach of your own gate, and again when you walk off. */
   onNearGate?: (near: boolean) => void
+  /** The car you drive, parked at the kerb by your gate (none: no car outside). */
+  car?: { model: string; color: string } | null
+  /** Fires when you walk up to your car (to show "Get in"), and again when you walk off. */
+  onNearCar?: (near: boolean) => void
+  /** How the street boy greets you: "Brother" or "Sister". */
+  boyWord?: string
+  /** The on-screen joystick (screen directions, -1..1). */
+  stick?: { x: number; z: number }
 }
 
 /** Neighbours' walls: Ekpoma cream, sky blue, mint, peach… */
@@ -198,11 +207,20 @@ function StreetCamera({ player, half }: { player: React.RefObject<[number, numbe
  * (all walls, gates and houses are a few instanced meshes). Only the road is walkable; your
  * gate has your house number and the floating "Your house" tag.
  */
-export function StreetScene({ lodgingId, houseNumber, paint, appearance, clock, preloadGlb, onNearGate }: StreetProps) {
+export function StreetScene({ lodgingId, houseNumber, paint, appearance, clock, preloadGlb, onNearGate, car, onNearCar, boyWord = 'Brother', stick }: StreetProps) {
   const t = streetForLodging(lodgingId)
   const { own, numbers } = lotsFor(houseNumber)
-  const layout = useMemo(() => streetLayout(t, own), [t, own])
   const half = (LOTS * t.lotW) / 2
+  const gateAt = gateSpot(t, own)
+  // Your car waits at the kerb a few steps along from your gate (the other way at the end of the street)
+  const carX = gateAt[0] + 4.4 < half - 2.5 ? gateAt[0] + 4.4 : gateAt[0] - 4.4
+  const CAR_Z = 2.7
+  const layout = useMemo(() => {
+    const base = streetLayout(t, own)
+    if (!car) return base
+    const block: [number, number, number, number] = [carX - PARKED_CAR.length / 2, CAR_Z - PARKED_CAR.width / 2, carX + PARKED_CAR.length / 2, CAR_Z + PARKED_CAR.width / 2]
+    return { ...base, blocks: [...base.blocks, block] }
+  }, [t, own, car, carX])
   const houses = useMemo(
     () => (t.kind === 'block' ? buildHostel(t, own, paint) : buildCompounds(t, own, numbers, paint)),
     // numbers only change with own's block
@@ -213,6 +231,7 @@ export function StreetScene({ lodgingId, houseNumber, paint, appearance, clock, 
   const gate = gateSpot(t, own)
   const player = useRef<[number, number]>(gate)
   const near = useRef<boolean | null>(null)
+  const nearCar = useRef<boolean | null>(null)
   const plateY = t.kind === 'block' ? 2.45 : t.fenceH + 0.55
   const day = clock ?? (() => 12 * 60)
 
@@ -222,6 +241,7 @@ export function StreetScene({ lodgingId, houseNumber, paint, appearance, clock, 
 
   // Leaving the street: the gate button goes away with it
   useEffect(() => () => onNearGate?.(false), [onNearGate])
+  useEffect(() => () => onNearCar?.(false), [onNearCar])
 
   const onMove = (move: PlayerMove) => {
     player.current = [move.x, move.z]
@@ -229,6 +249,16 @@ export function StreetScene({ lodgingId, houseNumber, paint, appearance, clock, 
     if (isNear !== near.current) {
       near.current = isNear
       onNearGate?.(isNear)
+    }
+    if (car) {
+      // Within a step of the car's side or ends
+      const gx = Math.max(0, Math.abs(move.x - carX) - PARKED_CAR.length / 2)
+      const gz = Math.max(0, Math.abs(move.z - CAR_Z) - PARKED_CAR.width / 2)
+      const byCar = Math.hypot(gx, gz) < 1.4
+      if (byCar !== nearCar.current) {
+        nearCar.current = byCar
+        onNearCar?.(byCar)
+      }
     }
   }
 
@@ -255,7 +285,10 @@ export function StreetScene({ lodgingId, houseNumber, paint, appearance, clock, 
         <span className={styles.ownTag}>🏠 Your house</span>
       </Html>
 
-      <RoomPlayer key={`street-${t.id}-${own}`} layout={layout} spawn={gate} appearance={appearance} onMove={onMove} />
+      {car ? <ParkedCar model={car.model} color={car.color} x={carX} z={CAR_Z} /> : null}
+      <StreetBoy player={player} minX={-half + 2} maxX={half - 2} z={4.6} word={boyWord} />
+
+      <RoomPlayer key={`street-${t.id}-${own}-${car ? 'car' : 'none'}`} layout={layout} spawn={gate} appearance={appearance} onMove={onMove} stick={stick} />
       <StreetCamera player={player} half={half} />
     </>
   )

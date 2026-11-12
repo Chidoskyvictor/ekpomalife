@@ -198,6 +198,7 @@ export function RoomPlayer({
   control,
   onMove,
   spawn,
+  stick,
 }: {
   layout: RoomLayout
   /** Start here instead of the last saved spot (e.g. at your gate / just inside the door). */
@@ -208,6 +209,8 @@ export function RoomPlayer({
   onSelf?: () => void
   control?: RoomPlayerControl
   onMove?: (move: PlayerMove) => void
+  /** An on-screen joystick (-1..1 each way, screen directions): walks like held arrow keys. */
+  stick?: { x: number; z: number }
 }) {
   const look = normalizeAppearance(appearance ?? DEFAULT_APPEARANCE)
   const nav = useMemo(() => makeNav(layout), [layout])
@@ -387,10 +390,16 @@ export function RoomPlayer({
     let dx = 0
     let dz = 0
 
-    if (held.current.size) {
+    const pushed = stick ? Math.hypot(stick.x, stick.z) > 0.18 : false
+    if (pushed && !task.current) path.current = []
+    if (held.current.size || pushed) {
       for (const code of held.current) {
         dx += KEYS[code][0]
         dz += KEYS[code][1]
+      }
+      if (pushed) {
+        dx += stick!.x
+        dz += stick!.z
       }
       // Rotate input so "up" walks away from the camera: 45° for the corner view (camera at −x, +z)
       const turn = layout.view === 'front' ? 0 : Math.PI / 4
@@ -419,7 +428,7 @@ export function RoomPlayer({
     const length = Math.hypot(dx, dz)
     moving.current = length > 0
     if (moving.current) {
-      const step = Math.min(layout.speed * dt, held.current.size ? Infinity : length)
+      const step = Math.min(layout.speed * dt, held.current.size || pushed ? Infinity : length)
       const sx = (dx / length) * step
       const sz = (dz / length) * step
       // Slide along furniture/walls: try each axis on its own

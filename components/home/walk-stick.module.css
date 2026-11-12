@@ -1,0 +1,35 @@
+/* Thumb joystick, bottom left, over the street view */
+.base {
+  pointer-events: auto;
+  position: absolute;
+  left: max(18px, env(safe-area-inset-left));
+  bottom: calc(96px + env(safe-area-inset-bottom));
+  z-index: calc(var(--z-hud) + 2);
+  display: grid;
+  width: 124px;
+  height: 124px;
+  place-items: center;
+  border: 1.5px solid rgba(255, 255, 255, 0.75);
+  border-radius: 50%;
+  background: rgba(17, 24, 39, 0.3);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.knob {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+}
+
+@media (orientation: landscape) and (max-height: 520px) {
+  .base {
+    bottom: calc(18px + env(safe-area-inset-bottom));
+  }
+}

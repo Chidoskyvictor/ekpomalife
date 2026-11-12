@@ -1,7 +1,7 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useGame } from '@/hooks/use-game'
 import { endActivity, runTimed, setActivityQueue, startActivity, useActivity } from '@/lib/game/activity'
@@ -20,7 +20,11 @@ import { roomLightAt } from '@/lib/game/room-lighting'
 import { devPinnedMinute, watMinuteOfDay } from '@/lib/game/wat-clock'
 import { HOME_STREET_EVENT, markSceneReady, openTravel, takeHomeStreet } from '@/lib/game/trip'
 import travelStyles from '@/components/travel/travel.module.css'
-import { STREET_AND_TRAVEL } from '@/lib/flags'
+import { HOME_STREET, STREET_AND_TRAVEL } from '@/lib/flags'
+import { WalkStick, walkStick } from '@/components/home/walk-stick'
+import { startDrive } from '@/lib/game/drive'
+import { driveStartFrom } from '@/lib/game/drive-road'
+import { pushNavigation } from '@/lib/navigation/safe-nav'
 import { BuyPanel } from './buy-panel'
 import { FurnitureSheet } from './furniture-sheet'
 import { SelfActionSheet } from './self-action-sheet'
@@ -37,7 +41,7 @@ const FADE_MS = 220
 
 import { HomeCarport } from '@/components/cars/home-carport'
 import { CarLotSheet } from '@/components/cars/car-lot-sheet'
-import { openCarLot, useGarage } from '@/lib/game/cars-api'
+import { carPlace, openCarLot, useGarage } from '@/lib/game/cars-api'
 import { useHouses } from '@/lib/game/houses-api'
 
 const HomeCanvas = dynamic(
@@ -196,6 +200,16 @@ export function RoomScreen() {
   // Cars parked at this home: yours from your garage, a host's from the houses list ("model:#colour")
   const garage = useGarage(own && Boolean(state))
   const { houses } = useHouses(visitingOther && Boolean(state))
+  const router = useRouter()
+  const myCar = own ? (garage?.cars.find((c) => c.active) ?? null) : null
+  const carAtHome = Boolean(myCar && carPlace(myCar, garage?.homePlaceId) === (garage?.homePlaceId ?? 'home'))
+  const [nearCar, setNearCar] = useState(false)
+  /** Walk up to your car outside and drive off from your street. */
+  const getIn = () => {
+    if (!myCar || !state) return
+    startDrive({ dest: null, car: { id: myCar.id, model: myCar.model, color: myCar.color }, start: driveStartFrom(state.locationId), fromPlace: state.locationId })
+    pushNavigation(router, '/')
+  }
   const parked = useMemo(() => {
     if (own) return [...(garage?.cars ?? [])].sort((a, b) => Number(b.active) - Number(a.active)).map((c) => `${c.model}:${c.color}`)
     const name = (visiting ?? '').toLowerCase()
@@ -262,6 +276,10 @@ export function RoomScreen() {
                     clock,
                     preloadGlb: layout.glb,
                     onNearGate: scene.setNearGate,
+                    car: carAtHome && myCar ? { model: myCar.model, color: myCar.color } : null,
+                    onNearCar: setNearCar,
+                    boyWord: state?.appearance?.body === 'woman' ? 'Sister' : 'Brother',
+                    stick: walkStick,
                   }
                 : null
             }
@@ -282,18 +300,23 @@ export function RoomScreen() {
           </div>
         ) : null}
         </div>
-        {STREET_AND_TRAVEL && own && state && !buy.active ? (
+        {(STREET_AND_TRAVEL || HOME_STREET) && own && state && !buy.active ? (
           <div className={travelStyles.corner}>
             {scene.outside ? (
               <>
-                {scene.nearGate ? (
-                  <button type="button" className={`${travelStyles.cornerBtn} ${travelStyles.go}`} onClick={() => scene.goTo(false)}>
-                    🏠 Go inside
+                {nearCar && carAtHome ? (
+                  <button type="button" className={`${travelStyles.cornerBtn} ${travelStyles.go}`} onClick={getIn}>
+                    🚗 Get in
                   </button>
                 ) : null}
-                <button type="button" className={travelStyles.cornerBtn} data-coach="travel" onClick={openTravel}>
-                  🧭 Where to?
+                <button type="button" className={`${travelStyles.cornerBtn} ${scene.nearGate ? travelStyles.go : ''}`} onClick={() => scene.goTo(false)}>
+                  🏠 Go inside
                 </button>
+                {STREET_AND_TRAVEL ? (
+                  <button type="button" className={travelStyles.cornerBtn} data-coach="travel" onClick={openTravel}>
+                    🧭 Where to?
+                  </button>
+                ) : null}
               </>
             ) : (
               <button type="button" className={travelStyles.cornerBtn} data-coach="outside" onClick={() => scene.goTo(true)}>
@@ -302,6 +325,7 @@ export function RoomScreen() {
             )}
           </div>
         ) : null}
+        {HOME_STREET && own && scene.outside && !scene.cover ? <WalkStick /> : null}
         {visiting && !isOwn ? (
           <VisitBanner username={host?.username ?? visiting} displayName={host?.displayName ?? null} place={layout.label} hostHome={hostLive} />
         ) : null}
