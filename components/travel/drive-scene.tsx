@@ -57,8 +57,8 @@ export type DriveView = 'chase' | 'side' | 'inside'
 export type DriveMode = 'keke' | 'okada'
 export type DriveRoute = TripRoute
 
-const HIGHWAY_URL = '/models/highway.glb?v=mo2'
-const GATE_URL = '/models/aau_gate.glb?v=mo2'
+export const HIGHWAY_URL = '/models/highway.glb?v=mo2'
+export const GATE_URL = '/models/aau_gate.glb?v=mo2'
 /** Native length of one highway piece. */
 const TILE = 60
 const TILES = 8
@@ -194,7 +194,7 @@ function sample(plan: Plan, time: number, pose: Pose) {
 
 /* —— instanced helper —— */
 
-function Instances({
+export function Instances({
   geometry,
   material,
   matrices,
@@ -338,7 +338,7 @@ function LampGlow({ lamps, tiles, level }: { lamps: Vector3[]; tiles: Matrix4[];
   )
 }
 
-const HW_PAINT: Record<string, string> = {
+export const HW_PAINT: Record<string, string> = {
   HW_Red_Dirt: '#a8461f',
   HW_Road_Concrete: '#948a7a',
   HW_Concrete_Side: '#b7aa8e',
@@ -576,7 +576,7 @@ function SchoolGate({ plan, gateZ }: { plan: Plan; gateZ: Offset }) {
 const CELL = { w: 4, h: 3.2 }
 
 /** A box whose texture repeats at a fixed size in the world, so a taller block gets more window rows. */
-function tiledBox(w: number, h: number, d: number) {
+export function tiledBox(w: number, h: number, d: number) {
   const g = new BoxGeometry(w, h, d)
   const uv = g.attributes.uv!
   // BoxGeometry face order: +x, -x, +y, -y, +z, -z, four vertices each
@@ -595,7 +595,7 @@ function tiledBox(w: number, h: number, d: number) {
  * A corner-shop: a plain body, a dark glass front and door, and the zinc "pan" roof pushed out over
  * the front on posts, with a counter and crates under it. One small merged shape with vertex colours.
  */
-function shopGeometry(pan: string) {
+export function shopGeometry(pan: string) {
   const parts: BufferGeometry[] = []
   const add = (w: number, h: number, d: number, x: number, y: number, z: number, color: string, tiltX = 0) => {
     const g = new BoxGeometry(w, h, d)
@@ -625,7 +625,7 @@ function shopGeometry(pan: string) {
   return merged
 }
 
-function windowTexture() {
+export function windowTexture() {
   const canvas = document.createElement('canvas')
   canvas.width = canvas.height = 128
   const ctx = canvas.getContext('2d')!
@@ -644,10 +644,10 @@ function windowTexture() {
 }
 
 // Painted walls: cream, sand, terracotta, pale blue and green, yellow, pink, and the odd blue gate-paint
-const TINTS = ['#f6e6bd', '#ead0a6', '#e3a77c', '#aacbd9', '#f1d98c', '#c9ddb0', '#f2f0e4', '#e9b9a6', '#7ea3cc'].map((c) => new Color(c))
+export const TINTS = ['#f6e6bd', '#ead0a6', '#e3a77c', '#aacbd9', '#f1d98c', '#c9ddb0', '#f2f0e4', '#e9b9a6', '#7ea3cc'].map((c) => new Color(c))
 // Shop fronts: green, yellow, blue and orange paint between cream ones
-const SHOP_TINTS = ['#ffffff', '#f6e0a0', '#92c880', '#82b4e2', '#f2b88a', '#f4e7c8'].map((c) => new Color(c))
-const CROWN_GREENS = ['#2f6b34', '#3a7a38', '#2a5f33', '#4a8a3a', '#356f3c', '#58903a'].map((c) => new Color(c))
+export const SHOP_TINTS = ['#ffffff', '#f6e0a0', '#92c880', '#82b4e2', '#f2b88a', '#f4e7c8'].map((c) => new Color(c))
+export const CROWN_GREENS = ['#2f6b34', '#3a7a38', '#2a5f33', '#4a8a3a', '#356f3c', '#58903a'].map((c) => new Color(c))
 
 type Place = { m: Matrix4; c: Color }
 type Archetype = 'tower' | 'flats3' | 'flats2' | 'shopA' | 'shopB'

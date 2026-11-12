@@ -36,5 +36,21 @@ export const carById = (id: string) => CARS.find((c) => c.id === id) ?? null
 export const carSellBack = (paid: number) => Math.floor(paid * 0.6)
 /** The mechanic charges 2% of the car's price to fix dents (stage 2). */
 export const dentFixPrice = (paid: number) => Math.floor(paid * 0.02)
+/** Most dents a car can carry (more hits change nothing until it is fixed). */
+export const MAX_DENTS = 9
 export const isPaint = (c: string) => (PAINTS as readonly string[]).includes(c.toLowerCase())
 export const needsParking = (lodgingId: string | null, hasSpace: boolean) => !hasSpace && !HOMES_WITH_PARKING.has(lodgingId ?? '')
+
+/* —— Drag races —— */
+
+/** The house keeps this share of a race's pot. */
+export const RACE_FEE = 0.05
+export const RACE_MAX_RACERS = 6
+export const RACE_MAX_STAKE = 1_000_000
+/** Stakes offered when hosting (₦). */
+export const RACE_STAKES = [0, 5_000, 20_000, 100_000, 500_000]
+/** From "start" to "GO": time for every phone to line its car up. */
+export const RACE_COUNTDOWN_MS = 8000
+
+/** What the winner is paid: every stake in the pot, less the house cut. */
+export const racePrize = (stake: number, racers: number) => Math.floor(stake * racers * (1 - RACE_FEE))

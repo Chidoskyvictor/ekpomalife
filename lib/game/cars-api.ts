@@ -7,9 +7,10 @@ import type { CarModel } from './cars-rules'
 import type { ServerGameState } from './game-api'
 import { newIdempotencyKey } from './room-api'
 
-export type OwnedCar = { id: string; model: string; color: string; paid: number; active: boolean; dents: number }
+/** `place`: where it was left (null = at home); `x`/`z`: the exact spot on the map. */
+export type OwnedCar = { id: string; model: string; color: string; paid: number; active: boolean; dents: number; place?: string | null; x?: number | null; z?: number | null }
 
-type Garage = { catalog: CarModel[]; cars: OwnedCar[]; parkingPrice: number; needsParking: boolean }
+type Garage = { catalog: CarModel[]; cars: OwnedCar[]; parkingPrice: number; needsParking: boolean; homePlaceId?: string }
 type OkGarage = { ok: true } & Garage
 type OkWrite = { ok: true; cars: OwnedCar[]; needsParking: boolean; state: ServerGameState; message: string; refunded?: number }
 export type CarFail = ApiFail & { reason?: string }
@@ -35,7 +36,7 @@ export async function loadGarage(force = false) {
   const res = await apiGet<OkGarage>('/cars')
   loading = false
   if (res.ok) {
-    garage = { catalog: res.catalog, cars: res.cars, parkingPrice: res.parkingPrice, needsParking: res.needsParking }
+    garage = { catalog: res.catalog, cars: res.cars, parkingPrice: res.parkingPrice, needsParking: res.needsParking, homePlaceId: res.homePlaceId }
     emit()
   }
 }
@@ -85,3 +86,17 @@ export const buyParking = (key: string) => write('/cars/parking', {}, key)
 export const driveCar = (carId: string, key: string) => write('/cars/drive', { carId }, key)
 export const paintCar = (carId: string, color: string, key: string) => write('/cars/paint', { carId, color }, key)
 export const sellCar = (carId: string, key: string) => write('/cars/sell', { carId }, key)
+export const fixCar = (carId: string, key: string) => write('/cars/fix', { carId }, key)
+
+/** Park the car you drive at a place (you get out there). `dents`: hard hits on this drive. */
+export async function parkCar(placeId: string, x: number, z: number, dents: number): Promise<OkWrite | CarFail> {
+  const res = await apiPost<OkWrite>('/cars/park', { placeId, x: Math.round(x * 100) / 100, z: Math.round(z * 100) / 100, dents })
+  if (res.ok && garage) {
+    garage = { ...garage, cars: res.cars, needsParking: res.needsParking }
+    emit()
+  }
+  return res
+}
+
+/** The place a car is parked at (a car with no place is at home). */
+export const carPlace = (car: OwnedCar, homePlaceId: string | undefined) => car.place ?? homePlaceId ?? 'home'

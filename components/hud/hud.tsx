@@ -13,6 +13,9 @@ import { DreamCelebration } from '@/components/hud/dream-celebration'
 import { EventDialog } from '@/components/hud/event-dialog'
 import { MapPlaceSheet } from '@/components/hud/map-place-sheet'
 import { HouseSheet } from '@/components/hud/house-sheet'
+import { DriveHud } from '@/components/drive/drive-hud'
+import { StreetDrive } from '@/components/drive/street-drive'
+import { useDrive } from '@/lib/game/drive'
 import { SchoolCard } from '@/components/school/school-card'
 import { MissionsSheet } from '@/components/missions/missions-sheet'
 import { useMissions } from '@/lib/game/missions-api'
@@ -93,6 +96,8 @@ export function Hud() {
   const challenges = useIncomingChallenges(!guest && Boolean(state) && hasPhone)
   // A place sheet (club…) is at the bottom: the avatar card sits above it
   const placeSheet = usePlaceSheetActive()
+  // At the wheel: the driving buttons take the bottom of the screen
+  const driving = Boolean(useDrive()) && pathname === '/'
   // Tapped a place on the map: its sheet (about, ways to get there, Go) is up
   const mapSheetHidden = pathname !== '/' || phoneOpen || buyOpen
   const mapSheetOpen = !mapSheetHidden && (Boolean(placeFor(selectedId)) || isComingSoon(selectedId))
@@ -274,6 +279,8 @@ export function Hud() {
       className={cn(styles.root, lowPerf && styles.lowPerf)}
       aria-busy={cashLoading || undefined}
     >
+      {/* Your own car's street view: under every other HUD layer, over the map */}
+      {driving ? <StreetDrive /> : null}
       {/* Buy mode has its own top pills (wallet, turn, exit), so the status bar steps aside */}
       <div className={`${styles.safe} absolute inset-x-0 top-0`} hidden={homeBuy.active}>
         <div className={styles.topWrap}>
@@ -286,13 +293,13 @@ export function Hud() {
           />
         </div>
         {/* Today's missions: slim pill under the status bar, its own row so it never covers other HUD buttons */}
-        {missionsView && !phoneOpen && !buyOpen && !homeBuy.active ? (
+        {missionsView && !phoneOpen && !buyOpen && !homeBuy.active && !driving ? (
           <div className={styles.missionRow}>
             <MissionsPill view={missionsView} onOpen={() => setMissionsOpen(true)} />
           </div>
         ) : null}
         {/* What you're doing and what's next (Sims-style tiles): fills up, ✕ cancels */}
-        <div className={styles.activityRow}>
+        <div className={styles.activityRow} style={driving ? { display: "none" } : undefined}>
           <ActionTiles />
           {/* Phones only: Music, Sound and map labels (desktop keeps the icons in the top bar) */}
           {!phoneOpen ? <SettingsMenu /> : null}
@@ -313,12 +320,13 @@ export function Hud() {
       {!guest && hasPhone ? <BackgroundNotifications chatUnread={chatUnread} challenges={challenges.incoming.length} /> : null}
       <ChallengePopup incoming={challenges.incoming} hidden={phoneOpen} onDone={() => void challenges.reload()} />
 
-      {state && !homeBuy.active && !mapSheetOpen ? (
+      {state && !homeBuy.active && !mapSheetOpen && !driving ? (
         <MeCard state={state} onOpen={() => openProfile('profile')} onNeeds={() => openProfile('needs')} raised={placeSheet} />
       ) : null}
 
       {/* Map: your house — flies the camera there and opens its sheet (address + how to get there) */}
-      {state?.lodgingId && pathname === '/' && !selectedId && !placeSheet && !phoneOpen && !buyOpen ? (
+      {driving ? <DriveHud /> : null}
+      {state?.lodgingId && pathname === '/' && !driving && !selectedId && !placeSheet && !phoneOpen && !buyOpen ? (
         <div className={travelStyles.corner}>
           <button type="button" className={travelStyles.cornerBtn} onClick={() => select('home')} aria-label="Show my home on the map">
             🏠 Home
@@ -327,7 +335,7 @@ export function Hud() {
       ) : null}
 
       {/* Map: travel anywhere on campus (hidden while a place's sheet is up) */}
-      {STREET_AND_TRAVEL && state && pathname === '/' && !selectedId && !placeSheet && !phoneOpen && !buyOpen ? (
+      {STREET_AND_TRAVEL && state && pathname === '/' && !driving && !selectedId && !placeSheet && !phoneOpen && !buyOpen ? (
         <div className={travelStyles.corner}>
           <button type="button" className={travelStyles.cornerBtn} data-coach="travel" onClick={openTravel}>
             🧭 Where to?
@@ -336,7 +344,7 @@ export function Hud() {
       ) : null}
       {STREET_AND_TRAVEL && state ? <TravelControl /> : null}
 
-      {homeBuy.active ? null : <div className={styles.bottomDock}>
+      {homeBuy.active || driving ? null : <div className={styles.bottomDock}>
         <div className={styles.bottomRow}>
           <div className={styles.navSlot}>
             <PlayNav

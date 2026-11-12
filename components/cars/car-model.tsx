@@ -9,6 +9,7 @@ import {
   CylinderGeometry,
   ExtrudeGeometry,
   Float32BufferAttribute,
+  MeshBasicMaterial,
   MeshStandardMaterial,
   Shape,
   type Mesh,
@@ -244,14 +245,56 @@ function GlbCar({ id, color }: { id: string; color: string }) {
   return <mesh geometry={geometry} material={vertexPaint} castShadow />
 }
 
-/** One car by catalogue id, painted `color`. Unknown ids draw nothing. */
-export function CarModel({ id, color }: { id: string; color: string }) {
-  if (id in SPECS) return <ProcCar id={id} color={color} />
-  if (id in GLB)
-    return (
+/** Where dents show, in order: [x, y, z, turn]. Dark crumpled patches on the corners and doors. */
+const DENT_SPOTS: [number, number, number, number][] = [
+  [0.62, 0.62, 2.05, 0.5],
+  [-0.9, 0.7, 0.4, Math.PI / 2],
+  [-0.6, 0.62, -2.1, -0.5],
+  [0.9, 0.7, -0.6, Math.PI / 2],
+  [-0.62, 0.62, 2.05, -0.5],
+  [0.9, 0.72, 0.9, Math.PI / 2],
+  [0.6, 0.62, -2.1, 0.5],
+  [-0.9, 0.72, -1.0, Math.PI / 2],
+  [0, 0.95, 1.7, 0],
+]
+const dentMaterial = new MeshStandardMaterial({ color: '#2b2b2e', roughness: 1 })
+
+/** Tail lamps: lit red, unaffected by the scene's light, so they glow at dusk and at night. */
+const tailMaterial = new MeshBasicMaterial({ color: '#ff2a1f', toneMapped: false })
+const tailBox = new BoxGeometry(1, 1, 1)
+
+/** Where a car's tail lamps are: [half the gap between them, height, the rear's z, lamp width, lamp height]. */
+function tailLamps(id: string): [number, number, number, number, number] {
+  const s = SPECS[id]
+  if (s) {
+    const rear = Math.min(...s.body.map((p) => p[0]))
+    return [(s.width / 2) * 0.7, s.lights[0] + 0.06, rear + 0.03, (s.width / 2) * 0.46, s.lights[1]]
+  }
+  const length = GLB[id]?.length ?? 4.4
+  return [0.62, id === 'gt3' ? 0.72 : 0.95, -length / 2 - 0.02, 0.36, 0.12]
+}
+const dentBox = new BoxGeometry(0.62, 0.3, 0.08)
+
+/** One car by catalogue id, painted `color`, with `dents` crumpled patches. Unknown ids draw nothing. */
+export function CarModel({ id, color, dents = 0 }: { id: string; color: string; dents?: number }) {
+  const body =
+    id in SPECS ? (
+      <ProcCar id={id} color={color} />
+    ) : id in GLB ? (
       <Suspense fallback={null}>
         <GlbCar id={id} color={color} />
       </Suspense>
-    )
-  return null
+    ) : null
+  if (!body) return null
+  const [gap, y, z, w, h] = tailLamps(id)
+  return (
+    <group>
+      {body}
+      <mesh geometry={tailBox} material={tailMaterial} position={[-gap, y, z]} scale={[w, h, 0.08]} />
+      <mesh geometry={tailBox} material={tailMaterial} position={[gap, y, z]} scale={[w, h, 0.08]} />
+      {DENT_SPOTS.slice(0, dents).map(([x, y, z, turn], i) => (
+        <mesh key={i} geometry={dentBox} material={dentMaterial} position={[x, y, z]} rotation={[0.2, turn, 0.15]} />
+      ))}
+    </group>
+  )
 }

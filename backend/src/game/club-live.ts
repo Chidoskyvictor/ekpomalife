@@ -26,6 +26,8 @@ type PlayerInfo = {
   displayName: string
   appearance: unknown
   vip: boolean
+  /** Map room only: the car they drive, "model:#colour". */
+  car?: string
 }
 
 type PlayerState = { x: number; y: number; z: number; h: number; pose: LivePose; moving: boolean }
@@ -112,20 +114,24 @@ const publicInfo = (m: Member) => ({
   displayName: m.info.displayName,
   appearance: m.info.appearance,
   vip: m.info.vip,
+  car: m.info.car,
   state: m.state,
 })
 
-function readState(raw: Record<string, unknown>): PlayerState | null {
+function readState(raw: Record<string, unknown>, reach = 30): PlayerState | null {
   const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : null)
   const x = num(raw.x)
   const z = num(raw.z)
   const h = num(raw.h)
   const pose = typeof raw.pose === 'string' && POSES.has(raw.pose as LivePose) ? (raw.pose as LivePose) : null
   if (x == null || z == null || h == null || !pose) return null
-  const clamp = (v: number) => Math.max(-30, Math.min(30, v))
+  const clamp = (v: number) => Math.max(-reach, Math.min(reach, v))
   const y = Math.max(-1, Math.min(3, num(raw.y) ?? 0))
   return { x: clamp(x), y, z: clamp(z), h, pose, moving: raw.moving === true }
 }
+
+/** The one room for the town map: drivers' cars. */
+const MAP_ROOM = 'map-drive'
 
 /** A phone opened the live socket. */
 export function joinLive(socket: WebSocket, token: string | undefined) {
@@ -162,7 +168,8 @@ export function joinLive(socket: WebSocket, token: string | undefined) {
     if (msg.t === 'state') {
       const now = Date.now()
       if (now - me.lastState < 80) return // at most ~12 updates a second
-      const state = readState(msg)
+      // Rooms are a few metres across; the map room spans the whole town
+      const state = readState(msg, ticket.venueId === MAP_ROOM ? 1000 : 30)
       if (!state) return
       me.lastState = now
       me.state = state
@@ -336,4 +343,36 @@ export function tellHomeUser(ownerId: string, userId: string, message: unknown) 
 export function homePosition(ownerId: string, userId: string): { x: number; z: number } | null {
   const s = rooms.get(homeKey(ownerId))?.get(userId)?.state
   return s ? { x: s.x, z: s.z } : null
+}
+
+/**
+ * Live room for the town map. Everyone looking at the map joins; players who are driving send
+ * their car's position (pose 'sit' while at the wheel, 'idle' once parked) and the rest see it.
+ */
+export async function createMapTicket(userId: string) {
+  const me = await pool.query<{ character_id: string; username: string; appearance: unknown; car: string | null }>(
+    `SELECT c.id AS character_id, u.username, c.appearance,
+            (SELECT k.model || ':' || k.color FROM car_holdings k WHERE k.character_id = c.id AND k.active LIMIT 1) AS car
+     FROM characters c JOIN users u ON u.id = c.user_id WHERE u.id = $1`,
+    [userId],
+  )
+  const row = me.rows[0]
+  if (!row) return null
+  const token = randomBytes(24).toString('base64url')
+  const now = Date.now()
+  for (const [key, t] of tickets) if (t.expires < now) tickets.delete(key)
+  tickets.set(token, {
+    userId,
+    characterId: row.character_id,
+    username: row.username,
+    displayName: row.username,
+    appearance: row.appearance,
+    vip: false,
+    car: row.car ?? undefined,
+    venueId: MAP_ROOM,
+    night: 0,
+    group: 1,
+    expires: now + 60_000,
+  })
+  return { ticket: token, group: 1 }
 }

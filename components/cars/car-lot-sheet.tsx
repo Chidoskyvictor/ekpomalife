@@ -10,6 +10,7 @@ import {
   buyParking,
   closeCarLot,
   driveCar,
+  fixCar,
   newIdempotencyKey,
   openCarLot,
   paintCar,
@@ -20,7 +21,7 @@ import {
   type CarFail,
   type OwnedCar,
 } from '@/lib/game/cars-api'
-import { CARS, PAINTS, PARKING_PRICE, carById, carSellBack } from '@/lib/game/cars-rules'
+import { CARS, PAINTS, PARKING_PRICE, carById, carSellBack, dentFixPrice } from '@/lib/game/cars-rules'
 import type { ServerGameState } from '@/lib/game/game-api'
 import base from '@/components/hud/map-place-sheet.module.css'
 import { CarModel } from './car-model'
@@ -30,25 +31,25 @@ const naira = (n: number) => `₦${n.toLocaleString('en-NG')}`
 /** ₦4.5m, ₦500k: short enough for a chip. */
 const short = (n: number) => (n >= 1_000_000 ? `₦${+(n / 1_000_000).toFixed(1)}m` : n >= 1000 ? `₦${Math.round(n / 1000)}k` : `₦${n}`)
 
-function Spin({ id, color }: { id: string; color: string }) {
+function Spin({ id, color, dents }: { id: string; color: string; dents: number }) {
   const ref = useRef<Group>(null)
   useFrame((_, dt) => {
     if (ref.current) ref.current.rotation.y += dt * 0.6
   })
   return (
     <group ref={ref} rotation={[0, -0.6, 0]}>
-      <CarModel id={id} color={color} />
+      <CarModel id={id} color={color} dents={dents} />
     </group>
   )
 }
 
-function Preview({ id, color }: { id: string; color: string }) {
+function Preview({ id, color, dents = 0 }: { id: string; color: string; dents?: number }) {
   return (
     <div className={styles.preview} aria-hidden="true">
       <Canvas dpr={[1, 1.5]} camera={{ position: [5.2, 2.6, 6.2], fov: 30 }} gl={{ antialias: true, alpha: true }} onCreated={({ camera }) => camera.lookAt(0, 0.7, 0)}>
         <ambientLight intensity={1.5} />
         <directionalLight position={[4, 8, 5]} intensity={2.2} />
-        <Spin id={id} color={color} />
+        <Spin id={id} color={color} dents={dents} />
       </Canvas>
     </div>
   )
@@ -97,6 +98,7 @@ export function CarLotSheet({ hidden = false }: { hidden?: boolean }) {
   if (!tab || hidden || !signedIn) return null
 
   const cash = state?.cash ?? 0
+  const atMechanic = state?.locationId === 'magmus-autos'
   const cars = garage?.cars ?? []
   const needsParking = garage?.needsParking ?? false
   const model = carById(modelId) ?? CARS[0]!
@@ -232,7 +234,7 @@ export function CarLotSheet({ hidden = false }: { hidden?: boolean }) {
         ) : (
           <>
             <div className={styles.card}>
-              <Preview id={owned.model} color={owned.color} />
+              <Preview id={owned.model} color={owned.color} dents={owned.dents} />
               <div className={styles.info}>
                 <h2>{ownedModel.name}</h2>
                 <span className={styles.nick}>{owned.active ? '🔑 Driving this one' : `“${ownedModel.nickname}”`}</span>
@@ -240,6 +242,12 @@ export function CarLotSheet({ hidden = false }: { hidden?: boolean }) {
                   Paid {naira(owned.paid)}
                   <br />
                   Garage value {naira(totalValue)}
+                  {owned.dents > 0 ? (
+                    <>
+                      <br />
+                      🔧 {owned.dents} {owned.dents === 1 ? 'dent' : 'dents'}
+                    </>
+                  ) : null}
                 </p>
               </div>
             </div>
@@ -279,6 +287,17 @@ export function CarLotSheet({ hidden = false }: { hidden?: boolean }) {
                 </div>
               </div>
             ) : (
+              <>
+              {owned.dents > 0 ? (
+                <button
+                  type="button"
+                  className={`${styles.btn} ${styles.wide}`}
+                  disabled={busy || !atMechanic || cash < dentFixPrice(owned.paid)}
+                  onClick={() => void run((k) => fixCar(owned.id, k))}
+                >
+                  🔧 {atMechanic ? `Fix dents · ${naira(dentFixPrice(owned.paid))}` : `Fix at Magmus Autos · ${naira(dentFixPrice(owned.paid))}`}
+                </button>
+              ) : null}
               <div className={styles.row3}>
                 <button type="button" className={`${styles.btn} ${owned.active ? '' : styles.primary}`} disabled={busy || owned.active} onClick={() => void run((k) => driveCar(owned.id, k))}>
                   {owned.active ? '🔑 Driving' : '🔑 Drive'}
@@ -290,6 +309,7 @@ export function CarLotSheet({ hidden = false }: { hidden?: boolean }) {
                   💸 Sell
                 </button>
               </div>
+              </>
             )}
           </>
         )}
