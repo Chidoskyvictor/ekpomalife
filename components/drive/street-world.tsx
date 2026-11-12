@@ -61,8 +61,8 @@ import { FinishBeam, RouteArrows, Traffic, Walkers, trafficBlocks } from './stre
 /*
  * The street-level world you drive in. Its roads are real Ekpoma road lines (lib/game/drive-road.ts,
  * from OpenStreetMap). Only the Benin-Auchi expressway is the ride's dual carriageway (highway.glb,
- * laid piece by piece along the line, repainted with dark tarmac and a grass verge); the Ihumudumu
- * road and the cross streets are black asphalt drawn here: white edge lines, a dashed centre line,
+ * laid piece by piece along the line, with its own cement slabs and a grass verge); the Ihumudumu
+ * road and the cross streets are grey asphalt drawn here: white edge lines, a dashed centre line,
  * laterite shoulders. Shops, flats and trees line them all, our places stand at their real spots,
  * and green signs name the junctions. Everything that repeats is drawn as shared copies, so the
  * whole town is a few dozen draw calls.
@@ -74,11 +74,9 @@ const STREET_WORLD: DriveWorld = { unit: 2.5, carScale: 1, blocked: (x, z) => bl
 const highways = ROADS.filter((r) => r.kind === 'highway')
 const asphalt = ROADS.filter((r) => r.kind !== 'highway')
 
-/** The highway model's own colours, swapped for a cleaner look: dark tarmac, pale kerbs, grass down the middle. */
+/** The highway keeps the model's cement slabs and joints (as on the ride); pale kerbs, grass down the middle. */
 const HIGHWAY_PAINT: Record<string, string> = {
   ...HW_PAINT,
-  HW_Road_Concrete: '#3f4245',
-  HW_Road_Joint: '#3a3d40',
   HW_Red_Dirt: '#6f9a4e',
   HW_Concrete: '#d6d1c2',
   HW_Concrete_Side: '#bfb9a8',
@@ -222,7 +220,7 @@ function trims(road: Road) {
 /** Tarmac half-width, where the white edge line runs, and how far the laterite shoulder reaches. */
 const ASPHALT = { road: { tar: 4.7, edge: 4.35, shoulder: 5.9 }, street: { tar: 3.4, edge: 3.1, shoulder: 4.5 } }
 
-/** The Ihumudumu road and the cross streets: black asphalt, white edge lines, dashed centre line, grey concrete kerbs. */
+/** The Ihumudumu road and the cross streets: grey asphalt, white edge lines, dashed centre line, grey concrete kerbs. */
 function Asphalt() {
   const kit = useMemo(() => {
     const shoulder: number[] = []
@@ -240,7 +238,8 @@ function Asphalt() {
       tar: geometryOf(tar),
       lines: geometryOf(lines),
       shoulderMat: new MeshLambertMaterial({ color: '#8e9193' }),
-      tarMat: new MeshLambertMaterial({ color: '#2b2d30' }),
+      // Mid-grey tarmac, light enough that a black car still stands out on it
+      tarMat: new MeshLambertMaterial({ color: '#5a5d61' }),
       lineMat: new MeshLambertMaterial({ color: '#f1eedf' }),
     }
   }, [])
