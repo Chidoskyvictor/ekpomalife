@@ -11,16 +11,20 @@ export type CarModel = {
   price: number
   /** Factory colour (#rrggbb). */
   color: string
+  /** Top speed on the road, km/h (about the real car's, rising with price). */
+  topKmh: number
+  /** How hard it pulls away (game units per second squared). */
+  accel: number
 }
 
 export const CARS: CarModel[] = [
-  { id: 'corolla', name: 'Toyota Corolla', nickname: 'Sharp Sharp', blurb: 'Never breaks down, never complains. Runs on vibes and small fuel.', price: 4_500_000, color: '#c9ccd1' },
-  { id: 'camry', name: 'Toyota Camry', nickname: 'Muscle', blurb: 'The big boy saloon every final-year student dreams of.', price: 5_000_000, color: '#1f2a44' },
-  { id: 'es350', name: 'Lexus ES350', nickname: 'Odogwu Saloon', blurb: 'Quiet engine, cold AC, soft seats. Pure enjoyment.', price: 15_000_000, color: '#f2f2ef' },
-  { id: 'scout', name: 'Scout Jeep', nickname: 'Bush Master', blurb: 'Potholes on Ihumudumu road? This one laughs at them.', price: 20_000_000, color: '#5a6b3a' },
-  { id: 'gle43', name: 'Mercedes GLE 43 AMG', nickname: 'Big Benz', blurb: 'When you pull up at G1, everybody turns to look.', price: 60_000_000, color: '#111317' },
-  { id: 'suv', name: 'Family SUV', nickname: 'Chairman', blurb: 'Seven seats, full tank of respect. Oga at the top.', price: 150_000_000, color: '#7a1c22' },
-  { id: 'gt3', name: 'GT3 Racer', nickname: 'Shege Speed', blurb: 'Too fast for Ekpoma roads. Buy it anyway.', price: 1_500_000_000, color: '#f2b705' },
+  { id: 'corolla', name: 'Toyota Corolla', nickname: 'Sharp Sharp', blurb: 'Never breaks down, never complains. Runs on vibes and small fuel.', price: 4_500_000, color: '#c9ccd1', topKmh: 180, accel: 5.0 },
+  { id: 'camry', name: 'Toyota Camry', nickname: 'Muscle', blurb: 'The big boy saloon every final-year student dreams of.', price: 5_000_000, color: '#1f2a44', topKmh: 200, accel: 5.4 },
+  { id: 'es350', name: 'Lexus ES350', nickname: 'Odogwu Saloon', blurb: 'Quiet engine, cold AC, soft seats. Pure enjoyment.', price: 15_000_000, color: '#f2f2ef', topKmh: 210, accel: 5.8 },
+  { id: 'scout', name: 'Scout Jeep', nickname: 'Bush Master', blurb: 'Potholes on Ihumudumu road? This one laughs at them.', price: 20_000_000, color: '#5a6b3a', topKmh: 215, accel: 6.0 },
+  { id: 'gle43', name: 'Mercedes GLE 43 AMG', nickname: 'Big Benz', blurb: 'When you pull up at G1, everybody turns to look.', price: 60_000_000, color: '#111317', topKmh: 250, accel: 7.6 },
+  { id: 'suv', name: 'Family SUV', nickname: 'Chairman', blurb: 'Seven seats, full tank of respect. Oga at the top.', price: 150_000_000, color: '#7a1c22', topKmh: 260, accel: 8.0 },
+  { id: 'gt3', name: 'GT3 Racer', nickname: 'Shege Speed', blurb: 'Too fast for Ekpoma roads. Buy it anyway.', price: 1_500_000_000, color: '#f2b705', topKmh: 318, accel: 11.0 },
 ]
 
 export const PAINTS = ['#c9ccd1', '#f2f2ef', '#111317', '#1f2a44', '#7a1c22', '#2f6bf0', '#1f8a4c', '#f2b705', '#e46a1c', '#6b3fa0'] as const

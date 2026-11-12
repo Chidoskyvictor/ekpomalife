@@ -5,9 +5,11 @@ import { useEffect, useMemo, useRef, type MutableRefObject } from 'react'
 import { CanvasTexture, SRGBColorSpace, Vector3, type Group } from 'three'
 import { CarModel } from '@/components/cars/car-model'
 import type { Peer, PeerState } from '@/lib/game/club-live'
+import { CARS } from '@/lib/game/cars-rules'
 import { driveCommand, driveInput, driveTelemetry, driveView, type DriveStart } from '@/lib/game/drive'
 
-/* Feel of the car, in map units (a car is about 1.9 long there): top speed ≈ 80 on the dial. Multiplied by the world's `unit`. */
+/* Feel of the car, in map units (a car is about 1.9 long there). Multiplied by the world's `unit`.
+   Each car has its own top speed (km/h on the dial = units × 9) and pull; these are for an unknown model. */
 const TOP = 9
 const TOP_OFF_ROAD = 4.6
 const REVERSE = 3
@@ -46,6 +48,9 @@ export function DriveCar({
 }) {
   const group = useRef<Group>(null)
   const camera = useThree((s) => s.camera)
+  const spec = CARS.find((c) => c.id === car.model)
+  const carTop = spec ? spec.topKmh / 9 : TOP
+  const carGas = spec?.accel ?? GAS
   const body = useRef({ x: start.x, z: start.z, h: start.h, v: 0, shake: 0, steer: 0 })
   const look = useMemo(() => new Vector3(), [])
   const want = useMemo(() => new Vector3(), [])
@@ -79,14 +84,14 @@ export function DriveCar({
   useFrame((_, delta) => {
     const dt = Math.min(delta, 0.05)
     const b = body.current
-    const top = (world.fast(b.x, b.z) ? TOP : TOP_OFF_ROAD) * u
+    const top = (world.fast(b.x, b.z) ? carTop : TOP_OFF_ROAD) * u
     if (driveCommand.warp) {
       Object.assign(b, { x: driveCommand.warp.x, z: driveCommand.warp.z, h: driveCommand.warp.h, v: 0, steer: 0 })
       driveCommand.warp = null
       placed.current = false
     }
 
-    if (driveInput.gas) b.v += GAS * u * dt
+    if (driveInput.gas) b.v += carGas * u * dt * Math.max(0.35, 1 - Math.abs(b.v) / (carTop * u * 1.15)) // pulls hard, eases near the top
     else if (driveInput.brake) b.v -= (b.v > 0.3 * u ? BRAKE : GAS * 0.7) * u * dt // brake, then roll backwards
     else b.v -= Math.sign(b.v) * Math.min(Math.abs(b.v), DRAG * u * dt)
     if (b.v > top) b.v = Math.max(top, b.v - BRAKE * u * dt)
@@ -96,7 +101,7 @@ export function DriveCar({
     // The wheel eases toward your thumb, bites as the car gets moving, and firms up at speed
     // (reversed when backing up)
     b.steer += (driveInput.steer - b.steer) * Math.min(1, dt * 5)
-    const pace = Math.abs(b.v) / (TOP * u)
+    const pace = Math.abs(b.v) / (TOP * u) // steering firms up the same way for every car
     b.h += b.steer * TURN * dt * Math.min(1, Math.abs(b.v) / (2.5 * u)) * (1 - 0.5 * Math.min(1, pace)) * Math.sign(b.v)
 
     const nx = b.x + Math.sin(b.h) * b.v * dt
@@ -205,7 +210,7 @@ function PeerCar({ peer, scale }: { peer: Peer; scale: number }) {
       <group scale={scale}>
         <CarModel id={model} color={color ?? '#c9ccd1'} />
       </group>
-      <sprite position={[0, 2.2 * scale + 0.6, 0]} scale={[4.8 * scale, 1.2 * scale, 1]}>
+      <sprite position={[0, 2.0 * scale + 0.45, 0]} scale={[2.6 * scale, 0.65 * scale, 1]}>
         <spriteMaterial map={nameTexture(peer.username)} depthTest={false} />
       </sprite>
     </group>

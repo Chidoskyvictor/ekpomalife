@@ -156,6 +156,7 @@ export function CarLotSheet({ hidden = false }: { hidden?: boolean }) {
                 <h2>{model.name}</h2>
                 <span className={styles.nick}>“{model.nickname}”</span>
                 <p>{model.blurb}</p>
+                {model.topKmh ? <span className={styles.nick}>Top speed {model.topKmh} km/h</span> : null}
               </div>
             </div>
             {step === 'confirm' ? (
