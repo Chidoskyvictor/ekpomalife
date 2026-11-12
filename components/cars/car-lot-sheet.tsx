@@ -99,6 +99,9 @@ export function CarLotSheet({ hidden = false }: { hidden?: boolean }) {
 
   const cash = state?.cash ?? 0
   const atMechanic = state?.locationId === 'magmus-autos'
+  // The showroom is only at Magmus Autos: tapping your car anywhere else opens My garage alone,
+  // as a half sheet
+  const inShowroom = atMechanic && tab === 'showroom'
   const cars = garage?.cars ?? []
   const needsParking = garage?.needsParking ?? false
   const model = carById(modelId) ?? CARS[0]!
@@ -128,17 +131,21 @@ export function CarLotSheet({ hidden = false }: { hidden?: boolean }) {
   }
 
   return (
-    <section className={`${base.sheet} ${styles.sheet}`} aria-label="Magmus Autos car lot">
+    <section className={`${base.sheet} ${styles.sheet} ${atMechanic ? '' : styles.half}`} aria-label={atMechanic ? 'Magmus Autos car lot' : 'My garage'}>
       <div className={base.handle} aria-hidden="true" />
       <header className={styles.head}>
-        <div className={styles.tabs} role="tablist">
-          <button type="button" role="tab" aria-selected={tab === 'showroom'} className={tab === 'showroom' ? styles.tabOn : ''} onClick={() => openCarLot('showroom')}>
-            Showroom
-          </button>
-          <button type="button" role="tab" aria-selected={tab === 'garage'} className={tab === 'garage' ? styles.tabOn : ''} onClick={() => openCarLot('garage')}>
-            My garage
-          </button>
-        </div>
+        {atMechanic ? (
+          <div className={styles.tabs} role="tablist">
+            <button type="button" role="tab" aria-selected={tab === 'showroom'} className={tab === 'showroom' ? styles.tabOn : ''} onClick={() => openCarLot('showroom')}>
+              Showroom
+            </button>
+            <button type="button" role="tab" aria-selected={tab === 'garage'} className={tab === 'garage' ? styles.tabOn : ''} onClick={() => openCarLot('garage')}>
+              My garage
+            </button>
+          </div>
+        ) : (
+          <strong className={styles.title}>My garage</strong>
+        )}
         <span className={styles.wallet} title="Your wallet">
           {short(cash)}
         </span>
@@ -148,7 +155,7 @@ export function CarLotSheet({ hidden = false }: { hidden?: boolean }) {
       </header>
 
       <div className={`${base.body} ${styles.body}`}>
-        {tab === 'showroom' ? (
+        {inShowroom ? (
           <>
             <div className={styles.card}>
               <Preview id={model.id} color={model.color} />

@@ -84,7 +84,9 @@ export function MapPlaceSheet({ hidden = false }: { hidden?: boolean }) {
   const garage = useGarage(signedIn && Boolean(placeId))
   const myCar = garage?.cars.find((c) => c.active) ?? null
   const carAt = myCar ? carPlace(myCar, garage?.homePlaceId) : null
-  const carHere = Boolean(myCar && state && carAt === state.locationId)
+  // Your car comes to you: you can drive off from wherever you are (it was only allowed where it
+  // was last parked, so away from home the option said "Parked at home" and stayed greyed out)
+  const carHere = Boolean(myCar && state)
 
   // Tapping your own house while you're home goes straight inside (no sheet)
   useEffect(() => {
