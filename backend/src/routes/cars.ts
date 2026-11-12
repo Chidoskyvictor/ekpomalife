@@ -81,7 +81,7 @@ export async function carRoutes(app: FastifyInstance) {
   })
   write(
     '/cars/races',
-    z.object({ destId: z.string().min(1).max(80), stake: z.number().int().min(0), x: spot, z: spot, h: z.number().min(-100).max(100), destX: spot, destZ: spot }),
+    z.object({ destId: z.string().min(1).max(80), stake: z.number().int().min(0), x: spot, z: spot, h: z.number().min(-100).max(100), destX: spot, destZ: spot, kind: z.enum(['race', 'convoy']).optional() }),
     'Pick where the race ends.',
     (u, b, k) => createRace(u, b, k),
   )

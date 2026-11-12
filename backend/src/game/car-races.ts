@@ -35,9 +35,12 @@ type RaceRow = {
   winner_character_id: string | null
   prize: string | number | null
   created_at: Date
+  /** 'race', or 'convoy': a drive together with no stake and no winner. */
+  kind: 'race' | 'convoy'
 }
 
 export type RaceView = {
+  kind: 'race' | 'convoy'
   id: string
   dest: { id: string; label: string; x: number; z: number }
   stake: number
@@ -88,6 +91,7 @@ async function view(db: Db, rows: RaceRow[], characterId: string): Promise<RaceV
     const mine = entries.rows.filter((e) => e.race_id === r.id)
     return {
       id: r.id,
+      kind: r.kind ?? 'race',
       dest: { id: r.dest_place, label: r.dest_label, x: r.dest_x, z: r.dest_z },
       stake: asMoney(r.stake),
       status: r.status,
@@ -229,13 +233,15 @@ async function hasCar(db: Db, characterId: string) {
   return rows.length > 0
 }
 
-export type NewRace = { destId: string; stake: number; x: number; z: number; h: number; destX: number; destZ: number }
+export type NewRace = { destId: string; stake: number; x: number; z: number; h: number; destX: number; destZ: number; kind?: 'race' | 'convoy' }
 
 /** Host a race from where you are to a place. You pay your own stake now. */
 export function createRace(userId: string, input: NewRace, idemKey: string) {
   return writeRace(userId, idemKey, 'POST /cars/races', input, async ({ client, characterId }) => {
     const place = getPlace(input.destId)
     if (!place) return bad('Pick where the race ends.')
+    const convoy = input.kind === 'convoy'
+    if (convoy && input.stake !== 0) return bad('A convoy has no stake.')
     if (!Number.isInteger(input.stake) || input.stake < 0 || input.stake > RACE_MAX_STAKE) return bad('That stake is too big.')
     if (Math.hypot(input.destX - input.x, input.destZ - input.z) < 150) return bad('Pick a finish further away.')
     if (!(await hasCar(client, characterId))) return bad('You need a car to race.', 400, 'NO_CAR')
@@ -246,12 +252,12 @@ export function createRace(userId: string, input: NewRace, idemKey: string) {
     }
     const id = createId()
     await client.query(
-      `INSERT INTO car_races (id, host_character_id, dest_place, dest_label, stake, start_x, start_z, start_h, dest_x, dest_z)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-      [id, characterId, place.id, place.label, input.stake, input.x, input.z, input.h, input.destX, input.destZ],
+      `INSERT INTO car_races (id, host_character_id, dest_place, dest_label, stake, start_x, start_z, start_h, dest_x, dest_z, kind)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+      [id, characterId, place.id, place.label, input.stake, input.x, input.z, input.h, input.destX, input.destZ, convoy ? 'convoy' : 'race'],
     )
     await client.query(`INSERT INTO car_race_entries (race_id, character_id, slot) VALUES ($1, $2, 0)`, [id, characterId])
-    return { status: 200, body: { ok: true, message: `Race to ${place.label} is open.` } }
+    return { status: 200, body: { ok: true, message: convoy ? `Convoy to ${place.label} is open.` : `Race to ${place.label} is open.` } }
   })
 }
 
@@ -275,7 +281,7 @@ export function joinRace(userId: string, raceId: string, idemKey: string) {
     while (used.has(slot)) slot += 1
     await client.query(`INSERT INTO car_race_entries (race_id, character_id, slot) VALUES ($1, $2, $3)`, [raceId, characterId, slot])
     await client.query(`UPDATE car_races SET paid_in = paid_in + 1 WHERE id = $1`, [raceId])
-    return { status: 200, body: { ok: true, message: `You are in. Race to ${race.dest_label}.` } }
+    return { status: 200, body: { ok: true, message: race.kind === 'convoy' ? `You are in the convoy to ${race.dest_label}.` : `You are in. Race to ${race.dest_label}.` } }
   })
 }
 
@@ -314,14 +320,17 @@ export async function inviteToRace(userId: string, raceId: string, friendUserId:
     if (race.host_character_id !== me) return { error: 'Only the host can invite.' }
     if (race.status !== 'open') return { error: 'That race has already started or ended.', reason: 'GONE' }
     await client.query(`INSERT INTO car_race_invites (race_id, character_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`, [raceId, who.id])
-    return { message: `Invited @${who.username}.`, extra: { dest: race.dest_label, stake: asMoney(race.stake) } }
+    return { message: `Invited @${who.username}.`, extra: { dest: race.dest_label, stake: asMoney(race.stake), convoy: race.kind === 'convoy' } }
   })
   if (res.ok) {
     // Best effort: the invitation itself is already saved
     try {
-      const out = res as unknown as { dest: string; stake: number }
+      const out = res as unknown as { dest: string; stake: number; convoy: boolean }
       const chat = await openDirectChat(userId, friendUserId)
-      if (chat.ok) await sendMessage(userId, chat.chat.id, `🏁 Race me to ${out.dest}! ${out.stake > 0 ? `Stake: ${naira(out.stake)}.` : 'No stake.'} Get in your car, tap Race and join.`)
+      const line = out.convoy
+        ? `🚗 Join my convoy to ${out.dest}! Get in your car, tap Race and join.`
+        : `🏁 Race me to ${out.dest}! ${out.stake > 0 ? `Stake: ${naira(out.stake)}.` : 'No stake.'} Get in your car, tap Race and join.`
+      if (chat.ok) await sendMessage(userId, chat.chat.id, line)
     } catch {
       /* the chat is a courtesy */
     }
@@ -349,6 +358,11 @@ export function finishRace(userId: string, raceId: string, x: number, z: number)
     const entry = await client.query(`SELECT 1 FROM car_race_entries WHERE race_id = $1 AND character_id = $2`, [raceId, me])
     if (!entry.rows[0]) return { error: 'You are not in that race.' }
     if (Math.hypot(race.dest_x - x, race.dest_z - z) > FINISH_REACH) return { error: 'You are not at the finish yet.', reason: 'NOT_THERE' }
+    if (race.kind === 'convoy') {
+      if (race.host_character_id !== me) return { message: `You reached ${race.dest_label}.` }
+      await client.query(`UPDATE car_races SET status = 'done', finished_at = NOW(), winner_character_id = $2, prize = 0 WHERE id = $1`, [race.id, me])
+      return { message: `Convoy arrived at ${race.dest_label}.` }
+    }
     // Nobody covers the distance faster than a car at full speed in a straight line
     const least = (Math.hypot(race.dest_x - race.start_x, race.dest_z - race.start_z) / TOP_SPEED) * 1000 * 0.9
     if (Date.now() - race.starts_at.getTime() < least) return { error: 'Too fast to be true.', reason: 'TOO_FAST' }
@@ -381,6 +395,7 @@ export function leaveRace(userId: string, raceId: string) {
     await client.query(`DELETE FROM car_race_entries WHERE race_id = $1 AND character_id = $2`, [raceId, me])
     if (others.rows.length === 1) await payWinner(client, race, others.rows[0]!.character_id)
     else if (others.rows.length === 0) await client.query(`UPDATE car_races SET status = 'cancelled', finished_at = NOW() WHERE id = $1`, [raceId])
+    if (race.kind === 'convoy') return { message: 'You left the convoy.' }
     return { message: stake > 0 ? `You gave up the race and your ${naira(stake)} stake.` : 'You gave up the race.' }
   })
 }

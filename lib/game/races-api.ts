@@ -12,6 +12,8 @@ import type { ServerGameState } from './game-api'
  */
 
 export type Race = {
+  /** 'race', or 'convoy': a drive together, no stake, no winner. */
+  kind: 'race' | 'convoy'
   id: string
   dest: { id: string; label: string; x: number; z: number }
   stake: number
@@ -71,7 +73,7 @@ async function write(path: string, body: Record<string, unknown>, key?: string):
 const round = (n: number) => Math.round(n * 100) / 100
 
 /** Host a race from where your car is to a place. One key per tap; reuse it when retrying. */
-export const hostRace = (input: { destId: string; stake: number; x: number; z: number; h: number; destX: number; destZ: number }, key: string) =>
+export const hostRace = (input: { destId: string; stake: number; x: number; z: number; h: number; destX: number; destZ: number; kind?: 'race' | 'convoy' }, key: string) =>
   write('/cars/races', { ...input, x: round(input.x), z: round(input.z), h: round(input.h), destX: round(input.destX), destZ: round(input.destZ) }, key)
 export const joinRace = (raceId: string, key: string) => write('/cars/races/join', { raceId }, key)
 export const startRace = (raceId: string) => write('/cars/races/start', { raceId })
