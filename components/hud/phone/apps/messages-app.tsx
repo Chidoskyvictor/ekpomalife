@@ -85,7 +85,7 @@ function seenLabel(iso: string | null | undefined): { online: boolean; text: str
 function VerifiedTick({ size = 14 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" role="img" aria-label="Verified" style={{ marginLeft: 4, verticalAlign: '-2px', flex: 'none' }}>
-      <path d="M12 1.5l2.6 1.9 3.2-.1 1 3 2.6 1.9-1 3 1 3-2.6 1.9-1 3-3.2-.1L12 22.5l-2.6-1.9-3.2.1-1-3-2.6-1.9 1-3-1-3 2.6-1.9 1-3 3.2.1z" fill="#1d9bf0" />
+      <path d="M12 1.5l2.6 1.9 3.2-.1 1 3 2.6 1.9-1 3 1 3-2.6 1.9-1 3-3.2-.1L12 22.5l-2.6-1.9-3.2.1-1-3-2.6-1.9 1-3-1-3 2.6-1.9 1-3 3.2.1z" fill="#f5b301" />
       <path d="M7.5 12.3l3 3 6-6.3" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )
@@ -826,16 +826,18 @@ function ChatView({
                   >
                     <span className={styles.nairaIcon} aria-hidden="true">₦</span> Send money
                   </button>
-                  <button
-                    type="button"
-                    role="menuitem"
-                    onClick={() => {
-                      setMoreOpen(false)
-                      onProfile(chat.peer!.userId)
-                    }}
-                  >
-                    <User size={16} aria-hidden="true" /> View profile
-                  </button>
+                  {chat.peer!.avatar.support ? null : (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        setMoreOpen(false)
+                        onProfile(chat.peer!.userId)
+                      }}
+                    >
+                      <User size={16} aria-hidden="true" /> View profile
+                    </button>
+                  )}
                 </div>
               </>
             ) : null}
@@ -1202,7 +1204,7 @@ function MessageRow({
         ) : null}
         <div className={styles.bubbleWrap}>
           {showSender && !grouped ? (
-            <button type="button" className={styles.senderName} onClick={() => onProfile(sender.userId)}>
+            <button type="button" className={styles.senderName} onClick={() => (sender.avatar.support ? undefined : onProfile(sender.userId))}>
               {sender.username ? `@${sender.username}` : sender.displayName}
               {sender.avatar.support ? <VerifiedTick size={12} /> : null}
             </button>
@@ -1638,7 +1640,7 @@ function NeighboursView({
         {error ? <p className={styles.errorText}>{error}</p> : null}
         {neighbours?.map((n) => (
           <div key={n.userId} className={styles.personRow}>
-            <button type="button" className={styles.personMain} onClick={() => onProfile(n.userId)}>
+            <button type="button" className={styles.personMain} onClick={() => (n.avatar.support ? undefined : onProfile(n.userId))}>
               <Avatar person={n} size={38} />
               <span className={styles.personText}>
                 <span className={styles.personName}>

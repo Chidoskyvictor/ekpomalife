@@ -101,10 +101,10 @@ function defaultDepartment(courseId: string | null): string {
 }
 
 export async function resolveProfileUserId(idParam: string): Promise<string | null> {
-  const byId = await pool.query<{ id: string }>('SELECT id FROM users WHERE id = $1 LIMIT 1', [idParam])
+  const byId = await pool.query<{ id: string }>('SELECT id FROM users WHERE id = $1 AND NOT is_support LIMIT 1', [idParam])
   if (byId.rows[0]) return byId.rows[0].id
   const byUsername = await pool.query<{ id: string }>(
-    'SELECT id FROM users WHERE LOWER(username) = LOWER($1) LIMIT 1',
+    'SELECT id FROM users WHERE LOWER(username) = LOWER($1) AND NOT is_support LIMIT 1',
     [idParam],
   )
   return byUsername.rows[0]?.id ?? null

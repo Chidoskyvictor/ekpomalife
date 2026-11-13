@@ -257,7 +257,7 @@ export async function listChats(userId: string): Promise<ChatSummary[]> {
     } & Partial<PlayerRow>
   >(
     `SELECT c.id, c.kind, c.title, c.hostel_id, (${UNREAD_SQL}) AS unread, last.seq AS last_seq,
-            peer.user_id, peer.username, peer.display_name, peer.avatar_color, peer.avatar_emoji, peer.appearance, peer.last_seen_at
+            peer.user_id, peer.username, peer.display_name, peer.avatar_color, peer.avatar_emoji, peer.appearance, peer.is_support, peer.last_seen_at
      FROM chat_members cm
      JOIN chats c ON c.id = cm.chat_id
      LEFT JOIN LATERAL (SELECT MAX(seq)::text AS seq FROM chat_messages WHERE chat_id = c.id) last ON true
