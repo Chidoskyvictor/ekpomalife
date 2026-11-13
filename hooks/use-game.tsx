@@ -559,6 +559,11 @@ export function GameProvider({
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>
 }
 
+/** Like useGame, but null when there's no game (the Support inbox has none). */
+export function useGameOptional() {
+  return useContext(GameContext)
+}
+
 export function useGame() {
   const context = useContext(GameContext)
   if (!context) throw new Error('useGame must be used inside GameProvider')

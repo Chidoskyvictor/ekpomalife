@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import { PlayerProfilePanel } from '@/components/profile/player-profile-panel'
 import { tickFor, useChat, type Tick } from '@/hooks/use-chat'
-import { useGame } from '@/hooks/use-game'
+import { useGameOptional } from '@/hooks/use-game'
 import { useChatUnread } from '@/hooks/use-chat-unread'
 import { useMyHostel } from '@/hooks/use-hostel'
 import {
@@ -560,7 +560,9 @@ function ChatView({
   onProfile: (userId: string) => void
 }) {
   const router = useRouter()
-  const { state, refreshServer } = useGame()
+  const game = useGameOptional()
+  const state = game?.state ?? null
+  const refreshServer = game?.refreshServer ?? (async () => {})
   const { messages, hasMore, loading, loadingOlder, error, receipts, loadOlder, send, sendVoice, sendMoney, report, react } = useChat(
     chat.id,
     true,
