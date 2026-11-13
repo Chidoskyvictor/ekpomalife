@@ -28,7 +28,7 @@ export type ChatSender = {
   username?: string
   displayName: string
   /** look = the player's character appearance (for their face picture) */
-  avatar: { color: string; emoji: string | null; look?: unknown }
+  avatar: { color: string; emoji: string | null; look?: unknown; support?: boolean; image?: string }
 }
 
 /** text · system ("X joined") · sticker (body = sticker id) · invite (body = host username) · visit (body = visited username) · money (body = naira amount) */
@@ -90,6 +90,7 @@ type MessageRow = {
   avatar_color: string | null
   avatar_emoji: string | null
   appearance?: unknown
+  is_support?: boolean | null
   reply_id?: string | null
   reply_kind?: MessageKind | null
   reply_body?: string | null
@@ -98,7 +99,7 @@ type MessageRow = {
 
 const MESSAGE_SELECT = `
   SELECT m.seq::text AS seq, m.chat_id, m.kind, m.body, m.created_at, m.sender_id, u.username,
-         u.username AS display_name,
+         u.username AS display_name, u.is_support,
          pp.avatar_color, pp.avatar_emoji,
          (SELECT c.appearance FROM characters c WHERE c.user_id = m.sender_id LIMIT 1) AS appearance,
          q.seq::text AS reply_id, q.kind AS reply_kind, q.body AS reply_body, qu.username AS reply_name
@@ -126,7 +127,7 @@ function toMessage(row: MessageRow, viewerId: string, reactions: ChatReaction[] 
             userId: row.sender_id,
             username: row.username ?? undefined,
             displayName: row.display_name ?? 'Player',
-            avatar: { color: row.avatar_color ?? '#3d9ad6', emoji: row.avatar_emoji, look: row.appearance ?? null },
+            avatar: { color: row.avatar_color ?? '#3d9ad6', emoji: row.avatar_emoji, look: row.appearance ?? null, ...supportAvatar(row.is_support) },
           },
     mine: row.sender_id === viewerId,
     replyTo: row.reply_id
@@ -224,13 +225,18 @@ type PlayerRow = {
   avatar_color: string | null
   avatar_emoji: string | null
   appearance?: unknown
+  is_support?: boolean | null
 }
+
+/** The Support account: a real picture (not a character face) and a verified tick. */
+const SUPPORT_IMAGE = '/support-avatar.png'
+const supportAvatar = (isSupport: boolean | null | undefined) => (isSupport ? { support: true, image: SUPPORT_IMAGE } : {})
 
 const toPlayerCard = (row: PlayerRow): PlayerCard => ({
   userId: row.user_id,
   username: row.username,
   displayName: row.display_name,
-  avatar: { color: row.avatar_color ?? '#3d9ad6', emoji: row.avatar_emoji, look: row.appearance ?? null },
+  avatar: { color: row.avatar_color ?? '#3d9ad6', emoji: row.avatar_emoji, look: row.appearance ?? null, ...supportAvatar(row.is_support) },
 })
 
 /**
@@ -256,7 +262,7 @@ export async function listChats(userId: string): Promise<ChatSummary[]> {
      JOIN chats c ON c.id = cm.chat_id
      LEFT JOIN LATERAL (SELECT MAX(seq)::text AS seq FROM chat_messages WHERE chat_id = c.id) last ON true
      LEFT JOIN LATERAL (
-       SELECT u.id AS user_id, u.username, u.username AS display_name,
+       SELECT u.id AS user_id, u.username, u.username AS display_name, u.is_support,
               pp.avatar_color, pp.avatar_emoji,
               (SELECT c.appearance FROM characters c WHERE c.user_id = u.id LIMIT 1) AS appearance,
               (SELECT MAX(s.last_seen_at) FROM sessions s WHERE s.user_id = u.id) AS last_seen_at
@@ -301,13 +307,13 @@ export async function searchPlayers(userId: string, rawQuery: string): Promise<P
   if (q.length < 2 || !/^[a-z0-9_ .'-]+$/.test(q)) return []
   const prefix = `${q.replace(/[\\%_]/g, (ch) => `\\${ch}`)}%`
   const rows = await pool.query<PlayerRow>(
-    `SELECT u.id AS user_id, u.username, u.username AS display_name,
+    `SELECT u.id AS user_id, u.username, u.username AS display_name, u.is_support,
             pp.avatar_color, pp.avatar_emoji,
             (SELECT c.appearance FROM characters c WHERE c.user_id = u.id LIMIT 1) AS appearance
      FROM users u
      LEFT JOIN player_profiles pp ON pp.user_id = u.id
      WHERE u.id <> $1
-       AND EXISTS (SELECT 1 FROM characters c WHERE c.user_id = u.id)
+       AND (u.is_support OR EXISTS (SELECT 1 FROM characters c WHERE c.user_id = u.id))
        AND LOWER(u.username) LIKE $2
      ORDER BY (LOWER(u.username) = $3) DESC, LENGTH(u.username), u.username
      LIMIT $4`,
@@ -323,7 +329,7 @@ export async function openDirectChat(
 ): Promise<{ ok: true; chat: ChatSummary } | Fail> {
   if (otherUserId === userId) return fail(400, 'SELF', 'That’s you — pick someone else to message.')
   const other = await pool.query<PlayerRow>(
-    `SELECT u.id AS user_id, u.username, u.username AS display_name,
+    `SELECT u.id AS user_id, u.username, u.username AS display_name, u.is_support,
             pp.avatar_color, pp.avatar_emoji,
             (SELECT c.appearance FROM characters c WHERE c.user_id = u.id LIMIT 1) AS appearance
      FROM users u LEFT JOIN player_profiles pp ON pp.user_id = u.id WHERE u.id = $1`,

@@ -81,7 +81,21 @@ function seenLabel(iso: string | null | undefined): { online: boolean; text: str
   return { online: false, text: days === 1 ? 'last seen yesterday' : `last seen ${days}d ago` }
 }
 
+/** Blue verified tick shown next to the Support account's name. */
+function VerifiedTick({ size = 14 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" role="img" aria-label="Verified" style={{ marginLeft: 4, verticalAlign: '-2px', flex: 'none' }}>
+      <path d="M12 1.5l2.6 1.9 3.2-.1 1 3 2.6 1.9-1 3 1 3-2.6 1.9-1 3-3.2-.1L12 22.5l-2.6-1.9-3.2.1-1-3-2.6-1.9 1-3-1-3 2.6-1.9 1-3 3.2.1z" fill="#1d9bf0" />
+      <path d="M7.5 12.3l3 3 6-6.3" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
 function Avatar({ person, size = 32 }: { person: ChatSender; size?: number }) {
+  // The Support account has a real picture, not a character face
+  if (person.avatar.image) {
+    return <img className={styles.avatar} src={person.avatar.image} alt="" draggable={false} style={{ width: size, height: size, borderRadius: 999, flex: 'none', objectFit: 'cover' }} aria-hidden="true" />
+  }
   // Their character's face (falls back to the coloured initial while it's drawn)
   return <PlayerFace className={styles.avatar} look={person.avatar.look} color={person.avatar.color} label={person.displayName} size={size} />
 }
@@ -383,6 +397,7 @@ function ChatRow({ chat, onOpen }: { chat: ChatSummary; onOpen: () => void }) {
         <span className={styles.chatTop}>
           <span className={`${styles.chatTitle} ${unread ? styles.chatTitleUnread : ''}`}>
             {chat.title}
+            {chat.peer?.avatar.support ? <VerifiedTick /> : null}
             {chat.pinned ? <span className={styles.pinnedTag}>Pinned</span> : null}
           </span>
           {last ? <span className={`${styles.chatTime} ${unread ? styles.chatTimeUnread : ''}`}>{stamp(last.createdAt)}</span> : null}
@@ -747,13 +762,16 @@ function ChatView({
           <ChevronLeft size={22} aria-hidden="true" />
         </button>
         {direct && chat.peer ? (
-          <button type="button" className={styles.chatHeadWho} onClick={() => onProfile(chat.peer!.userId)}>
+          <button type="button" className={styles.chatHeadWho} onClick={() => (chat.peer!.avatar.support ? undefined : onProfile(chat.peer!.userId))}>
             <span className={styles.avatarWrap}>
               <Avatar person={chat.peer} size={34} />
               {seen?.online ? <span className={styles.onlineDot} aria-hidden="true" /> : null}
             </span>
             <span className={styles.chatHeadText}>
-              <span className={styles.chatHeadName}>@{chat.peer.username}</span>
+              <span className={styles.chatHeadName}>
+                @{chat.peer.username}
+                {chat.peer.avatar.support ? <VerifiedTick /> : null}
+              </span>
               {seen ? <span className={`${styles.chatHeadSeen} ${seen.online ? styles.chatHeadOnline : ''}`}>{seen.text}</span> : null}
             </span>
           </button>
@@ -1175,7 +1193,7 @@ function MessageRow({
           grouped ? (
             <span className={styles.avatarSpacer} />
           ) : (
-            <button type="button" className={styles.avatarBtn} onClick={() => onProfile(sender.userId)} aria-label={`${sender.displayName}'s profile`}>
+            <button type="button" className={styles.avatarBtn} onClick={() => (sender.avatar.support ? undefined : onProfile(sender.userId))} aria-label={`${sender.displayName}'s profile`}>
               <Avatar person={sender} size={28} />
             </button>
           )
@@ -1184,6 +1202,7 @@ function MessageRow({
           {showSender && !grouped ? (
             <button type="button" className={styles.senderName} onClick={() => onProfile(sender.userId)}>
               {sender.username ? `@${sender.username}` : sender.displayName}
+              {sender.avatar.support ? <VerifiedTick size={12} /> : null}
             </button>
           ) : null}
           <Gesture onReply={onReply} onPicker={onOpenPicker}>

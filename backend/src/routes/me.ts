@@ -42,6 +42,11 @@ export async function meRoutes(app: FastifyInstance) {
       return reply.code(401).send({ ok: false, error: 'Not logged in.' })
     }
 
+    const sup = await pool.query<{ is_support: boolean }>('SELECT is_support FROM users WHERE id = $1', [user.id])
+    if (sup.rows[0]?.is_support) {
+      return reply.send({ ok: true, account: { name: user.name, username: user.username }, setupComplete: true, setupStep: null, support: true })
+    }
+
     const found = await pool.query<CharacterRow>(
       `SELECT id, appearance, traits, dream_id, lodging_id
        FROM characters WHERE user_id = $1`,

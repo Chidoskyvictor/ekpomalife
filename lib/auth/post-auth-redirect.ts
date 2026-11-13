@@ -7,6 +7,8 @@ export type AuthUser = {
   setupComplete: boolean
   /** First unfinished look/traits/dream step; null if those are done but play setup may remain. */
   setupStep: SetupStep
+  /** The Support account: messaging only, lands on /support. */
+  support?: boolean
 } | null
 
 export type AuthGateMode = 'home' | 'setup' | 'public'
@@ -19,6 +21,7 @@ export type AuthGateMode = 'home' | 'setup' | 'public'
  */
 export function getPostAuthRoute(user: AuthUser): string {
   if (!user) return '/login'
+  if (user.support) return '/support'
   if (user.setupComplete) return '/'
   if (user.setupStep === 'look' || user.setupStep === 'traits' || user.setupStep === 'dream') {
     return pathForStep(user.setupStep as OnboardingStep)
@@ -44,6 +47,7 @@ export function isHomePath(pathname: string) {
 export function resolveGate(mode: AuthGateMode, pathname: string, me: AuthUser): string | null {
   if (mode === 'home') {
     if (!me) return null
+    if (me.support) return '/support'
     if (!me.setupComplete) return getPostAuthRoute(me)
     return null
   }

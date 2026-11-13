@@ -12,6 +12,7 @@ export type AuthMeOk = {
   account: { name: string; username: string }
   setupComplete: boolean
   setupStep: SetupStep
+  support?: boolean
 }
 
 export type AuthMeFail = { ok: false; error: string }
@@ -109,6 +110,7 @@ async function fetchAuthMeOnce(options?: FetchAuthMeOptions): Promise<AuthUser> 
     const user: AuthUser = {
       setupComplete: Boolean(data.setupComplete),
       setupStep: data.setupStep ?? null,
+      ...(data.support ? { support: true } : {}),
     }
     writeAuthMeSession(user)
     return user
