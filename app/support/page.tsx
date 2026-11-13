@@ -19,7 +19,7 @@ export default function SupportPage() {
   if (!ok) return null
   return (
     <main style={{ position: 'fixed', inset: 0, background: '#fff', display: 'flex', flexDirection: 'column' }}>
-      <MessagesApp onHome={() => {}} notifications={[]} onOpenApp={() => {}} />
+      <MessagesApp onHome={() => {}} notifications={[]} onOpenApp={() => {}} supportMode />
     </main>
   )
 }

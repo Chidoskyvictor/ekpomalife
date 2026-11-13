@@ -125,10 +125,13 @@ export function MessagesApp({
   onHome,
   notifications,
   onOpenApp,
+  supportMode = false,
 }: {
   onHome: () => void
   notifications: GameNotification[]
   onOpenApp: (id: PhoneAppId) => void
+  /** The Support inbox: no visiting or inviting (the account has no place). */
+  supportMode?: boolean
 }) {
   const { hostel } = useMyHostel()
   // Last list seen (this visit) shows at once on reopen; a fresh one replaces it when it lands
@@ -177,6 +180,7 @@ export function MessagesApp({
         onBack={() => setView({ name: 'list' })}
         onNeighbours={() => setView({ name: 'neighbours', chat: view.chat })}
         onProfile={openProfile}
+        supportMode={supportMode}
       />
     )
   }
@@ -553,11 +557,13 @@ function ChatView({
   onBack,
   onNeighbours,
   onProfile,
+  supportMode = false,
 }: {
   chat: ChatSummary
   onBack: () => void
   onNeighbours: () => void
   onProfile: (userId: string) => void
+  supportMode?: boolean
 }) {
   const router = useRouter()
   const game = useGameOptional()
@@ -788,13 +794,13 @@ function ChatView({
             </span>
           </span>
         )}
-        {direct && chat.peer ? (
+        {direct && chat.peer && !chat.peer.avatar.support ? (
           // Send money sits up here, so the message bar has room and the mic isn't jammed at the edge
           <button type="button" className={styles.headMoney} aria-label="Send money" onClick={() => setMoneyOpen(true)}>
             ₦
           </button>
         ) : null}
-        {direct && chat.peer ? (
+        {direct && chat.peer && !chat.peer.avatar.support ? (
           <div className={styles.moreWrap}>
             <button type="button" className={styles.iconBtn} aria-label="More" aria-expanded={moreOpen} onClick={() => setMoreOpen((o) => !o)}>
               <MoreHorizontal size={18} aria-hidden="true" />
@@ -803,19 +809,23 @@ function ChatView({
               <>
                 <button type="button" className={styles.moreScrim} aria-label="Close menu" onClick={() => setMoreOpen(false)} />
                 <div className={styles.moreMenu} role="menu">
-                  <button type="button" role="menuitem" onClick={() => void invite()}>
-                    <Home size={16} aria-hidden="true" /> Invite to my place
-                  </button>
-                  <button
-                    type="button"
-                    role="menuitem"
-                    onClick={() => {
-                      setMoreOpen(false)
-                      visit(chat.peer!.username)
-                    }}
-                  >
-                    <DoorOpen size={16} aria-hidden="true" /> Visit their place
-                  </button>
+                  {supportMode ? null : (
+                    <>
+                      <button type="button" role="menuitem" onClick={() => void invite()}>
+                        <Home size={16} aria-hidden="true" /> Invite to my place
+                      </button>
+                      <button
+                        type="button"
+                        role="menuitem"
+                        onClick={() => {
+                          setMoreOpen(false)
+                          visit(chat.peer!.username)
+                        }}
+                      >
+                        <DoorOpen size={16} aria-hidden="true" /> Visit their place
+                      </button>
+                    </>
+                  )}
                   <button
                     type="button"
                     role="menuitem"
@@ -1517,7 +1527,7 @@ function MessageContent({ message, onVisit }: { message: ChatMessage; onVisit: (
   if (message.kind === 'money') {
     const amount = Number(message.body)
     return (
-      <div className={styles.moneyCard}>
+      <div className={`${styles.moneyCard} ${message.sender?.avatar.support ? styles.moneyCardSupport : ''}`}>
         <span className={styles.coin} aria-hidden="true">
           ₦
         </span>

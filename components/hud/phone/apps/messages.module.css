@@ -1281,6 +1281,24 @@
   box-shadow: 0 2px 8px rgba(201, 162, 39, 0.25);
 }
 
+/* Money from Support: an exotic electric-violet card instead of the golden one */
+.moneyCardSupport {
+  border-color: #8b5cf6;
+  background: linear-gradient(145deg, #2a1a6e, #5b21b6 55%, #0ea5e9);
+  color: #f3eaff;
+  box-shadow: 0 2px 12px rgba(91, 33, 182, 0.45);
+}
+
+.moneyCardSupport .moneyStatus,
+.moneyCardSupport .moneyTime {
+  color: #d9f99d;
+}
+
+.moneyCardSupport .coin {
+  background: radial-gradient(circle at 35% 30%, #e9d5ff, #7c3aed 70%);
+  color: #fff;
+}
+
 .coin {
   display: grid;
   width: 38px;

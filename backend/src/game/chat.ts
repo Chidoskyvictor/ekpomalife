@@ -228,6 +228,17 @@ type PlayerRow = {
   is_support?: boolean | null
 }
 
+/** True when the other person in this direct chat is the Support account. */
+async function peerIsSupport(chatId: string, userId: string): Promise<boolean> {
+  const found = await pool.query(
+    `SELECT 1 FROM chat_members cm JOIN users u ON u.id = cm.user_id
+     WHERE cm.chat_id = $1 AND cm.user_id <> $2 AND u.is_support`,
+    [chatId, userId],
+  )
+  return found.rows.length > 0
+}
+const SUPPORT_NO = 'Support is for messages only — it can’t be visited, invited or paid.'
+
 /** The Support account: a real picture (not a character face) and a verified tick. */
 const SUPPORT_IMAGE = '/support-avatar.png'
 const supportAvatar = (isSupport: boolean | null | undefined) => (isSupport ? { support: true, image: SUPPORT_IMAGE } : {})
@@ -559,12 +570,14 @@ export async function sendMessage(
   }
   if (kind === 'invite') {
     if ((await chatKindOf(chatId)) !== 'direct') return fail(400, 'DIRECT_ONLY', 'Invites work in one-to-one chats.')
+    if (await peerIsSupport(chatId, userId)) return fail(403, 'SUPPORT_NO', SUPPORT_NO)
     const me = await pool.query<{ username: string }>(`SELECT username FROM users WHERE id = $1`, [userId])
     body = me.rows[0]?.username ?? ''
   }
   if (kind === 'visit') {
     // "You visited @x" / "@you visited your place" — the body is the visited player's username
     if ((await chatKindOf(chatId)) !== 'direct') return fail(400, 'DIRECT_ONLY', 'Visits work in one-to-one chats.')
+    if (await peerIsSupport(chatId, userId)) return fail(403, 'SUPPORT_NO', SUPPORT_NO)
     const peer = await pool.query<{ username: string }>(
       `SELECT u.username FROM chat_members cm JOIN users u ON u.id = cm.user_id WHERE cm.chat_id = $1 AND cm.user_id <> $2`,
       [chatId, userId],
@@ -684,6 +697,10 @@ export async function sendMoney(
   }
   if ((await chatKindOf(chatId)) !== 'direct') return fail(400, 'DIRECT_ONLY', 'You can only send money in a one-to-one chat.')
   if (!(await isMember(chatId, userId))) return fail(403, 'NOT_MEMBER', 'You are not in this chat.')
+  if (await peerIsSupport(chatId, userId)) return fail(403, 'SUPPORT_NO', SUPPORT_NO)
+
+  const senderIsSupport = (await pool.query(`SELECT 1 FROM users WHERE id = $1 AND is_support`, [userId])).rows.length > 0
+  if (senderIsSupport) return sendSupportMoney(userId, chatId, amount)
 
   const recent = await pool.query<{ n: number }>(
     `SELECT COUNT(*)::int AS n FROM chat_messages
@@ -734,6 +751,47 @@ export async function sendMoney(
     await client.query('COMMIT')
     const row = await pool.query<MessageRow>(`${MESSAGE_SELECT} WHERE m.seq = $1`, [seq])
     return { ok: true, message: toMessage(row.rows[0]!, userId), cash: out.cash, version: out.version }
+  } catch (error) {
+    await client.query('ROLLBACK')
+    throw error
+  } finally {
+    client.release()
+  }
+}
+
+/**
+ * The Support account pays from an unlimited purse: nothing is taken from it (it has no wallet),
+ * the player is credited and gets a ledger line "From @support" plus a money message.
+ */
+async function sendSupportMoney(
+  userId: string,
+  chatId: string,
+  amount: number,
+): Promise<{ ok: true; message: ChatMessage; cash: number; version: number } | Fail> {
+  const found = await pool.query<{ character_id: string }>(
+    `SELECT c.id AS character_id
+     FROM chat_members cm
+     JOIN characters c ON c.user_id = cm.user_id
+     JOIN game_state g ON g.character_id = c.id
+     WHERE cm.chat_id = $1 AND cm.user_id <> $2`,
+    [chatId, userId],
+  )
+  const peer = found.rows[0]
+  if (!peer) return fail(409, 'PEER_NO_WALLET', 'They can’t receive money yet.')
+  const me = await pool.query<{ username: string }>(`SELECT username FROM users WHERE id = $1`, [userId])
+  const client = await pool.connect()
+  try {
+    await client.query('BEGIN')
+    await client.query(`SELECT character_id FROM game_state WHERE character_id = $1 FOR UPDATE`, [peer.character_id])
+    const received = await applyCash(client, peer.character_id, amount, `From @${me.rows[0]?.username ?? 'support'}`, 'transfer_in')
+    if (!received.ok) {
+      await client.query('ROLLBACK')
+      return fail(409, 'PEER_NO_WALLET', 'They can’t receive money yet.')
+    }
+    const seq = await insertMessage(client, userId, chatId, 'money', String(amount))
+    await client.query('COMMIT')
+    const row = await pool.query<MessageRow>(`${MESSAGE_SELECT} WHERE m.seq = $1`, [seq])
+    return { ok: true, message: toMessage(row.rows[0]!, userId), cash: 0, version: 0 }
   } catch (error) {
     await client.query('ROLLBACK')
     throw error
