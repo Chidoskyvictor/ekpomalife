@@ -18,6 +18,7 @@ import { applyNeedDelta } from './needs.js'
 export const GAMES: Record<string, { name: string; emoji: string; variants: string[] }> = {
   snooker: { name: 'Snooker', emoji: '🎱', variants: ['six', 'classic', 'clearance', 'black'] },
   whot: { name: 'Naija Whot!', emoji: '🃏', variants: ['standard'] },
+  chess: { name: 'Chess', emoji: '♟️', variants: ['standard'] },
 }
 
 export const DAILY_BET_MATCHES = 10
@@ -338,6 +339,8 @@ export async function reportResult(userId: string, matchId: string, input: { win
     const m = found.rows[0]
     if (!m || (m.host_id !== player.id && m.guest_id !== player.id)) return fail(404, 'Match not found.')
     if (m.status !== 'active') return { ok: true as const, status: m.status, winnerId: m.winner_id }
+    // Chess: the server referees (chess-match.ts) and settles it; a phone can't report a result
+    if (m.game === 'chess') return { ok: true as const, status: 'active', winnerId: null }
     if (asMoney(m.stake) > 0) {
       // Checked before the report is saved, so it can simply be sent again after leaving the Space
       const inSpace = await liveSpaceMoneyBlockForCharacters([m.host_id, m.guest_id], client)
@@ -377,6 +380,29 @@ export async function reportResult(userId: string, matchId: string, input: { win
   if (!outcome.ok) return outcome
   const match = await getMatch(userId, matchId)
   return match.ok ? { ...match, status: outcome.status } : match
+}
+
+/**
+ * A game the server refereed itself (chess) is over: pay the winner the pot, or give both
+ * stakes back on a draw. winnerSeat: 0 = host, 1 = guest, null = draw.
+ */
+export async function settleServerDecided(matchId: string, winnerSeat: 0 | 1 | null) {
+  await inTx(async (client) => {
+    const found = await client.query<MatchRow>(`SELECT *, stake::text AS stake FROM game_matches WHERE id = $1 FOR UPDATE`, [matchId])
+    const m = found.rows[0]
+    if (!m || m.status !== 'active' || !m.guest_id) return
+    const stake = asMoney(m.stake)
+    const gameName = GAMES[m.game]?.name ?? 'Game'
+    const winnerId = winnerSeat == null ? null : winnerSeat === 0 ? m.host_id : m.guest_id
+    await client.query(`UPDATE game_matches SET status = 'finished', winner_id = $2, finished_at = NOW() WHERE id = $1`, [matchId, winnerId])
+    if (!winnerId) {
+      await refund(client, m.host_id, stake, gameName)
+      await refund(client, m.guest_id, stake, gameName)
+      return
+    }
+    if (stake > 0) await applyCash(client, winnerId, stake * 2, `${gameName} win`, 'bet_win')
+    await rewardWin(client, winnerId)
+  })
 }
 
 /** For the live socket: is this player in this match, and as which seat? */

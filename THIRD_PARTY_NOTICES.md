@@ -9,11 +9,12 @@
 - Files: `public/games/ludo/_app/` (built assets from upstream gh-pages, unmodified). It runs in its own frame
   as a separate program; only the shell `public/games/ludo/index.html` is ours.
 
-### Chesskit (GuillaumeSD/Chesskit)
+### chess.js (rules library for our own Chess)
 
-- Source: https://github.com/GuillaumeSD/Chesskit
-- License: GNU AGPL-3.0
-- In-app play loads https://chesskit.org in an iframe via `public/games/chesskit/index.html` (requires network).
+- Source: https://github.com/jhlywa/chess.js
+- License: BSD-2-Clause, Copyright (c) 2025, Jeff Hlywa. Licence text: `public/games/chess/chess.js.LICENSE.txt`
+- The built file is vendored as `public/games/chess/chess.js`; the backend uses the same package (`chess.js` in
+  `backend/package.json`) to referee online matches. The board, engine and shell are our own.
 
 ## whot (Naija Whot! rules engine)
 

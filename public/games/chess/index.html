@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<!--
+  Ekpoma Life chess. Our own board and engine (game.js, engine.js); rules by chess.js
+  (BSD-2, see chess.js.LICENSE.txt). Modes: pass & play, vs the phone, online (the Games
+  app holds the socket; the server referees online games).
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Chess</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; -webkit-tap-highlight-color: transparent; }
+    html, body { height: 100%; background: #0f1a14; color: #e8f0eb; overflow: hidden; touch-action: manipulation;
+      font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; }
+    .shell { display: flex; flex-direction: column; align-items: center; height: 100%;
+      padding: max(6px, env(safe-area-inset-top)) 8px max(8px, env(safe-area-inset-bottom)); gap: 6px; }
+    .top { display: flex; align-items: center; gap: 8px; width: 100%; max-width: 560px; flex: none; }
+    .top button, .menu button, .over button {
+      min-height: 44px; min-width: 44px; border: 0; border-radius: 12px; padding: 0 14px;
+      background: rgba(255,255,255,0.12); color: #fff; font: inherit; font-size: 15px; font-weight: 700; }
+    .top .title { flex: 1; min-width: 0; line-height: 1.15; }
+    .top .title b { display: block; font-size: 15px; }
+    .top .title span { display: block; font-size: 12px; opacity: .7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .top button.danger { background: #7d2b2b; }
+    .bar { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: var(--bs); flex: none;
+      min-height: 34px; font-size: 14px; font-weight: 700; }
+    .bar .who { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .bar .clock { font-variant-numeric: tabular-nums; background: rgba(255,255,255,0.1); border-radius: 8px;
+      padding: 3px 9px; min-width: 62px; text-align: center; }
+    .bar.turn .clock { background: #2e7d4f; }
+    .bar .clock.low { background: #b3261e; }
+    .board-wrap { position: relative; flex: none; }
+    .board { --bs: min(calc(100vw - 16px), calc(100dvh - 210px), 560px); width: var(--bs); height: var(--bs);
+      display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr);
+      border-radius: 8px; overflow: hidden; box-shadow: 0 4px 18px rgba(0,0,0,.45); }
+    .shell { --bs: min(calc(100vw - 16px), calc(100dvh - 210px), 560px); }
+    .sq { position: relative; border: 0; padding: 0; display: flex; align-items: center; justify-content: center;
+      font-size: calc(var(--bs) / 8 * 0.78); line-height: 1; background: #ead9b0; color: inherit; font-family: 'Segoe UI Symbol', 'Noto Sans Symbols 2', 'Apple Symbols', system-ui, sans-serif; }
+    .sq.dark { background: #6f9a62; }
+    .sq.last { background: #d8d46a; }
+    .sq.dark.last { background: #a9b447; }
+    .sq.sel { background: #f4c542 !important; }
+    .sq.check { background: radial-gradient(circle, #ff5a4d 25%, transparent 75%), #ead9b0; }
+    .sq.dark.check { background: radial-gradient(circle, #ff5a4d 25%, transparent 75%), #6f9a62; }
+    .sq .p { pointer-events: none; }
+    .sq .p.w { color: #fffdf4; text-shadow: 0 0 2px #000, 0 0 1px #000, 0 1px 0 #000, 0 -1px 0 #000, 1px 0 0 #000, -1px 0 0 #000; }
+    .sq .p.b { color: #17120d; text-shadow: 0 0 1px rgba(255,255,255,.55); }
+    .sq .dot { position: absolute; width: 28%; height: 28%; border-radius: 50%; background: rgba(20,20,20,.35); pointer-events: none; }
+    .sq .ring { position: absolute; inset: 4%; border-radius: 50%; border: 4px solid rgba(20,20,20,.35); pointer-events: none; }
+    .sq .file, .sq .rank { position: absolute; font-size: 10px; font-weight: 800; opacity: .55; pointer-events: none; font-family: system-ui, sans-serif; color: #243; }
+    .sq .file { right: 3px; bottom: 1px; }
+    .sq .rank { left: 3px; top: 1px; }
+    .status { flex: none; min-height: 24px; font-size: 14px; font-weight: 700; text-align: center; }
+    .status.alert { color: #ffb3a8; }
+    .overlay { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; padding: 12px;
+      background: rgba(8,14,10,.82); border-radius: 8px; z-index: 5; text-align: center; }
+    .overlay.on { display: flex; }
+    .card { display: flex; flex-direction: column; gap: 10px; align-items: stretch; width: min(100%, 300px); }
+    .card h2 { font-size: 20px; } .card p { font-size: 14px; opacity: .85; }
+    .row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+    .card button { min-height: 44px; border: 0; border-radius: 12px; padding: 0 14px; font: inherit; font-size: 15px; font-weight: 800;
+      background: #2e7d4f; color: #fff; }
+    .card button.ghost { background: rgba(255,255,255,.14); }
+    .promo { display: flex; gap: 8px; justify-content: center; }
+    .promo button { width: 58px; height: 58px; font-size: 38px; padding: 0; background: #ead9b0; color: #17120d; font-family: 'Segoe UI Symbol', 'Noto Sans Symbols 2', system-ui, sans-serif; }
+    .chip.on { outline: 3px solid #f4c542; }
+  </style>
+</head>
+<body>
+  <div class="shell" id="shell">
+    <div class="top">
+      <button type="button" id="close" aria-label="Close game">✕</button>
+      <div class="title"><b>♟︎ Chess</b><span id="subtitle"></span></div>
+      <button type="button" id="flip" aria-label="Flip board">⇅</button>
+      <button type="button" id="again" aria-label="New game" hidden>↺</button>
+      <button type="button" id="resign" class="danger" hidden>Resign</button>
+    </div>
+    <div class="bar" id="topBar"><span class="who" id="topName"></span><span class="clock" id="topClock" hidden></span></div>
+    <div class="board-wrap">
+      <div class="board" id="board" role="grid" aria-label="Chess board"></div>
+      <div class="overlay" id="menu"><div class="card">
+        <h2>Chess</h2>
+        <button type="button" data-mode="local">👥 Pass &amp; play</button>
+        <div class="row">
+          <button type="button" class="ghost" data-mode="cpu" data-level="easy">🤖 Easy</button>
+          <button type="button" class="ghost" data-mode="cpu" data-level="medium">🤖 Medium</button>
+          <button type="button" class="ghost" data-mode="cpu" data-level="hard">🤖 Hard</button>
+        </div>
+        <p>Play the phone as white.</p>
+      </div></div>
+      <div class="overlay" id="promoBox"><div class="card"><h2>Promote to</h2><div class="promo" id="promo"></div></div></div>
+      <div class="overlay" id="over"><div class="card"><h2 id="overTitle"></h2><p id="overText"></p>
+        <button type="button" id="overAgain">Play again</button>
+        <button type="button" class="ghost" id="overView">View board</button>
+        <button type="button" class="ghost" id="overClose">Close</button></div></div>
+    </div>
+    <div class="bar" id="botBar"><span class="who" id="botName"></span><span class="clock" id="botClock" hidden></span></div>
+    <div class="status" id="status" aria-live="polite"></div>
+  </div>
+  <script type="module" src="game.js"></script>
+</body>
+</html>

@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto'
 import type { WebSocket } from 'ws'
+import { CHESS_MESSAGES, chessJoin, chessMessage, type ChessEmit } from './chess-match.js'
 
 /*
  * Live match relay for Phone → Games. Both phones in a match join one room; each shot,
@@ -64,12 +65,22 @@ export function joinGame(socket: WebSocket, token: string | undefined) {
   send(socket, { t: 'hello', seat: ticket.seat, opponentOnline: otherOnline })
   if (lastTable.has(ticket.matchId)) send(socket, { t: 'settled', snap: lastTable.get(ticket.matchId) })
   send(other?.socket ?? null, { t: 'presence', online: true })
+  // Chess is refereed by the server (chess-match.ts); other games just relay
+  const emitChess: ChessEmit = (to, message) => {
+    for (const n of to === 'both' ? [0, 1] : [to]) send(room!.get(n)?.socket ?? null, message)
+  }
+  void chessJoin(ticket.matchId, ticket.seat as 0 | 1, emitChess).catch(() => {})
 
   socket.on('message', (data) => {
     let msg: Record<string, unknown>
     try {
       msg = JSON.parse(String(data)) as Record<string, unknown>
     } catch {
+      return
+    }
+    if (typeof msg.t === 'string' && CHESS_MESSAGES.has(msg.t)) {
+      seat.lastSeen = Date.now()
+      void chessMessage(ticket.matchId, ticket.seat as 0 | 1, msg, emitChess).catch(() => {})
       return
     }
     if (typeof msg.t !== 'string' || !RELAYED.has(msg.t)) return

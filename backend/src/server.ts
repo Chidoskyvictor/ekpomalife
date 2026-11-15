@@ -38,6 +38,7 @@ import { cryptoRoutes } from './routes/crypto.js'
 import { playersRoutes } from './routes/players.js'
 import { venueRoutes } from './routes/venues.js'
 import { gamesRoutes } from './routes/games.js'
+import { resumeChessMatches } from './game/chess-match.js'
 import { whotRoutes } from './routes/whot.js'
 import { adminRoutes } from './routes/admin.js'
 import { spacesRoutes } from './routes/spaces.js'
@@ -212,3 +213,5 @@ process.on('SIGTERM', shutdown)
 
 await runMigrations()
 await app.listen({ port: env.PORT, host: '0.0.0.0' })
+// Chess matches that were running when the server last stopped keep their clocks going
+void resumeChessMatches().catch((error) => app.log.error(error, 'resume chess matches'))
