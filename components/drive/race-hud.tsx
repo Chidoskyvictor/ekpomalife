@@ -30,6 +30,20 @@ import styles from "./race-hud.module.css";
 
 /** Cars line up one behind the other at the start, this far apart (game metres). */
 const GRID_GAP = 7;
+/** Side by side on the start line: two cars a lane apart, the next pair a row behind. */
+const GRID_SIDE = 3.4;
+
+/** Where racer `slot` waits: the host's spot, then one lane to the left, then a row back, … */
+function gridSpot(start: { x: number; z: number; h: number }, slot: number) {
+  const { x, z, h } = start;
+  const back = GRID_GAP * Math.floor(slot / 2);
+  const side = slot % 2 === 1 ? GRID_SIDE : 0; // the driver's left: the other lane
+  return {
+    x: x - Math.sin(h) * back + Math.cos(h) * side,
+    z: z - Math.cos(h) * back - Math.sin(h) * side,
+    h,
+  };
+}
 /** How near the finish your phone tells the server "I am there" (the server allows a little more). */
 const FINISH_REACH = 24;
 
@@ -132,12 +146,7 @@ export function RaceHud({
     if (!mine || mine.status !== "open" || gridded.current === mine.id) return;
     gridded.current = mine.id;
     const slot = mine.racers.find((r) => r.you)?.slot ?? 0;
-    const { x, z, h } = mine.start;
-    driveCommand.warp = {
-      x: x - Math.sin(h) * GRID_GAP * slot,
-      z: z - Math.cos(h) * GRID_GAP * slot,
-      h,
-    };
+    driveCommand.warp = gridSpot(mine.start, slot);
     setDriveDest({ id: mine.dest.id, label: mine.dest.label });
   }, [mine]);
 
@@ -146,12 +155,7 @@ export function RaceHud({
     if (!mine || !running || lined.current === mine.id) return;
     lined.current = mine.id;
     const slot = mine.racers.find((r) => r.you)?.slot ?? 0;
-    const { x, z, h } = mine.start;
-    driveCommand.warp = {
-      x: x - Math.sin(h) * GRID_GAP * slot,
-      z: z - Math.cos(h) * GRID_GAP * slot,
-      h,
-    };
+    driveCommand.warp = gridSpot(mine.start, slot);
     driveCommand.hold = true;
     setDriveDest({ id: mine.dest.id, label: mine.dest.label });
     onClose();
