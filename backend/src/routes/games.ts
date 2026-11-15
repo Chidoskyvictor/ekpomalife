@@ -2,6 +2,8 @@ import type { FastifyInstance, FastifyReply } from 'fastify'
 import { z } from 'zod'
 import { getSessionUser } from '../auth/current-user.js'
 import { createGameTicket, joinGame } from '../game/game-live.js'
+import { CHAT_KINDS, chatTicket, gameVoiceAccess, joinGameChat } from '../game/game-chat.js'
+import { liveKitConfig } from '../game/livekit.js'
 import {
   acceptChallenge,
   closeChallenge,
@@ -161,5 +163,33 @@ export async function gamesRoutes(app: FastifyInstance) {
   // Live match socket (opened with a ticket, no cookie needed)
   app.get('/ws/game', { websocket: true }, (socket, request) => {
     void joinGame(socket, wsQuery.parse(request.query).ticket)
+  })
+
+  // In-game chat + voice, shared by every online game. `kind` is match | whot | ludo; only seated players get in.
+  const chatBody = z.object({ kind: z.enum(CHAT_KINDS), id: z.string().min(1).max(64) })
+  app.post('/game-chat/ticket', rate, async (request, reply) => {
+    const user = await getSessionUser(request)
+    if (!user) return notLoggedIn(reply)
+    const body = chatBody.safeParse(request.body)
+    if (!body.success) return reply.code(400).send({ ok: false, error: 'Pick a game.' })
+    const t = await chatTicket(user.id, body.data.kind, body.data.id)
+    if (!t) return reply.code(404).send({ ok: false, error: 'You are not seated at that game.' })
+    return reply.send({ ok: true, ...t })
+  })
+
+  app.post('/game-chat/voice', rate, async (request, reply) => {
+    const user = await getSessionUser(request)
+    if (!user) return notLoggedIn(reply)
+    const body = chatBody.safeParse(request.body)
+    if (!body.success) return reply.code(400).send({ ok: false, error: 'Pick a game.' })
+    const cfg = liveKitConfig()
+    if (!cfg) return reply.code(503).send({ ok: false, error: 'Voice is not available right now.' })
+    const access = await gameVoiceAccess(user.id, body.data.kind, body.data.id, cfg)
+    if (!access) return reply.code(404).send({ ok: false, error: 'You are not seated at that game.' })
+    return reply.send({ ok: true, ...access })
+  })
+
+  app.get('/ws/game-chat', { websocket: true }, (socket, request) => {
+    joinGameChat(socket, wsQuery.parse(request.query).ticket)
   })
 }

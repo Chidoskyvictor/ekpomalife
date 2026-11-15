@@ -4,6 +4,7 @@ import { getSessionUser, type SessionUser } from '../auth/current-user.js'
 import { env } from '../env.js'
 import { AD_ACTIONS, adClickReport, logAdClick } from '../game/ad-clicks.js'
 import { deleteSong, listAllSongs, saveSong } from '../game/promoted-songs.js'
+import { listGameChatReports } from '../game/game-chat.js'
 import { adminAnonAction, listAnonReports } from '../game/anonymous.js'
 import { adminBanHost, adminEndSpace, listSpaceReports, type SpacesFail } from '../game/spaces.js'
 import {
@@ -111,6 +112,11 @@ export async function adminRoutes(app: FastifyInstance) {
   app.get('/admin/space-reports', rate(60), async (request, reply) => {
     if (!(await requireAdmin(request, reply))) return
     return reply.send(await listSpaceReports())
+  })
+
+  app.get('/admin/game-chat/reports', rate(60), async (request, reply) => {
+    if (!(await requireAdmin(request, reply))) return
+    return reply.send({ ok: true, reports: await listGameChatReports() })
   })
 
   app.get('/admin/anonymous/reports', rate(60), async (request, reply) => {

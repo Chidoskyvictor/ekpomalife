@@ -1,7 +1,7 @@
 'use client'
 
 import { ChevronLeft } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react'
 import { useGame } from '@/hooks/use-game'
 import {
   SNOOKER_VARIANTS,
@@ -37,6 +37,8 @@ import { FullscreenGameFrame } from '@/components/games/fullscreen-game-frame'
 import { TttOnlineGame } from '@/components/games/ttt-online-game'
 import { TttSetup } from '@/components/games/ttt-setup'
 import type { LudoTable } from '@/lib/game/ludo-api'
+import { GameChatDock } from '@/components/games/game-chat/game-chat-dock'
+import type { GameChatTarget } from '@/lib/game/game-chat-api'
 import { EMBEDDED_GAMES, type EmbeddedGameId } from '@/lib/game/embedded-games'
 import { LudoLobby, LudoPlay, LudoSetup, type LudoPlaySetup } from '@/components/games/ludo/ludo-game'
 import styles from './games.module.css'
@@ -91,8 +93,32 @@ const liveView = (m: GameMatch): View =>
       ? { name: 'ludo-play', setup: { mode: 'online', match: m } }
       : { name: 'play', setup: { opponent: 'online', match: m } }
 
+/** Where the in-game chat + voice attaches: the live match or table you are seated at (not vs the computer). */
+function chatTarget(view: View): GameChatTarget | null {
+  if (view.name === 'play' && view.setup.opponent === 'online') return { kind: 'match', id: view.setup.match.id }
+  if (view.name === 'chess-play' && view.setup.opponent === 'online') return { kind: 'match', id: view.setup.match.id }
+  if (view.name === 'ludo-play') {
+    if (view.setup.mode === 'online') return { kind: 'match', id: view.setup.match.id }
+    if (view.setup.mode === 'table') return { kind: 'ludo', id: view.setup.tableId }
+  }
+  if (view.name === 'whot-play' && view.play.mode === 'online') return { kind: 'whot', id: view.play.tableId }
+  if (view.name === 'whot-lobby') return { kind: 'whot', id: view.table.id }
+  if (view.name === 'ludo-lobby') return { kind: 'ludo', id: view.table.id }
+  return null
+}
+
 export function GamesApp({ onHome }: { onHome: () => void }) {
   const [view, setView] = useState<View>({ name: 'home' })
+  const target = chatTarget(view)
+  return (
+    <>
+      <GamesScreens onHome={onHome} view={view} setView={setView} />
+      {target ? <GameChatDock key={`${target.kind}:${target.id}`} target={target} /> : null}
+    </>
+  )
+}
+
+function GamesScreens({ onHome, view, setView }: { onHome: () => void; view: View; setView: Dispatch<SetStateAction<View>> }) {
   const [matches, setMatches] = useState<GameMatch[]>([])
   const [betLeft, setBetLeft] = useState<number | null>(null)
   const [note, setNote] = useState<string | null>(null)
