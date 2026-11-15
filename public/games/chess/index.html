@@ -35,7 +35,7 @@
     .bar.turn .clock { background: #2e7d4f; }
     .bar .clock.low { background: #b3261e; }
     .board-wrap { position: relative; flex: none; }
-    .board { --bs: min(calc(100vw - 16px), calc(100dvh - 210px), 560px); width: var(--bs); height: var(--bs);
+    .board { width: var(--bs); height: var(--bs);
       display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr);
       border-radius: 8px; overflow: hidden; box-shadow: 0 4px 18px rgba(0,0,0,.45); }
     .shell { --bs: min(calc(100vw - 16px), calc(100dvh - 210px), 560px); }
@@ -68,6 +68,24 @@
     .card button.ghost { background: rgba(255,255,255,.14); }
     .promo { display: flex; gap: 8px; justify-content: center; }
     .promo button { width: 58px; height: 58px; font-size: 38px; padding: 0; background: #ead9b0; color: #17120d; font-family: 'Segoe UI Symbol', 'Noto Sans Symbols 2', system-ui, sans-serif; }
+    .shell.learn { --bs: min(calc(100vw - 16px), calc(100dvh - 350px), 560px); }
+    .coach { flex: none; width: min(100%, 560px); margin-bottom: 4px; padding: 10px 12px; border-radius: 12px;
+      background: rgba(255,255,255,0.09); font-size: 14px; line-height: 1.4; }
+    .coach[hidden] { display: none; }
+    .coach p { margin-bottom: 8px; }
+    .coach .row { justify-content: flex-start; }
+    .coach button { min-height: 44px; border: 0; border-radius: 12px; padding: 0 14px; font: inherit; font-size: 14px; font-weight: 800; background: #2e7d4f; color: #fff; }
+    .coach button.ghost { background: rgba(255,255,255,.14); }
+    .coach button[hidden] { display: none; }
+    .sq.hint { box-shadow: inset 0 0 0 4px #4da3ff; }
+    #learn { position: fixed; inset: 0; z-index: 20; display: none; background: #0f1a14; overflow-y: auto;
+      padding: max(10px, env(safe-area-inset-top)) 12px 16px; }
+    #learn.on { display: block; }
+    #learn .wrap { max-width: 480px; margin: 0 auto; display: flex; flex-direction: column; gap: 8px; }
+    #learn h2 { font-size: 20px; margin: 4px 0; } #learn p { font-size: 14px; opacity: .8; margin-bottom: 4px; }
+    #learn button { min-height: 48px; border: 0; border-radius: 12px; padding: 0 14px; text-align: left; font: inherit; font-size: 15px; font-weight: 700; background: rgba(255,255,255,.1); color: #fff; }
+    #learn button.primary { background: #2e7d4f; font-weight: 800; }
+    #learn button.done::after { content: ' ✓'; color: #7be0a1; }
     .chip.on { outline: 3px solid #f4c542; }
   </style>
 </head>
@@ -86,6 +104,7 @@
       <div class="board" id="board" role="grid" aria-label="Chess board"></div>
       <div class="overlay" id="menu"><div class="card">
         <h2>Chess</h2>
+        <button type="button" data-mode="learn">🎓 Learn to play</button>
         <button type="button" data-mode="local">👥 Pass &amp; play</button>
         <div class="row">
           <button type="button" class="ghost" data-mode="cpu" data-level="easy">🤖 Easy</button>
@@ -104,7 +123,24 @@
     </div>
     <div class="bar" id="botBar"><span class="who" id="botName"></span><span class="took" id="botTook"></span><span class="clock" id="botClock" hidden></span></div>
     <div class="status" id="status" aria-live="polite"></div>
+    <div class="coach" id="coach" hidden>
+      <p id="coachText"></p>
+      <div class="row">
+        <button type="button" id="coachHint" hidden>💡 Hint</button>
+        <button type="button" id="coachUndo" class="ghost" hidden>↩ Take back</button>
+        <button type="button" id="coachRetry" class="ghost" hidden>↺ Retry</button>
+        <button type="button" id="coachLessons" class="ghost" hidden>☰ Lessons</button>
+        <button type="button" id="coachNext" hidden>Next ▶</button>
+      </div>
+    </div>
   </div>
+  <div id="learn"><div class="wrap">
+    <button type="button" id="learnClose" aria-label="Close lessons" style="width:48px;text-align:center">✕</button>
+    <h2>🎓 Learn chess</h2>
+    <p>Short, hands-on lessons. Tap one to start, or play a real game with a coach who gives hints.</p>
+    <div id="learnList" style="display:flex;flex-direction:column;gap:8px"></div>
+    <button type="button" class="primary" id="learnCoach">🧑‍🏫 Play a game with a coach</button>
+  </div></div>
   <script type="module" src="game.js"></script>
 </body>
 </html>

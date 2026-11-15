@@ -14,6 +14,7 @@ import styles from '@/components/hud/phone/apps/games.module.css'
 export type ChessPlaySetup =
   | { opponent: 'cpu'; level: 'easy' | 'medium' | 'hard' }
   | { opponent: 'local' }
+  | { opponent: 'learn' }
   | { opponent: 'online'; match: GameMatch }
 
 const naira = (n: number) => `₦${n.toLocaleString()}`
@@ -34,6 +35,8 @@ export function ChessPlayView({ setup, onExit, notify }: { setup: ChessPlaySetup
     if (setup.opponent === 'cpu') {
       const level = setup.level[0]!.toUpperCase() + setup.level.slice(1)
       toGame({ type: 'init', mode: 'cpu', level: setup.level, names: ['You', 'Phone'], subtitle: `vs Phone · ${level}` })
+    } else if (setup.opponent === 'learn') {
+      toGame({ type: 'init', mode: 'learn', names: ['You', 'Teacher'], subtitle: 'Learn to play' })
     } else if (setup.opponent === 'local') {
       toGame({ type: 'init', mode: 'local', names: ['White', 'Black'], subtitle: 'Pass & play' })
     } else {

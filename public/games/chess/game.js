@@ -2,6 +2,7 @@
 // Online: the Games app (parent) holds the socket; the server validates moves and runs the clocks.
 import { Chess } from './chess.js'
 import { bestMove } from './engine.js'
+import { LESSONS } from './lessons.js'
 
 const $ = (id) => document.getElementById(id)
 const GLYPH = { k: '♚︎', q: '♛︎', r: '♜︎', b: '♝︎', n: '♞︎', p: '♟︎' }
@@ -24,6 +25,24 @@ let turnSeat = 0
 let online = { over: null, opponentHere: true }
 let resignArmed = 0
 let drawOffer = null
+/* Learn mode: lessons, hints from a coach, a tip for the piece you touch */
+const NAME = { p: 'pawn', n: 'knight', b: 'bishop', r: 'rook', q: 'queen', k: 'king' }
+const TIPS = {
+  p: 'Pawn: one step forward (two from its start square). It captures diagonally.',
+  n: 'Knight: moves in an L shape and can jump over other pieces.',
+  b: 'Bishop: any distance diagonally, always on the same colour.',
+  r: 'Rook: any distance in a straight line.',
+  q: 'Queen: any distance, in a straight line or diagonally.',
+  k: 'King: one step in any direction, never into danger.',
+}
+let lesson = null
+let hint = null
+let tipText = ''
+let learned = new Set()
+try {
+  learned = new Set(JSON.parse(localStorage.getItem('ekpoma-chess-learned') || '[]'))
+} catch (_) {}
+const COACH_BTNS = { hint: true, undo: true, lessons: true }
 const WORTH = { p: 1, n: 3, b: 3, r: 5, q: 9 }
 const START = { p: 8, n: 2, b: 2, r: 2, q: 1 }
 
@@ -47,7 +66,7 @@ for (let r = 0; r < 8; r++) {
 }
 const cells = [...boardEl.children]
 
-const mySide = () => (cfg.mode === 'online' ? (cfg.seat === 0 ? 'w' : 'b') : cfg.mode === 'cpu' ? 'w' : null)
+const mySide = () => (cfg.mode === 'online' ? (cfg.seat === 0 ? 'w' : 'b') : cfg.mode === 'cpu' || cfg.mode === 'learn' ? 'w' : null)
 
 function render() {
   const order = []
@@ -63,6 +82,7 @@ function render() {
       ((r + c) % 2 === 1 ? ' dark' : '') +
       (last && (last.from === sq || last.to === sq) ? ' last' : '') +
       (selected === sq ? ' sel' : '') +
+      (hint && (hint.from === sq || hint.to === sq) ? ' hint' : '') +
       (kingInCheck === sq ? ' check' : '')
     const target = legal.find((m) => m.to === sq)
     el.setAttribute('aria-label', `${sq}${piece ? ' ' + piece.color + piece.type : ''}`)
@@ -106,6 +126,7 @@ function tookLine(color) {
   return { glyphs, lead }
 }
 function setTook(el, color) {
+  if (cfg.mode === 'learn') return void (el.innerHTML = '') // lesson positions aren't full games
   const { glyphs, lead } = tookLine(color)
   el.innerHTML = glyphs + (lead > 0 ? `<small>+${lead}</small>` : '')
 }
@@ -148,7 +169,9 @@ function renderStatus() {
   let alert = false
   if (over) text = over.title
   else if (cfg.mode === 'online' && !started) text = `Waiting for ${cfg.names[1 - cfg.seat]} to sit down…`
-  else if (thinking) text = 'Phone is thinking…'
+  else if (selected && tipText && (cfg.mode === 'learn' || cfg.coach)) text = tipText
+  else if (cfg.mode === 'learn') text = lesson ? (lesson.done ? 'Well done!' : `Lesson ${lesson.i + 1} of ${LESSONS.length}`) : ''
+  else if (thinking) text = cfg.coach ? 'Coach is thinking…' : 'Phone is thinking…'
   else {
     const mine = mySide()
     const turn = game.turn()
@@ -163,6 +186,7 @@ function renderStatus() {
 /* ---------- input ---------- */
 function canAct() {
   if (over || pendingPromo || thinking) return false
+  if (cfg.mode === 'learn' && (!lesson || lesson.done)) return false
   if (cfg.mode === 'online') return started && !online.over
   return true
 }
@@ -173,9 +197,11 @@ function onSquare(sq) {
   const mine = mySide()
   if (piece && piece.color === game.turn() && (!mine || piece.color === mine)) {
     selected = sq
+    tipText = TIPS[piece.type]
     legal = game.moves({ square: sq, verbose: true })
   } else {
     selected = null
+    tipText = ''
     legal = []
   }
   render()
@@ -214,6 +240,9 @@ function play(from, to, promotion) {
     legal = []
     return render()
   }
+  hint = null
+  tipText = ''
+  if (cfg.mode === 'learn') return checkLesson(made)
   last = { from: made.from, to: made.to }
   selected = null
   legal = []
@@ -287,8 +316,134 @@ async function phoneMove() {
   if (!move || over || cfg.mode !== 'cpu') return render()
   const made = game.move(move)
   last = { from: made.from, to: made.to }
+  if (cfg.coach && !offlineEnd()) setCoach(`The coach played ${made.san}. Your move! Stuck? Tap Hint.`, COACH_BTNS)
   afterMove()
 }
+
+/* ---------- learn mode ---------- */
+function setCoach(text, btns = {}) {
+  const on = cfg.mode === 'learn' || !!cfg.coach
+  $('coach').hidden = !on
+  $('shell').classList.toggle('learn', on)
+  if (!on) return
+  $('coachText').textContent = text
+  for (const [id, key] of [['coachHint', 'hint'], ['coachUndo', 'undo'], ['coachRetry', 'retry'], ['coachLessons', 'lessons'], ['coachNext', 'next']]) {
+    $(id).hidden = !btns[key]
+  }
+}
+
+function showLearn() {
+  const list = $('learnList')
+  list.innerHTML = ''
+  LESSONS.forEach((l, i) => {
+    const b = document.createElement('button')
+    b.type = 'button'
+    b.textContent = `${i + 1}. ${l.title}`
+    if (learned.has(i)) b.className = 'done'
+    b.addEventListener('click', () => startLesson(i))
+    list.appendChild(b)
+  })
+  $('learn').classList.add('on')
+}
+
+function startLesson(i) {
+  lesson = { i, done: false }
+  const l = LESSONS[i]
+  cfg = { ...cfg, mode: 'learn', coach: false, names: ['You', 'Teacher'] }
+  $('learn').classList.remove('on')
+  $('over').classList.remove('on')
+  game = new Chess(l.fen)
+  selected = null
+  legal = []
+  last = null
+  over = null
+  hint = null
+  tipText = ''
+  flipped = false
+  $('again').hidden = true
+  $('draw').hidden = $('resign').hidden = true
+  $('subtitle').textContent = `Lesson ${i + 1} of ${LESSONS.length} · ${l.title}`
+  setCoach(l.text, { lessons: true, retry: !!l.goal, next: !l.goal })
+  render()
+}
+
+function checkLesson(made) {
+  const l = LESSONS[lesson.i]
+  const g = l.goal
+  let ok = false
+  if (g === 'check') ok = /[+#]/.test(made.san)
+  else if (g === 'mate') ok = made.san.includes('#')
+  else if (g) ok = g.to.includes(made.to) && (!g.from || g.from === made.from)
+  selected = null
+  legal = []
+  if (ok) {
+    lesson.done = true
+    learned.add(lesson.i)
+    try {
+      localStorage.setItem('ekpoma-chess-learned', JSON.stringify([...learned]))
+    } catch (_) {}
+    last = { from: made.from, to: made.to }
+    setCoach('✅ ' + l.done, { lessons: true, retry: true, next: true })
+  } else {
+    game.undo()
+    setCoach(g ? '🙂 Not quite. ' + l.retry : 'Just look around — nothing counts here. Tap Next when you are ready.', { lessons: true, retry: !!g, next: !g })
+  }
+  render()
+}
+
+function startCoachGame() {
+  lesson = null
+  cfg = { mode: 'cpu', seat: 0, names: ['You', 'Coach'], level: 'easy', coach: true, subtitle: 'Game with a coach' }
+  $('learn').classList.remove('on')
+  newGame()
+}
+
+async function giveHint() {
+  if (thinking || over || game.turn() !== 'w') return
+  thinking = true
+  setCoach('Let me think…', {})
+  renderStatus()
+  const m = await ask(game.fen(), 'medium')
+  thinking = false
+  if (!m || over) return render()
+  hint = { from: m.from, to: m.to }
+  const mv = game.moves({ verbose: true }).find((x) => x.from === m.from && x.to === m.to)
+  let why = ''
+  if (mv.captured) why = ` It captures a ${NAME[mv.captured]}.`
+  else if (mv.flags.includes('k') || mv.flags.includes('q')) why = ' That is castling — it keeps your king safe.'
+  else if (/[+#]/.test(mv.san)) why = ' It gives check!'
+  else if (mv.promotion) why = ' Your pawn becomes a new piece!'
+  else if ((mv.piece === 'n' || mv.piece === 'b') && m.from[1] === '1') why = ' It brings a piece into the game.'
+  setCoach(`💡 Try moving the ${NAME[mv.piece]} from ${m.from} to ${m.to}.${why}`, COACH_BTNS)
+  render()
+}
+
+function takeBack() {
+  if (thinking) return
+  const hist = game.history().length
+  if (!hist) return
+  game.undo()
+  if (game.turn() !== 'w' && game.history().length) game.undo()
+  over = null
+  last = null
+  hint = null
+  selected = null
+  legal = []
+  $('over').classList.remove('on')
+  setCoach('Taken back. Try a different move!', COACH_BTNS)
+  render()
+}
+
+$('coachHint').addEventListener('click', giveHint)
+$('coachUndo').addEventListener('click', takeBack)
+$('coachRetry').addEventListener('click', () => lesson && startLesson(lesson.i))
+$('coachLessons').addEventListener('click', showLearn)
+$('coachNext').addEventListener('click', () => (lesson && lesson.i + 1 < LESSONS.length ? startLesson(lesson.i + 1) : showLearn()))
+$('learnCoach').addEventListener('click', startCoachGame)
+$('learnClose').addEventListener('click', () => {
+  $('learn').classList.remove('on')
+  if (cfg.mode === 'learn' && !lesson) post({ type: 'exit' })
+})
 
 /* ---------- overlays ---------- */
 function showOver(title, text, canPlayAgain) {
@@ -309,6 +464,8 @@ function newGame() {
   thinking = false
   started = true
   resignArmed = 0
+  hint = null
+  tipText = ''
   $('over').classList.remove('on')
   $('promoBox').classList.remove('on')
   $('offer').classList.remove('on')
@@ -319,16 +476,26 @@ function newGame() {
   $('again').hidden = online_
   $('resign').textContent = 'Resign'
   $('subtitle').textContent = cfg.subtitle
+  if (cfg.coach) setCoach('Welcome! You play white. I will help: tap a piece to see how it moves, tap Hint for a suggestion, or Take back a move.', COACH_BTNS)
+  else if (cfg.mode !== 'learn') setCoach('')
   flipped = online_ ? cfg.seat === 1 : false
   if (online_) started = false
   render()
 }
 function startMode(mode, level) {
+  if (mode === 'learn') {
+    cfg = { mode: 'learn', seat: 0, names: ['You', 'Teacher'], level: 'easy', coach: false, subtitle: 'Learn to play' }
+    lesson = null
+    $('menu').classList.remove('on')
+    newGame()
+    return showLearn()
+  }
   cfg = {
     mode,
     seat: 0,
     names: mode === 'cpu' ? ['You', 'Phone'] : ['White', 'Black'],
     level: level || 'medium',
+    coach: false,
     subtitle: mode === 'cpu' ? `vs Phone · ${level[0].toUpperCase() + level.slice(1)}` : 'Pass & play',
   }
   $('menu').classList.remove('on')
@@ -418,12 +585,15 @@ window.addEventListener('message', (event) => {
       seat: m.seat ?? 0,
       names: m.names || ['White', 'Black'],
       level: m.level || 'medium',
+      coach: false,
       subtitle: m.subtitle || '',
     }
     online = { over: null }
+    lesson = null
     $('menu').classList.remove('on')
     clearTimeout(menuTimer)
     newGame()
+    if (cfg.mode === 'learn') showLearn()
     if (cfg.mode === 'online') post({ type: 'sync' })
   } else if (m.type === 'state' && cfg.mode === 'online') applyServerState(m.state)
   else if (m.type === 'error' && cfg.mode === 'online') {

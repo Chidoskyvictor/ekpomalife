@@ -7,7 +7,7 @@ import { fetchChats, type ChatSummary } from '@/lib/game/hostels-api'
 import type { ChessPlaySetup } from './chess-play'
 import styles from '@/components/hud/phone/apps/games.module.css'
 
-type Mode = 'cpu' | 'local' | 'online'
+type Mode = 'learn' | 'cpu' | 'local' | 'online'
 
 /** Chess entry: vs the phone, pass & play, or online (challenge by username / quick match, friendly or a bet). */
 export function ChessSetup({
@@ -75,6 +75,7 @@ export function ChessSetup({
       <div className={styles.chips}>
         {(
           [
+            ['learn', '🎓', 'Learn'],
             ['cpu', '🤖', 'Phone'],
             ['local', '👥', 'Pass & play'],
             ['online', '🌐', 'Online'],
@@ -86,6 +87,17 @@ export function ChessSetup({
           </button>
         ))}
       </div>
+
+      {mode === 'learn' ? (
+        <>
+          <p className={styles.fine}>
+            New to chess? Short hands-on lessons show how every piece moves, then play a game with a coach who gives hints.
+          </p>
+          <button type="button" className={styles.big} onClick={() => onPlay({ opponent: 'learn' })}>
+            Start learning
+          </button>
+        </>
+      ) : null}
 
       {mode === 'cpu' ? (
         <>
