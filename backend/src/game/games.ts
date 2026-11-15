@@ -2,7 +2,7 @@ import type { PoolClient } from 'pg'
 import { pool } from '../db.js'
 import { createId } from '../ids.js'
 import { postGameNotice } from './chat.js'
-import { forgetTtt, opponentAwaySeconds, tttWinnerSeat } from './game-live.js'
+import { forgetTtt, onTttDecided, opponentAwaySeconds, tttWinnerSeat } from './game-live.js'
 import { applyCash, asMoney, parseNeeds } from './game-state.js'
 import { liveSpaceMoneyBlock, liveSpaceMoneyBlockForCharacters } from './spaces-money.js'
 import { applyNeedDelta } from './needs.js'
@@ -399,3 +399,12 @@ export async function seatInMatch(userId: string, matchId: string) {
   )
   return found.rows[0] ?? null
 }
+
+/** Tic tac toe: the board decided it, so pay now instead of waiting for a phone to report. */
+onTttDecided(async (matchId) => {
+  const host = await pool.query<{ user_id: string }>(
+    `SELECT c.user_id FROM game_matches m JOIN characters c ON c.id = m.host_id WHERE m.id = $1 AND m.status = 'active'`,
+    [matchId],
+  )
+  if (host.rows[0]) await reportResult(host.rows[0].user_id, matchId, { winner: 'me' })
+})

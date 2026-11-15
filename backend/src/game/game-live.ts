@@ -26,6 +26,10 @@ export function tttWinnerSeat(matchId: string) {
   return tttMatches.get(matchId)?.winnerSeat ?? null
 }
 
+/** Set by games.ts: pays out a decided match without waiting for either phone to report. */
+let tttSettler: ((matchId: string) => Promise<unknown>) | null = null
+export const onTttDecided = (fn: (matchId: string) => Promise<unknown>) => void (tttSettler = fn)
+
 export const forgetTtt = (matchId: string) => void tttMatches.delete(matchId)
 
 const tttView = (s: TttState) => ({ board: s.board, turn: s.turn, round: s.round, draws: s.draws, winnerSeat: s.winnerSeat, line: s.line, last: s.moves.at(-1) ?? null })
@@ -98,6 +102,7 @@ export function joinGame(socket: WebSocket, token: string | undefined) {
       const out = { t: 'ttt', ...tttView(state) }
       send(socket, out)
       send(room!.get(1 - ticket.seat)?.socket ?? null, out)
+      if (state.winnerSeat !== null) void tttSettler?.(ticket.matchId).catch(() => {}) // phones' reports retry it
       return
     }
     if (typeof msg.t !== 'string' || !RELAYED.has(msg.t)) return

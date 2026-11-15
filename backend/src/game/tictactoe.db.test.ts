@@ -111,6 +111,16 @@ run('staked tic tac toe is judged by the server (database)', () => {
     expect(await cash(b.userId)).toBe(1100)
   }, 90_000)
 
+  it('pays out by itself when the board is decided, before any phone reports', async () => {
+    const { a, b, id, sa, sb } = await startMatch(100)
+    for (const [who, cell] of [[sa, 0], [sb, 3], [sa, 1], [sb, 4], [sa, 2]] as const) who.say({ t: 'move', cell })
+    for (let i = 0; i < 30 && (await cash(a.userId)) !== 1100; i++) await new Promise((r) => setTimeout(r, 1000))
+    expect(await cash(a.userId)).toBe(1100)
+    expect(await cash(b.userId)).toBe(900)
+    expect(await games.reportResult(b.userId, id, { winner: 'me' })).toMatchObject({ status: 'finished' })
+    expect(await cash(a.userId)).toBe(1100)
+  }, 90_000)
+
   it('cannot be won by forfeit while the opponent is still at the table', async () => {
     const { b, id } = await startMatch(0)
     const res = await games.reportResult(b.userId, id, { winner: 'me', forfeit: true })
