@@ -2,6 +2,8 @@ import { pool } from '../db.js'
 import { settleServerDecided } from './games.js'
 import {
   checkClock,
+  declineDraw,
+  offerDraw,
   markJoined,
   nextDeadline,
   newChessState,
@@ -18,7 +20,7 @@ import {
  * runs both clocks and settles the stake itself (reportResult from the phones is ignored).
  */
 
-export const CHESS_MESSAGES = new Set(['move', 'resign', 'sync'])
+export const CHESS_MESSAGES = new Set(['move', 'resign', 'sync', 'draw', 'decline'])
 
 type Live = { state: ChessState; timer: ReturnType<typeof setTimeout> | null; saving: Promise<unknown> }
 /** Sends to a seat's socket (the relay in game-live.ts supplies this). */
@@ -102,6 +104,15 @@ export async function chessMessage(matchId: string, seat: 0 | 1, msg: Record<str
   if (msg.t === 'resign') {
     const outcome = resign(entry.state, seat)
     return void (outcome && (await finish(matchId, entry, outcome)))
+  }
+  if (msg.t === 'draw' || msg.t === 'decline') {
+    if (msg.t === 'decline') declineDraw(entry.state, seat)
+    else {
+      const outcome = offerDraw(entry.state, seat)
+      if (outcome) return void (await finish(matchId, entry, outcome))
+    }
+    await save(matchId, entry)
+    return emit('both', { t: 'chess', ...snapshotOf(entry.state, now) })
   }
   if (msg.t !== 'move') return
   const result = playMove(

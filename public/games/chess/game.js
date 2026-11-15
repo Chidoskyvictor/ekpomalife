@@ -23,6 +23,9 @@ let clockAt = 0
 let turnSeat = 0
 let online = { over: null, opponentHere: true }
 let resignArmed = 0
+let drawOffer = null
+const WORTH = { p: 1, n: 3, b: 3, r: 5, q: 9 }
+const START = { p: 8, n: 2, b: 2, r: 2, q: 1 }
 
 function post(msg) {
   try {
@@ -82,11 +85,37 @@ function kingSquare(color) {
 function nameOfSide(color) {
   return cfg.names[color === 'w' ? 0 : 1]
 }
+/* Pieces each side has taken, worked out from what is missing on the board */
+function tookLine(color) {
+  // pieces `color` has captured = opponent pieces missing
+  const opp = color === 'w' ? 'b' : 'w'
+  const have = { p: 0, n: 0, b: 0, r: 0, q: 0 }
+  let mine = 0
+  let theirs = 0
+  for (const row of game.board())
+    for (const p of row) {
+      if (!p || p.type === 'k') continue
+      if (p.color === opp) have[p.type]++
+      const w = WORTH[p.type]
+      if (p.color === color) mine += w
+      else theirs += w
+    }
+  let glyphs = ''
+  for (const t of ['q', 'r', 'b', 'n', 'p']) glyphs += GLYPH[t].repeat(Math.max(0, START[t] - have[t]))
+  const lead = mine - theirs
+  return { glyphs, lead }
+}
+function setTook(el, color) {
+  const { glyphs, lead } = tookLine(color)
+  el.innerHTML = glyphs + (lead > 0 ? `<small>+${lead}</small>` : '')
+}
 function renderBars() {
   const bottomColor = flipped ? 'b' : 'w'
   const topColor = bottomColor === 'w' ? 'b' : 'w'
   $('botName').textContent = nameOfSide(bottomColor)
   $('topName').textContent = nameOfSide(topColor)
+  setTook($('botTook'), bottomColor)
+  setTook($('topTook'), topColor)
   const turn = game.turn()
   $('botBar').classList.toggle('turn', !over && started && turn === bottomColor)
   $('topBar').classList.toggle('turn', !over && started && turn === topColor)
@@ -282,8 +311,11 @@ function newGame() {
   resignArmed = 0
   $('over').classList.remove('on')
   $('promoBox').classList.remove('on')
+  $('offer').classList.remove('on')
+  drawOffer = null
   const online_ = cfg.mode === 'online'
   $('resign').hidden = !online_
+  $('draw').hidden = !online_
   $('again').hidden = online_
   $('resign').textContent = 'Resign'
   $('subtitle').textContent = cfg.subtitle
@@ -315,6 +347,11 @@ $('flip').addEventListener('click', () => {
   flipped = !flipped
   render()
 })
+$('draw').addEventListener('click', () => {
+  if (drawOffer !== cfg.seat) post({ type: 'draw' })
+})
+$('offerYes').addEventListener('click', () => post({ type: 'draw' }))
+$('offerNo').addEventListener('click', () => post({ type: 'decline' }))
 $('resign').addEventListener('click', () => {
   const now = Date.now()
   if (now - resignArmed < 3000) {
@@ -339,6 +376,11 @@ function applyServerState(s) {
   game = new Chess(s.fen)
   last = s.last ? { from: s.last.from, to: s.last.to } : null
   started = s.started
+  drawOffer = s.drawOffer ?? null
+  const asked = drawOffer != null && drawOffer !== cfg.seat && !s.over
+  $('offerText').textContent = `${cfg.names[1 - cfg.seat]} offers a draw.`
+  $('offer').classList.toggle('on', asked)
+  $('draw').textContent = drawOffer === cfg.seat ? 'Offered' : 'Draw'
   turnSeat = s.turn
   clocks = s.clocks
   clockAt = Date.now()
@@ -355,6 +397,7 @@ function applyServerState(s) {
       checkmate: iWon ? 'Checkmate!' : 'Checkmated',
       resign: iWon ? `${them} resigned.` : 'You resigned.',
       timeout: iWon ? `${them} ran out of time.` : 'You ran out of time.',
+      agreed: 'Draw agreed.',
       stalemate: 'Stalemate — draw.',
       draw: 'Draw.',
       abandoned: iWon ? `${them} never showed up.` : draw ? 'Nobody showed up.' : 'You were away too long.',

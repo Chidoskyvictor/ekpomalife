@@ -26,6 +26,8 @@
     .bar { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: var(--bs); flex: none;
       min-height: 34px; font-size: 14px; font-weight: 700; }
     .bar .who { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .bar .took { flex: 1; min-width: 0; color: #e8f0eb; font-size: 18px; letter-spacing: -2px; opacity: .9; white-space: nowrap; overflow: hidden; }
+    .bar .took small { font-size: 12px; letter-spacing: 0; font-weight: 800; margin-left: 4px; opacity: .8; }
     .bar .clock { font-variant-numeric: tabular-nums; background: rgba(255,255,255,0.1); border-radius: 8px;
       padding: 3px 9px; min-width: 62px; text-align: center; }
     .bar.turn .clock { background: #2e7d4f; }
@@ -74,9 +76,10 @@
       <div class="title"><b>♟︎ Chess</b><span id="subtitle"></span></div>
       <button type="button" id="flip" aria-label="Flip board">⇅</button>
       <button type="button" id="again" aria-label="New game" hidden>↺</button>
+      <button type="button" id="draw" hidden>Draw</button>
       <button type="button" id="resign" class="danger" hidden>Resign</button>
     </div>
-    <div class="bar" id="topBar"><span class="who" id="topName"></span><span class="clock" id="topClock" hidden></span></div>
+    <div class="bar" id="topBar"><span class="who" id="topName"></span><span class="took" id="topTook"></span><span class="clock" id="topClock" hidden></span></div>
     <div class="board-wrap">
       <div class="board" id="board" role="grid" aria-label="Chess board"></div>
       <div class="overlay" id="menu"><div class="card">
@@ -90,12 +93,14 @@
         <p>Play the phone as white.</p>
       </div></div>
       <div class="overlay" id="promoBox"><div class="card"><h2>Promote to</h2><div class="promo" id="promo"></div></div></div>
+      <div class="overlay" id="offer"><div class="card"><h2>Draw offered</h2><p id="offerText"></p>
+        <button type="button" id="offerYes">Accept draw</button><button type="button" class="ghost" id="offerNo">Decline</button></div></div>
       <div class="overlay" id="over"><div class="card"><h2 id="overTitle"></h2><p id="overText"></p>
         <button type="button" id="overAgain">Play again</button>
         <button type="button" class="ghost" id="overView">View board</button>
         <button type="button" class="ghost" id="overClose">Close</button></div></div>
     </div>
-    <div class="bar" id="botBar"><span class="who" id="botName"></span><span class="clock" id="botClock" hidden></span></div>
+    <div class="bar" id="botBar"><span class="who" id="botName"></span><span class="took" id="botTook"></span><span class="clock" id="botClock" hidden></span></div>
     <div class="status" id="status" aria-live="polite"></div>
   </div>
   <script type="module" src="game.js"></script>

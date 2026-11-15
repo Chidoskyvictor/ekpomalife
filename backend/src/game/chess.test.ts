@@ -3,6 +3,8 @@ import {
   CHESS_CLOCK_MS,
   CHESS_READY_MS,
   checkClock,
+  declineDraw,
+  offerDraw,
   markJoined,
   newChessState,
   playMove,
@@ -110,6 +112,20 @@ describe('chess referee', () => {
     expect(checkClock(one, T0 + CHESS_READY_MS - 1)).toBeNull()
     expect(checkClock(one, T0 + CHESS_READY_MS + 1)).toEqual({ winner: 1, reason: 'abandoned' })
     expect(checkClock(newChessState(T0), T0 + CHESS_READY_MS + 1)).toEqual({ winner: null, reason: 'abandoned' })
+  })
+
+  it('a draw offer needs the other side to accept; a move or a decline cancels it', () => {
+    const s = started()
+    expect(offerDraw(s, 0)).toBeNull()
+    expect(s.drawOffer).toBe(0)
+    mv(s, 0, 'e2', 'e4', T0 + 1)
+    expect(s.drawOffer).toBeNull()
+    offerDraw(s, 1)
+    declineDraw(s, 0)
+    expect(s.drawOffer).toBeNull()
+    offerDraw(s, 1)
+    expect(offerDraw(s, 0)).toEqual({ winner: null, reason: 'agreed' })
+    expect(s.over).toEqual({ winner: null, reason: 'agreed' })
   })
 
   it('draws by threefold repetition', () => {

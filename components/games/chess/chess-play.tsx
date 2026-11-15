@@ -131,6 +131,7 @@ export function ChessPlayView({ setup, onExit, notify }: { setup: ChessPlaySetup
       else if (m.type === 'exit') onExit()
       else if (m.type === 'move') socket.current?.send(JSON.stringify({ t: 'move', from: m.from, to: m.to, promotion: m.promotion }))
       else if (m.type === 'resign') socket.current?.send(JSON.stringify({ t: 'resign' }))
+      else if (m.type === 'draw' || m.type === 'decline') socket.current?.send(JSON.stringify({ t: m.type }))
       else if (m.type === 'sync') socket.current?.send(JSON.stringify({ t: 'sync' }))
       else if (m.type === 'over' && setup.opponent === 'cpu' && m.winner === 0) {
         void rewardCpuWin().then((res) => {

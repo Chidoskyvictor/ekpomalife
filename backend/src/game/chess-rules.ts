@@ -11,7 +11,7 @@ export const CHESS_CLOCK_MS = 10 * 60_000
 export const CHESS_READY_MS = 3 * 60_000
 
 export type ChessMove = { from: string; to: string; promotion?: string }
-export type ChessReason = 'checkmate' | 'resign' | 'timeout' | 'stalemate' | 'draw' | 'abandoned'
+export type ChessReason = 'checkmate' | 'resign' | 'timeout' | 'stalemate' | 'draw' | 'agreed' | 'abandoned'
 export type ChessOutcome = { winner: 0 | 1 | null; reason: ChessReason }
 
 export type ChessState = {
@@ -23,6 +23,8 @@ export type ChessState = {
   createdAt: number
   joined: [boolean, boolean]
   over: ChessOutcome | null
+  /** Seat that has offered a draw and is waiting for an answer. */
+  drawOffer?: 0 | 1 | null
 }
 
 export function newChessState(now: number): ChessState {
@@ -117,10 +119,28 @@ export function playMove(state: ChessState, seat: 0 | 1, move: ChessMove, now: n
   state.clocks[seat] = Math.max(1, remainingMs(state, now))
   state.moves.push({ from: made.from, to: made.to, ...(made.promotion ? { promotion: made.promotion } : {}) })
   state.since = now
+  state.drawOffer = null
   if (game.isCheckmate()) state.over = { winner: seat, reason: 'checkmate' }
   else if (game.isStalemate()) state.over = { winner: null, reason: 'stalemate' }
   else if (game.isDraw()) state.over = { winner: null, reason: 'draw' }
   return { ok: true, san: made.san, over: state.over }
+}
+
+/** Offer a draw; if the other side had already offered, it is accepted. */
+export function offerDraw(state: ChessState, seat: 0 | 1): ChessOutcome | null {
+  if (state.over || state.since == null) return state.over
+  if (state.drawOffer === 1 - seat) {
+    state.clocks = clocksAt(state, Date.now())
+    state.over = { winner: null, reason: 'agreed' }
+    return state.over
+  }
+  state.drawOffer = seat
+  return null
+}
+
+/** Turn down the other side's draw offer. */
+export function declineDraw(state: ChessState, seat: 0 | 1) {
+  if (state.drawOffer === 1 - seat) state.drawOffer = null
 }
 
 /** A player gives up. */
@@ -142,6 +162,7 @@ export function snapshotOf(state: ChessState, now: number) {
     clocks: clocksAt(state, now),
     started: state.since != null || state.moves.length > 0,
     check: game.isCheck(),
+    drawOffer: state.drawOffer ?? null,
     last,
     over: state.over,
   }
