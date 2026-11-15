@@ -20,6 +20,7 @@ export const GAMES: Record<string, { name: string; emoji: string; variants: stri
   whot: { name: 'Naija Whot!', emoji: '🃏', variants: ['standard'] },
   tictactoe: { name: 'Tic tac toe', emoji: '⭕', variants: ['standard'] },
   chess: { name: 'Chess', emoji: '♟️', variants: ['standard'] },
+  ludo: { name: 'Ludo', emoji: '🎲', variants: ['classic'] },
 }
 
 export const DAILY_BET_MATCHES = 10
@@ -303,7 +304,7 @@ export async function quickMatch(userId: string, input: { game: string; variant:
 }
 
 /** Fun for a win, up to DAILY_WIN_REWARDS times a day. */
-async function rewardWin(client: PoolClient, characterId: string) {
+export async function rewardWin(client: PoolClient, characterId: string) {
   const counted = await client.query<{ wins: number }>(
     `INSERT INTO game_rewards (character_id, day, wins) VALUES ($1, (NOW() AT TIME ZONE 'Africa/Lagos')::date, 1)
      ON CONFLICT (character_id, day) DO UPDATE SET wins = game_rewards.wins + 1
@@ -349,6 +350,10 @@ export async function reportResult(userId: string, matchId: string, input: { win
     }
     const isHost = m.host_id === player.id
     const opponentId = (isHost ? m.guest_id : m.host_id)!
+    // Ludo is decided by the server (it rolls the dice): a phone can only claim a forfeit
+    if (m.game === 'ludo' && !(input.forfeit && input.winner === 'me' && opponentAwaySeconds(matchId, opponentId) >= FORFEIT_SECONDS)) {
+      return { ok: true as const, status: 'active', winnerId: null }
+    }
     const claimed = input.winner === 'me' ? player.id : opponentId
     await client.query(`UPDATE game_matches SET ${isHost ? 'host_report' : 'guest_report'} = $2 WHERE id = $1`, [matchId, claimed])
     const hostReport = isHost ? claimed : m.host_report
@@ -391,8 +396,9 @@ export async function reportResult(userId: string, matchId: string, input: { win
 }
 
 /**
- * A game the server refereed itself (chess) is over: pay the winner the pot, or give both
- * stakes back on a draw. winnerSeat: 0 = host, 1 = guest, null = draw.
+ * The server refereed this game itself (Tic tac toe, Chess, Ludo): pay the winner the pot, or give
+ * both stakes back on a draw or if either player is in a live Space. winnerSeat: 0 = host,
+ * 1 = guest, null = draw.
  */
 export async function settleServerDecided(matchId: string, winnerSeat: 0 | 1 | null) {
   await inTx(async (client) => {
@@ -403,15 +409,19 @@ export async function settleServerDecided(matchId: string, winnerSeat: 0 | 1 | n
     const gameName = GAMES[m.game]?.name ?? 'Game'
     const winnerId = winnerSeat == null ? null : winnerSeat === 0 ? m.host_id : m.guest_id
     await client.query(`UPDATE game_matches SET status = 'finished', winner_id = $2, finished_at = NOW() WHERE id = $1`, [matchId, winnerId])
-    if (!winnerId) {
+    if (!winnerId || (stake > 0 && (await liveSpaceMoneyBlockForCharacters([m.host_id, m.guest_id], client)))) {
       await refund(client, m.host_id, stake, gameName)
       await refund(client, m.guest_id, stake, gameName)
-      return
+      if (!winnerId) return
+    } else if (stake > 0) {
+      await applyCash(client, winnerId, stake * 2, `${gameName} win`, 'bet_win')
     }
-    if (stake > 0) await applyCash(client, winnerId, stake * 2, `${gameName} win`, 'bet_win')
     await rewardWin(client, winnerId)
   })
 }
+
+/** Ludo's name for the same settlement. */
+export const settleServerResult = (matchId: string, winnerSeat: number) => settleServerDecided(matchId, winnerSeat === 0 ? 0 : 1)
 
 /** For the live socket: is this player in this match, and as which seat? */
 export async function seatInMatch(userId: string, matchId: string) {

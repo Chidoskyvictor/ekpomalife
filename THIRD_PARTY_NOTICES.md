@@ -2,13 +2,6 @@
 
 ## Phone → Games (embedded mini-games)
 
-### Ludo (mort3za/ludo)
-
-- Source: https://github.com/mort3za/ludo
-- License: GNU GPL-3.0 (full text in `public/games/ludo/LICENSE.txt`, source pointer in `public/games/ludo/SOURCE.md`)
-- Files: `public/games/ludo/_app/` (built assets from upstream gh-pages, unmodified). It runs in its own frame
-  as a separate program; only the shell `public/games/ludo/index.html` is ours.
-
 ### chess.js (rules library for our own Chess)
 
 - Source: https://github.com/jhlywa/chess.js

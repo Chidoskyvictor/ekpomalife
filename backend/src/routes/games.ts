@@ -13,6 +13,15 @@ import {
   rewardCpuWin,
   seatInMatch,
 } from '../game/games.js'
+import {
+  createLudoTable,
+  getLudoTable,
+  joinLudoTable,
+  joinLudoTableSocket,
+  leaveLudoTable,
+  ludoTableTicket,
+  startLudoTable,
+} from '../game/ludo-tables.js'
 
 const notLoggedIn = (reply: FastifyReply) => reply.code(401).send({ ok: false, error: 'Log in to play.' })
 
@@ -98,6 +107,55 @@ export async function gamesRoutes(app: FastifyInstance) {
     if (!seat) return reply.code(404).send({ ok: false, error: 'Match not found.' })
     if (seat.status !== 'active') return reply.code(409).send({ ok: false, error: 'This match is not live.' })
     return reply.send({ ok: true, ticket: createGameTicket(id, seat.character_id, seat.seat, seat.game), seat: seat.seat })
+  })
+
+  // Ludo tables: 2–4 players, join by code (same flow as Whot tables)
+  app.post('/ludo/tables', rate, async (request, reply) => {
+    const user = await getSessionUser(request)
+    if (!user) return notLoggedIn(reply)
+    const parsed = z
+      .object({ maxPlayers: z.number().int().min(2).max(4).default(4), stake: z.number().int().min(0).max(1_000_000_000_000).default(0) })
+      .safeParse(request.body)
+    if (!parsed.success) return reply.code(400).send({ ok: false, error: 'Pick table size.' })
+    return send(reply, await createLudoTable(user.id, parsed.data))
+  })
+
+  app.post('/ludo/tables/join', rate, async (request, reply) => {
+    const user = await getSessionUser(request)
+    if (!user) return notLoggedIn(reply)
+    const parsed = z.object({ code: z.string().min(4).max(8) }).safeParse(request.body)
+    if (!parsed.success) return reply.code(400).send({ ok: false, error: 'Enter a table code.' })
+    return send(reply, await joinLudoTable(user.id, parsed.data.code))
+  })
+
+  app.get('/ludo/tables/:id', async (request, reply) => {
+    const user = await getSessionUser(request)
+    if (!user) return notLoggedIn(reply)
+    return send(reply, await getLudoTable(user.id, idParams.parse(request.params).id))
+  })
+
+  app.post('/ludo/tables/:id/leave', rate, async (request, reply) => {
+    const user = await getSessionUser(request)
+    if (!user) return notLoggedIn(reply)
+    return send(reply, await leaveLudoTable(user.id, idParams.parse(request.params).id))
+  })
+
+  app.post('/ludo/tables/:id/start', rate, async (request, reply) => {
+    const user = await getSessionUser(request)
+    if (!user) return notLoggedIn(reply)
+    return send(reply, await startLudoTable(user.id, idParams.parse(request.params).id))
+  })
+
+  app.post('/ludo/tables/:id/ticket', rate, async (request, reply) => {
+    const user = await getSessionUser(request)
+    if (!user) return notLoggedIn(reply)
+    const t = await ludoTableTicket(user.id, idParams.parse(request.params).id)
+    if (!t) return reply.code(404).send({ ok: false, error: 'Table not found or not live.' })
+    return reply.send({ ok: true, ...t })
+  })
+
+  app.get('/ws/ludo', { websocket: true }, (socket, request) => {
+    joinLudoTableSocket(socket, wsQuery.parse(request.query).ticket)
   })
 
   // Live match socket (opened with a ticket, no cookie needed)

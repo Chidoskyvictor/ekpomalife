@@ -36,7 +36,9 @@ import { ChessSetup } from '@/components/games/chess/chess-setup'
 import { FullscreenGameFrame } from '@/components/games/fullscreen-game-frame'
 import { TttOnlineGame } from '@/components/games/ttt-online-game'
 import { TttSetup } from '@/components/games/ttt-setup'
+import type { LudoTable } from '@/lib/game/ludo-api'
 import { EMBEDDED_GAMES, type EmbeddedGameId } from '@/lib/game/embedded-games'
+import { LudoLobby, LudoPlay, LudoSetup, type LudoPlaySetup } from '@/components/games/ludo/ludo-game'
 import styles from './games.module.css'
 
 /*
@@ -68,18 +70,26 @@ type View =
   | { name: 'waiting'; match: GameMatch }
   | { name: 'play'; setup: PlaySetup }
   | { name: 'embed'; gameId: EmbeddedGameId }
+  | { name: 'ludo' }
+  | { name: 'ludo-play'; setup: LudoPlaySetup }
+  | { name: 'ludo-lobby'; table: LudoTable }
 
 const naira = (n: number) => `₦${n.toLocaleString()}`
-const variantLabel = (v: string) => SNOOKER_VARIANTS.find((x) => x.id === v)?.label ?? v
+const variantLabel = (v: string) => SNOOKER_VARIANTS.find((x) => x.id === v)?.label ?? (v === 'classic' ? 'Classic' : v)
 const GAME_META: Record<string, { emoji: string; name: string }> = {
   snooker: { emoji: '🎱', name: 'Snooker' },
   chess: { emoji: '♟️', name: 'Chess' },
   tictactoe: { emoji: '⭕', name: 'Tic tac toe' },
+  ludo: { emoji: '🎲', name: 'Ludo' },
 }
 const metaOf = (game: string) => GAME_META[game] ?? GAME_META.snooker!
 /** Where a live online match is played. */
 const liveView = (m: GameMatch): View =>
-  m.game === 'chess' ? { name: 'chess-play', setup: { opponent: 'online', match: m } } : { name: 'play', setup: { opponent: 'online', match: m } }
+  m.game === 'chess'
+    ? { name: 'chess-play', setup: { opponent: 'online', match: m } }
+    : m.game === 'ludo'
+      ? { name: 'ludo-play', setup: { mode: 'online', match: m } }
+      : { name: 'play', setup: { opponent: 'online', match: m } }
 
 export function GamesApp({ onHome }: { onHome: () => void }) {
   const [view, setView] = useState<View>({ name: 'home' })
@@ -180,6 +190,38 @@ export function GamesApp({ onHome }: { onHome: () => void }) {
         match={view.match}
         onBack={() => setView({ name: 'home' })}
         onLive={(m) => setView(liveView(m))}
+      />
+    )
+  }
+  if (view.name === 'ludo') {
+    return (
+      <LudoSetup
+        betLeft={betLeft}
+        onBack={() => setView({ name: 'home' })}
+        onPlay={(setup) => setView({ name: 'ludo-play', setup })}
+        onWaiting={(m) => setView(m.status === 'active' ? liveView(m) : { name: 'waiting', match: m })}
+        onTable={(table) => setView({ name: 'ludo-lobby', table })}
+      />
+    )
+  }
+  if (view.name === 'ludo-lobby') {
+    return (
+      <LudoLobby
+        table={view.table}
+        onBack={() => setView({ name: 'ludo' })}
+        onLive={(t, label) => setView({ name: 'ludo-play', setup: { mode: 'table', tableId: t.id, potLabel: label } })}
+      />
+    )
+  }
+  if (view.name === 'ludo-play') {
+    return (
+      <LudoPlay
+        setup={view.setup}
+        onExit={() => {
+          setView({ name: 'home' })
+          void refreshServer()
+        }}
+        notify={notifyToast}
       />
     )
   }
@@ -356,7 +398,7 @@ export function GamesApp({ onHome }: { onHome: () => void }) {
             key={g.id}
             type="button"
             className={styles.game}
-            onClick={() => setView(g.id === 'tic-tac-toe' ? { name: 'ttt' } : g.id === 'chess' ? { name: 'chess' } : { name: 'embed', gameId: g.id })}
+            onClick={() => setView(g.id === 'tic-tac-toe' ? { name: 'ttt' } : g.id === 'chess' ? { name: 'chess' } : g.id === 'ludo' ? { name: 'ludo' } : { name: 'embed', gameId: g.id })}
           >
             <span className={styles.gameArt}>{g.emoji}</span>
             <span className={styles.cardText}>

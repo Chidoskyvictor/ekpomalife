@@ -3,6 +3,8 @@ import type { WebSocket } from 'ws'
 import { pool } from '../db.js'
 import { applyMove, replayTtt, type TttState } from './tictactoe-rules.js'
 import { CHESS_MESSAGES, chessJoin, chessMessage, type ChessEmit } from './chess-match.js'
+import { settleServerResult } from './games.js'
+import { act as ludoAct, dropLudoRoom, ludoRoom, ludoView, setLudoHooks } from './ludo-live.js'
 
 /*
  * Live match relay for Phone → Games. Both phones in a match join one room; each shot,
@@ -38,6 +40,17 @@ const tttView = (s: TttState) => ({ board: s.board, turn: s.turn, round: s.round
 
 /** Messages a phone may send on to the other one. */
 const RELAYED = new Set(['shot', 'settled', 'timeout', 'emote'])
+/** Ludo is run by the server: phones ask to roll / move and the server answers both (ludo-live.ts). */
+const LUDO_ACTIONS = new Set(['roll', 'move'])
+
+setLudoHooks({
+  broadcast: (matchId, msg) => {
+    for (const seat of rooms.get(matchId)?.values() ?? []) send(seat.socket, msg)
+  },
+  finish: (matchId, winnerSeat) => {
+    void settleServerResult(matchId, winnerSeat).catch((error) => console.error('ludo settle failed', error))
+  },
+})
 
 export function createGameTicket(matchId: string, characterId: string, seat: number, game?: string) {
   const token = randomBytes(24).toString('base64url')
@@ -109,6 +122,10 @@ export async function joinGame(socket: WebSocket, token: string | undefined) {
   if (ticket.game === 'tictactoe') {
     send(socket, { t: 'ttt', ...tttView(tttMatches.get(ticket.matchId)!) })
   }
+  if (ticket.game === 'ludo') {
+    ludoRoom(ticket.matchId)
+    send(socket, ludoView(ticket.matchId))
+  }
   if (lastTable.has(ticket.matchId)) send(socket, { t: 'settled', snap: lastTable.get(ticket.matchId) })
   send(other?.socket ?? null, { t: 'presence', online: true })
   // Chess is refereed by the server (chess-match.ts); other games just relay
@@ -143,6 +160,12 @@ export async function joinGame(socket: WebSocket, token: string | undefined) {
       void chessMessage(ticket.matchId, ticket.seat as 0 | 1, msg, emitChess).catch(() => {})
       return
     }
+    if (ticket.game === 'ludo' && typeof msg.t === 'string' && LUDO_ACTIONS.has(msg.t)) {
+      seat.lastSeen = Date.now()
+      const out = ludoAct(ticket.matchId, ticket.seat, msg)
+      if (!out.ok) send(socket, { t: 'error', error: out.error })
+      return
+    }
     if (typeof msg.t !== 'string' || !RELAYED.has(msg.t)) return
     seat.lastSeen = Date.now()
     if (msg.t === 'settled' && String(data).length < 16_000) lastTable.set(ticket.matchId, msg.snap)
@@ -163,6 +186,7 @@ export async function joinGame(socket: WebSocket, token: string | undefined) {
         lastTable.delete(ticket.matchId)
         // A decided board stays so a late report can still settle; open ones go with the room
         if (tttMatches.get(ticket.matchId)?.winnerSeat === null) tttMatches.delete(ticket.matchId)
+        dropLudoRoom(ticket.matchId)
       }
     }, 15 * 60_000)
   })
