@@ -3,7 +3,6 @@ import type { WebSocket } from 'ws'
 import { pool } from '../db.js'
 import { applyMove, replayTtt, type TttState } from './tictactoe-rules.js'
 import { CHESS_MESSAGES, chessJoin, chessMessage, type ChessEmit } from './chess-match.js'
-import { settleServerResult } from './games.js'
 import { act as ludoAct, dropLudoRoom, ludoRoom, ludoView, setLudoHooks } from './ludo-live.js'
 
 /*
@@ -48,7 +47,10 @@ setLudoHooks({
     for (const seat of rooms.get(matchId)?.values() ?? []) send(seat.socket, msg)
   },
   finish: (matchId, winnerSeat) => {
-    void settleServerResult(matchId, winnerSeat).catch((error) => console.error('ludo settle failed', error))
+    // Loaded here, not at the top: games.ts imports this file (a top-level import would be a cycle)
+    void import('./games.js')
+      .then(({ settleServerResult }) => settleServerResult(matchId, winnerSeat))
+      .catch((error) => console.error('ludo settle failed', error))
   },
 })
 

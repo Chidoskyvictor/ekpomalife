@@ -1,5 +1,4 @@
 import { pool } from '../db.js'
-import { settleServerDecided } from './games.js'
 import {
   checkClock,
   declineDraw,
@@ -57,6 +56,8 @@ async function finish(matchId: string, entry: Live, outcome: ChessOutcome) {
   if (entry.timer) clearTimeout(entry.timer)
   entry.timer = null
   await save(matchId, entry)
+  // Loaded here, not at the top: games.ts imports game-live.ts, which imports this file
+  const { settleServerDecided } = await import('./games.js')
   await settleServerDecided(matchId, outcome.winner)
   emitters.get(matchId)?.('both', { t: 'chess', ...snapshotOf(entry.state, Date.now()) })
   // Keep it around a little for late reconnects, then forget
