@@ -2,7 +2,7 @@ import type { PoolClient } from 'pg'
 import { pool } from '../db.js'
 import { createId } from '../ids.js'
 import { postGameNotice } from './chat.js'
-import { opponentAwaySeconds } from './game-live.js'
+import { forgetTtt, onTttDecided, opponentAwaySeconds, tttWinnerSeat } from './game-live.js'
 import { applyCash, asMoney, parseNeeds } from './game-state.js'
 import { liveSpaceMoneyBlock, liveSpaceMoneyBlockForCharacters } from './spaces-money.js'
 import { applyNeedDelta } from './needs.js'
@@ -18,6 +18,7 @@ import { applyNeedDelta } from './needs.js'
 export const GAMES: Record<string, { name: string; emoji: string; variants: string[] }> = {
   snooker: { name: 'Snooker', emoji: '🎱', variants: ['six', 'classic', 'clearance', 'black'] },
   whot: { name: 'Naija Whot!', emoji: '🃏', variants: ['standard'] },
+  tictactoe: { name: 'Tic tac toe', emoji: '⭕', variants: ['standard'] },
 }
 
 export const DAILY_BET_MATCHES = 10
@@ -353,7 +354,13 @@ export async function reportResult(userId: string, matchId: string, input: { win
     const stake = asMoney(m.stake)
 
     let winnerId: string | null = null
-    if (hostReport && guestReport) {
+    if (m.game === 'tictactoe') {
+      // Staked: the server's board decides, whatever the phones say
+      const seatWon = tttWinnerSeat(matchId)
+      if (seatWon !== null) winnerId = seatWon === 0 ? m.host_id : m.guest_id!
+      else if (input.forfeit && claimed === player.id && opponentAwaySeconds(matchId, opponentId) >= FORFEIT_SECONDS) winnerId = player.id
+      else return { ok: true as const, status: 'active', winnerId: null }
+    } else if (hostReport && guestReport) {
       if (hostReport !== guestReport) {
         await client.query(`UPDATE game_matches SET status = 'disputed', finished_at = NOW() WHERE id = $1`, [matchId])
         await refund(client, m.host_id, stake, gameName)
@@ -372,6 +379,7 @@ export async function reportResult(userId: string, matchId: string, input: { win
     ])
     if (stake > 0) await applyCash(client, winnerId, stake * 2, `${gameName} win`, 'bet_win')
     await rewardWin(client, winnerId)
+    if (m.game === 'tictactoe') forgetTtt(matchId)
     return { ok: true as const, status: 'finished', winnerId }
   })
   if (!outcome.ok) return outcome
@@ -381,8 +389,8 @@ export async function reportResult(userId: string, matchId: string, input: { win
 
 /** For the live socket: is this player in this match, and as which seat? */
 export async function seatInMatch(userId: string, matchId: string) {
-  const found = await pool.query<{ character_id: string; username: string; seat: number; status: string }>(
-    `SELECT c.id AS character_id, u.username,
+  const found = await pool.query<{ character_id: string; username: string; seat: number; status: string; game: string }>(
+    `SELECT c.id AS character_id, u.username, m.game,
             CASE WHEN m.host_id = c.id THEN 0 ELSE 1 END AS seat, m.status
      FROM game_matches m JOIN characters c ON c.user_id = $1 AND (m.host_id = c.id OR m.guest_id = c.id)
      JOIN users u ON u.id = c.user_id
@@ -391,3 +399,12 @@ export async function seatInMatch(userId: string, matchId: string) {
   )
   return found.rows[0] ?? null
 }
+
+/** Tic tac toe: the board decided it, so pay now instead of waiting for a phone to report. */
+onTttDecided(async (matchId) => {
+  const host = await pool.query<{ user_id: string }>(
+    `SELECT c.user_id FROM game_matches m JOIN characters c ON c.id = m.host_id WHERE m.id = $1 AND m.status = 'active'`,
+    [matchId],
+  )
+  if (host.rows[0]) await reportResult(host.rows[0].user_id, matchId, { winner: 'me' })
+})

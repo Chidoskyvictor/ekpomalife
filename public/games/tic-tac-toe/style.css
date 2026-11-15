@@ -168,3 +168,25 @@ body {
     animation: none;
   }
 }
+
+/* Online match: no mode switch or new-round button (the server runs the match) */
+.who {
+  display: none;
+  font-size: 13px;
+  font-weight: 700;
+  color: #9fc4ad;
+  text-align: center;
+}
+body.online .who:not(:empty) {
+  display: block;
+}
+body.online .modes,
+body.online .again {
+  display: none;
+}
+body.online .side b {
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

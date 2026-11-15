@@ -18,7 +18,7 @@ export const EMBEDDED_GAMES: EmbeddedGame[] = [
     id: 'tic-tac-toe',
     name: 'Tic tac toe',
     emoji: '⭕',
-    subtitle: 'Play a friend or the phone',
+    subtitle: 'Friend, phone or online · bets',
     path: '/games/tic-tac-toe/index.html',
     bridgeSource: 'ekpoma-game',
   },

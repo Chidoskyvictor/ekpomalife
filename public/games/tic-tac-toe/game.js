@@ -10,6 +10,8 @@
   const statusEl = document.getElementById('status')
   const againEl = document.getElementById('again')
   const scoreEl = { X: document.getElementById('score-x'), O: document.getElementById('score-o'), D: document.getElementById('score-d') }
+  const online = new URLSearchParams(window.location.search).get('online') === '1'
+  const whoEl = document.getElementById('who')
   const modeButtons = [...document.querySelectorAll('[data-mode]')]
 
   let board = Array(9).fill(null)
@@ -24,7 +26,7 @@
     b.type = 'button'
     b.className = 'cell'
     b.setAttribute('aria-label', `Square ${i + 1}`)
-    b.addEventListener('click', () => play(i, true))
+    b.addEventListener('click', () => (online ? onlineTap(i) : play(i, true)))
     boardEl.appendChild(b)
     return b
   })
@@ -123,5 +125,60 @@
   )
   againEl.addEventListener('click', newRound)
 
-  newRound()
+  // —— Online: the server keeps the board and judges the win; this page only shows it ——
+  // The Games app (parent) passes messages both ways: { target: 'ekpoma-ttt', type: 'init' | 'state' }
+  // in, { source: 'ekpoma-ttt', type: 'ready' | 'move' } out.
+  let net = { mySeat: 0, names: ['X', 'O'], state: null }
+
+  function onlineTap(i) {
+    const st = net.state
+    if (!st || st.winnerSeat !== null || st.board[i] || st.turn !== (net.mySeat === 0 ? 'X' : 'O')) return
+    window.parent.postMessage({ source: 'ekpoma-ttt', type: 'move', cell: i }, window.location.origin)
+  }
+
+  function onlineRender() {
+    const st = net.state
+    if (!st) {
+      statusEl.textContent = 'Connecting…'
+      return
+    }
+    const mine = net.mySeat === 0 ? 'X' : 'O'
+    const over = st.winnerSeat !== null
+    board = st.board.slice()
+    cells.forEach((c, i) => {
+      c.textContent = board[i] || ''
+      c.className = `cell${board[i] ? ` ${board[i].toLowerCase()}` : ''}${i === st.last ? ' mark' : ''}`
+      c.disabled = over || Boolean(board[i]) || st.turn !== mine
+    })
+    ;(st.line || []).forEach((k) => cells[k].classList.add('win'))
+    scoreEl.X.textContent = st.winnerSeat === 0 ? 1 : 0
+    scoreEl.O.textContent = st.winnerSeat === 1 ? 1 : 0
+    scoreEl.D.textContent = st.draws
+    if (over) statusEl.textContent = st.winnerSeat === net.mySeat ? 'You win! 🎉' : `${net.names[st.winnerSeat]} wins`
+    else statusEl.textContent = st.turn === mine ? `Your turn (${mine})` : `${net.names[st.turn === 'X' ? 0 : 1]} to play…`
+  }
+
+  if (online) {
+    document.body.classList.add('online')
+    statusEl.textContent = 'Connecting…'
+    window.addEventListener('message', (event) => {
+      if (event.source !== window.parent || event.origin !== window.location.origin) return
+      const m = event.data
+      if (!m || m.target !== 'ekpoma-ttt') return
+      if (m.type === 'init') {
+        net.mySeat = m.mySeat === 1 ? 1 : 0
+        net.names = Array.isArray(m.names) ? m.names : net.names
+        if (whoEl) whoEl.textContent = m.subtitle || ''
+        document.querySelector('.side.x b').textContent = `${net.names[0]} · X`
+        document.querySelector('.side.o b').textContent = `${net.names[1]} · O`
+        onlineRender()
+      } else if (m.type === 'state') {
+        net.state = m.state
+        onlineRender()
+      }
+    })
+    window.parent.postMessage({ source: 'ekpoma-ttt', type: 'ready' }, window.location.origin)
+  } else {
+    newRound()
+  }
 })()

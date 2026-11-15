@@ -97,11 +97,11 @@ export async function gamesRoutes(app: FastifyInstance) {
     const seat = await seatInMatch(user.id, id)
     if (!seat) return reply.code(404).send({ ok: false, error: 'Match not found.' })
     if (seat.status !== 'active') return reply.code(409).send({ ok: false, error: 'This match is not live.' })
-    return reply.send({ ok: true, ticket: createGameTicket(id, seat.character_id, seat.seat), seat: seat.seat })
+    return reply.send({ ok: true, ticket: createGameTicket(id, seat.character_id, seat.seat, seat.game), seat: seat.seat })
   })
 
   // Live match socket (opened with a ticket, no cookie needed)
   app.get('/ws/game', { websocket: true }, (socket, request) => {
-    joinGame(socket, wsQuery.parse(request.query).ticket)
+    void joinGame(socket, wsQuery.parse(request.query).ticket)
   })
 }
