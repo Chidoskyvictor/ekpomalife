@@ -209,7 +209,7 @@
     // ring cells
     RING.forEach(function (cell, i) {
       var startOf = i % 13 === 0 ? i / 13 : -1;
-      el('rect', { x: cell[0], y: cell[1], width: 1, height: 1, fill: startOf >= 0 ? COLOR[startOf] : '#fff', stroke: '#8d8d8d', 'stroke-width': 0.04 }, svg);
+      el('rect', { x: cell[0], y: cell[1], width: 1, height: 1, fill: startOf >= 0 ? COLOR[startOf] : i % 13 === 8 ? '#fff3b0' : '#fff', stroke: '#8d8d8d', 'stroke-width': 0.04 }, svg);
       if (i % 13 === 8) {
         var star = el('text', { x: cell[0] + 0.5, y: cell[1] + 0.72, 'text-anchor': 'middle', 'font-size': 0.75, fill: '#9e9e9e' }, svg);
         star.textContent = '★';
@@ -321,7 +321,8 @@
     var verb = (who === 'You' ? 'rolled' : 'rolled');
     var s = who + ' ' + verb + ' ' + l.roll;
     if (l.passed) s += ' · no move';
-    if (l.move && l.move.captured && l.move.captured.length) s += ' · captured ' + l.move.captured.length + '!';
+    if (l.move && l.move.captured && l.move.captured.length) s += ' · 💥 CAPTURED! sent back to base';
+    else if (l.move && l.safeShare) s += ' · safe square, no capture';
     else if (l.move && l.move.to === HOME) s += ' · home!';
     return s;
   }
@@ -345,6 +346,7 @@
       btn.classList.remove('rolling');
       void btn.offsetWidth;
       if (view.last && view.last.roll) btn.classList.add('rolling');
+      markMove(view.last);
     }
     var turnText;
     if (view.winner != null) turnText = nameOf(view.winner) + ' won! 🏆';
@@ -360,6 +362,24 @@
     if (view.secondsLeft != null) { secondsLeft = view.secondsLeft; tickAt = Date.now(); }
     else secondsLeft = null;
     drawTimer();
+  }
+
+  // Show what a move did: a burst where a token was captured; tell the player when a square is safe
+  function markMove(l) {
+    if (!l || !l.move || !view) return;
+    var mv = l.move, color = view.colors[l.seat];
+    var cell = ringCell(color, mv.to);
+    if (cell == null) return;
+    var xy = tokenXY(color, mv.to, 0);
+    if (mv.captured && mv.captured.length) {
+      var burst = el('circle', { cx: xy[0], cy: xy[1], r: 0.3, fill: 'none', stroke: '#fff', 'stroke-width': 0.25, class: 'burst' }, svg);
+      setTimeout(function () { if (burst.parentNode) burst.parentNode.removeChild(burst); }, 900);
+    } else if (isSafe(cell)) {
+      l.safeShare = view.pos.some(function (tokens, o) {
+        return o !== l.seat && tokens.some(function (p) { return ringCell(view.colors[o], p) === cell; });
+      });
+      if (l.safeShare) setStatus(eventNote());
+    }
   }
 
   function drawTimer() {

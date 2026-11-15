@@ -40,3 +40,6 @@ html, body { height: 100%; background: #12211a; color: #eef5f0; font-family: sys
 @keyframes ringPulse { 50% { opacity: .35; } }
 @keyframes shake { 0% { transform: rotate(0); } 25% { transform: rotate(-18deg); } 50% { transform: rotate(16deg); } 75% { transform: rotate(-10deg); } 100% { transform: rotate(0); } }
 @media (prefers-reduced-motion: reduce) { .token, .dice.ready, .token.legal .ring, .dice.rolling .face { animation: none; transition: none; } }
+
+.burst { transform-box: fill-box; transform-origin: center; animation: burst .8s ease-out forwards; pointer-events: none; }
+@keyframes burst { from { transform: scale(.5); opacity: 1; } to { transform: scale(5); opacity: 0; } }
