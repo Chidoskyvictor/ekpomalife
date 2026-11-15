@@ -32,6 +32,8 @@ import {
 } from '@/lib/game/whot-api'
 import { BodyPortal } from '@/components/ui/body-portal'
 import { FullscreenGameFrame } from '@/components/games/fullscreen-game-frame'
+import { TttOnlineGame } from '@/components/games/ttt-online-game'
+import { TttSetup } from '@/components/games/ttt-setup'
 import { EMBEDDED_GAMES, type EmbeddedGameId } from '@/lib/game/embedded-games'
 import styles from './games.module.css'
 
@@ -56,6 +58,7 @@ type View =
   | { name: 'home' }
   | { name: 'snooker'; username?: string }
   | { name: 'whot' }
+  | { name: 'ttt' }
   | { name: 'whot-lobby'; table: WhotTable }
   | { name: 'whot-play'; play: WhotPlay }
   | { name: 'waiting'; match: GameMatch }
@@ -64,6 +67,9 @@ type View =
 
 const naira = (n: number) => `₦${n.toLocaleString()}`
 const variantLabel = (v: string) => SNOOKER_VARIANTS.find((x) => x.id === v)?.label ?? v
+/** Name and icon of a match's game (online matches are snooker or tic tac toe). */
+const gameOf = (g: string) => (g === 'tictactoe' ? { name: 'Tic tac toe', emoji: '⭕' } : { name: 'Snooker', emoji: '🎱' })
+const matchDetail = (m: GameMatch) => (m.game === 'tictactoe' ? 'Tic tac toe' : `Snooker · ${variantLabel(m.variant)}`)
 
 export function GamesApp({ onHome }: { onHome: () => void }) {
   const [view, setView] = useState<View>({ name: 'home' })
@@ -110,6 +116,18 @@ export function GamesApp({ onHome }: { onHome: () => void }) {
     return () => window.clearInterval(id)
   }, [view.name, load])
 
+  if (view.name === 'play' && view.setup.opponent === 'online' && view.setup.match.game === 'tictactoe') {
+    return (
+      <TttOnlineGame
+        match={view.setup.match}
+        onExit={() => {
+          setView({ name: 'home' })
+          void refreshServer()
+        }}
+        notify={notifyToast}
+      />
+    )
+  }
   if (view.name === 'play') {
     return (
       <PlayView
@@ -179,6 +197,16 @@ export function GamesApp({ onHome }: { onHome: () => void }) {
       />
     )
   }
+  if (view.name === 'ttt') {
+    return (
+      <TttSetup
+        betLeft={betLeft}
+        onBack={() => setView({ name: 'home' })}
+        onOffline={() => setView({ name: 'embed', gameId: 'tic-tac-toe' })}
+        onWaiting={(m) => (m.status === 'active' ? setView({ name: 'play', setup: { opponent: 'online', match: m } }) : setView({ name: 'waiting', match: m }))}
+      />
+    )
+  }
   if (view.name === 'snooker') {
     return (
       <SnookerSetup
@@ -212,11 +240,11 @@ export function GamesApp({ onHome }: { onHome: () => void }) {
           <p className={styles.section}>Challenges</p>
           {incoming.map((m) => (
             <div key={m.id} className={styles.card}>
-              <span className={styles.cardIcon}>🎱</span>
+              <span className={styles.cardIcon}>{gameOf(m.game).emoji}</span>
               <span className={styles.cardText}>
                 <strong>{m.names[0]} challenged you</strong>
                 <span>
-                  Snooker · {variantLabel(m.variant)} · {m.stake ? `${naira(m.stake)} bet` : 'Friendly'}
+                  {matchDetail(m)} · {m.stake ? `${naira(m.stake)} bet` : 'Friendly'}
                 </span>
               </span>
               <span className={styles.cardActions}>
@@ -249,7 +277,7 @@ export function GamesApp({ onHome }: { onHome: () => void }) {
               <span className={styles.cardIcon}>🟢</span>
               <span className={styles.cardText}>
                 <strong>vs @{m.opponent}</strong>
-                <span>Snooker · {m.stake ? `${naira(m.stake * 2)} pot` : 'Friendly'} · live</span>
+                <span>{gameOf(m.game).name} · {m.stake ? `${naira(m.stake * 2)} pot` : 'Friendly'} · live</span>
               </span>
               <button type="button" className={styles.primary} onClick={() => setView({ name: 'play', setup: { opponent: 'online', match: m } })}>
                 Resume
@@ -261,7 +289,7 @@ export function GamesApp({ onHome }: { onHome: () => void }) {
               <span className={styles.cardIcon}>⏳</span>
               <span className={styles.cardText}>
                 <strong>{m.opponent ? `Waiting for @${m.opponent}` : 'Finding a player…'}</strong>
-                <span>Snooker · {m.stake ? `${naira(m.stake)} bet` : 'Friendly'}</span>
+                <span>{gameOf(m.game).name} · {m.stake ? `${naira(m.stake)} bet` : 'Friendly'}</span>
               </span>
               <button type="button" className={styles.ghost} onClick={() => setView({ name: 'waiting', match: m })}>
                 Open
@@ -290,7 +318,12 @@ export function GamesApp({ onHome }: { onHome: () => void }) {
           <span className={styles.play}>Play</span>
         </button>
         {EMBEDDED_GAMES.map((g) => (
-          <button key={g.id} type="button" className={styles.game} onClick={() => setView({ name: 'embed', gameId: g.id })}>
+          <button
+            key={g.id}
+            type="button"
+            className={styles.game}
+            onClick={() => setView(g.id === 'tic-tac-toe' ? { name: 'ttt' } : { name: 'embed', gameId: g.id })}
+          >
             <span className={styles.gameArt}>{g.emoji}</span>
             <span className={styles.cardText}>
               <strong>{g.name}</strong>
@@ -687,7 +720,7 @@ function WaitingView({ match, onBack, onLive }: { match: GameMatch; onBack: () =
         <button type="button" className={styles.back} onClick={onBack} aria-label="Back">
           <ChevronLeft size={18} />
         </button>
-        <strong>🎱 Snooker</strong>
+        <strong>{gameOf(current.game).emoji} {gameOf(current.game).name}</strong>
         <span className={styles.backSpacer} />
       </div>
       <div className={styles.waiting}>
@@ -702,7 +735,7 @@ function WaitingView({ match, onBack, onLive }: { match: GameMatch; onBack: () =
               : 'Finding a player…'}
         </strong>
         <span>
-          {variantLabel(current.variant)} · {current.stake ? `${naira(current.stake)} bet (held safely)` : 'Friendly'}
+          {current.game === 'tictactoe' ? 'Tic tac toe' : variantLabel(current.variant)} · {current.stake ? `${naira(current.stake)} bet (held safely)` : 'Friendly'}
         </span>
         {closed && current.stake ? <span>Your {naira(current.stake)} is back in your wallet.</span> : null}
         {!closed ? (

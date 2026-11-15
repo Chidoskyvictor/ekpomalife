@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto'
 import type { WebSocket } from 'ws'
+import { applyMove, newTtt, type TttState } from './tictactoe-rules.js'
 
 /*
  * Live match relay for Phone → Games. Both phones in a match join one room; each shot,
@@ -11,21 +12,32 @@ import type { WebSocket } from 'ws'
 type Seat = { socket: WebSocket | null; characterId: string; lastSeen: number }
 /** Last settled table per match, so a phone that rejoins picks up where the frame is. */
 const lastTable = new Map<string, unknown>()
-type Ticket = { matchId: string; characterId: string; seat: number; expires: number }
+type Ticket = { matchId: string; characterId: string; seat: number; expires: number; game?: string }
 
 const tickets = new Map<string, Ticket>()
 const rooms = new Map<string, Map<number, Seat>>()
 /** When the first player sat down; an opponent who never shows up is "away" from then. */
 const openedAt = new Map<string, number>()
+/** Server-side boards for staked games where the phones' word isn't enough (tic tac toe). */
+const tttMatches = new Map<string, TttState>()
+
+/** Winning seat of a server-judged match: 0 / 1, or null while undecided (or unknown). */
+export function tttWinnerSeat(matchId: string) {
+  return tttMatches.get(matchId)?.winnerSeat ?? null
+}
+
+export const forgetTtt = (matchId: string) => void tttMatches.delete(matchId)
+
+const tttView = (s: TttState) => ({ board: s.board, turn: s.turn, round: s.round, draws: s.draws, winnerSeat: s.winnerSeat, line: s.line, last: s.moves.at(-1) ?? null })
 
 /** Messages a phone may send on to the other one. */
 const RELAYED = new Set(['shot', 'settled', 'timeout', 'emote'])
 
-export function createGameTicket(matchId: string, characterId: string, seat: number) {
+export function createGameTicket(matchId: string, characterId: string, seat: number, game?: string) {
   const token = randomBytes(24).toString('base64url')
   const now = Date.now()
   for (const [key, t] of tickets) if (t.expires < now) tickets.delete(key)
-  tickets.set(token, { matchId, characterId, seat, expires: now + 60_000 })
+  tickets.set(token, { matchId, characterId, seat, expires: now + 60_000, game })
   return token
 }
 
@@ -62,6 +74,10 @@ export function joinGame(socket: WebSocket, token: string | undefined) {
   const other = room.get(1 - ticket.seat)
   const otherOnline = !!other?.socket && other.socket.readyState === other.socket.OPEN
   send(socket, { t: 'hello', seat: ticket.seat, opponentOnline: otherOnline })
+  if (ticket.game === 'tictactoe') {
+    if (!tttMatches.has(ticket.matchId)) tttMatches.set(ticket.matchId, newTtt())
+    send(socket, { t: 'ttt', ...tttView(tttMatches.get(ticket.matchId)!) })
+  }
   if (lastTable.has(ticket.matchId)) send(socket, { t: 'settled', snap: lastTable.get(ticket.matchId) })
   send(other?.socket ?? null, { t: 'presence', online: true })
 
@@ -70,6 +86,18 @@ export function joinGame(socket: WebSocket, token: string | undefined) {
     try {
       msg = JSON.parse(String(data)) as Record<string, unknown>
     } catch {
+      return
+    }
+    if (ticket.game === 'tictactoe' && msg.t === 'move') {
+      // The server holds the board: validate the move, then tell both phones the result
+      const state = tttMatches.get(ticket.matchId)
+      if (!state) return
+      seat.lastSeen = Date.now()
+      const res = applyMove(state, ticket.seat, msg.cell)
+      if (!res.ok) return send(socket, { t: 'ttt', ...tttView(state), error: res.error })
+      const out = { t: 'ttt', ...tttView(state) }
+      send(socket, out)
+      send(room!.get(1 - ticket.seat)?.socket ?? null, out)
       return
     }
     if (typeof msg.t !== 'string' || !RELAYED.has(msg.t)) return
@@ -90,6 +118,8 @@ export function joinGame(socket: WebSocket, token: string | undefined) {
         rooms.delete(ticket.matchId)
         openedAt.delete(ticket.matchId)
         lastTable.delete(ticket.matchId)
+        // A decided board stays so a late report can still settle; open ones go with the room
+        if (tttMatches.get(ticket.matchId)?.winnerSeat === null) tttMatches.delete(ticket.matchId)
       }
     }, 15 * 60_000)
   })
