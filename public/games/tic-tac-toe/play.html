@@ -1,54 +1,31 @@
 <!DOCTYPE html>
+<!-- Ekpoma Life — Tic tac toe (our own code; loaded by index.html inside the phone's Games app). -->
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tic Tac Toe</title>
-    <link rel="stylesheet" href="style.css">
-    <script src="game.js" defer></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Tic tac toe</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="game.js" defer></script>
 </head>
 <body>
-    <header>
-        <h1>Tic Tac Toe</h1>
-    </header>
+  <main class="game">
+    <div class="modes" role="radiogroup" aria-label="Who are you playing">
+      <button type="button" role="radio" aria-checked="true" data-mode="friend">👥 Friend</button>
+      <button type="button" role="radio" aria-checked="false" data-mode="cpu">📱 Phone</button>
+    </div>
 
-    <main>
-        <p>Turn</p>
-        <div class="gameboard">
-            <div class="gamecell" data-position="0"></div>
-            <div class="gamecell" data-position="1"></div>
-            <div class="gamecell" data-position="2"></div>
-            <div class="gamecell" data-position="3"></div>
-            <div class="gamecell" data-position="4"></div>
-            <div class="gamecell" data-position="5"></div>
-            <div class="gamecell" data-position="6"></div>
-            <div class="gamecell" data-position="7"></div>
-            <div class="gamecell" data-position="8"></div>
-        </div>
-        <button type="button">Reset</button>
-    </main>
+    <div class="score" aria-label="Score">
+      <div class="side x"><b>X</b><span id="score-x">0</span></div>
+      <div class="side draw"><b>Draw</b><span id="score-d">0</span></div>
+      <div class="side o"><b>O</b><span id="score-o">0</span></div>
+    </div>
 
-    <dialog class="names-dialog">
-        <form>
-            <p class="title">Let's start the game!</p>
-            <p  class="player-name">
-                <label for="name1">Player 1's Name:</label>
-                <input type="text" name="name1" id="name1" maxlength="15" required>
-            </p>
-            <p  class="player-name">
-                <label for="name2">Player 2's Name:</label>
-                <input type="text" name="name2" id="name2" maxlength="15" required>
-            </p>
-            <button>Confirm</button>
-        </form>
-    </dialog>
+    <p class="status" id="status" aria-live="polite">X to play</p>
 
-    <dialog class="result-dialog">
-        <h1>Player X Wins!</h1>
-    </dialog>
+    <div class="board" id="board" role="grid" aria-label="Board"></div>
 
-    <footer>
-        <p>Made by Marc Frances</p>
-    </footer>
+    <button type="button" class="again" id="again">New round</button>
+  </main>
 </body>
 </html>

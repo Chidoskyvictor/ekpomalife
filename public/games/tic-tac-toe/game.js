@@ -1,238 +1,127 @@
-const gameCells = document.querySelectorAll('.gamecell');
-const resetButton = document.querySelector('main button');
+// Ekpoma Life — Tic tac toe. Pass & play with a friend, or play the phone (it never loses).
+;(() => {
+  const LINES = [
+    [0, 1, 2], [3, 4, 5], [6, 7, 8],
+    [0, 3, 6], [1, 4, 7], [2, 5, 8],
+    [0, 4, 8], [2, 4, 6],
+  ]
 
-const namesDialog = document.querySelector('.names-dialog');
-const namesDialogButton = namesDialog.querySelector('button');
+  const boardEl = document.getElementById('board')
+  const statusEl = document.getElementById('status')
+  const againEl = document.getElementById('again')
+  const scoreEl = { X: document.getElementById('score-x'), O: document.getElementById('score-o'), D: document.getElementById('score-d') }
+  const modeButtons = [...document.querySelectorAll('[data-mode]')]
 
-const Player = (name, symbol) => {
-    const getSymbol = () => symbol;
-    const getName = () => name;
-    return {getSymbol, getName};
-}
+  let board = Array(9).fill(null)
+  let turn = 'X'
+  let starter = 'X' // who opens the round; swaps every round
+  let over = false
+  let mode = 'friend' // 'friend' | 'cpu' (you are X, the phone is O)
+  const score = { X: 0, O: 0, D: 0 }
 
-//Inicialization of Players
-namesDialog.showModal();
-namesDialogButton.addEventListener('click', (event) => {
-    const form = namesDialog.querySelector('form');
-    const player1Name = form.querySelector('#name1');
-    const player2Name = form.querySelector('#name2');
-    if (form.checkValidity()) {
-        event.preventDefault(); // Don't want to submit this form
-        const player1 = Player(player1Name.value, 'X');
-        const player2 = Player(player2Name.value, 'O');
-        namesDialog.close();
-        gameInitialization(player1, player2);
-    } 
-});
+  const cells = board.map((_, i) => {
+    const b = document.createElement('button')
+    b.type = 'button'
+    b.className = 'cell'
+    b.setAttribute('aria-label', `Square ${i + 1}`)
+    b.addEventListener('click', () => play(i, true))
+    boardEl.appendChild(b)
+    return b
+  })
 
-//Game Initialization after player names being chosen
-function gameInitialization(player1, player2) {
-    const gameBoard = (() => {
-        let gameBoardArray = [null, null, null, null, null, null, null, null, null];
-    
-        const addToArray = (symbol, position) => {
-            gameBoardArray[position] = symbol;
-        }
-    
-        const clearArray = () => {
-            gameBoardArray = [null, null, null, null, null, null, null, null, null];
-        }
-    
-        const getGameBoardRows = () => {
-            const copyGameArray = [...gameBoardArray];
-            const res = [];
-            for (let i = 0; i < gameBoardArray.length / 3; i++) {
-                res.push(copyGameArray.splice(0, 3));
-            }
-            return res;
-        }
-    
-        const getGameBoardColumns = () => {
-            const copyGameArray = [...gameBoardArray];
-            const res = [[],[],[]];
-            for (let i = 0; i < gameBoardArray.length; i++) {
-                if (i % 3 === 0) {
-                    res[0].push(copyGameArray[i]);
-                } else if (i % 3 === 1) {
-                    res[1].push(copyGameArray[i]);
-                } else {
-                    res[2].push(copyGameArray[i]);
-                }
-            }
-            return res;
-        }
-    
-        const getGameBoardDiagonals = () => {
-            const copyGameArray = [...gameBoardArray];
-            const diagonal1 = [copyGameArray[0], copyGameArray[4], copyGameArray[8]];
-            const diagonal2 = [copyGameArray[2], copyGameArray[4], copyGameArray[6]];
-            return [diagonal1, diagonal2];
-        }
-    
-        const areItemsOfArrayEqual = (arr) => {
-            const res = {
-                areItemsEqual: null,
-                winnerSymbol: ''
-            };
-            for (let i = 0; i < arr.length - 1; i++) {
-                if (arr[i] !== arr[i + 1] || arr[i] === null) {
-                    res.areItemsEqual = false;
-                    return res;
-                }
-            }
-            res.areItemsEqual = true;
-            res.winnerSymbol = arr[0];
-            return res;
-        } 
-    
-        const checkWinner = () => {
-            const gameRows = getGameBoardRows();
-            const gameColumns = getGameBoardColumns();
-            const gameDiagonals = getGameBoardDiagonals();
-            const gameCombinations = [...gameRows, ...gameColumns, ...gameDiagonals];
-    
-            const result = {
-                hasSomeoneWon: false,
-                tie: false,
-                winnerSymbol: '',
-            };
-            
-            //Checks if there is a winner
-            for (let i = 0; i < gameCombinations.length; i++) {
-                const localRes = areItemsOfArrayEqual(gameCombinations[i]);
-                if (localRes.areItemsEqual) {
-                    result.hasSomeoneWon = true;
-                    result.winnerSymbol = localRes.winnerSymbol;
-                    return result;
-                };
-            }
-    
-            //Checks tie
-            if (!gameBoardArray.includes(null)) {
-                result.tie = true;
-                return result;
-            }
-    
-            return result;
-        }
-    
-        return {addToArray, clearArray, checkWinner};
-    
-    })();
-    
-    
-    const displayController = (() => {
-        const playerTurnTitle = document.querySelector('main p');
-        const winnerDialog = document.querySelector('.result-dialog');
-        const winnerDialogMessage = winnerDialog.querySelector('h1');
-    
-        // Close dialog when click outside form
-        winnerDialog.addEventListener('click', (event) => {
-            if (event.target === winnerDialog) {
-                winnerDialog.close();
-            }
-        });
-        
-        const addPlayerSymbol = (target, symbol) => {
-            target.textContent = symbol;
-        }
-    
-        const changePlayerTurnTitle = (message) => {
-            playerTurnTitle.textContent = message;
-        }
-    
-        const showResultDialog = (message) => {
-            winnerDialogMessage.textContent = message;
-            winnerDialog.showModal();
-        }
-    
-        const cleanGameboard = () => {
-            gameCells.forEach(cell => {cell.textContent = ''})
-        }
-    
-        return {addPlayerSymbol, changePlayerTurnTitle, showResultDialog, cleanGameboard};
-        
-    })();
-    
-    const game = ((firstPlayer, secondPlayer) => {
-        let currentPlayer = firstPlayer;
-        let gameEnded = false;
-    
-        //Initialization of PlayerTurnTitle
-        displayController.changePlayerTurnTitle(`${currentPlayer.getName()}'s Turn`);
-    
-    
-        const makePlayerMove = (cell, player) => {
-            if(cell.textContent !== '') return true;
-    
-            displayController.addPlayerSymbol(cell, player.getSymbol() );
-            gameBoard.addToArray(player.getSymbol(), cell.dataset.position);
-            return false;
-        }
-    
-        const parseSymbolToPlayer = (symbol, player1, player2) => {
-            switch (symbol) {
-                case player1.getSymbol():
-                    return player1;
-        
-                case player2.getSymbol():
-                    return player2;
-    
-                default:
-                    throw new Error('Invalid symbol provided');
-            }
-        }
-    
-        const processGameResult = (player1, player2) => {
-            const res = {gameEnded: false};
-            
-            const winnerObj = gameBoard.checkWinner();
-            if (winnerObj.hasSomeoneWon) {
-                const winnerPlayer = parseSymbolToPlayer(winnerObj.winnerSymbol, player1, player2);
-                const message = `${winnerPlayer.getName()} Wins!`;
-                displayController.showResultDialog(message);
-                res.gameEnded = true;
-            }
-            else if (winnerObj.tie) {
-                const message = `It's a Tie`;
-                displayController.showResultDialog(message);
-                res.gameEnded = true;
-            }
-    
-            return res;
-        }
-    
-        const changePlayerTurn = () => {
-            currentPlayer = currentPlayer === firstPlayer ? secondPlayer : firstPlayer;
-            const message = gameEnded ? 'Game End' : `${currentPlayer.getName()}'s Turn`;
-            displayController.changePlayerTurnTitle(message);
-        }
-    
-        const doPlayerTurn = function(e) {
-            if(gameEnded) return;
-            
-            const isCellTaken = makePlayerMove(e.target, currentPlayer);
-            if(isCellTaken) return;
-    
-            const result = processGameResult(firstPlayer, secondPlayer);
-            gameEnded = result.gameEnded;
-            changePlayerTurn();
-        }
-    
-        const cleanGame = function() {
-            displayController.cleanGameboard();
-            gameBoard.clearArray();
-            displayController.changePlayerTurnTitle(`${currentPlayer.getName()}'s Turn`);
-            gameEnded = false;
-        }
-    
-        return {doPlayerTurn, cleanGame};
-    
-    })(player1, player2);
-        
-    resetButton.addEventListener('click', game.cleanGame);
-    
-    gameCells.forEach(cell => {
-        cell.addEventListener('click', game.doPlayerTurn);
-    });
-}
+  function winnerOf(b) {
+    for (const line of LINES) {
+      const [a, c, d] = line
+      if (b[a] && b[a] === b[c] && b[a] === b[d]) return { mark: b[a], line }
+    }
+    return b.every(Boolean) ? { mark: 'D', line: [] } : null
+  }
+
+  // Perfect play for the phone: score each move by looking ahead to the end of the game
+  function best(b, me) {
+    const them = me === 'X' ? 'O' : 'X'
+    function search(state, player, depth) {
+      const w = winnerOf(state)
+      if (w) return w.mark === me ? 10 - depth : w.mark === them ? depth - 10 : 0
+      let top = player === me ? -Infinity : Infinity
+      for (let i = 0; i < 9; i++) {
+        if (state[i]) continue
+        state[i] = player
+        const v = search(state, player === 'X' ? 'O' : 'X', depth + 1)
+        state[i] = null
+        top = player === me ? Math.max(top, v) : Math.min(top, v)
+      }
+      return top
+    }
+    let move = -1
+    let top = -Infinity
+    const open = b.map((v, i) => (v ? -1 : i)).filter((i) => i >= 0)
+    // A little variety on an empty board
+    if (open.length === 9) return [0, 2, 4, 6, 8][Math.floor(Math.random() * 5)]
+    for (const i of open) {
+      b[i] = me
+      const v = search(b, them, 1)
+      b[i] = null
+      if (v > top) {
+        top = v
+        move = i
+      }
+    }
+    return move
+  }
+
+  function render(justPlayed) {
+    cells.forEach((c, i) => {
+      c.textContent = board[i] || ''
+      c.className = `cell${board[i] ? ` ${board[i].toLowerCase()}` : ''}${i === justPlayed ? ' mark' : ''}`
+      c.disabled = over || Boolean(board[i]) || (mode === 'cpu' && turn === 'O')
+    })
+    scoreEl.X.textContent = score.X
+    scoreEl.O.textContent = score.O
+    scoreEl.D.textContent = score.D
+  }
+
+  function play(i, byPerson) {
+    if (over || board[i]) return
+    if (byPerson && mode === 'cpu' && turn === 'O') return
+    board[i] = turn
+    const w = winnerOf(board)
+    if (w) {
+      over = true
+      score[w.mark] += 1
+      render(i)
+      w.line.forEach((k) => cells[k].classList.add('win'))
+      statusEl.textContent =
+        w.mark === 'D' ? 'Draw!' : mode === 'cpu' ? (w.mark === 'X' ? 'You win! 🎉' : 'The phone wins') : `${w.mark} wins! 🎉`
+      return
+    }
+    turn = turn === 'X' ? 'O' : 'X'
+    statusEl.textContent = mode === 'cpu' ? (turn === 'X' ? 'Your turn' : 'Phone is thinking…') : `${turn} to play`
+    render(i)
+    if (mode === 'cpu' && turn === 'O') window.setTimeout(() => play(best(board, 'O'), false), 450)
+  }
+
+  function newRound() {
+    board = Array(9).fill(null)
+    over = false
+    turn = starter
+    starter = starter === 'X' ? 'O' : 'X'
+    statusEl.textContent = mode === 'cpu' ? (turn === 'X' ? 'Your turn' : 'Phone is thinking…') : `${turn} to play`
+    render(-1)
+    if (mode === 'cpu' && turn === 'O') window.setTimeout(() => play(best(board, 'O'), false), 450)
+  }
+
+  modeButtons.forEach((b) =>
+    b.addEventListener('click', () => {
+      if (mode === b.dataset.mode) return
+      mode = b.dataset.mode
+      modeButtons.forEach((x) => x.setAttribute('aria-checked', String(x === b)))
+      score.X = score.O = score.D = 0
+      starter = 'X'
+      newRound()
+    }),
+  )
+  againEl.addEventListener('click', newRound)
+
+  newRound()
+})()

@@ -18,7 +18,7 @@ export const EMBEDDED_GAMES: EmbeddedGame[] = [
     id: 'tic-tac-toe',
     name: 'Tic tac toe',
     emoji: '⭕',
-    subtitle: 'Two players · pass & play',
+    subtitle: 'Play a friend or the phone',
     path: '/games/tic-tac-toe/index.html',
     bridgeSource: 'ekpoma-game',
   },
@@ -39,7 +39,3 @@ export const EMBEDDED_GAMES: EmbeddedGame[] = [
     bridgeSource: 'ekpoma-game',
   },
 ]
-
-export function embeddedGameById(id: EmbeddedGameId) {
-  return EMBEDDED_GAMES.find((g) => g.id === id)
-}

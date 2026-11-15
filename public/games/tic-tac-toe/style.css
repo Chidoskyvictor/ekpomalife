@@ -1,229 +1,170 @@
-@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+/* Ekpoma Life — Tic tac toe. Mobile first (360px), dark green like the other game shells. */
 
 * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+  box-sizing: border-box;
+  margin: 0;
 }
 
-:root {
-    --RESULT-DIALOG-WIDTH: min(85vw, 500px);
-    --NAMES-DIALOG-WIDTH: min(85vw, 700px);
-    --HEADER-WIDTH: min(90vw, 550px);
-    --GAMEBOARD-SIDE: min(90vw, 470px);
-
-    --TITLE-FS: clamp(3rem, 13vw, 4.5rem);
-    --TURN-MSG-FS: clamp(1.5rem, 10vw, 2.5rem);
-    --PLAYER-SYMBOL-FS: clamp(2rem, 15vw, 5rem);
-    --FOOTER-FS: clamp(1rem, 5vw, 1.2rem);
-    --RESULT-DIALOG-FS: clamp(1.2rem, 8vw, 2.3rem);
-
-    --LIGHT-COLOR: rgb(216, 200, 173);
-    --EXTRA-LIGHT-COLOR: rgb(230, 223, 210);
-}
-
-html {
-    position: relative;
-    min-height: 100vh;
-}
-
+html,
 body {
-    font-family: 'Roboto', sans-serif;
-    background-color: rgb(211, 162, 88);
-    margin-bottom: 100px;
-    user-select: none;
+  height: 100%;
+  background: #12251b;
+  color: #eaf3ed;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
 }
 
-/* HEADER */
-
-header {
-    padding-top: 30px;
-    margin-bottom: 40px;
+.game {
+  display: flex;
+  min-height: 100%;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 16px max(16px, env(safe-area-inset-bottom));
 }
 
-header h1 {
-    margin: 0 auto;
-    padding: 20px 0;
-    width: var(--HEADER-WIDTH);
-    text-align: center;
-    font-size: var(--TITLE-FS);
-    background-color: var(--LIGHT-COLOR);
-    color: #333;
-    border-radius: 20px;
+.modes {
+  display: flex;
+  width: 100%;
+  max-width: 360px;
+  padding: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
 }
 
-header h1:hover {
-    background-color: var(--EXTRA-LIGHT-COLOR);
+.modes button {
+  min-height: 44px;
+  flex: 1;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #b9cbbf;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
 }
 
-/* MAIN */
-
-main p {
-    margin-bottom: 20px;
-    text-align: center;
-    font-size: var(--TURN-MSG-FS);
+.modes button[aria-checked='true'] {
+  background: #eaf3ed;
+  color: #12251b;
 }
 
-main .gameboard {
-    width: var(--GAMEBOARD-SIDE);
-    height: var(--GAMEBOARD-SIDE);
-    margin: 0 auto;
-    margin-bottom: 30px;
-    padding: 20px;
-    border-radius: 20px;
-    background-color: var(--LIGHT-COLOR);
-
-    display: grid;
-    gap: 3px;
-    grid-template-columns: repeat(3, 1fr);
-    grid-template-rows: repeat(3, 1fr);
+.score {
+  display: grid;
+  width: 100%;
+  max-width: 360px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
 }
 
-.gameboard .gamecell {
-    border: 2px solid black;
-    font-size: var(--PLAYER-SYMBOL-FS);
-    cursor: pointer;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
+.side {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 0;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
 }
 
-.gameboard .gamecell:hover {
-    background-color: var(--EXTRA-LIGHT-COLOR);
+.side b {
+  font-size: 13px;
+  font-weight: 800;
+  opacity: 0.8;
 }
 
-main button {
-    display: block;
-    font: inherit;
-    font-size: 1.2rem;
-    font-weight: 500;
-    margin: 0 auto;
-    padding: 20px 70px;
-    border: none;
-    border-radius: 10px;
-    background-color: var(--LIGHT-COLOR);
-    cursor: pointer;
+.side span {
+  font-size: 22px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
 }
 
-main button:hover {
-    background-color: var(--EXTRA-LIGHT-COLOR);
+.side.x b {
+  color: #ffcf4a;
 }
 
-/* DIALOG */
-
-dialog {
-    position: fixed;
-    border: none;
-    border-radius: 20px;
-    user-select: none;
+.side.o b {
+  color: #5fd3ff;
 }
 
-dialog::backdrop {
-    background-color: rgba(0, 0, 0, 0.5);
+.status {
+  min-height: 24px;
+  font-size: 18px;
+  font-weight: 800;
+  text-align: center;
 }
 
-/* --- RESULT DIALOG */
-
-.result-dialog {
-    top: 300px;
-    left: calc(50% - (var(--RESULT-DIALOG-WIDTH) / 2));
+.board {
+  display: grid;
+  width: min(100%, 360px);
+  aspect-ratio: 1;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
 }
 
-.result-dialog h1 {
-    padding: 70px 10px;
-    width: var(--RESULT-DIALOG-WIDTH);
-    text-align: center;
-    font-size: var(--RESULT-DIALOG-FS);
-    font-weight: 700;
+.cell {
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+  font: inherit;
+  font-size: clamp(44px, 16vw, 72px);
+  font-weight: 900;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s;
 }
 
-/* --- NAMES DIALOG */
-
-.names-dialog {
-    top: 200px;
-    left: calc(50% - (var(--NAMES-DIALOG-WIDTH) / 2));
+.cell:active:not(:disabled) {
+  background: rgba(255, 255, 255, 0.16);
 }
 
-.names-dialog form {
-    padding: 50px 0 70px 0;
-    width: var(--NAMES-DIALOG-WIDTH);
-
-    display: grid;
-    row-gap: 50px;
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: auto 1fr auto;
-    justify-items: center;
+.cell:disabled {
+  cursor: default;
 }
 
-.names-dialog p.title {
-    grid-column: 1 / -1;
-
-   font-size: 2.5rem;
-   font-weight: 700;
+.cell.x {
+  color: #ffcf4a;
 }
 
-.names-dialog p.player-name {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-
-    font-size: 1.3rem;
-    font-weight: 500;
-    color: #333;
+.cell.o {
+  color: #5fd3ff;
 }
 
-.names-dialog input {
-    width: 230px;
-    padding: 5px;
-    border: 2px solid #333;
-    border-radius: 5px;
-    font-size: 1rem;
+.cell.mark {
+  animation: pop 0.18s ease-out;
 }
 
-.names-dialog button {
-    grid-column: 1 / -1;
-
-    margin-top: 25px;
-    padding: 25px 70px;
-    background-color: rgb(116, 233, 116);
-    border: 0.5px solid black;
-    border-radius: 10px;
-    font: inherit;
-    font-size: 1.4rem;
-    font-weight: 500;
-    cursor: pointer;
+.cell.win {
+  background: rgba(255, 255, 255, 0.24);
 }
 
-.names-dialog button:hover {
-    background-color: rgb(146, 255, 146);
+@keyframes pop {
+  from {
+    transform: scale(0.6);
+    opacity: 0;
+  }
 }
 
-@media screen and (max-width: 600px) {
-    .names-dialog {
-        top: 100px;
-    }
-    .names-dialog form {
-        row-gap: 40px;
-        grid-template-columns: 1fr;
-    }
-    .names-dialog p.title {
-        font-size: clamp(1.5rem, 8vw, 2.2rem);
-    }
-    .names-dialog button {
-        padding-inline: 60px;
-        font-size: 1.2rem;
-    }
+.again {
+  width: 100%;
+  max-width: 360px;
+  min-height: 52px;
+  border: 0;
+  border-radius: 999px;
+  background: #2f7cf6;
+  color: #fff;
+  font: inherit;
+  font-size: 17px;
+  font-weight: 800;
+  cursor: pointer;
 }
 
-/* FOOTER */
-
-footer {
-    position: absolute;
-    bottom: 15px;
-    width: 100%;
-    text-align: center;
-    color: black;
-    font-size: var(--FOOTER-FS);
-    user-select: text;
+@media (prefers-reduced-motion: reduce) {
+  .cell.mark {
+    animation: none;
+  }
 }

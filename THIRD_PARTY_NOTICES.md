@@ -2,17 +2,12 @@
 
 ## Phone → Games (embedded mini-games)
 
-### Tic tac toe (marcft/tic-tac-toe)
-
-- Source: https://github.com/marcft/tic-tac-toe
-- Files: `public/games/tic-tac-toe/` (play.html, game.js, style.css)
-- Upstream author: Marc Frances. See upstream repository for license terms.
-
 ### Ludo (mort3za/ludo)
 
 - Source: https://github.com/mort3za/ludo
-- License: GNU GPL-3.0
-- Files: `public/games/ludo/_app/` (built assets from upstream gh-pages)
+- License: GNU GPL-3.0 (full text in `public/games/ludo/LICENSE.txt`, source pointer in `public/games/ludo/SOURCE.md`)
+- Files: `public/games/ludo/_app/` (built assets from upstream gh-pages, unmodified). It runs in its own frame
+  as a separate program; only the shell `public/games/ludo/index.html` is ours.
 
 ### Chesskit (GuillaumeSD/Chesskit)
 
