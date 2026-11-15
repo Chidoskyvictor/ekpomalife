@@ -44,7 +44,7 @@ export function WelcomeCard() {
           <span className={styles.proofText}>Free · Made for AAU</span>
         )}
       </p>
-      <AuthLinks size="lg" signupFirst variant="lobby" signupLabel="Sign up free" />
+      <AuthLinks size="lg" signupFirst variant="lobby" signupLabel="Sign up free" only="signup" />
       <SocialRow />
     </motion.section>
   )

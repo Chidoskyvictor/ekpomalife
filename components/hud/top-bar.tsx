@@ -27,7 +27,7 @@ export function TopBar() {
         </span>
         <SiteStats variant="inline" />
         <div className={hudStyles.statusRight}>
-          <AuthLinks signupFirst variant="lobby" />
+          <AuthLinks signupFirst variant="lobby" only="login" />
         </div>
       </header>
       <SiteStats variant="dock" />
