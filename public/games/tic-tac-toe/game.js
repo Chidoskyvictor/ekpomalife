@@ -107,8 +107,8 @@
     const win = finishing(b, 'O')
     if (win >= 0) return win
     const block = finishing(b, 'X')
-    if (block >= 0 && Math.random() < 0.8) return block
-    if (Math.random() < 0.3) return random()
+    if (block >= 0 && Math.random() < 0.9) return block
+    if (Math.random() < 0.2) return random()
     if (!b[4]) return 4
     return random()
   }
