@@ -4,8 +4,8 @@
  *
  * Board: a ring of 52 cells. Colour c (0..3) starts at ring cell c*13 and walks 51 cells
  * (steps 0..50), then up its own home lane (steps 51..55) to home (step 56). -1 = in base.
- * Roll a 6 to leave base. Landing on an opponent outside a safe cell sends those tokens back
- * to base. Safe cells: each colour's start cell and the cell 8 further on.
+ * Roll a 6 to leave base. Landing on an opponent sends those tokens back to base: the Naija way,
+ * no safe squares on the ring (even a start cell). Only your own home lane is safe.
  * An exact roll is needed to reach home. A 6 gives an extra roll.
  */
 
@@ -40,10 +40,6 @@ export function newLudo(colors: number[]): LudoState {
 export function ringCell(color: number, step: number): number | null {
   if (step < 0 || step > 50) return null
   return (color * 13 + step) % RING
-}
-
-export function isSafeCell(cell: number) {
-  return cell % 13 === 0 || cell % 13 === 8
 }
 
 export function legalTokens(s: LudoState): number[] {
@@ -83,7 +79,7 @@ export function applyMove(s: LudoState, token: number): LudoMoveResult | null {
   s.pos[seat]![token] = to
   const captured: LudoMoveResult['captured'] = []
   const cell = ringCell(s.colors[seat]!, to)
-  if (cell != null && !isSafeCell(cell)) {
+  if (cell != null) {
     s.pos.forEach((tokens, other) => {
       if (other === seat) return
       tokens.forEach((p, t) => {

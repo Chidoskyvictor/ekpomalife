@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { applyMove, applyRoll, HOME, isSafeCell, legalTokens, newLudo, ringCell } from './ludo-engine.js'
+import { applyMove, applyRoll, HOME, legalTokens, newLudo, ringCell } from './ludo-engine.js'
 import { act, dropLudoRoom, ludoView, setLudoHooks } from './ludo-live.js'
 
 describe('ludo-engine', () => {
@@ -31,7 +31,7 @@ describe('ludo-engine', () => {
     expect(applyRoll(s, 2.5).ok).toBe(false)
   })
 
-  it('captures an opponent on a normal cell but not on a safe one', () => {
+  it('captures an opponent on any ring cell, even a start or star square (Naija rules)', () => {
     const s = newLudo([0, 2])
     // red step 10 = cell 10; yellow step 40 = cell (26+40)%52 = 14
     s.pos[0] = [8, -1, -1, -1]
@@ -44,11 +44,16 @@ describe('ludo-engine', () => {
 
     const t = newLudo([0, 2])
     t.pos[0] = [6, -1, -1, -1]
-    t.pos[1] = [34, -1, -1, -1] // cell 8, safe
-    expect(isSafeCell(8)).toBe(true)
+    t.pos[1] = [34, -1, -1, -1] // cell 8, a "star" square elsewhere: still capturable
     t.dice = 2
-    expect(applyMove(t, 0)!.captured).toEqual([])
-    expect(t.pos[1]![0]).toBe(34)
+    expect(applyMove(t, 0)!.captured).toEqual([{ seat: 1, token: 0 }])
+    expect(t.pos[1]![0]).toBe(-1)
+
+    const u = newLudo([0, 2])
+    u.pos[0] = [51, -1, -1, -1] // red on its home lane
+    u.pos[1] = [-1, -1, -1, -1]
+    u.dice = 1
+    expect(applyMove(u, 0)!.captured).toEqual([])
   })
 
   it('needs an exact roll to reach home and wins with all four home', () => {

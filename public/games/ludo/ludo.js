@@ -8,7 +8,8 @@
  *
  * Rules: ring of 52 cells; colour c enters at ring cell c*13, walks steps 0..50, then its home
  * lane (51..55), home = 56. Roll a 6 to leave base; a 6 rolls again; landing on an opponent
- * outside a safe cell sends it back to base; exact roll needed to get home.
+ * sends it back to base ANYWHERE on the ring (Naija rules: no safe squares, even start cells);
+ * only your own home lane is safe. Exact roll needed to get home.
  * (The rule functions below mirror backend/src/game/ludo-engine.ts, used offline only.)
  */
 (function () {
@@ -46,7 +47,6 @@
     return { colors: colors.slice(), pos: colors.map(function () { return [-1, -1, -1, -1]; }), turn: 0, dice: null, winner: null };
   }
   function ringCell(color, step) { return step < 0 || step > 50 ? null : (color * 13 + step) % 52; }
-  function isSafe(cell) { return cell % 13 === 0 || cell % 13 === 8; }
   function legalOf(s) {
     if (s.winner != null || s.dice == null) return [];
     var out = [];
@@ -67,7 +67,7 @@
     s.pos[seat][t] = to;
     var captured = [];
     var cell = ringCell(s.colors[seat], to);
-    if (cell != null && !isSafe(cell)) {
+    if (cell != null) {
       s.pos.forEach(function (tokens, other) {
         if (other === seat) return;
         tokens.forEach(function (p, i) {
@@ -94,13 +94,10 @@
       if (to === HOME) score += 100;
       var cell = ringCell(s.colors[s.turn], to);
       if (cell != null) {
-        if (isSafe(cell)) score += 18;
-        else {
-          s.pos.forEach(function (tokens, o) {
-            if (o === s.turn) return;
-            tokens.forEach(function (p) { if (ringCell(s.colors[o], p) === cell) score += 60; });
-          });
-        }
+        s.pos.forEach(function (tokens, o) {
+          if (o === s.turn) return;
+          tokens.forEach(function (p) { if (ringCell(s.colors[o], p) === cell) score += 60; });
+        });
       }
       if (from === -1) score += 40;
       if (to > 50) score += 15;
@@ -209,15 +206,7 @@
     // ring cells
     RING.forEach(function (cell, i) {
       var startOf = i % 13 === 0 ? i / 13 : -1;
-      el('rect', { x: cell[0], y: cell[1], width: 1, height: 1, fill: startOf >= 0 ? COLOR[startOf] : i % 13 === 8 ? '#fff3b0' : '#fff', stroke: '#8d8d8d', 'stroke-width': 0.04 }, svg);
-      if (i % 13 === 8) {
-        var star = el('text', { x: cell[0] + 0.5, y: cell[1] + 0.72, 'text-anchor': 'middle', 'font-size': 0.75, fill: '#9e9e9e' }, svg);
-        star.textContent = '★';
-      }
-      if (startOf >= 0) {
-        var arrow = el('text', { x: cell[0] + 0.5, y: cell[1] + 0.72, 'text-anchor': 'middle', 'font-size': 0.7, fill: 'rgba(255,255,255,.85)' }, svg);
-        arrow.textContent = '★';
-      }
+      el('rect', { x: cell[0], y: cell[1], width: 1, height: 1, fill: startOf >= 0 ? COLOR[startOf] : '#fff', stroke: '#8d8d8d', 'stroke-width': 0.04 }, svg);
     });
     // home lanes
     LANE.forEach(function (lane, c) {
@@ -322,7 +311,6 @@
     var s = who + ' ' + verb + ' ' + l.roll;
     if (l.passed) s += ' · no move';
     if (l.move && l.move.captured && l.move.captured.length) s += ' · 💥 CAPTURED! sent back to base';
-    else if (l.move && l.safeShare) s += ' · safe square, no capture';
     else if (l.move && l.move.to === HOME) s += ' · home!';
     return s;
   }
@@ -374,11 +362,6 @@
     if (mv.captured && mv.captured.length) {
       var burst = el('circle', { cx: xy[0], cy: xy[1], r: 0.3, fill: 'none', stroke: '#fff', 'stroke-width': 0.25, class: 'burst' }, svg);
       setTimeout(function () { if (burst.parentNode) burst.parentNode.removeChild(burst); }, 900);
-    } else if (isSafe(cell)) {
-      l.safeShare = view.pos.some(function (tokens, o) {
-        return o !== l.seat && tokens.some(function (p) { return ringCell(view.colors[o], p) === cell; });
-      });
-      if (l.safeShare) setStatus(eventNote());
     }
   }
 
