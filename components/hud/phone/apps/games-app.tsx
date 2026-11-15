@@ -31,6 +31,8 @@ import {
   type WhotTable,
 } from '@/lib/game/whot-api'
 import { BodyPortal } from '@/components/ui/body-portal'
+import { ChessPlayView, type ChessPlaySetup } from '@/components/games/chess/chess-play'
+import { ChessSetup } from '@/components/games/chess/chess-setup'
 import { FullscreenGameFrame } from '@/components/games/fullscreen-game-frame'
 import { TttOnlineGame } from '@/components/games/ttt-online-game'
 import { TttSetup } from '@/components/games/ttt-setup'
@@ -61,15 +63,23 @@ type View =
   | { name: 'ttt' }
   | { name: 'whot-lobby'; table: WhotTable }
   | { name: 'whot-play'; play: WhotPlay }
+  | { name: 'chess'; username?: string }
+  | { name: 'chess-play'; setup: ChessPlaySetup }
   | { name: 'waiting'; match: GameMatch }
   | { name: 'play'; setup: PlaySetup }
   | { name: 'embed'; gameId: EmbeddedGameId }
 
 const naira = (n: number) => `₦${n.toLocaleString()}`
 const variantLabel = (v: string) => SNOOKER_VARIANTS.find((x) => x.id === v)?.label ?? v
-/** Name and icon of a match's game (online matches are snooker or tic tac toe). */
-const gameOf = (g: string) => (g === 'tictactoe' ? { name: 'Tic tac toe', emoji: '⭕' } : { name: 'Snooker', emoji: '🎱' })
-const matchDetail = (m: GameMatch) => (m.game === 'tictactoe' ? 'Tic tac toe' : `Snooker · ${variantLabel(m.variant)}`)
+const GAME_META: Record<string, { emoji: string; name: string }> = {
+  snooker: { emoji: '🎱', name: 'Snooker' },
+  chess: { emoji: '♟️', name: 'Chess' },
+  tictactoe: { emoji: '⭕', name: 'Tic tac toe' },
+}
+const metaOf = (game: string) => GAME_META[game] ?? GAME_META.snooker!
+/** Where a live online match is played. */
+const liveView = (m: GameMatch): View =>
+  m.game === 'chess' ? { name: 'chess-play', setup: { opponent: 'online', match: m } } : { name: 'play', setup: { opponent: 'online', match: m } }
 
 export function GamesApp({ onHome }: { onHome: () => void }) {
   const [view, setView] = useState<View>({ name: 'home' })
@@ -89,7 +99,7 @@ export function GamesApp({ onHome }: { onHome: () => void }) {
   const openMatch = useCallback(async (id: string) => {
     const res = await fetchMatch(id)
     if (!res.ok) return setNote(res.error)
-    if (res.match.status === 'active') setView({ name: 'play', setup: { opponent: 'online', match: res.match } })
+    if (res.match.status === 'active') setView(liveView(res.match))
     else if (res.match.status === 'pending') setView({ name: 'waiting', match: res.match })
   }, [])
 
@@ -140,12 +150,36 @@ export function GamesApp({ onHome }: { onHome: () => void }) {
       />
     )
   }
+  if (view.name === 'chess-play') {
+    return (
+      <ChessPlayView
+        setup={view.setup}
+        onExit={() => {
+          setView({ name: 'home' })
+          void refreshServer()
+        }}
+        notify={notifyToast}
+      />
+    )
+  }
+  if (view.name === 'chess') {
+    return (
+      <ChessSetup
+        key={view.username ?? ''}
+        initialUsername={view.username}
+        betLeft={betLeft}
+        onBack={() => setView({ name: 'home' })}
+        onPlay={(setup) => setView({ name: 'chess-play', setup })}
+        onWaiting={(m) => setView(m.status === 'active' ? liveView(m) : { name: 'waiting', match: m })}
+      />
+    )
+  }
   if (view.name === 'waiting') {
     return (
       <WaitingView
         match={view.match}
         onBack={() => setView({ name: 'home' })}
-        onLive={(m) => setView({ name: 'play', setup: { opponent: 'online', match: m } })}
+        onLive={(m) => setView(liveView(m))}
       />
     )
   }
@@ -240,11 +274,11 @@ export function GamesApp({ onHome }: { onHome: () => void }) {
           <p className={styles.section}>Challenges</p>
           {incoming.map((m) => (
             <div key={m.id} className={styles.card}>
-              <span className={styles.cardIcon}>{gameOf(m.game).emoji}</span>
+              <span className={styles.cardIcon}>{metaOf(m.game).emoji}</span>
               <span className={styles.cardText}>
                 <strong>{m.names[0]} challenged you</strong>
                 <span>
-                  {matchDetail(m)} · {m.stake ? `${naira(m.stake)} bet` : 'Friendly'}
+                  {metaOf(m.game).name} · {m.game === 'snooker' ? `${variantLabel(m.variant)} · ` : ''}{m.stake ? `${naira(m.stake)} bet` : 'Friendly'}
                 </span>
               </span>
               <span className={styles.cardActions}>
@@ -254,7 +288,7 @@ export function GamesApp({ onHome }: { onHome: () => void }) {
                   onClick={async () => {
                     const res = await acceptMatch(m.id)
                     if (!res.ok) return setNote(res.error)
-                    setView({ name: 'play', setup: { opponent: 'online', match: res.match } })
+                    setView(liveView(res.match))
                   }}
                 >
                   Accept
@@ -277,9 +311,9 @@ export function GamesApp({ onHome }: { onHome: () => void }) {
               <span className={styles.cardIcon}>🟢</span>
               <span className={styles.cardText}>
                 <strong>vs @{m.opponent}</strong>
-                <span>{gameOf(m.game).name} · {m.stake ? `${naira(m.stake * 2)} pot` : 'Friendly'} · live</span>
+                <span>{metaOf(m.game).name} · {m.stake ? `${naira(m.stake * 2)} pot` : 'Friendly'} · live</span>
               </span>
-              <button type="button" className={styles.primary} onClick={() => setView({ name: 'play', setup: { opponent: 'online', match: m } })}>
+              <button type="button" className={styles.primary} onClick={() => setView(liveView(m))}>
                 Resume
               </button>
             </div>
@@ -289,7 +323,7 @@ export function GamesApp({ onHome }: { onHome: () => void }) {
               <span className={styles.cardIcon}>⏳</span>
               <span className={styles.cardText}>
                 <strong>{m.opponent ? `Waiting for @${m.opponent}` : 'Finding a player…'}</strong>
-                <span>{gameOf(m.game).name} · {m.stake ? `${naira(m.stake)} bet` : 'Friendly'}</span>
+                <span>{metaOf(m.game).name} · {m.stake ? `${naira(m.stake)} bet` : 'Friendly'}</span>
               </span>
               <button type="button" className={styles.ghost} onClick={() => setView({ name: 'waiting', match: m })}>
                 Open
@@ -322,7 +356,7 @@ export function GamesApp({ onHome }: { onHome: () => void }) {
             key={g.id}
             type="button"
             className={styles.game}
-            onClick={() => setView(g.id === 'tic-tac-toe' ? { name: 'ttt' } : { name: 'embed', gameId: g.id })}
+            onClick={() => setView(g.id === 'tic-tac-toe' ? { name: 'ttt' } : g.id === 'chess' ? { name: 'chess' } : { name: 'embed', gameId: g.id })}
           >
             <span className={styles.gameArt}>{g.emoji}</span>
             <span className={styles.cardText}>
@@ -720,7 +754,7 @@ function WaitingView({ match, onBack, onLive }: { match: GameMatch; onBack: () =
         <button type="button" className={styles.back} onClick={onBack} aria-label="Back">
           <ChevronLeft size={18} />
         </button>
-        <strong>{gameOf(current.game).emoji} {gameOf(current.game).name}</strong>
+        <strong>{metaOf(current.game).emoji} {metaOf(current.game).name}</strong>
         <span className={styles.backSpacer} />
       </div>
       <div className={styles.waiting}>
@@ -735,7 +769,7 @@ function WaitingView({ match, onBack, onLive }: { match: GameMatch; onBack: () =
               : 'Finding a player…'}
         </strong>
         <span>
-          {current.game === 'tictactoe' ? 'Tic tac toe' : variantLabel(current.variant)} · {current.stake ? `${naira(current.stake)} bet (held safely)` : 'Friendly'}
+          {current.game === 'snooker' ? `${variantLabel(current.variant)} · ` : ''}{current.stake ? `${naira(current.stake)} bet (held safely)` : 'Friendly'}
         </span>
         {closed && current.stake ? <span>Your {naira(current.stake)} is back in your wallet.</span> : null}
         {!closed ? (

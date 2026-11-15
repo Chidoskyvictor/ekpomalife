@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto'
 import type { WebSocket } from 'ws'
 import { pool } from '../db.js'
 import { applyMove, replayTtt, type TttState } from './tictactoe-rules.js'
+import { CHESS_MESSAGES, chessJoin, chessMessage, type ChessEmit } from './chess-match.js'
 
 /*
  * Live match relay for Phone → Games. Both phones in a match join one room; each shot,
@@ -110,6 +111,11 @@ export async function joinGame(socket: WebSocket, token: string | undefined) {
   }
   if (lastTable.has(ticket.matchId)) send(socket, { t: 'settled', snap: lastTable.get(ticket.matchId) })
   send(other?.socket ?? null, { t: 'presence', online: true })
+  // Chess is refereed by the server (chess-match.ts); other games just relay
+  const emitChess: ChessEmit = (to, message) => {
+    for (const n of to === 'both' ? [0, 1] : [to]) send(room!.get(n)?.socket ?? null, message)
+  }
+  if (ticket.game === 'chess') void chessJoin(ticket.matchId, ticket.seat as 0 | 1, emitChess).catch(() => {})
 
   socket.on('message', (data) => {
     let msg: Record<string, unknown>
@@ -130,6 +136,11 @@ export async function joinGame(socket: WebSocket, token: string | undefined) {
       send(socket, out)
       send(room!.get(1 - ticket.seat)?.socket ?? null, out)
       if (state.winnerSeat !== null) void saved.then(() => tttSettler?.(ticket.matchId)).catch(() => {}) // phones' reports retry it
+      return
+    }
+    if (ticket.game === 'chess' && typeof msg.t === 'string' && CHESS_MESSAGES.has(msg.t)) {
+      seat.lastSeen = Date.now()
+      void chessMessage(ticket.matchId, ticket.seat as 0 | 1, msg, emitChess).catch(() => {})
       return
     }
     if (typeof msg.t !== 'string' || !RELAYED.has(msg.t)) return

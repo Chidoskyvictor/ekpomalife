@@ -33,10 +33,10 @@ type MatchOk = { ok: true; match: GameMatch }
 export const fetchMatches = () => apiGet<{ ok: true; matches: GameMatch[]; betMatchesLeft: number }>('/games/matches')
 export const fetchMatch = (id: string) => apiGet<MatchOk>(`/games/matches/${encodeURIComponent(id)}`)
 
-export const challengePlayer = (username: string, variant: SnookerVariant | 'standard', stake: number, game = 'snooker') =>
+export const challengePlayer = (username: string, variant: string, stake: number, game = 'snooker') =>
   apiPost<MatchOk>('/games/challenges', { game, variant, username, stake })
 
-export const joinQuickMatch = (variant: SnookerVariant | 'standard', stake: number, game = 'snooker') =>
+export const joinQuickMatch = (variant: string, stake: number, game = 'snooker') =>
   apiPost<MatchOk>('/games/quick', { game, variant, stake })
 
 export const acceptMatch = (id: string) => apiPost<MatchOk>(`/games/matches/${encodeURIComponent(id)}/accept`, {})
