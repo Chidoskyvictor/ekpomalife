@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<!--
+  Ekpoma Life shell for marcft/tic-tac-toe — https://github.com/marcft/tic-tac-toe
+  Game assets: play.html, game.js, style.css (upstream).
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Tic tac toe</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; }
+    html, body { height: 100%; background: #0f1a14; }
+    .shell { display: flex; height: 100%; flex-direction: column; }
+    .top {
+      display: flex; align-items: center; gap: 8px; flex: none;
+      padding: 8px 10px max(8px, env(safe-area-inset-top));
+      background: #0f1a14; color: #e8f0eb;
+      font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+    }
+    .top button {
+      width: 44px; height: 44px; border: 0; border-radius: 12px;
+      background: rgba(255,255,255,0.12); color: #fff; font-size: 17px; font-weight: 800;
+    }
+    .top b { font-size: 15px; font-weight: 800; }
+    iframe { flex: 1; min-height: 0; width: 100%; border: 0; background: rgb(211, 162, 88); }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <div class="top">
+      <button type="button" id="close" aria-label="Close game">✕</button>
+      <b>Tic tac toe</b>
+    </div>
+    <iframe src="play.html" title="Tic tac toe"></iframe>
+  </div>
+  <script>
+    function post(msg) {
+      try { parent.postMessage({ source: 'ekpoma-game', game: 'tic-tac-toe', ...msg }, '*'); } catch (_) {}
+    }
+    document.getElementById('close').addEventListener('click', function () { post({ type: 'exit' }); });
+  </script>
+</body>
+</html>

@@ -31,6 +31,8 @@ import {
   type WhotTable,
 } from '@/lib/game/whot-api'
 import { BodyPortal } from '@/components/ui/body-portal'
+import { FullscreenGameFrame } from '@/components/games/fullscreen-game-frame'
+import { EMBEDDED_GAMES, type EmbeddedGameId } from '@/lib/game/embedded-games'
 import styles from './games.module.css'
 
 /*
@@ -58,6 +60,7 @@ type View =
   | { name: 'whot-play'; play: WhotPlay }
   | { name: 'waiting'; match: GameMatch }
   | { name: 'play'; setup: PlaySetup }
+  | { name: 'embed'; gameId: EmbeddedGameId }
 
 const naira = (n: number) => `₦${n.toLocaleString()}`
 const variantLabel = (v: string) => SNOOKER_VARIANTS.find((x) => x.id === v)?.label ?? v
@@ -128,23 +131,32 @@ export function GamesApp({ onHome }: { onHome: () => void }) {
       />
     )
   }
+  if (view.name === 'embed') {
+    const game = EMBEDDED_GAMES.find((g) => g.id === view.gameId)
+    if (!game) return null
+    return <FullscreenGameFrame game={game} onExit={() => setView({ name: 'home' })} />
+  }
   if (view.name === 'whot-play') {
     if (view.play.mode === 'cpu') {
       return (
-        <div className={styles.playScreen}>
-          <WhotCpuGame players={view.play.players} onExit={() => setView({ name: 'home' })} notify={notifyToast} />
-        </div>
+        <BodyPortal>
+          <div className={`${styles.playScreen} ${styles.fullScreen}`}>
+            <WhotCpuGame players={view.play.players} onExit={() => setView({ name: 'home' })} notify={notifyToast} />
+          </div>
+        </BodyPortal>
       )
     }
     return (
-      <div className={styles.playScreen}>
-        <WhotOnlineGame
-          tableId={view.play.tableId}
-          potLabel={view.play.potLabel}
-          onExit={() => setView({ name: 'home' })}
-          notify={notifyToast}
-        />
-      </div>
+      <BodyPortal>
+        <div className={`${styles.playScreen} ${styles.fullScreen}`}>
+          <WhotOnlineGame
+            tableId={view.play.tableId}
+            potLabel={view.play.potLabel}
+            onExit={() => setView({ name: 'home' })}
+            notify={notifyToast}
+          />
+        </div>
+      </BodyPortal>
     )
   }
   if (view.name === 'whot-lobby') {
@@ -277,7 +289,16 @@ export function GamesApp({ onHome }: { onHome: () => void }) {
           </span>
           <span className={styles.play}>Play</span>
         </button>
-        <p className={styles.fine}>More games are coming.</p>
+        {EMBEDDED_GAMES.map((g) => (
+          <button key={g.id} type="button" className={styles.game} onClick={() => setView({ name: 'embed', gameId: g.id })}>
+            <span className={styles.gameArt}>{g.emoji}</span>
+            <span className={styles.cardText}>
+              <strong>{g.name}</strong>
+              <span>{g.subtitle}</span>
+            </span>
+            <span className={styles.play}>Play</span>
+          </button>
+        ))}
       </section>
     </div>
   )

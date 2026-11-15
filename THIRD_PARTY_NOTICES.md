@@ -1,5 +1,25 @@
 # Third-party notices
 
+## Phone → Games (embedded mini-games)
+
+### Tic tac toe (marcft/tic-tac-toe)
+
+- Source: https://github.com/marcft/tic-tac-toe
+- Files: `public/games/tic-tac-toe/` (play.html, game.js, style.css)
+- Upstream author: Marc Frances. See upstream repository for license terms.
+
+### Ludo (mort3za/ludo)
+
+- Source: https://github.com/mort3za/ludo
+- License: GNU GPL-3.0
+- Files: `public/games/ludo/_app/` (built assets from upstream gh-pages)
+
+### Chesskit (GuillaumeSD/Chesskit)
+
+- Source: https://github.com/GuillaumeSD/Chesskit
+- License: GNU AGPL-3.0
+- In-app play loads https://chesskit.org in an iframe via `public/games/chesskit/index.html` (requires network).
+
 ## whot (Naija Whot! rules engine)
 
 - Package: [whot](https://www.npmjs.com/package/whot)
