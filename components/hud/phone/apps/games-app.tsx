@@ -32,8 +32,9 @@ import {
 } from '@/lib/game/whot-api'
 import { BodyPortal } from '@/components/ui/body-portal'
 import { FullscreenGameFrame } from '@/components/games/fullscreen-game-frame'
+import type { LudoTable } from '@/lib/game/ludo-api'
 import { EMBEDDED_GAMES, type EmbeddedGameId } from '@/lib/game/embedded-games'
-import { LudoPlay, LudoSetup, type LudoPlaySetup } from '@/components/games/ludo/ludo-game'
+import { LudoLobby, LudoPlay, LudoSetup, type LudoPlaySetup } from '@/components/games/ludo/ludo-game'
 import styles from './games.module.css'
 
 /*
@@ -64,6 +65,7 @@ type View =
   | { name: 'embed'; gameId: EmbeddedGameId }
   | { name: 'ludo' }
   | { name: 'ludo-play'; setup: LudoPlaySetup }
+  | { name: 'ludo-lobby'; table: LudoTable }
 
 const naira = (n: number) => `₦${n.toLocaleString()}`
 const variantLabel = (v: string) => SNOOKER_VARIANTS.find((x) => x.id === v)?.label ?? (v === 'classic' ? 'Classic' : v)
@@ -146,6 +148,16 @@ export function GamesApp({ onHome }: { onHome: () => void }) {
         onBack={() => setView({ name: 'home' })}
         onPlay={(setup) => setView({ name: 'ludo-play', setup })}
         onWaiting={(m) => setView(m.status === 'active' ? liveView(m) : { name: 'waiting', match: m })}
+        onTable={(table) => setView({ name: 'ludo-lobby', table })}
+      />
+    )
+  }
+  if (view.name === 'ludo-lobby') {
+    return (
+      <LudoLobby
+        table={view.table}
+        onBack={() => setView({ name: 'ludo' })}
+        onLive={(t, label) => setView({ name: 'ludo-play', setup: { mode: 'table', tableId: t.id, potLabel: label } })}
       />
     )
   }

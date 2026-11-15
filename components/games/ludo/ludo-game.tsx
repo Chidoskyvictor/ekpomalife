@@ -14,6 +14,15 @@ import {
   type GameMatch,
 } from '@/lib/game/games-api'
 import { fetchChats, type ChatSummary } from '@/lib/game/hostels-api'
+import {
+  createLudoTable,
+  fetchLudoTable,
+  joinLudoTable,
+  leaveLudoTable,
+  ludoTableTicket,
+  startLudoTable,
+  type LudoTable,
+} from '@/lib/game/ludo-api'
 import styles from '@/components/hud/phone/apps/games.module.css'
 
 /*
@@ -25,6 +34,7 @@ import styles from '@/components/hud/phone/apps/games.module.css'
 export type LudoPlaySetup =
   | { mode: 'cpu' | 'local'; players: number }
   | { mode: 'online'; match: GameMatch }
+  | { mode: 'table'; tableId: string; potLabel: string }
 
 const naira = (n: number) => `₦${n.toLocaleString()}`
 
@@ -33,11 +43,13 @@ export function LudoSetup({
   onBack,
   onPlay,
   onWaiting,
+  onTable,
 }: {
   betLeft: number | null
   onBack: () => void
   onPlay: (setup: LudoPlaySetup) => void
   onWaiting: (match: GameMatch) => void
+  onTable: (table: LudoTable) => void
 }) {
   const [mode, setMode] = useState<'cpu' | 'local' | 'online'>('cpu')
   const [players, setPlayers] = useState(2)
@@ -47,6 +59,8 @@ export function LudoSetup({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [friends, setFriends] = useState<ChatSummary[]>([])
+  const [seats, setSeats] = useState(4)
+  const [code, setCode] = useState('')
 
   useEffect(() => {
     if (mode !== 'online') return
@@ -75,6 +89,25 @@ export function LudoSetup({
     setBusy(false)
     if (!res.ok) return setError(res.error)
     onWaiting(res.match)
+  }
+
+  const create = async () => {
+    if (betInvalid) return
+    setBusy(true)
+    setError(null)
+    const res = await createLudoTable(seats, amount)
+    setBusy(false)
+    if (!res.ok) return setError(res.error)
+    onTable(res.table)
+  }
+  const join = async () => {
+    if (!code.trim()) return
+    setBusy(true)
+    setError(null)
+    const res = await joinLudoTable(code.trim())
+    setBusy(false)
+    if (!res.ok) return setError(res.error)
+    onTable(res.table)
   }
 
   return (
@@ -173,13 +206,111 @@ export function LudoSetup({
             </div>
           ) : null}
 
-          <p className={styles.section}>Or play anyone</p>
+          <p className={styles.section}>Or play anyone (1v1)</p>
           <button type="button" className={styles.big} disabled={busy || betInvalid} onClick={() => void quick()}>
             Quick match
           </button>
+
+          <p className={styles.section}>Friends table (2–4 players)</p>
+          <div className={styles.chips}>
+            {[2, 3, 4].map((n) => (
+              <button key={n} type="button" className={`${styles.chip} ${seats === n ? styles.chipOn : ''}`} onClick={() => setSeats(n)}>
+                Up to {n}
+              </button>
+            ))}
+          </div>
+          <p className={styles.fine}>Share the code. The host can start once two or more are in; the table doesn’t have to be full.</p>
+          <button type="button" className={styles.big} disabled={busy || betInvalid} onClick={() => void create()}>
+            Create table & get code
+          </button>
+          <div className={styles.row}>
+            <input
+              className={styles.input}
+              placeholder="Table code"
+              value={code}
+              onChange={(e) => setCode(e.target.value.toUpperCase())}
+              autoCapitalize="characters"
+              aria-label="Table code"
+            />
+            <button type="button" className={styles.primary} disabled={busy || !code.trim()} onClick={() => void join()}>
+              Join
+            </button>
+          </div>
         </>
       )}
       {error ? <p className={styles.error}>{error}</p> : null}
+    </div>
+  )
+}
+
+export function LudoLobby({
+  table: initial,
+  onBack,
+  onLive,
+}: {
+  table: LudoTable
+  onBack: () => void
+  onLive: (t: LudoTable, label: string) => void
+}) {
+  const [table, setTable] = useState(initial)
+  const [error, setError] = useState<string | null>(null)
+  const label = (t: LudoTable) => (t.stake ? `Pot ${naira(t.pot)}` : 'Friendly · Online')
+  useEffect(() => {
+    const id = window.setInterval(async () => {
+      const res = await fetchLudoTable(table.id)
+      if (!res.ok) return
+      setTable(res.table)
+      if (res.table.status === 'active') onLive(res.table, label(res.table))
+    }, 2500)
+    return () => window.clearInterval(id)
+  }, [table.id, onLive])
+
+  return (
+    <div className={styles.screen}>
+      <div className={styles.backBar}>
+        <button type="button" className={styles.back} onClick={onBack} aria-label="Back">
+          <ChevronLeft size={18} />
+        </button>
+        <strong>🎲 Ludo table</strong>
+        <span className={styles.backSpacer} />
+      </div>
+      <div className={styles.waiting}>
+        <strong>Code: {table.code}</strong>
+        <span>{table.stake ? `${naira(table.stake)} each · pot ${naira(table.pot)}` : 'Friendly'}</span>
+        <span>
+          {table.players.length}/{table.maxPlayers} seated
+        </span>
+        {table.players.map((p) => (
+          <span key={p.seat}>Seat {p.seat + 1}: @{p.username}</span>
+        ))}
+        {table.isHost ? (
+          <button
+            type="button"
+            className={styles.big}
+            disabled={table.players.length < 2}
+            onClick={async () => {
+              const res = await startLudoTable(table.id)
+              if (!res.ok) return setError(res.error)
+              onLive(res.table, label(res.table))
+            }}
+          >
+            {table.players.length < 2 ? 'Waiting for a second player…' : `Start with ${table.players.length}`}
+          </button>
+        ) : (
+          <span>Waiting for the host to start…</span>
+        )}
+        <button
+          type="button"
+          className={styles.ghost}
+          onClick={async () => {
+            await leaveLudoTable(table.id)
+            onBack()
+          }}
+        >
+          Leave table
+        </button>
+        {error ? <span className={styles.error}>{error}</span> : null}
+      </div>
     </div>
   )
 }
@@ -197,6 +328,8 @@ export function LudoPlay({
   const socket = useRef<WebSocket | null>(null)
   const lastState = useRef<unknown>(null)
   const online = setup.mode === 'online' ? setup.match : null
+  const tableId = setup.mode === 'table' ? setup.tableId : null
+  const tableInfo = useRef<{ seat: number; names: string[]; pot: number; stake: number } | null>(null)
   const [opponentAway, setOpponentAway] = useState<number | null>(null)
   const [opponentSeen, setOpponentSeen] = useState(false)
   const [result, setResult] = useState<string | null>(null)
@@ -207,7 +340,18 @@ export function LudoPlay({
   }, [])
 
   const init = useCallback(() => {
-    if (setup.mode === 'online') {
+    if (setup.mode === 'table') {
+      const info = tableInfo.current
+      if (!info) return // sent when the server tells us who sits where
+      toGame({
+        type: 'init',
+        mode: 'online',
+        myIndex: info.seat,
+        names: info.names,
+        subtitle: `${info.names.length} players · ${info.stake ? `Pot ${naira(info.pot)}` : 'Friendly'}`,
+      })
+      if (lastState.current) toGame({ type: 'state', state: lastState.current })
+    } else if (setup.mode === 'online') {
       const m = setup.match
       toGame({
         type: 'init',
@@ -229,18 +373,18 @@ export function LudoPlay({
 
   // Live match: the server sends the board, we send "roll" / "move"
   useEffect(() => {
-    if (!online) return
+    if (!online && !tableId) return
     let stopped = false
     let retry = 0
     let timer: number | undefined
     const connect = async () => {
-      const res = await matchTicket(online.id)
+      const res = online ? await matchTicket(online.id) : await ludoTableTicket(tableId!)
       if (stopped) return
       if (!res.ok) {
         timer = window.setTimeout(connect, Math.min(10_000, 1500 * ++retry))
         return
       }
-      const ws = new WebSocket(apiSocketUrl(`/ws/game?ticket=${encodeURIComponent(res.ticket)}`))
+      const ws = new WebSocket(apiSocketUrl(`${online ? '/ws/game' : '/ws/ludo'}?ticket=${encodeURIComponent(res.ticket)}`))
       socket.current = ws
       ws.onopen = () => (retry = 0)
       ws.onmessage = (event) => {
@@ -250,7 +394,10 @@ export function LudoPlay({
         } catch {
           return
         }
-        if (msg.t === 'ludo') {
+        if (msg.t === 'table') {
+          tableInfo.current = { seat: Number(msg.seat), names: msg.names as string[], pot: Number(msg.pot), stake: Number(msg.stake) }
+          init()
+        } else if (msg.t === 'ludo') {
           lastState.current = msg
           toGame({ type: 'state', state: msg })
         } else if (msg.t === 'error') toGame({ type: 'error', error: msg.error })
@@ -271,7 +418,7 @@ export function LudoPlay({
       window.clearTimeout(timer)
       socket.current?.close()
     }
-  }, [online, toGame])
+  }, [online, tableId, toGame, init])
 
   // The server settles the match itself; look it up once the page says it's over
   const showOutcome = useCallback(async () => {
@@ -302,11 +449,16 @@ export function LudoPlay({
             else notify('You beat the phone! 🎉', true)
           })
         } else if (online) void showOutcome()
+        else if (tableId && tableInfo.current) {
+          const info = tableInfo.current
+          const won = Number(m.winner) === info.seat
+          setResult(won ? `You won${info.stake ? ` ${naira(info.pot)}` : ''}! 🏆` : `${info.names[Number(m.winner)]} won this one.`)
+        }
       }
     }
     window.addEventListener('message', onMessage)
     return () => window.removeEventListener('message', onMessage)
-  }, [init, notify, onExit, online, setup.mode, showOutcome])
+  }, [init, notify, onExit, online, tableId, setup.mode, showOutcome])
 
   useEffect(() => {
     if (opponentAway == null) return

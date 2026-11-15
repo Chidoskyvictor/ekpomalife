@@ -7,9 +7,11 @@ import { applyMove, applyRoll, autoToken, legalTokens, newLudo, type LudoMoveRes
  * by the match system, so a phone can't report a fake result.
  */
 
-/** Seat 0 plays red (colour 0), seat 1 plays yellow (colour 2): opposite corners. */
-const COLORS = [0, 2]
+/** Colours by number of players: two sit in opposite corners (red, yellow). */
+const COLORS_FOR: Record<number, number[]> = { 2: [0, 2], 3: [0, 1, 2], 4: [0, 1, 2, 3] }
 export const LUDO_TURN_MS = 45_000
+/** A seat whose player is gone gets its turns played for it, quickly, so the others aren't kept waiting. */
+const AWAY_TURN_MS = 2_500
 
 type Room = {
   state: LudoState
@@ -17,6 +19,11 @@ type Room = {
   deadline: number
   timer: ReturnType<typeof setTimeout> | null
   settled: boolean
+  /** seats whose phone is disconnected */
+  away: Set<number>
+  /** where this room's messages go and who gets paid (1v1 matches use the global hooks) */
+  push: (msg: unknown) => void
+  finish: (winnerSeat: number) => void
 }
 
 const rooms = new Map<string, Room>()
@@ -39,23 +46,55 @@ function rollDie() {
   return hooks?.roll ? hooks.roll() : randomInt(1, 7)
 }
 
-export function ludoRoom(matchId: string) {
-  let room = rooms.get(matchId)
-  if (!room) {
-    room = { state: newLudo(COLORS), last: null, deadline: Date.now() + LUDO_TURN_MS, timer: null, settled: false }
-    rooms.set(matchId, room)
-    arm(matchId, room)
+export type LudoRoomHooks = { broadcast: (msg: unknown) => void; finish: (winnerSeat: number) => void }
+
+/** A room for a table of 2–4 players (the table code decides who may join; see ludo-tables.ts). */
+export function openLudoRoom(id: string, seats: number, roomHooks: LudoRoomHooks) {
+  const existing = rooms.get(id)
+  if (existing) return existing
+  const room: Room = {
+    state: newLudo(COLORS_FOR[seats] ?? COLORS_FOR[2]!),
+    last: null,
+    deadline: Date.now() + LUDO_TURN_MS,
+    timer: null,
+    settled: false,
+    away: new Set(),
+    push: roomHooks.broadcast,
+    finish: roomHooks.finish,
   }
+  rooms.set(id, room)
+  arm(id, room)
   return room
+}
+
+/** A 1v1 match room (created on first use). */
+export function ludoRoom(matchId: string) {
+  return (
+    rooms.get(matchId) ??
+    openLudoRoom(matchId, 2, {
+      broadcast: (msg) => hooks?.broadcast(matchId, msg),
+      finish: (seat) => hooks?.finish(matchId, seat),
+    })
+  )
+}
+
+export function setSeatAway(id: string, seat: number, away: boolean) {
+  const room = rooms.get(id)
+  if (!room) return
+  if (away) room.away.add(seat)
+  else room.away.delete(seat)
+  if (room.state.winner == null) arm(id, room)
 }
 
 export function ludoView(matchId: string) {
   const room = ludoRoom(matchId)
+  const seats = room.state.colors.length
   const s = room.state
   return {
     t: 'ludo',
     colors: s.colors,
     pos: s.pos,
+    seats,
     turn: s.turn,
     dice: s.dice,
     legal: legalTokens(s),
@@ -66,12 +105,13 @@ export function ludoView(matchId: string) {
 }
 
 function push(matchId: string) {
-  hooks?.broadcast(matchId, ludoView(matchId))
+  ludoRoom(matchId).push(ludoView(matchId))
 }
 
 function arm(matchId: string, room: Room) {
   if (room.timer) clearTimeout(room.timer)
-  room.deadline = Date.now() + LUDO_TURN_MS
+  const wait = room.away.has(room.state.turn) ? AWAY_TURN_MS : LUDO_TURN_MS
+  room.deadline = Date.now() + wait
   if (room.state.winner != null) return
   room.timer = setTimeout(() => {
     // Out of time: roll and play for the player so the game never stalls
@@ -81,7 +121,7 @@ function arm(matchId: string, room: Room) {
     if (s.dice == null) act(matchId, seat, { t: 'roll' })
     const token = autoToken(room.state)
     if (room.state.turn === seat && token != null) act(matchId, seat, { t: 'move', token })
-  }, LUDO_TURN_MS)
+  }, wait)
   room.timer.unref?.()
 }
 
@@ -110,7 +150,7 @@ export function act(matchId: string, seat: number, msg: { t?: unknown; token?: u
     push(matchId)
     if (s.winner != null && !room.settled) {
       room.settled = true
-      hooks?.finish(matchId, s.winner)
+      room.finish(s.winner)
     }
     return { ok: true }
   }

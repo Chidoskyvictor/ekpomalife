@@ -1,6 +1,6 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { applyMove, applyRoll, HOME, legalTokens, newLudo, ringCell } from './ludo-engine.js'
-import { act, dropLudoRoom, ludoView, setLudoHooks } from './ludo-live.js'
+import { act, dropLudoRoom, ludoView, openLudoRoom, setLudoHooks, setSeatAway } from './ludo-live.js'
 
 describe('ludo-engine', () => {
   it('needs a 6 to leave base and passes the turn otherwise', () => {
@@ -139,5 +139,36 @@ describe('ludo-live (server rolls, server decides)', () => {
     expect(ludoView(id).winner).toBe(0)
     expect(finished).toEqual([0])
     expect(act(id, 0, { t: 'roll' }).ok).toBe(false)
+  })
+})
+
+describe('ludo tables (2–4 players)', () => {
+  const noop = { broadcast: () => {}, finish: () => {} }
+  afterEach(() => {
+    dropLudoRoom('tbl')
+    vi.useRealTimers()
+  })
+
+  it('seats 3 and 4 players with their own colours and rotates turns', () => {
+    openLudoRoom('tbl', 4, noop)
+    const v = ludoView('tbl')
+    expect(v.seats).toBe(4)
+    expect(v.colors).toEqual([0, 1, 2, 3])
+    // 1 is not a 6: nothing can move, turn passes seat to seat
+    setLudoHooks({ broadcast: () => {}, finish: () => {}, roll: () => 1 })
+    for (const seat of [0, 1, 2, 3, 0]) {
+      expect(ludoView('tbl').turn).toBe(seat)
+      expect(act('tbl', seat, { t: 'roll' }).ok).toBe(true)
+    }
+  })
+
+  it('plays quickly for a seat whose player has gone', () => {
+    vi.useFakeTimers()
+    setLudoHooks({ broadcast: () => {}, finish: () => {}, roll: () => 1 })
+    openLudoRoom('tbl', 3, noop)
+    setSeatAway('tbl', 0, true)
+    vi.advanceTimersByTime(2600)
+    expect(ludoView('tbl').last?.seat).toBe(0)
+    expect(ludoView('tbl').turn).toBe(1)
   })
 })

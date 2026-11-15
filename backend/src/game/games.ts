@@ -302,7 +302,7 @@ export async function quickMatch(userId: string, input: { game: string; variant:
 }
 
 /** Fun for a win, up to DAILY_WIN_REWARDS times a day. */
-async function rewardWin(client: PoolClient, characterId: string) {
+export async function rewardWin(client: PoolClient, characterId: string) {
   const counted = await client.query<{ wins: number }>(
     `INSERT INTO game_rewards (character_id, day, wins) VALUES ($1, (NOW() AT TIME ZONE 'Africa/Lagos')::date, 1)
      ON CONFLICT (character_id, day) DO UPDATE SET wins = game_rewards.wins + 1
