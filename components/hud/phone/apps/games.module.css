@@ -8,7 +8,7 @@
   padding: 2px 12px 16px;
   overflow-y: auto;
   overscroll-behavior: contain;
-  color: #111;
+  color: var(--ink);
 }
 
 .screen > * {
@@ -27,15 +27,15 @@
   background-clip: text;
   -webkit-background-clip: text;
   color: transparent;
-  font-size: 28px;
+  font-size: var(--fs-28);
   font-weight: 800;
   letter-spacing: -0.03em;
 }
 
 .tagline,
 .fine {
-  color: #8e8e93;
-  font-size: 12px;
+  color: var(--ink-3);
+  font-size: var(--fs-12);
 }
 
 .fine {
@@ -45,8 +45,8 @@
 
 .section {
   margin: 6px 4px 0;
-  color: #8e8e93;
-  font-size: 12px;
+  color: var(--ink-3);
+  font-size: var(--fs-12);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -60,7 +60,7 @@
 
 .error {
   margin: 0 4px;
-  color: #b42318;
+  color: var(--bad-strong);
   font-size: 13px;
 }
 
@@ -72,8 +72,8 @@
   gap: 10px;
   padding: 10px 12px;
   border: 0;
-  border-radius: 18px;
-  background: #f4f6f8;
+  border-radius: var(--r-lg);
+  background: var(--fill);
   color: inherit;
   font: inherit;
   text-align: left;
@@ -96,7 +96,7 @@
   width: 48px;
   height: 48px;
   place-items: center;
-  border-radius: 14px;
+  border-radius: var(--r-md);
   background: #0f5a24;
   font-size: 26px;
 }
@@ -107,14 +107,14 @@
   flex: 1;
   flex-direction: column;
   gap: 2px;
-  color: #6e6e73;
-  font-size: 14px;
+  color: var(--ink-2);
+  font-size: var(--fs-14);
 }
 
 .cardText strong {
   overflow: hidden;
-  color: #111;
-  font-size: 14px;
+  color: var(--ink);
+  font-size: var(--fs-14);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -128,7 +128,7 @@
 .play {
   flex: none;
   padding: 7px 14px;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: #16a34a;
   color: #fff;
   font-size: 13px;
@@ -142,7 +142,7 @@
   min-height: 34px;
   padding: 0 14px;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   font: inherit;
   font-size: 13px;
   font-weight: 700;
@@ -157,14 +157,14 @@
 
 .ghost,
 .ghostSmall {
-  background: #e9ecef;
-  color: #111;
+  background: var(--fill-2);
+  color: var(--ink);
 }
 
 .ghostSmall {
   min-height: 30px;
   padding: 0 12px;
-  font-size: 12px;
+  font-size: var(--fs-12);
 }
 
 .primary:disabled,
@@ -176,7 +176,7 @@
 .big {
   min-height: 46px;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: linear-gradient(120deg, #0891b2, #16a34a);
   color: #fff;
   font: inherit;
@@ -200,9 +200,9 @@
   flex: none;
   place-items: center;
   border: 0;
-  border-radius: 999px;
-  background: #f2f2f7;
-  color: #111;
+  border-radius: var(--r-pill);
+  background: var(--fill);
+  color: var(--ink);
   cursor: pointer;
 }
 
@@ -232,9 +232,9 @@
   gap: 1px;
   padding: 4px 12px;
   border: 0;
-  border-radius: 14px;
-  background: #f2f2f7;
-  color: #111;
+  border-radius: var(--r-md);
+  background: var(--fill);
+  color: var(--ink);
   font: inherit;
   font-size: 13px;
   font-weight: 700;
@@ -242,8 +242,8 @@
 }
 
 .chip small {
-  color: #8e8e93;
-  font-size: 12px;
+  color: var(--ink-3);
+  font-size: var(--fs-12);
   font-weight: 600;
 }
 
@@ -267,9 +267,9 @@
   flex: 1;
   padding: 0 12px;
   border: 1px solid #d5dde3;
-  border-radius: 12px;
-  background: #fff;
-  color: #111;
+  border-radius: var(--r-md);
+  background: var(--paper);
+  color: var(--ink);
   font: inherit;
   font-size: 15px;
   outline: none;
@@ -290,11 +290,11 @@
   overflow: hidden;
   padding: 6px 10px;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: #e0f2fe;
   color: #075985;
   font: inherit;
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -308,14 +308,14 @@
   align-items: center;
   gap: 10px;
   padding: 40px 16px;
-  color: #6e6e73;
+  color: var(--ink-2);
   font-size: 13px;
   text-align: center;
 }
 
 .waiting strong {
-  color: #111;
-  font-size: 16px;
+  color: var(--ink);
+  font-size: var(--fs-16);
 }
 
 .spinner {
@@ -355,10 +355,10 @@
   gap: 8px;
   min-height: 44px;
   padding: 6px 8px 6px 12px;
-  border-radius: 14px;
+  border-radius: var(--r-md);
   background: #fff4c7;
   color: #7a5200;
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 700;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
 }

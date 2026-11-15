@@ -5,7 +5,7 @@
   height: calc(100% + 24px);
   margin: -12px;
   flex-direction: column;
-  background: #fff;
+  background: var(--paper);
   animation: slideIn 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 @keyframes slideIn {
@@ -39,9 +39,9 @@
   width: 40px;
   height: 40px;
   border: none;
-  border-radius: 999px;
-  background: #f1f2f4;
-  color: #111;
+  border-radius: var(--r-pill);
+  background: var(--fill);
+  color: var(--ink);
 }
 
 .search {
@@ -51,17 +51,17 @@
   flex: 1;
   min-width: 0;
   height: 44px;
-  border-radius: 14px;
-  background: #f1f2f4;
+  border-radius: var(--r-md);
+  background: var(--fill);
 }
 .search:focus-within {
-  background: #fff;
+  background: var(--paper);
   box-shadow: 0 0 0 2px #2563eb;
 }
 .searchIcon {
   position: absolute;
   left: 12px;
-  color: #6b7280;
+  color: var(--ink-2);
   pointer-events: none;
 }
 .search input {
@@ -71,8 +71,8 @@
   padding: 0 38px 0 40px;
   border: none;
   background: transparent;
-  color: #111;
-  font-size: 16px; /* 16px keeps iOS from zooming in */
+  color: var(--ink);
+  font-size: var(--fs-16); /* 16px keeps iOS from zooming in */
   outline: none;
 }
 .search input::-webkit-search-cancel-button {
@@ -86,7 +86,7 @@
   width: 30px;
   height: 30px;
   border: none;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: #d9dce1;
   color: #333;
 }
@@ -110,9 +110,9 @@
   z-index: 1;
   margin: 0;
   padding: 12px 4px 6px;
-  background: #fff;
-  color: #6b7280;
-  font-size: 12px;
+  background: var(--paper);
+  color: var(--ink-2);
+  font-size: var(--fs-12);
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -126,13 +126,13 @@
   min-height: 56px;
   padding: 6px 6px;
   border: none;
-  border-radius: 14px;
+  border-radius: var(--r-md);
   background: transparent;
-  color: #111;
+  color: var(--ink);
   text-align: left;
 }
 .row:active {
-  background: #f1f2f4;
+  background: var(--fill);
 }
 .rowOn {
   background: #eef4ff;
@@ -144,8 +144,8 @@
   flex: none;
   width: 40px;
   height: 40px;
-  border-radius: 12px;
-  font-size: 20px;
+  border-radius: var(--r-md);
+  font-size: var(--fs-20);
 }
 
 .text {
@@ -163,7 +163,7 @@
 }
 .text span {
   overflow: hidden;
-  color: #6b7280;
+  color: var(--ink-2);
   font-size: 12.5px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -172,23 +172,23 @@
 .tag {
   flex: none;
   padding: 3px 8px;
-  border-radius: 999px;
-  font-size: 11px;
+  border-radius: var(--r-pill);
+  font-size: var(--fs-12);
   font-weight: 800;
 }
 .tagOpen {
   background: #dcfce7;
-  color: #15803d;
+  color: var(--ok-strong);
 }
 .tagShut {
   background: #fee2e2;
-  color: #b91c1c;
+  color: var(--bad-strong);
 }
 
 .empty {
   margin: 24px 8px;
-  color: #6b7280;
-  font-size: 14px;
+  color: var(--ink-2);
+  font-size: var(--fs-14);
   text-align: center;
 }
 
@@ -201,9 +201,9 @@
   min-height: 52px;
   padding: 0 14px;
   border: none;
-  border-radius: 16px;
-  background: #f1f2f4;
-  color: #111;
+  border-radius: var(--r-lg);
+  background: var(--fill);
+  color: var(--ink);
   text-align: left;
 }
 .whereBtn:active {
@@ -220,18 +220,18 @@
   flex: 1;
   min-width: 0;
   overflow: hidden;
-  font-size: 16px;
+  font-size: var(--fs-16);
   font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .wherePlaceholder {
   flex: 1;
-  color: #6b7280;
-  font-size: 16px;
+  color: var(--ink-2);
+  font-size: var(--fs-16);
   font-weight: 600;
 }
 .whereIcon {
   flex: none;
-  color: #6b7280;
+  color: var(--ink-2);
 }

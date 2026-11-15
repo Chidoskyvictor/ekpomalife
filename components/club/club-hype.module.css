@@ -16,7 +16,7 @@
   gap: 1px;
   padding: 8px;
   border: 1px solid rgba(255, 63, 180, 0.45);
-  border-radius: 16px;
+  border-radius: var(--r-lg);
   background: linear-gradient(160deg, rgba(255, 63, 180, 0.2), rgba(166, 91, 255, 0.2));
   color: inherit;
   font: inherit;
@@ -35,7 +35,7 @@
 .tier small {
   max-width: 100%;
   overflow: hidden;
-  font-size: 11px;
+  font-size: var(--fs-12);
   font-weight: 600;
   opacity: 0.75;
   text-overflow: ellipsis;

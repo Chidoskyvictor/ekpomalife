@@ -13,10 +13,10 @@
 .avatar {
   width: 72px;
   height: 72px;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   display: grid;
   place-items: center;
-  font-size: 28px;
+  font-size: var(--fs-28);
   font-weight: 600;
   color: #fff;
   flex-shrink: 0;
@@ -38,14 +38,14 @@
 
 .sub {
   margin: 4px 0 0;
-  font-size: 14px;
+  font-size: var(--fs-14);
   line-height: 1.4;
   color: var(--text-secondary, #64748b);
 }
 
 .bio {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--fs-14);
   line-height: 1.5;
   color: var(--foreground, #0f172a);
 }
@@ -57,8 +57,8 @@
 }
 
 .statCard {
-  border: 1px solid var(--border, #e2e8f0);
-  border-radius: 12px;
+  border: 1px solid var(--border, var(--line));
+  border-radius: var(--r-md);
   padding: 12px;
   min-height: 44px;
   background: var(--surface, #fff);
@@ -66,27 +66,27 @@
 
 .statLabel {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: var(--text-secondary, #64748b);
 }
 
 .statValue {
   margin: 4px 0 0;
-  font-size: 16px;
+  font-size: var(--fs-16);
   font-weight: 600;
   color: var(--foreground, #0f172a);
 }
 
 .ownerBlock {
-  border-radius: 12px;
+  border-radius: var(--r-md);
   padding: 12px;
-  background: color-mix(in srgb, var(--accent, #3d9ad6) 8%, transparent);
-  border: 1px solid color-mix(in srgb, var(--accent, #3d9ad6) 22%, transparent);
+  background: color-mix(in srgb, var(--accent, var(--primary)) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent, var(--primary)) 22%, transparent);
 }
 
 .ownerTitle {
   margin: 0 0 8px;
-  font-size: 14px;
+  font-size: var(--fs-14);
   font-weight: 600;
 }
 
@@ -95,7 +95,7 @@
   justify-content: space-between;
   align-items: center;
   min-height: 44px;
-  font-size: 14px;
+  font-size: var(--fs-14);
 }
 
 .actions {
@@ -108,10 +108,10 @@
   min-height: 44px;
   min-width: 44px;
   padding: 0 16px;
-  font-size: 14px;
+  font-size: var(--fs-14);
   font-weight: 500;
-  border-radius: 999px;
-  border: 1px solid var(--border, #e2e8f0);
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border, var(--line));
   background: var(--surface, #fff);
   color: var(--foreground, #0f172a);
 }
@@ -122,13 +122,13 @@
 
 .muted {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--fs-14);
   color: var(--text-secondary, #64748b);
 }
 
 .error {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--fs-14);
   color: var(--danger, #dc2626);
 }
 
@@ -143,7 +143,7 @@
 .field label {
   display: block;
   margin-bottom: 6px;
-  font-size: 14px;
+  font-size: var(--fs-14);
   font-weight: 500;
 }
 
@@ -152,10 +152,10 @@
 .field select {
   width: 100%;
   min-height: 44px;
-  font-size: 14px;
+  font-size: var(--fs-14);
   padding: 10px 12px;
-  border-radius: 10px;
-  border: 1px solid var(--border, #e2e8f0);
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border, var(--line));
   background: var(--surface, #fff);
 }
 
@@ -173,7 +173,7 @@
 .swatch {
   width: 44px;
   height: 44px;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   border: 2px solid transparent;
 }
 
@@ -192,19 +192,19 @@
   width: 44px;
   height: 44px;
   font-size: 22px;
-  border-radius: 12px;
-  border: 1px solid var(--border, #e2e8f0);
+  border-radius: var(--r-md);
+  border: 1px solid var(--border, var(--line));
   background: var(--surface, #fff);
 }
 
 .emojiBtn[data-active='true'] {
-  border-color: var(--accent, #3d9ad6);
-  background: color-mix(in srgb, var(--accent, #3d9ad6) 12%, transparent);
+  border-color: var(--accent, var(--primary));
+  background: color-mix(in srgb, var(--accent, var(--primary)) 12%, transparent);
 }
 
 .hint {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--fs-14);
   color: var(--text-secondary, #64748b);
 }
 

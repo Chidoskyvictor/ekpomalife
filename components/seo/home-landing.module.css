@@ -7,8 +7,8 @@
   color: #122846;
   background: linear-gradient(
     180deg,
-    color-mix(in oklab, #3d9ad6 14%, white) 0%,
-    color-mix(in oklab, #3d9ad6 6%, white) 40%,
+    color-mix(in oklab, var(--primary) 14%, white) 0%,
+    color-mix(in oklab, var(--primary) 6%, white) 40%,
     white 85%
   );
   line-height: 1.55;
@@ -27,7 +27,7 @@
 
 .title {
   margin: 0.75rem 0 0;
-  font-family: 'Boogaloo', sans-serif;
+  font-family: var(--font-game);
   font-size: clamp(2.25rem, 8vw, 3.25rem);
   font-weight: 400;
   line-height: 1.05;
@@ -55,7 +55,7 @@
   justify-content: center;
   min-height: 2.75rem;
   padding: 0 1.25rem;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   font-size: 0.95rem;
   font-weight: 600;
   text-decoration: none;
@@ -75,7 +75,7 @@
 .section {
   margin-top: 2rem;
   padding-top: 1.5rem;
-  border-top: 1px solid color-mix(in oklab, #3d9ad6 18%, white);
+  border-top: 1px solid color-mix(in oklab, var(--primary) 18%, white);
 }
 
 .section h2 {
@@ -122,7 +122,7 @@
 .footer {
   margin-top: 2.5rem;
   padding-top: 1.25rem;
-  border-top: 1px solid color-mix(in oklab, #3d9ad6 18%, white);
+  border-top: 1px solid color-mix(in oklab, var(--primary) 18%, white);
   font-size: 0.9rem;
 }
 

@@ -14,7 +14,7 @@
 
 .label {
   margin: 0;
-  color: #6b7280;
+  color: var(--ink-2);
   font-size: 13px;
   font-weight: 500;
   line-height: 1.2;
@@ -28,8 +28,8 @@
   place-items: center;
   border: 0;
   border-radius: 50%;
-  background: #fff;
-  color: #1a2233;
+  background: var(--paper);
+  color: var(--ink);
   cursor: pointer;
 }
 
@@ -41,9 +41,9 @@
   gap: 8px;
   padding: 0 14px;
   border: 2px solid transparent;
-  border-radius: 999px;
-  background: #fff;
-  color: #6b7280;
+  border-radius: var(--r-pill);
+  background: var(--paper);
+  color: var(--ink-2);
 }
 
 .search[data-open='true'] {
@@ -51,7 +51,7 @@
 }
 
 .search:focus-within {
-  border-color: #3d9ad6;
+  border-color: var(--primary);
 }
 
 .search input {
@@ -59,10 +59,10 @@
   flex: 1;
   border: 0;
   background: transparent;
-  color: #1a2233;
+  color: var(--ink);
   font: inherit;
   /* 16px stops iOS zooming into the field */
-  font-size: 16px;
+  font-size: var(--fs-16);
   outline: none;
 }
 
@@ -82,16 +82,16 @@
   gap: 2px;
   margin: 0;
   padding: 10px 14px;
-  border: 2px solid #3d9ad6;
-  border-radius: 16px;
-  background: #fff;
-  color: #1a2233;
-  font-size: 14px;
+  border: 2px solid var(--primary);
+  border-radius: var(--r-lg);
+  background: var(--paper);
+  color: var(--ink);
+  font-size: var(--fs-14);
 }
 
 .chosen span {
-  color: #6b7280;
-  font-size: 12px;
+  color: var(--ink-2);
+  font-size: var(--fs-12);
 }
 
 .grid {
@@ -116,17 +116,17 @@
   margin: 0;
   padding: 10px 12px;
   border: 2px solid transparent;
-  border-radius: 16px;
-  background: #fff;
-  color: #1a2233;
+  border-radius: var(--r-lg);
+  background: var(--paper);
+  color: var(--ink);
   font: inherit;
   text-align: start;
   cursor: pointer;
 }
 
 .chip[aria-pressed='true'] {
-  border-color: #3d9ad6;
-  box-shadow: 0 0 0 1px #3d9ad6;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px var(--primary);
 }
 
 .name {
@@ -136,8 +136,8 @@
 }
 
 .years {
-  color: #6b7280;
-  font-size: 12px;
+  color: var(--ink-2);
+  font-size: var(--fs-12);
   font-weight: 400;
 }
 
@@ -164,9 +164,9 @@
   align-items: center;
   padding: 8px 14px;
   border: 0;
-  border-radius: 14px;
-  background: #fff;
-  color: #1a2233;
+  border-radius: var(--r-md);
+  background: var(--paper);
+  color: var(--ink);
   font: inherit;
   text-align: start;
   cursor: pointer;
@@ -178,8 +178,8 @@
 
 .row .meta {
   grid-area: meta;
-  color: #6b7280;
-  font-size: 12px;
+  color: var(--ink-2);
+  font-size: var(--fs-12);
 }
 
 .row .years {
@@ -189,11 +189,11 @@
 }
 
 li[aria-selected='true'] .row {
-  box-shadow: 0 0 0 2px #3d9ad6;
+  box-shadow: 0 0 0 2px var(--primary);
 }
 
 .none {
   margin: 0;
-  color: #6b7280;
-  font-size: 14px;
+  color: var(--ink-2);
+  font-size: var(--fs-14);
 }

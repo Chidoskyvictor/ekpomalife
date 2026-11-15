@@ -5,19 +5,19 @@
   flex-direction: column;
   gap: 10px;
   padding: 2px 2px 16px;
-  color: #111;
+  color: var(--ink);
 }
 
 .hint,
 .error {
   margin: 12px 4px;
-  color: #6e6e73;
+  color: var(--ink-2);
   font-size: 13px;
   text-align: center;
 }
 
 .error {
-  color: #b42318;
+  color: var(--bad-strong);
 }
 
 /* —— Portfolio —— */
@@ -26,14 +26,14 @@
   flex-direction: column;
   gap: 4px;
   padding: 16px;
-  border-radius: 22px;
+  border-radius: var(--r-lg);
   background: linear-gradient(150deg, #0f766e 0%, #1d6fd6 100%);
   color: #fff;
 }
 
 .heroLabel {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -50,7 +50,7 @@
 
 .heroSub {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--fs-14);
   opacity: 0.9;
 }
 
@@ -67,9 +67,9 @@
   align-items: center;
   gap: 1px;
   padding: 6px 4px;
-  border-radius: 14px;
+  border-radius: var(--r-md);
   background: rgba(255, 255, 255, 0.16);
-  font-size: 12px;
+  font-size: var(--fs-12);
 }
 
 .stat strong {
@@ -84,15 +84,15 @@
 .news {
   margin: 8px 0 0;
   padding: 8px 10px;
-  border-radius: 14px;
+  border-radius: var(--r-md);
   background: rgba(255, 255, 255, 0.14);
-  font-size: 12px;
+  font-size: var(--fs-12);
   line-height: 1.35;
 }
 
 .heroFoot {
   margin: 2px 0 0;
-  font-size: 12px;
+  font-size: var(--fs-12);
   opacity: 0.8;
 }
 
@@ -116,9 +116,9 @@
   min-height: 32px;
   padding: 0 12px;
   border: 0;
-  border-radius: 999px;
-  background: #f2f2f7;
-  color: #3c3c43;
+  border-radius: var(--r-pill);
+  background: var(--fill);
+  color: var(--ink-2);
   font: inherit;
   font-size: 13px;
   font-weight: 650;
@@ -132,9 +132,9 @@
 
 .soonTag {
   padding: 1px 5px;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: rgba(0, 0, 0, 0.08);
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 700;
   text-transform: uppercase;
 }
@@ -147,8 +147,8 @@
 .errNote {
   margin: 0;
   padding: 8px 12px;
-  border-radius: 12px;
-  font-size: 14px;
+  border-radius: var(--r-md);
+  font-size: var(--fs-14);
 }
 
 .okNote {
@@ -163,8 +163,8 @@
 
 .section {
   margin: 8px 4px 0;
-  color: #8e8e93;
-  font-size: 12px;
+  color: var(--ink-3);
+  font-size: var(--fs-12);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -172,8 +172,8 @@
 
 .fine {
   margin: 0 4px;
-  color: #8e8e93;
-  font-size: 12px;
+  color: var(--ink-3);
+  font-size: var(--fs-12);
 }
 
 /* —— Rows —— */
@@ -182,7 +182,7 @@
   align-items: flex-start;
   gap: 10px;
   padding: 12px;
-  border-radius: 18px;
+  border-radius: var(--r-lg);
   background: #f7f7fa;
 }
 
@@ -192,9 +192,9 @@
   width: 38px;
   height: 38px;
   place-items: center;
-  border-radius: 12px;
-  background: #fff;
-  font-size: 20px;
+  border-radius: var(--r-md);
+  background: var(--paper);
+  font-size: var(--fs-20);
 }
 
 .body {
@@ -203,14 +203,14 @@
   flex: 1;
   flex-direction: column;
   gap: 3px;
-  color: #3c3c43;
-  font-size: 14px;
+  color: var(--ink-2);
+  font-size: var(--fs-14);
   line-height: 1.35;
 }
 
 .body strong {
-  color: #111;
-  font-size: 14px;
+  color: var(--ink);
+  font-size: var(--fs-14);
 }
 
 .body em {
@@ -219,7 +219,7 @@
 }
 
 .muted {
-  color: #8e8e93;
+  color: var(--ink-3);
   font-weight: 500;
 }
 
@@ -240,8 +240,8 @@
 
 .tags em {
   padding: 2px 7px;
-  border-radius: 999px;
-  font-size: 12px;
+  border-radius: var(--r-pill);
+  font-size: var(--fs-12);
 }
 
 .tagUp {
@@ -260,8 +260,8 @@
 }
 
 .tagPlain {
-  background: #ececf0;
-  color: #3c3c43;
+  background: var(--fill-2);
+  color: var(--ink-2);
 }
 
 /* Slim buttons only */
@@ -272,9 +272,9 @@
   min-height: 30px;
   padding: 0 12px;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   font: inherit;
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 700;
   white-space: nowrap;
   cursor: pointer;
@@ -288,8 +288,8 @@
 
 .ghost {
   align-self: center;
-  background: #ececf0;
-  color: #111;
+  background: var(--fill-2);
+  color: var(--ink);
 }
 
 .primary {
@@ -309,7 +309,7 @@
   align-items: center;
   gap: 6px;
   margin-top: 6px;
-  color: #111;
+  color: var(--ink);
   font-weight: 650;
 }
 
@@ -326,7 +326,7 @@
   min-height: 32px;
   padding: 0 16px;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: #0f766e;
   color: #fff;
   font: inherit;
@@ -345,7 +345,7 @@
 .launchBtn {
   min-height: 40px;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: linear-gradient(120deg, #5b3fd1, #db2777);
   color: #fff;
   font: inherit;
@@ -360,7 +360,7 @@
   gap: 10px;
   padding: 10px 12px;
   border: 0;
-  border-radius: 18px;
+  border-radius: var(--r-lg);
   background: #f7f7fa;
   color: inherit;
   font: inherit;
@@ -370,8 +370,8 @@
 
 .coinRow em {
   padding: 2px 7px;
-  border-radius: 999px;
-  font-size: 12px;
+  border-radius: var(--r-pill);
+  font-size: var(--fs-12);
   font-style: normal;
   font-weight: 700;
 }
@@ -385,8 +385,8 @@
 }
 
 .hype {
-  color: #8e8e93;
-  font-size: 12px;
+  color: var(--ink-3);
+  font-size: var(--fs-12);
   font-weight: 600;
 }
 
@@ -395,7 +395,7 @@
   flex-direction: column;
   gap: 8px;
   padding: 12px;
-  border-radius: 18px;
+  border-radius: var(--r-lg);
   background: #f2f0fb;
   font-size: 13px;
 }
@@ -404,8 +404,8 @@
   display: flex;
   flex-direction: column;
   gap: 3px;
-  color: #6e6e73;
-  font-size: 12px;
+  color: var(--ink-2);
+  font-size: var(--fs-12);
   font-weight: 600;
 }
 
@@ -414,11 +414,11 @@
   min-height: 34px;
   padding: 0 10px;
   border: 1px solid #ddd8f5;
-  border-radius: 10px;
-  background: #fff;
-  color: #111;
+  border-radius: var(--r-sm);
+  background: var(--paper);
+  color: var(--ink);
   font: inherit;
-  font-size: 14px;
+  font-size: var(--fs-14);
   outline: none;
 }
 
@@ -439,8 +439,8 @@
   height: 32px;
   place-items: center;
   border: 0;
-  border-radius: 10px;
-  background: #fff;
+  border-radius: var(--r-sm);
+  background: var(--paper);
   font-size: 17px;
   cursor: pointer;
 }
@@ -479,9 +479,9 @@
   height: 30px;
   place-items: center;
   border: 0;
-  border-radius: 999px;
-  background: #f2f2f7;
-  color: #111;
+  border-radius: var(--r-pill);
+  background: var(--fill);
+  color: var(--ink);
   cursor: pointer;
 }
 
@@ -490,9 +490,9 @@
   flex-direction: column;
   gap: 4px;
   padding: 12px;
-  border-radius: 18px;
+  border-radius: var(--r-lg);
   background: #f7f7fa;
-  font-size: 12px;
+  font-size: var(--fs-12);
 }
 
 .coinPrice {
@@ -509,7 +509,7 @@
 
 .coinAbout {
   margin: 2px 0 0;
-  color: #3c3c43;
+  color: var(--ink-2);
 }
 
 .spark {

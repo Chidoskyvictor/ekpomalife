@@ -29,14 +29,14 @@
 
 .note {
   margin: 0 0 10px;
-  color: #6e6e73;
-  font-size: 14px;
+  color: var(--ink-2);
+  font-size: var(--fs-14);
 }
 
 .doorNote {
   margin: 0;
   color: rgba(255, 255, 255, 0.7);
-  font-size: 14px;
+  font-size: var(--fs-14);
 }
 
 /* —— At the door (inside the place sheet) —— */
@@ -50,7 +50,7 @@
   display: flex;
   justify-content: space-between;
   color: rgba(255, 255, 255, 0.75);
-  font-size: 14px;
+  font-size: var(--fs-14);
 }
 
 .entryRow strong {
@@ -61,7 +61,7 @@
 .ghost {
   min-height: 46px;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   font: inherit;
   font-size: 15px;
   font-weight: 700;
@@ -79,13 +79,13 @@
 }
 
 .ghost {
-  background: #f2f2f7;
-  color: #111;
+  background: var(--fill);
+  color: var(--ink);
 }
 
 .error {
   margin: 0;
-  color: #b42318;
+  color: var(--bad-strong);
   font-size: 13px;
 }
 
@@ -104,9 +104,9 @@
   gap: 10px;
   padding: 8px 10px;
   border: 0;
-  border-radius: 16px;
+  border-radius: var(--r-lg);
   background: #f7f6fb;
-  color: #111;
+  color: var(--ink);
   font: inherit;
   text-align: left;
   cursor: pointer;
@@ -118,7 +118,7 @@
   width: 40px;
   height: 40px;
   place-items: center;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: linear-gradient(140deg, #db2777, #7c3aed);
   color: #fff;
   font-weight: 800;
@@ -133,7 +133,7 @@
 
 .personName {
   overflow: hidden;
-  font-size: 14px;
+  font-size: var(--fs-14);
   font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -141,8 +141,8 @@
 
 .personMeta {
   overflow: hidden;
-  color: #6e6e73;
-  font-size: 12px;
+  color: var(--ink-2);
+  font-size: var(--fs-12);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -150,10 +150,10 @@
 .tag {
   flex: none;
   padding: 3px 8px;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: #ece6ff;
   color: #5b3fd1;
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 700;
 }
 
@@ -167,8 +167,8 @@
   min-height: 40px;
   padding: 0 16px;
   border: 0;
-  border-radius: 999px;
-  background: #ececf0;
+  border-radius: var(--r-pill);
+  background: var(--fill-2);
   font: inherit;
   font-size: 13px;
   font-weight: 700;

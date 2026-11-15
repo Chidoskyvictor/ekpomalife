@@ -20,7 +20,7 @@
   width: 36px;
   height: 36px;
   border: 0;
-  border-radius: 12px;
+  border-radius: var(--r-md);
   background: rgba(255, 255, 255, 0.1);
   color: #fff;
 }
@@ -28,13 +28,13 @@
 .title {
   flex: 1;
   min-width: 0;
-  font-size: 14px;
+  font-size: var(--fs-14);
   font-weight: 800;
 }
 
 .title span {
   display: block;
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 500;
   color: #9fb8a8;
   overflow: hidden;
@@ -54,10 +54,10 @@
   flex: 1 0 64px;
   min-width: 64px;
   padding: 6px;
-  border-radius: 14px;
+  border-radius: var(--r-md);
   background: rgba(255, 255, 255, 0.07);
   text-align: center;
-  font-size: 11px;
+  font-size: var(--fs-12);
 }
 
 .oppTurn {
@@ -76,7 +76,7 @@
   border-radius: 50%;
   display: grid;
   place-items: center;
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 800;
   color: #0f1a14;
   background: #4dabf7;
@@ -97,10 +97,10 @@
 .status {
   margin: 4px 10px;
   padding: 7px 12px;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: rgba(255, 255, 255, 0.08);
   color: #ffd93d;
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 700;
   text-align: center;
   flex: none;
@@ -112,7 +112,7 @@
   display: flex;
   margin: 4px 10px;
   border: 3px solid #6b4a2b;
-  border-radius: 24px;
+  border-radius: var(--r-lg);
   background: radial-gradient(ellipse at center, #1f6b44 0%, #14502f 60%, #0e3a22 100%);
   box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.45);
 }
@@ -120,10 +120,10 @@
 .alert {
   margin: 0 10px 4px;
   padding: 6px 10px;
-  border-radius: 10px;
+  border-radius: var(--r-sm);
   background: rgba(255, 217, 61, 0.15);
   color: #ffd93d;
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 700;
   flex: none;
 }
@@ -144,17 +144,17 @@
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: #d5e8dc;
 }
 
 .marketTag {
   padding: 2px 8px;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: #c62828;
   color: #fff;
   font-weight: 800;
-  font-size: 11px;
+  font-size: var(--fs-12);
 }
 
 .timer {
@@ -246,9 +246,9 @@
 }
 
 .cornerNum {
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 900;
-  font-family: Georgia, 'Times New Roman', serif;
+  font-family: var(--font-ui);
   letter-spacing: -0.02em;
 }
 
@@ -274,7 +274,7 @@
   border-radius: 3px;
   background: rgba(26, 26, 26, 0.88);
   color: #fffef8;
-  font-size: 6px;
+  font-size: var(--fs-12);
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -328,7 +328,7 @@
   border-radius: 3px;
   background: #1a1a1a;
   color: #fffef8;
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 900;
   letter-spacing: 0.12em;
 }
@@ -339,7 +339,7 @@
   margin-top: 4px;
   font-size: 26px;
   font-weight: 900;
-  font-family: Georgia, 'Times New Roman', serif;
+  font-family: var(--font-ui);
   color: #fffef8;
   text-shadow: 0 2px 0 #1a1a1a;
   line-height: 1;
@@ -357,9 +357,9 @@
   border-radius: 4px;
   background: rgba(255, 254, 248, 0.92);
   border: 1px solid #1a1a1a;
-  font-size: 6px;
+  font-size: var(--fs-12);
   font-weight: 800;
-  color: #1a1a1a;
+  color: var(--ink);
   text-transform: uppercase;
 }
 
@@ -386,7 +386,7 @@
 .backLabel {
   position: relative;
   z-index: 1;
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 900;
   letter-spacing: 0.2em;
   color: #ffd93d;
@@ -398,7 +398,7 @@
   border: 0;
   padding: 0;
   background: transparent;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
 }
 
 .shapePickBtn:active {
@@ -427,7 +427,7 @@
   flex: 1;
   min-height: 44px;
   border: 0;
-  border-radius: 14px;
+  border-radius: var(--r-md);
   background: rgba(255, 255, 255, 0.12);
   color: #fff;
   font-weight: 700;
@@ -448,7 +448,7 @@
   align-self: center;
   margin: 0;
   padding-right: 4px;
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 700;
   color: #9fb8a8;
   text-transform: uppercase;
@@ -470,11 +470,11 @@
   min-width: 20px;
   height: 20px;
   padding: 0 5px;
-  border-radius: 10px;
+  border-radius: var(--r-sm);
   border: 2px solid #0f1a14;
   background: #ffd93d;
-  color: #1a1a1a;
-  font-size: 12px;
+  color: var(--ink);
+  font-size: var(--fs-12);
   font-weight: 900;
   line-height: 16px;
   text-align: center;
