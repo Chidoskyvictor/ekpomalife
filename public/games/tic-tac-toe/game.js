@@ -13,6 +13,15 @@
   const online = new URLSearchParams(window.location.search).get('online') === '1'
   const whoEl = document.getElementById('who')
   const modeButtons = [...document.querySelectorAll('[data-mode]')]
+  const levelButtons = [...document.querySelectorAll('[data-level]')]
+  /** How hard the phone plays: easy (mostly random), medium (blocks and wins, but slips), hard (perfect). */
+  let level = 'medium'
+  try {
+    const saved = window.localStorage.getItem('ekpoma-ttt-level')
+    if (saved === 'easy' || saved === 'medium' || saved === 'hard') level = saved
+  } catch (_) {
+    /* storage blocked: stay on medium */
+  }
 
   let board = Array(9).fill(null)
   let turn = 'X'
@@ -72,6 +81,38 @@
     return move
   }
 
+  /** A square that would finish a line for `who` right now, or -1. */
+  function finishing(b, who) {
+    for (let i = 0; i < 9; i++) {
+      if (b[i]) continue
+      b[i] = who
+      const w = winnerOf(b)
+      b[i] = null
+      if (w && w.mark === who) return i
+    }
+    return -1
+  }
+
+  /** The phone's move at the chosen difficulty (the phone is O). */
+  function phoneMove(b) {
+    const open = b.map((v, i) => (v ? -1 : i)).filter((i) => i >= 0)
+    const random = () => open[Math.floor(Math.random() * open.length)]
+    if (level === 'hard') return best(b, 'O')
+    if (level === 'easy') {
+      // Takes a win only sometimes, never blocks on purpose
+      const win = finishing(b, 'O')
+      return win >= 0 && Math.random() < 0.4 ? win : random()
+    }
+    // Medium: wins when it can, usually blocks, otherwise prefers the middle, and slips now and then
+    const win = finishing(b, 'O')
+    if (win >= 0) return win
+    const block = finishing(b, 'X')
+    if (block >= 0 && Math.random() < 0.8) return block
+    if (Math.random() < 0.3) return random()
+    if (!b[4]) return 4
+    return random()
+  }
+
   function render(justPlayed) {
     cells.forEach((c, i) => {
       c.textContent = board[i] || ''
@@ -100,7 +141,7 @@
     turn = turn === 'X' ? 'O' : 'X'
     statusEl.textContent = mode === 'cpu' ? (turn === 'X' ? 'Your turn' : 'Phone is thinking…') : `${turn} to play`
     render(i)
-    if (mode === 'cpu' && turn === 'O') window.setTimeout(() => play(best(board, 'O'), false), 450)
+    if (mode === 'cpu' && turn === 'O') window.setTimeout(() => play(phoneMove(board), false), 450)
   }
 
   function newRound() {
@@ -110,7 +151,7 @@
     starter = starter === 'X' ? 'O' : 'X'
     statusEl.textContent = mode === 'cpu' ? (turn === 'X' ? 'Your turn' : 'Phone is thinking…') : `${turn} to play`
     render(-1)
-    if (mode === 'cpu' && turn === 'O') window.setTimeout(() => play(best(board, 'O'), false), 450)
+    if (mode === 'cpu' && turn === 'O') window.setTimeout(() => play(phoneMove(board), false), 450)
   }
 
   modeButtons.forEach((b) =>
@@ -123,6 +164,27 @@
       newRound()
     }),
   )
+  function showLevel() {
+    document.body.classList.toggle('cpu', mode === 'cpu')
+    levelButtons.forEach((x) => x.setAttribute('aria-checked', String(x.dataset.level === level)))
+  }
+  levelButtons.forEach((b) =>
+    b.addEventListener('click', () => {
+      if (level === b.dataset.level) return
+      level = b.dataset.level
+      try {
+        window.localStorage.setItem('ekpoma-ttt-level', level)
+      } catch (_) {
+        /* storage blocked */
+      }
+      showLevel()
+      score.X = score.O = score.D = 0
+      starter = 'X'
+      newRound()
+    }),
+  )
+  modeButtons.forEach((b) => b.addEventListener('click', showLevel))
+  showLevel()
   againEl.addEventListener('click', newRound)
 
   // —— Online: the server keeps the board and judges the win; this page only shows it ——

@@ -190,3 +190,34 @@ body.online .side b {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* Phone difficulty: only when playing the phone */
+.levels {
+  display: none;
+  width: 100%;
+  max-width: 360px;
+  gap: 6px;
+}
+body.cpu .levels {
+  display: flex;
+}
+body.online .levels {
+  display: none;
+}
+.levels button {
+  min-height: 40px;
+  flex: 1;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  background: transparent;
+  color: #b9cbbf;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.levels button[aria-checked='true'] {
+  border-color: #ffcf4a;
+  background: rgba(255, 207, 74, 0.14);
+  color: #ffcf4a;
+}
