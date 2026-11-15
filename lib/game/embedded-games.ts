@@ -34,8 +34,8 @@ export const EMBEDDED_GAMES: EmbeddedGame[] = [
     id: 'ludo',
     name: 'Ludo',
     emoji: '🎲',
-    subtitle: 'Offline board · 2–4 players',
+    subtitle: 'vs phone · pass & play · online',
     path: '/games/ludo/index.html',
-    bridgeSource: 'ekpoma-game',
+    bridgeSource: 'ekpoma-ludo',
   },
 ]

@@ -1,5 +1,7 @@
 import { randomBytes } from 'node:crypto'
 import type { WebSocket } from 'ws'
+import { settleServerResult } from './games.js'
+import { act as ludoAct, dropLudoRoom, ludoRoom, ludoView, setLudoHooks } from './ludo-live.js'
 
 /*
  * Live match relay for Phone → Games. Both phones in a match join one room; each shot,
@@ -11,7 +13,7 @@ import type { WebSocket } from 'ws'
 type Seat = { socket: WebSocket | null; characterId: string; lastSeen: number }
 /** Last settled table per match, so a phone that rejoins picks up where the frame is. */
 const lastTable = new Map<string, unknown>()
-type Ticket = { matchId: string; characterId: string; seat: number; expires: number }
+type Ticket = { matchId: string; characterId: string; seat: number; expires: number; game?: string }
 
 const tickets = new Map<string, Ticket>()
 const rooms = new Map<string, Map<number, Seat>>()
@@ -20,12 +22,23 @@ const openedAt = new Map<string, number>()
 
 /** Messages a phone may send on to the other one. */
 const RELAYED = new Set(['shot', 'settled', 'timeout', 'emote'])
+/** Ludo is run by the server: phones ask to roll / move and the server answers both (ludo-live.ts). */
+const LUDO_ACTIONS = new Set(['roll', 'move'])
 
-export function createGameTicket(matchId: string, characterId: string, seat: number) {
+setLudoHooks({
+  broadcast: (matchId, msg) => {
+    for (const seat of rooms.get(matchId)?.values() ?? []) send(seat.socket, msg)
+  },
+  finish: (matchId, winnerSeat) => {
+    void settleServerResult(matchId, winnerSeat).catch((error) => console.error('ludo settle failed', error))
+  },
+})
+
+export function createGameTicket(matchId: string, characterId: string, seat: number, game?: string) {
   const token = randomBytes(24).toString('base64url')
   const now = Date.now()
   for (const [key, t] of tickets) if (t.expires < now) tickets.delete(key)
-  tickets.set(token, { matchId, characterId, seat, expires: now + 60_000 })
+  tickets.set(token, { matchId, characterId, seat, expires: now + 60_000, game })
   return token
 }
 
@@ -62,6 +75,10 @@ export function joinGame(socket: WebSocket, token: string | undefined) {
   const other = room.get(1 - ticket.seat)
   const otherOnline = !!other?.socket && other.socket.readyState === other.socket.OPEN
   send(socket, { t: 'hello', seat: ticket.seat, opponentOnline: otherOnline })
+  if (ticket.game === 'ludo') {
+    ludoRoom(ticket.matchId)
+    send(socket, ludoView(ticket.matchId))
+  }
   if (lastTable.has(ticket.matchId)) send(socket, { t: 'settled', snap: lastTable.get(ticket.matchId) })
   send(other?.socket ?? null, { t: 'presence', online: true })
 
@@ -70,6 +87,12 @@ export function joinGame(socket: WebSocket, token: string | undefined) {
     try {
       msg = JSON.parse(String(data)) as Record<string, unknown>
     } catch {
+      return
+    }
+    if (ticket.game === 'ludo' && typeof msg.t === 'string' && LUDO_ACTIONS.has(msg.t)) {
+      seat.lastSeen = Date.now()
+      const out = ludoAct(ticket.matchId, ticket.seat, msg)
+      if (!out.ok) send(socket, { t: 'error', error: out.error })
       return
     }
     if (typeof msg.t !== 'string' || !RELAYED.has(msg.t)) return
@@ -90,6 +113,7 @@ export function joinGame(socket: WebSocket, token: string | undefined) {
         rooms.delete(ticket.matchId)
         openedAt.delete(ticket.matchId)
         lastTable.delete(ticket.matchId)
+        dropLudoRoom(ticket.matchId)
       }
     }, 15 * 60_000)
   })

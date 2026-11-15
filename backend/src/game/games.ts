@@ -18,6 +18,7 @@ import { applyNeedDelta } from './needs.js'
 export const GAMES: Record<string, { name: string; emoji: string; variants: string[] }> = {
   snooker: { name: 'Snooker', emoji: '🎱', variants: ['six', 'classic', 'clearance', 'black'] },
   whot: { name: 'Naija Whot!', emoji: '🃏', variants: ['standard'] },
+  ludo: { name: 'Ludo', emoji: '🎲', variants: ['classic'] },
 }
 
 export const DAILY_BET_MATCHES = 10
@@ -345,6 +346,10 @@ export async function reportResult(userId: string, matchId: string, input: { win
     }
     const isHost = m.host_id === player.id
     const opponentId = (isHost ? m.guest_id : m.host_id)!
+    // Ludo is decided by the server (it rolls the dice): a phone can only claim a forfeit
+    if (m.game === 'ludo' && !(input.forfeit && input.winner === 'me' && opponentAwaySeconds(matchId, opponentId) >= FORFEIT_SECONDS)) {
+      return { ok: true as const, status: 'active', winnerId: null }
+    }
     const claimed = input.winner === 'me' ? player.id : opponentId
     await client.query(`UPDATE game_matches SET ${isHost ? 'host_report' : 'guest_report'} = $2 WHERE id = $1`, [matchId, claimed])
     const hostReport = isHost ? claimed : m.host_report
@@ -379,11 +384,37 @@ export async function reportResult(userId: string, matchId: string, input: { win
   return match.ok ? { ...match, status: outcome.status } : match
 }
 
+/**
+ * The server decided the winner (Ludo): pay the pot, or give both stakes back if either
+ * player is in a live Space. `winnerSeat` 0 = host, 1 = guest.
+ */
+export async function settleServerResult(matchId: string, winnerSeat: number) {
+  await inTx(async (client) => {
+    const found = await client.query<MatchRow>(`SELECT *, stake::text AS stake FROM game_matches WHERE id = $1 FOR UPDATE`, [matchId])
+    const m = found.rows[0]
+    if (!m || m.status !== 'active' || !m.guest_id) return
+    const guestId = m.guest_id
+    const winnerId = winnerSeat === 0 ? m.host_id : guestId
+    const stake = asMoney(m.stake)
+    const gameName = GAMES[m.game]?.name ?? 'Game'
+    await client.query(`UPDATE game_matches SET status = 'finished', winner_id = $2, finished_at = NOW() WHERE id = $1`, [matchId, winnerId])
+    if (stake > 0) {
+      if (await liveSpaceMoneyBlockForCharacters([m.host_id, m.guest_id], client)) {
+        await refund(client, m.host_id, stake, gameName)
+        await refund(client, m.guest_id, stake, gameName)
+      } else {
+        await applyCash(client, winnerId, stake * 2, `${gameName} win`, 'bet_win')
+      }
+    }
+    await rewardWin(client, winnerId)
+  })
+}
+
 /** For the live socket: is this player in this match, and as which seat? */
 export async function seatInMatch(userId: string, matchId: string) {
-  const found = await pool.query<{ character_id: string; username: string; seat: number; status: string }>(
+  const found = await pool.query<{ character_id: string; username: string; seat: number; status: string; game: string }>(
     `SELECT c.id AS character_id, u.username,
-            CASE WHEN m.host_id = c.id THEN 0 ELSE 1 END AS seat, m.status
+            CASE WHEN m.host_id = c.id THEN 0 ELSE 1 END AS seat, m.status, m.game
      FROM game_matches m JOIN characters c ON c.user_id = $1 AND (m.host_id = c.id OR m.guest_id = c.id)
      JOIN users u ON u.id = c.user_id
      WHERE m.id = $2`,

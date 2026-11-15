@@ -33,6 +33,7 @@ import {
 import { BodyPortal } from '@/components/ui/body-portal'
 import { FullscreenGameFrame } from '@/components/games/fullscreen-game-frame'
 import { EMBEDDED_GAMES, type EmbeddedGameId } from '@/lib/game/embedded-games'
+import { LudoPlay, LudoSetup, type LudoPlaySetup } from '@/components/games/ludo/ludo-game'
 import styles from './games.module.css'
 
 /*
@@ -61,9 +62,16 @@ type View =
   | { name: 'waiting'; match: GameMatch }
   | { name: 'play'; setup: PlaySetup }
   | { name: 'embed'; gameId: EmbeddedGameId }
+  | { name: 'ludo' }
+  | { name: 'ludo-play'; setup: LudoPlaySetup }
 
 const naira = (n: number) => `₦${n.toLocaleString()}`
-const variantLabel = (v: string) => SNOOKER_VARIANTS.find((x) => x.id === v)?.label ?? v
+const variantLabel = (v: string) => SNOOKER_VARIANTS.find((x) => x.id === v)?.label ?? (v === 'classic' ? 'Classic' : v)
+/** Icon + name for an online match, by game */
+const gameLabel = (game: string) => (game === 'ludo' ? { emoji: '🎲', name: 'Ludo' } : { emoji: '🎱', name: 'Snooker' })
+/** The screen that plays a live online match of any game */
+const liveView = (m: GameMatch): View =>
+  m.game === 'ludo' ? { name: 'ludo-play', setup: { mode: 'online', match: m } } : { name: 'play', setup: { opponent: 'online', match: m } }
 
 export function GamesApp({ onHome }: { onHome: () => void }) {
   const [view, setView] = useState<View>({ name: 'home' })
@@ -83,7 +91,7 @@ export function GamesApp({ onHome }: { onHome: () => void }) {
   const openMatch = useCallback(async (id: string) => {
     const res = await fetchMatch(id)
     if (!res.ok) return setNote(res.error)
-    if (res.match.status === 'active') setView({ name: 'play', setup: { opponent: 'online', match: res.match } })
+    if (res.match.status === 'active') setView(liveView(res.match))
     else if (res.match.status === 'pending') setView({ name: 'waiting', match: res.match })
   }, [])
 
@@ -127,7 +135,29 @@ export function GamesApp({ onHome }: { onHome: () => void }) {
       <WaitingView
         match={view.match}
         onBack={() => setView({ name: 'home' })}
-        onLive={(m) => setView({ name: 'play', setup: { opponent: 'online', match: m } })}
+        onLive={(m) => setView(liveView(m))}
+      />
+    )
+  }
+  if (view.name === 'ludo') {
+    return (
+      <LudoSetup
+        betLeft={betLeft}
+        onBack={() => setView({ name: 'home' })}
+        onPlay={(setup) => setView({ name: 'ludo-play', setup })}
+        onWaiting={(m) => setView(m.status === 'active' ? liveView(m) : { name: 'waiting', match: m })}
+      />
+    )
+  }
+  if (view.name === 'ludo-play') {
+    return (
+      <LudoPlay
+        setup={view.setup}
+        onExit={() => {
+          setView({ name: 'home' })
+          void refreshServer()
+        }}
+        notify={notifyToast}
       />
     )
   }
@@ -212,11 +242,11 @@ export function GamesApp({ onHome }: { onHome: () => void }) {
           <p className={styles.section}>Challenges</p>
           {incoming.map((m) => (
             <div key={m.id} className={styles.card}>
-              <span className={styles.cardIcon}>🎱</span>
+              <span className={styles.cardIcon}>{gameLabel(m.game).emoji}</span>
               <span className={styles.cardText}>
                 <strong>{m.names[0]} challenged you</strong>
                 <span>
-                  Snooker · {variantLabel(m.variant)} · {m.stake ? `${naira(m.stake)} bet` : 'Friendly'}
+                  {gameLabel(m.game).name} · {variantLabel(m.variant)} · {m.stake ? `${naira(m.stake)} bet` : 'Friendly'}
                 </span>
               </span>
               <span className={styles.cardActions}>
@@ -226,7 +256,7 @@ export function GamesApp({ onHome }: { onHome: () => void }) {
                   onClick={async () => {
                     const res = await acceptMatch(m.id)
                     if (!res.ok) return setNote(res.error)
-                    setView({ name: 'play', setup: { opponent: 'online', match: res.match } })
+                    setView(liveView(res.match))
                   }}
                 >
                   Accept
@@ -249,9 +279,9 @@ export function GamesApp({ onHome }: { onHome: () => void }) {
               <span className={styles.cardIcon}>🟢</span>
               <span className={styles.cardText}>
                 <strong>vs @{m.opponent}</strong>
-                <span>Snooker · {m.stake ? `${naira(m.stake * 2)} pot` : 'Friendly'} · live</span>
+                <span>{gameLabel(m.game).name} · {m.stake ? `${naira(m.stake * 2)} pot` : 'Friendly'} · live</span>
               </span>
-              <button type="button" className={styles.primary} onClick={() => setView({ name: 'play', setup: { opponent: 'online', match: m } })}>
+              <button type="button" className={styles.primary} onClick={() => setView(liveView(m))}>
                 Resume
               </button>
             </div>
@@ -261,7 +291,7 @@ export function GamesApp({ onHome }: { onHome: () => void }) {
               <span className={styles.cardIcon}>⏳</span>
               <span className={styles.cardText}>
                 <strong>{m.opponent ? `Waiting for @${m.opponent}` : 'Finding a player…'}</strong>
-                <span>Snooker · {m.stake ? `${naira(m.stake)} bet` : 'Friendly'}</span>
+                <span>{gameLabel(m.game).name} · {m.stake ? `${naira(m.stake)} bet` : 'Friendly'}</span>
               </span>
               <button type="button" className={styles.ghost} onClick={() => setView({ name: 'waiting', match: m })}>
                 Open
@@ -290,7 +320,7 @@ export function GamesApp({ onHome }: { onHome: () => void }) {
           <span className={styles.play}>Play</span>
         </button>
         {EMBEDDED_GAMES.map((g) => (
-          <button key={g.id} type="button" className={styles.game} onClick={() => setView({ name: 'embed', gameId: g.id })}>
+          <button key={g.id} type="button" className={styles.game} onClick={() => setView(g.id === 'ludo' ? { name: 'ludo' } : { name: 'embed', gameId: g.id })}>
             <span className={styles.gameArt}>{g.emoji}</span>
             <span className={styles.cardText}>
               <strong>{g.name}</strong>
@@ -687,7 +717,7 @@ function WaitingView({ match, onBack, onLive }: { match: GameMatch; onBack: () =
         <button type="button" className={styles.back} onClick={onBack} aria-label="Back">
           <ChevronLeft size={18} />
         </button>
-        <strong>🎱 Snooker</strong>
+        <strong>{gameLabel(match.game).emoji} {gameLabel(match.game).name}</strong>
         <span className={styles.backSpacer} />
       </div>
       <div className={styles.waiting}>
