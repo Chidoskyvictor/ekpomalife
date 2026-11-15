@@ -102,6 +102,6 @@ export async function gamesRoutes(app: FastifyInstance) {
 
   // Live match socket (opened with a ticket, no cookie needed)
   app.get('/ws/game', { websocket: true }, (socket, request) => {
-    joinGame(socket, wsQuery.parse(request.query).ticket)
+    void joinGame(socket, wsQuery.parse(request.query).ticket)
   })
 }

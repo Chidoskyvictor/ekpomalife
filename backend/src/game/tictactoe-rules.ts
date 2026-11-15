@@ -15,6 +15,8 @@ export type TttState = {
   round: number
   draws: number
   moves: number[]
+  /** Every cell played across all rounds, in order (what gets stored). */
+  history: number[]
   /** Winning seat (0 = X, 1 = O), set once and final. */
   winnerSeat: 0 | 1 | null
   line: number[]
@@ -26,10 +28,18 @@ const LINES = [
   [0, 4, 8], [2, 4, 6],
 ]
 
+/** Rebuild a match from its stored cells; stops at the first one that doesn't fit. */
+export function replayTtt(history: unknown): TttState {
+  const state = newTtt()
+  if (!Array.isArray(history)) return state
+  for (const cell of history) if (!applyMove(state, state.turn === 'X' ? 0 : 1, cell).ok) break
+  return state
+}
+
 export const markOfSeat = (seat: number): Mark => (seat === 0 ? 'X' : 'O')
 
 export function newTtt(): TttState {
-  return { board: Array<Cell>(9).fill(null), turn: 'X', starter: 'X', round: 1, draws: 0, moves: [], winnerSeat: null, line: [] }
+  return { board: Array<Cell>(9).fill(null), turn: 'X', starter: 'X', round: 1, draws: 0, moves: [], history: [], winnerSeat: null, line: [] }
 }
 
 export function lineWinner(board: Cell[]): { mark: Mark; line: number[] } | null {
@@ -49,6 +59,7 @@ export function applyMove(state: TttState, seat: number, cell: unknown): { ok: t
   if (state.board[cell]) return { ok: false, error: 'That square is taken.' }
   state.board[cell] = state.turn
   state.moves.push(cell)
+  state.history.push(cell)
   const won = lineWinner(state.board)
   if (won) {
     state.winnerSeat = won.mark === 'X' ? 0 : 1

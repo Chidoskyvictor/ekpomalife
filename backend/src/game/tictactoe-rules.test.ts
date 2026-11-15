@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { applyMove, newTtt } from './tictactoe-rules.js'
+import { applyMove, newTtt, replayTtt } from './tictactoe-rules.js'
 
 function play(moves: [number, number][]) {
   const s = newTtt()
@@ -50,5 +50,13 @@ describe('tic tac toe rules', () => {
     expect(s.turn).toBe('O')
     expect(applyMove(s, 0, 4)).toMatchObject({ ok: false, error: 'Not your turn.' })
     expect(applyMove(s, 1, 4).ok).toBe(true)
+  })
+
+  it('replays a stored history, across a drawn round, to the same state', () => {
+    const s = play([[0, 0], [1, 1], [0, 2], [1, 4], [0, 3], [1, 5], [0, 7], [1, 6], [0, 8], [1, 4], [0, 0]])
+    const r = replayTtt(s.history)
+    expect(r).toEqual(s)
+    expect(replayTtt('junk')).toEqual(newTtt())
+    expect(replayTtt([4, 4, 9]).history).toEqual([4])
   })
 })

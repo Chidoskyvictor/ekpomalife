@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto'
 import type { WebSocket } from 'ws'
-import { applyMove, newTtt, type TttState } from './tictactoe-rules.js'
+import { pool } from '../db.js'
+import { applyMove, replayTtt, type TttState } from './tictactoe-rules.js'
 
 /*
  * Live match relay for Phone → Games. Both phones in a match join one room; each shot,
@@ -58,7 +59,24 @@ export function opponentAwaySeconds(matchId: string, characterId: string) {
   return (Date.now() - seat.lastSeen) / 1000
 }
 
-export function joinGame(socket: WebSocket, token: string | undefined) {
+/** Persist the move list (in order per match) so a restart can rebuild the board. */
+const saving = new Map<string, Promise<unknown>>()
+function saveTtt(matchId: string, state: TttState) {
+  const history = JSON.stringify(state.history)
+  const next = (saving.get(matchId) ?? Promise.resolve())
+    .catch(() => {})
+    .then(() => pool.query(`UPDATE game_matches SET ttt_moves = $2::jsonb WHERE id = $1`, [matchId, history]))
+  saving.set(matchId, next)
+  return next
+}
+
+async function loadTtt(matchId: string) {
+  if (tttMatches.has(matchId)) return
+  const found = await pool.query<{ ttt_moves: unknown }>(`SELECT ttt_moves FROM game_matches WHERE id = $1`, [matchId])
+  if (!tttMatches.has(matchId)) tttMatches.set(matchId, replayTtt(found.rows[0]?.ttt_moves))
+}
+
+export async function joinGame(socket: WebSocket, token: string | undefined) {
   const ticket = token ? tickets.get(token) : undefined
   if (!ticket || ticket.expires < Date.now()) {
     send(socket, { t: 'error', error: 'Ticket expired. Reconnecting…' })
@@ -66,6 +84,15 @@ export function joinGame(socket: WebSocket, token: string | undefined) {
     return
   }
   tickets.delete(token!)
+  if (ticket.game === 'tictactoe') {
+    try {
+      await loadTtt(ticket.matchId)
+    } catch {
+      send(socket, { t: 'error', error: 'Couldn’t load the board. Reconnecting…' })
+      socket.close(4003, 'load failed')
+      return
+    }
+  }
   let room = rooms.get(ticket.matchId)
   if (!room) {
     rooms.set(ticket.matchId, (room = new Map()))
@@ -79,7 +106,6 @@ export function joinGame(socket: WebSocket, token: string | undefined) {
   const otherOnline = !!other?.socket && other.socket.readyState === other.socket.OPEN
   send(socket, { t: 'hello', seat: ticket.seat, opponentOnline: otherOnline })
   if (ticket.game === 'tictactoe') {
-    if (!tttMatches.has(ticket.matchId)) tttMatches.set(ticket.matchId, newTtt())
     send(socket, { t: 'ttt', ...tttView(tttMatches.get(ticket.matchId)!) })
   }
   if (lastTable.has(ticket.matchId)) send(socket, { t: 'settled', snap: lastTable.get(ticket.matchId) })
@@ -99,10 +125,11 @@ export function joinGame(socket: WebSocket, token: string | undefined) {
       seat.lastSeen = Date.now()
       const res = applyMove(state, ticket.seat, msg.cell)
       if (!res.ok) return send(socket, { t: 'ttt', ...tttView(state), error: res.error })
+      const saved = saveTtt(ticket.matchId, state)
       const out = { t: 'ttt', ...tttView(state) }
       send(socket, out)
       send(room!.get(1 - ticket.seat)?.socket ?? null, out)
-      if (state.winnerSeat !== null) void tttSettler?.(ticket.matchId).catch(() => {}) // phones' reports retry it
+      if (state.winnerSeat !== null) void saved.then(() => tttSettler?.(ticket.matchId)).catch(() => {}) // phones' reports retry it
       return
     }
     if (typeof msg.t !== 'string' || !RELAYED.has(msg.t)) return

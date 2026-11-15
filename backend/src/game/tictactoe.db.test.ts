@@ -59,8 +59,8 @@ async function startMatch(stake: number) {
   const seatB = (await games.seatInMatch(b.userId, id))!
   const sa = fakeSocket()
   const sb = fakeSocket()
-  live.joinGame(sa.socket, live.createGameTicket(id, seatA.character_id, seatA.seat, seatA.game))
-  live.joinGame(sb.socket, live.createGameTicket(id, seatB.character_id, seatB.seat, seatB.game))
+  await live.joinGame(sa.socket, live.createGameTicket(id, seatA.character_id, seatA.seat, seatA.game))
+  await live.joinGame(sb.socket, live.createGameTicket(id, seatB.character_id, seatB.seat, seatB.game))
   void ua
   return { a, b, id, sa, sb }
 }
@@ -119,6 +119,18 @@ run('staked tic tac toe is judged by the server (database)', () => {
     expect(await cash(b.userId)).toBe(900)
     expect(await games.reportResult(b.userId, id, { winner: 'me' })).toMatchObject({ status: 'finished' })
     expect(await cash(a.userId)).toBe(1100)
+  }, 90_000)
+
+  it('rebuilds the board from the database after the server forgets it', async () => {
+    const { a, id, sa, sb } = await startMatch(0)
+    sa.say({ t: 'move', cell: 4 })
+    sb.say({ t: 'move', cell: 0 })
+    await new Promise((r) => setTimeout(r, 3000)) // let the saves land
+    live.forgetTtt(id) // what a restart does to memory
+    const seat = (await games.seatInMatch(a.userId, id))!
+    const again = fakeSocket()
+    await live.joinGame(again.socket, live.createGameTicket(id, seat.character_id, seat.seat, seat.game))
+    expect(again.sent.find((m) => m.t === 'ttt')).toMatchObject({ board: ['O', null, null, null, 'X', null, null, null, null], turn: 'X' })
   }, 90_000)
 
   it('cannot be won by forfeit while the opponent is still at the table', async () => {
