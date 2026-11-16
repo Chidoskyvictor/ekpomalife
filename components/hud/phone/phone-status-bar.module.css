@@ -1,0 +1,107 @@
+/* Time left, signal + battery right — level with the Dynamic Island. */
+.statusBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 46px;
+  padding: 4px 26px 0 30px;
+  font-size: var(--fs-16);
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+.statusTime {
+  min-width: 0;
+}
+
+/* App open: the status bar is part of the app — same plain white, no seam under the island */
+.statusBarOnApp {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.statusBarOnApp .batteryBody {
+  border-color: rgba(0, 0, 0, 0.4);
+}
+
+.statusBarOnApp .batteryCap {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.statusRight {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-14);
+  font-weight: 700;
+}
+
+.signalMuted {
+  opacity: 0.55;
+}
+
+.signalBars {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 1.5px;
+  height: 11px;
+}
+
+.signalBars i {
+  display: block;
+  width: 3px;
+  border-radius: 1px;
+  background: currentColor;
+}
+
+.signalBars i:nth-child(1) { height: 4px; }
+.signalBars i:nth-child(2) { height: 6px; }
+.signalBars i:nth-child(3) { height: 8.5px; }
+.signalBars i:nth-child(4) { height: 11px; }
+
+.signalOff i:nth-child(n + 2) {
+  opacity: 0.35;
+}
+
+.battery {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+}
+
+.batteryBody {
+  position: relative;
+  display: block;
+  width: 24px;
+  height: 12px;
+  padding: 1.5px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 4px;
+}
+
+.batteryFill {
+  display: block;
+  width: var(--level, 100%);
+  height: 100%;
+  border-radius: 2px;
+  background: currentColor;
+}
+
+.batteryBolt {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: var(--fs-12);
+  line-height: 1;
+}
+
+.batteryCap {
+  display: block;
+  width: 1.5px;
+  height: 4px;
+  border-radius: 0 1px 1px 0;
+  background: rgba(255, 255, 255, 0.5);
+}

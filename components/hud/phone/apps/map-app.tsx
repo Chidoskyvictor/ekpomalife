@@ -1,7 +1,8 @@
 'use client'
 
 import { PLACES } from '@/lib/game/places'
-import styles from '../phone.module.css'
+import phoneStyles from '../phone.module.css'
+import styles from './map-app.module.css'
 
 export function MapApp({
   currentPlaceId,
@@ -23,14 +24,14 @@ export function MapApp({
     <div>
       {[...groups.entries()].map(([type, places]) => (
         <section key={type}>
-          <h3 className={styles.sectionTitle}>{type}</h3>
-          <ul className={styles.list}>
+          <h3 className={phoneStyles.sectionTitle}>{type}</h3>
+          <ul className={phoneStyles.list}>
             {places.map((place) => {
               const here = place.id === currentPlaceId
               return (
-                <li key={place.id} className={styles.listItem}>
+                <li key={place.id} className={phoneStyles.listItem}>
                   <div>
-                    <p className={styles.promoTitle} style={{ color: '#111', margin: 0 }}>
+                    <p className={phoneStyles.promoTitle} style={{ color: '#111', margin: 0 }}>
                       {place.label}
                       {here ? ' · here' : ''}
                     </p>
@@ -39,14 +40,14 @@ export function MapApp({
                     <div className={styles.rowActions}>
                       <button
                         type="button"
-                        className={`${styles.smallPill} ${styles.smallPillGhost}`}
+                        className={`${phoneStyles.smallPill} ${phoneStyles.smallPillGhost}`}
                         onClick={() => onGo(place.id)}
                       >
                         Go
                       </button>
                       <button
                         type="button"
-                        className={styles.smallPill}
+                        className={phoneStyles.smallPill}
                         onClick={() => onRide(place.id)}
                       >
                         Ride

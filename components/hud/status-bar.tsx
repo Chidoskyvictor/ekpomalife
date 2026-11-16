@@ -15,7 +15,8 @@ import {
 import { useShowMapLabels } from '@/lib/game/map-labels'
 import { useWatClock } from '@/lib/game/wat-clock'
 import type { GameState } from '@/lib/game/types'
-import styles from './life-hud.module.css'
+import hudStyles from './life-hud.module.css'
+import styles from './status-bar.module.css'
 import { SiteStats } from './site-stats'
 import { usePathname } from 'next/navigation'
 
@@ -63,10 +64,10 @@ export function StatusBar({
   const moodClass = !mood
     ? ''
     : mood.tone === 'good'
-      ? styles.moodGood
+      ? hudStyles.moodGood
       : mood.tone === 'warn'
-        ? styles.moodWarn
-        : styles.moodBad
+        ? hudStyles.moodWarn
+        : hudStyles.moodBad
   const waitingOnCash = Boolean(cashLoading) || !state
   const cashLabel =
     state != null ? compactNaira(state.cash) : '₦·····'
@@ -136,26 +137,26 @@ export function StatusBar({
   }
 
   return (
-    <div className={styles.statusStack} ref={stackRef}>
-      <header className={styles.statusBar} aria-label="Status">
-        <span className={styles.statusItem}>
+    <div className={hudStyles.statusStack} ref={stackRef}>
+      <header className={hudStyles.statusBar} aria-label="Status">
+        <span className={hudStyles.statusItem}>
           {clock.sky === 'moon' ? (
-            <img src="/emoji/crescent-moon.png" alt="Night" width={16} height={16} className={styles.sticker} />
+            <img src="/emoji/crescent-moon.png" alt="Night" width={16} height={16} className={hudStyles.sticker} />
           ) : (
-            <img src="/emoji/sunglasses.png" alt="Daytime" width={16} height={16} className={styles.sticker} />
+            <img src="/emoji/sunglasses.png" alt="Daytime" width={16} height={16} className={hudStyles.sticker} />
           )}
           <strong>
             {cal.label}
-            <span className={styles.statusMuted}> · {timeLabel}</span>
+            <span className={hudStyles.statusMuted}> · {timeLabel}</span>
           </strong>
         </span>
 
-        <span className={styles.statusDivider} aria-hidden="true" />
+        <span className={hudStyles.statusDivider} aria-hidden="true" />
 
         {mood && onMood ? (
           <button
             type="button"
-            className={`${styles.statusItem} ${styles.moodBtn} ${moodClass}`}
+            className={`${hudStyles.statusItem} ${hudStyles.moodBtn} ${moodClass}`}
             aria-label={`Mood ${mood.label}. Open needs`}
             onClick={onMood}
           >
@@ -163,7 +164,7 @@ export function StatusBar({
           </button>
         ) : (
           <span
-            className={`${styles.statusItem} ${moodClass}`}
+            className={`${hudStyles.statusItem} ${moodClass}`}
             aria-label={mood ? `Mood ${mood.label}` : 'Mood loading'}
           >
             {mood ? mood.label : '—'}
@@ -173,7 +174,7 @@ export function StatusBar({
         {missions ? (
           <button
             type="button"
-            className={`${styles.statusItem} ${styles.moodBtn}`}
+            className={`${hudStyles.statusItem} ${hudStyles.moodBtn}`}
             aria-label={`Today's missions: ${missions.done} of ${missions.total} done`}
             onClick={missions.onOpen}
           >
@@ -183,11 +184,11 @@ export function StatusBar({
 
         <SiteStats variant="inline" />
 
-        <div className={styles.statusRight}>
+        <div className={hudStyles.statusRight}>
           {/* Desktop only: on phones these live in the round settings button under the bar */}
           <button
             type="button"
-            className={`${styles.iconGhost} ${styles.deskOnly}`}
+            className={`${hudStyles.iconGhost} ${hudStyles.deskOnly}`}
             aria-label={showLabels ? 'Hide labels' : 'Show labels'}
             aria-pressed={showLabels}
             title={showLabels ? 'Hide labels' : 'Show labels'}
@@ -197,7 +198,7 @@ export function StatusBar({
           </button>
           <button
             type="button"
-            className={`${styles.iconGhost} ${styles.deskOnly}`}
+            className={`${hudStyles.iconGhost} ${hudStyles.deskOnly}`}
             aria-label={muted ? 'Unmute' : 'Mute'}
             onClick={toggleMute}
           >
@@ -245,7 +246,7 @@ export function StatusBar({
         {delta !== null && state && deltaPos ? (
           <motion.span
             key={`${delta}-${state.cash}`}
-            className={`${styles.cashDelta} ${delta > 0 ? styles.cashUp : styles.cashDown}`}
+            className={`${hudStyles.cashDelta} ${delta > 0 ? hudStyles.cashUp : hudStyles.cashDown}`}
             style={{
               left: deltaPos.left,
               top: deltaPos.top,

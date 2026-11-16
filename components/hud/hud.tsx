@@ -46,7 +46,8 @@ import { usePlaceSheetActive } from '@/components/hud/place-sheet'
 import { playerHasPhone } from '@/lib/game/phone-config'
 import { pushNavigation } from '@/lib/navigation/safe-nav'
 import { cn } from '@/lib/utils'
-import styles from './life-hud.module.css'
+import hudStyles from './life-hud.module.css'
+import styles from './hud.module.css'
 import { HostelFinder } from '@/components/hostel/hostel-finder'
 import { AdViewer } from './ad-viewer'
 import { useChatUnread } from '@/hooks/use-chat-unread'
@@ -252,7 +253,7 @@ export function Hud() {
 
   if (guest) {
     return (
-      <div className={cn(styles.root, lowPerf && styles.lowPerf)}>
+      <div className={cn(hudStyles.root, lowPerf && hudStyles.lowPerf)}>
         <div className={`${styles.safe} absolute inset-x-0 top-0`}>
           <div className={styles.topWrap}>
             <TopBar />
@@ -279,7 +280,7 @@ export function Hud() {
 
   return (
     <div
-      className={cn(styles.root, lowPerf && styles.lowPerf)}
+      className={cn(hudStyles.root, lowPerf && hudStyles.lowPerf)}
       aria-busy={cashLoading || undefined}
     >
       {/* Your own car's street view: under every other HUD layer, over the map */}

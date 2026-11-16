@@ -6,7 +6,7 @@ import type { SpaceCard } from '@/lib/game/spaces-api'
 import { PHONE_MODE_KEY, type PhoneAppId, type PhonePromo, type PhoneState } from '@/lib/game/phone'
 import { AppGrid } from './app-grid'
 import { UpdateBanner } from './update-banner'
-import styles from './phone.module.css'
+import styles from './phone-home.module.css'
 
 export function PhoneHome({
   phone,

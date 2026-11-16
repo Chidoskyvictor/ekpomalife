@@ -2,17 +2,18 @@
 
 import { usePlayerStats } from '@/hooks/use-player-stats'
 import { compactCount } from '@/lib/game/needs'
-import styles from './life-hud.module.css'
+import hudStyles from './life-hud.module.css'
+import styles from './site-stats.module.css'
 
 function StatsBody({ online, visits }: { online: number; visits: number }) {
   return (
     <>
-      <span className={styles.liveDot} aria-hidden="true" />
+      <span className={hudStyles.liveDot} aria-hidden="true" />
       <strong>{compactCount(online)}</strong>
-      <span className={styles.statusMuted}>online</span>
+      <span className={hudStyles.statusMuted}>online</span>
       <span className={styles.statsSep} aria-hidden="true">·</span>
       <strong>{compactCount(visits)}</strong>
-      <span className={styles.statusMuted}>visits</span>
+      <span className={hudStyles.statusMuted}>visits</span>
     </>
   )
 }
@@ -28,15 +29,15 @@ export function SiteStats({ variant }: { variant: 'inline' | 'dock' }) {
 
   if (variant === 'dock') {
     return (
-      <div className={styles.playersDock} aria-label={label}>
+      <div className={hudStyles.playersDock} aria-label={label}>
         <StatsBody online={online} visits={visits} />
       </div>
     )
   }
   return (
     <>
-      <span className={`${styles.statusDivider} ${styles.deskOnly}`} aria-hidden="true" />
-      <span className={`${styles.statusItem} ${styles.statusPlayers}`} aria-label={label}>
+      <span className={`${hudStyles.statusDivider} ${hudStyles.deskOnly}`} aria-hidden="true" />
+      <span className={`${hudStyles.statusItem} ${hudStyles.statusPlayers}`} aria-label={label}>
         <StatsBody online={online} visits={visits} />
       </span>
     </>

@@ -1,0 +1,73 @@
+.toastAction {
+  flex: none;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font: inherit;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+/* Pop-up notification card (action results, rent day): drops in from the top */
+.notice {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 56px;
+  padding: 6px 4px 6px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: var(--r-lg);
+  background: rgba(255, 255, 255, 0.98);
+  color: var(--ink);
+  font-size: var(--fs-14);
+  font-weight: 600;
+  line-height: 1.35;
+  box-shadow:
+    0 14px 36px rgba(15, 23, 42, 0.2),
+    0 2px 6px rgba(15, 23, 42, 0.08);
+}
+
+.noticeOk .noticeIcon {
+  background: #dcfce7;
+}
+
+.noticeBad .noticeIcon {
+  background: #ffe4e6;
+}
+
+.noticeIcon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-md);
+  background: #eef2ff;
+  font-size: var(--fs-20);
+  line-height: 1;
+}
+
+.noticeText {
+  flex: 1;
+  min-width: 0;
+}
+
+.noticeClose {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--ink-2);
+  font-size: var(--fs-14);
+  cursor: pointer;
+}

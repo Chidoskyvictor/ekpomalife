@@ -2,7 +2,7 @@
 
 import type { CSSProperties } from 'react'
 import type { PhoneClock, PhoneState } from '@/lib/game/phone'
-import styles from './phone.module.css'
+import styles from './phone-status-bar.module.css'
 
 /** Four rising signal bars, iOS style. */
 function SignalBars({ off }: { off?: boolean }) {

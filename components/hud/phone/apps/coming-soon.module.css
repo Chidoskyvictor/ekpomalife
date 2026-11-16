@@ -1,0 +1,28 @@
+.comingSoon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  text-align: center;
+  min-height: 240px;
+  padding: 24px 12px;
+}
+
+.comingEmoji {
+  font-size: 56px;
+  line-height: 1;
+}
+
+.comingTitle {
+  margin: 0;
+  font-size: var(--fs-20);
+  font-weight: 700;
+}
+
+.comingCopy {
+  margin: 0;
+  font-size: var(--fs-14);
+  color: var(--ink-2);
+  max-width: 28ch;
+}

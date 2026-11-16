@@ -15,7 +15,8 @@ import dynamic from 'next/dynamic'
 // 3D face (three.js) loads after the page, so it isn't in every page's first JS
 const AvatarPortrait = dynamic(() => import('./avatar-portrait').then((m) => m.AvatarPortrait), { ssr: false })
 import { hapticTap } from './haptic'
-import styles from './life-hud.module.css'
+import hudStyles from './life-hud.module.css'
+import styles from './me-card.module.css'
 
 const TONE = {
   good: '#22c55e',
@@ -58,7 +59,7 @@ export function MeCard({
     <div className={`${styles.meDock} ${styles.meRow} ${raised ? styles.meDockRaised : ''}`}>
       <button
         type="button"
-        className={styles.meCard}
+        className={hudStyles.meCard}
         onClick={() => {
           hapticTap()
           onOpen()
@@ -66,7 +67,7 @@ export function MeCard({
         aria-label="Open your profile"
       >
         <span
-          className={styles.avatarWrap}
+          className={hudStyles.avatarWrap}
           style={{
             ['--well' as string]: well,
             ['--ring-tone' as string]: TONE[tone],
@@ -88,7 +89,7 @@ export function MeCard({
           ) : null}
         </span>
 
-        <span className={styles.needsPanel} aria-label="Needs" data-coach="needs">
+        <span className={hudStyles.needsPanel} aria-label="Needs" data-coach="needs">
           {values.map(({ id, value }) => (
             <span key={id} className={styles.needCell} data-tone={needTone(value)} title={`${NEED_META[id].label} ${value}%`}>
               <img src={NEED_META[id].emoji} alt="" width={16} height={16} className={styles.needIcon} />

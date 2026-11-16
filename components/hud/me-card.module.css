@@ -1,0 +1,264 @@
+/* —— Me avatar —— */
+.meDock {
+  pointer-events: none;
+  position: absolute;
+  left: max(16px, env(safe-area-inset-left));
+  bottom: calc(88px + env(safe-area-inset-bottom));
+  z-index: calc(var(--z-hud) + 2);
+}
+
+.ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(var(--ring-tone, #22c55e) calc(var(--well) * 1%), rgba(0, 0, 0, 0.08) 0);
+}
+
+.ringInner {
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  background: var(--paper);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+.avatarFace {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: linear-gradient(180deg, #e8f1ff, #cfe0fb);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.needCell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.needIcon {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  object-fit: contain;
+}
+
+.needTrack {
+  position: relative;
+  width: 38px;
+  height: 6px;
+  overflow: hidden;
+  border-radius: var(--r-pill);
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.needFill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: var(--r-pill);
+  transition: width 0.4s ease, background 0.4s ease;
+}
+
+/* Phone chip: the one need that wants attention (hidden on wide screens) */
+.needChip {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(16px) saturate(170%);
+  -webkit-backdrop-filter: blur(16px) saturate(170%);
+  font-size: var(--fs-14);
+}
+
+/* Avatar button + needs pill side by side (the pill is its own button) */
+.meRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* A need in the red: loud (solid fill, one pop). Everything else stays calm. */
+.needChip[data-tone='bad'] {
+  border-color: transparent;
+  background: var(--bad);
+  color: #fff;
+  box-shadow: 0 6px 18px color-mix(in oklab, var(--bad) 40%, transparent);
+  animation: needPop var(--dur-pop) var(--ease-ui) 1;
+}
+
+.needChip[data-tone='bad'] strong,
+.needChip[data-tone='bad'] .needName,
+.needChip[data-tone='bad'] .needMore {
+  color: #fff !important;
+}
+
+.needCell[data-tone='bad'] .needIcon {
+  animation: needPop var(--dur-pop) var(--ease-ui) 1;
+}
+
+@keyframes needPop {
+  50% {
+    transform: scale(1.08);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .needChip[data-tone='bad'],
+  .needCell[data-tone='bad'] .needIcon {
+    animation: none;
+  }
+}
+
+/* Button reset for the needs pill; its glass look stays in .needChip */
+button.needChip {
+  pointer-events: auto;
+  min-height: 44px;
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--fs-14);
+  cursor: pointer;
+}
+
+.needName {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.needMore {
+  /* #6e6e73: 4.6:1 on the white pill (AA at 12px) */
+  color: var(--ink-2);
+  font-size: var(--fs-12);
+  font-weight: 600;
+}
+
+/* A place sheet (club…) is at the bottom: sit just above it, unless the screen is wide enough
+   for the card to fit beside the centred sheet */
+.meDock.meDockRaised {
+  bottom: calc(88px + 84px + env(safe-area-inset-bottom));
+}
+
+@media (min-width: 1400px) {
+  .meDock.meDockRaised {
+    bottom: calc(88px + env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-width: 639px) {
+
+  .needChip {
+    display: inline-flex;
+  }
+
+  .meDock.meDockRaised {
+    bottom: calc(76px + 84px + env(safe-area-inset-bottom));
+  }
+
+  .avatarFace {
+    width: 34px;
+    height: 34px;
+  }
+
+  .ringInner {
+    inset: 2px;
+  }
+
+  button.needChip {
+    position: relative;
+    min-height: 36px;
+    gap: 4px;
+    padding: 0 10px;
+    font-size: var(--fs-12);
+  }
+
+  /* Looks 36px tall, taps as 44px */
+  button.needChip::after {
+    content: '';
+    position: absolute;
+    inset: -4px 0;
+  }
+
+  .needChip .needIcon {
+    width: 13px;
+    height: 13px;
+  }
+
+  .needMore {
+    font-size: var(--fs-12);
+  }
+
+  .critBadge {
+    right: -5px;
+    bottom: -3px;
+    width: 17px;
+    height: 17px;
+  }
+
+  .critBadge img {
+    width: 11px;
+    height: 11px;
+  }
+
+  .meRow {
+    gap: 7px;
+  }
+
+  .needTrack {
+    width: 38px;
+    height: 7px;
+  }
+
+  .needIcon {
+    width: 14px;
+    height: 14px;
+  }
+}
+
+.critBadge {
+  position: absolute;
+  right: -4px;
+  bottom: -2px;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--r-pill);
+  background: var(--paper);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  display: grid;
+  place-items: center;
+}
+
+.critBadge img {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+}
+
+.needTrack {
+  height: 8px;
+  border-radius: var(--r-pill);
+  background: rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+}
+
+.needFill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--need, #22c55e);
+}
+
+@media (max-width: 639px) {
+
+  .meDock {
+    bottom: calc(76px + env(safe-area-inset-bottom));
+  }
+}

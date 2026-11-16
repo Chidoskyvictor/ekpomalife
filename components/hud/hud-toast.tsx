@@ -5,7 +5,8 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState, type ReactNode } from 'react'
 import type { Toast } from '@/hooks/use-game'
 import { pushNavigation } from '@/lib/navigation/safe-nav'
-import styles from './life-hud.module.css'
+import hudStyles from './life-hud.module.css'
+import styles from './hud-toast.module.css'
 import { playSfx } from '@/lib/audio/sfx'
 
 const pop = { type: 'spring' as const, stiffness: 520, damping: 30 }
@@ -65,7 +66,7 @@ export function HudToast({ toast }: { toast: Toast | null }) {
   }, [shownId, shownOk])
 
   return (
-    <div className={styles.toastSlot} aria-live="polite">
+    <div className={hudStyles.toastSlot} aria-live="polite">
       <AnimatePresence mode="popLayout">
         {shown ? (
           <NoticeCard

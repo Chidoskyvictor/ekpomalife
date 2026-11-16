@@ -3,7 +3,8 @@
 import { motion, useReducedMotion } from 'motion/react'
 import { useRef, type ReactNode } from 'react'
 import { PHONE_APPS, type PhoneAppId } from '@/lib/game/phone'
-import styles from './phone.module.css'
+import phoneStyles from './phone.module.css'
+import styles from './app-frame.module.css'
 
 export function AppFrame({
   appId,
@@ -47,7 +48,7 @@ export function AppFrame({
       )}
       <div className={`${styles.appBody} ${bare ? styles.appBodyBare : ''}`}>
         {offline ? (
-          <p className={styles.offlineBanner} role="status">
+          <p className={phoneStyles.offlineBanner} role="status">
             You&apos;re offline — buy a data bundle in Settings
           </p>
         ) : null}

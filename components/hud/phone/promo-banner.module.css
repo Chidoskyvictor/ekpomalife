@@ -1,0 +1,54 @@
+.promo {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.promoEmoji {
+  font-size: var(--fs-28);
+  line-height: 1;
+}
+
+.promoBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.promoSub {
+  margin: 2px 0 0;
+  font-size: var(--fs-12);
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.promoCta {
+  min-height: 44px;
+  border-radius: var(--r-pill);
+  border: none;
+  padding: 0 14px;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: var(--fs-12);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, 0.35);
+  border: none;
+  padding: 0;
+}
+
+.dotActive {
+  background: var(--paper);
+  width: 16px;
+}

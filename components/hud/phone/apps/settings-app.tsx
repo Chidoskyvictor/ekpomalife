@@ -13,7 +13,8 @@ import { fetchChatSettings, saveChatSettings } from '@/lib/game/hostels-api'
 import { fetchFamily, saveHideStatus } from '@/lib/game/family-api'
 import { notificationsSupported, setNotifications, useNotificationsOn } from '@/lib/notify'
 import { replayTour } from '@/lib/game/coach-api'
-import styles from '../phone.module.css'
+import phoneStyles from '../phone.module.css'
+import styles from './settings-app.module.css'
 
 export function SettingsApp({
   phone,
@@ -36,7 +37,7 @@ export function SettingsApp({
 
   return (
     <div>
-      <h3 className={styles.sectionTitle}>Wallpaper</h3>
+      <h3 className={phoneStyles.sectionTitle}>Wallpaper</h3>
       <div className={styles.swatchRow}>
         {(Object.keys(WALLPAPERS) as WallpaperId[]).map((id) => (
           <button
@@ -57,21 +58,21 @@ export function SettingsApp({
         ))}
       </div>
 
-      <h3 className={styles.sectionTitle}>
+      <h3 className={phoneStyles.sectionTitle}>
         Data · <NumberFlow value={phone.dataMb} suffix="MB" />
       </h3>
-      <ul className={styles.list}>
+      <ul className={phoneStyles.list}>
         {DATA_BUNDLES.map((bundle) => (
-          <li key={bundle.id} className={styles.listItem}>
+          <li key={bundle.id} className={phoneStyles.listItem}>
             <div>
-              <p className={styles.promoTitle} style={{ color: '#111', margin: 0 }}>
+              <p className={phoneStyles.promoTitle} style={{ color: '#111', margin: 0 }}>
                 {bundle.label}
               </p>
-              <p className={styles.listMeta}>₦{bundle.price}</p>
+              <p className={phoneStyles.listMeta}>₦{bundle.price}</p>
             </div>
             <button
               type="button"
-              className={styles.smallPill}
+              className={phoneStyles.smallPill}
               disabled={busy}
               onClick={() => {
                 void (async () => {
@@ -88,24 +89,24 @@ export function SettingsApp({
           </li>
         ))}
       </ul>
-      <p className={styles.listMeta}>
+      <p className={phoneStyles.listMeta}>
         Cash <NumberFlow value={cash} prefix="₦" format={{ maximumFractionDigits: 0 }} />
       </p>
 
-      <h3 className={styles.sectionTitle}>Notifications</h3>
+      <h3 className={phoneStyles.sectionTitle}>Notifications</h3>
       <NotificationsToggle onMessage={setMsg} />
 
-      <h3 className={styles.sectionTitle}>Help</h3>
+      <h3 className={phoneStyles.sectionTitle}>Help</h3>
       <ReplayTutorial onMessage={setMsg} />
 
-      <h3 className={styles.sectionTitle}>Privacy</h3>
+      <h3 className={phoneStyles.sectionTitle}>Privacy</h3>
       <ReadReceiptsToggle onMessage={setMsg} />
       <HideStatusToggle onMessage={setMsg} />
 
-      {msg ? <p className={styles.listMeta}>{msg}</p> : null}
+      {msg ? <p className={phoneStyles.listMeta}>{msg}</p> : null}
 
-      <h3 className={styles.sectionTitle}>Credits</h3>
-      <p className={styles.listMeta}>
+      <h3 className={phoneStyles.sectionTitle}>Credits</h3>
+      <p className={phoneStyles.listMeta}>
         Ride distances and times use map data ©{' '}
         <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">
           OpenStreetMap contributors
@@ -120,17 +121,17 @@ export function SettingsApp({
 function ReplayTutorial({ onMessage }: { onMessage: (msg: string | null) => void }) {
   const [busy, setBusy] = useState(false)
   return (
-    <ul className={styles.list}>
-      <li className={styles.listItem}>
+    <ul className={phoneStyles.list}>
+      <li className={phoneStyles.listItem}>
         <div>
-          <p className={styles.promoTitle} style={{ color: '#111', margin: 0 }}>
+          <p className={phoneStyles.promoTitle} style={{ color: '#111', margin: 0 }}>
             Replay tutorial
           </p>
-          <p className={styles.listMeta}>Show the quick tour again</p>
+          <p className={phoneStyles.listMeta}>Show the quick tour again</p>
         </div>
         <button
           type="button"
-          className={styles.smallPill}
+          className={phoneStyles.smallPill}
           disabled={busy}
           onClick={() => {
             void (async () => {
@@ -152,21 +153,21 @@ function ReplayTutorial({ onMessage }: { onMessage: (msg: string | null) => void
 function NotificationsToggle({ onMessage }: { onMessage: (msg: string | null) => void }) {
   const on = useNotificationsOn()
   const [busy, setBusy] = useState(false)
-  if (!notificationsSupported()) return <p className={styles.listMeta}>This browser can&apos;t show notifications.</p>
+  if (!notificationsSupported()) return <p className={phoneStyles.listMeta}>This browser can&apos;t show notifications.</p>
   return (
-    <ul className={styles.list}>
-      <li className={styles.listItem}>
+    <ul className={phoneStyles.list}>
+      <li className={phoneStyles.listItem}>
         <div>
-          <p className={styles.promoTitle} style={{ color: '#111', margin: 0 }}>
+          <p className={phoneStyles.promoTitle} style={{ color: '#111', margin: 0 }}>
             Background notifications
           </p>
-          <p className={styles.listMeta}>New messages and challenges while the game is minimised</p>
+          <p className={phoneStyles.listMeta}>New messages and challenges while the game is minimised</p>
         </div>
         <button
           type="button"
           role="switch"
           aria-checked={on}
-          className={styles.smallPill}
+          className={phoneStyles.smallPill}
           disabled={busy}
           onClick={() => {
             void (async () => {
@@ -197,19 +198,19 @@ function ReadReceiptsToggle({ onMessage }: { onMessage: (msg: string | null) => 
     }
   }, [])
   return (
-    <ul className={styles.list}>
-      <li className={styles.listItem}>
+    <ul className={phoneStyles.list}>
+      <li className={phoneStyles.listItem}>
         <div>
-          <p className={styles.promoTitle} style={{ color: '#111', margin: 0 }}>
+          <p className={phoneStyles.promoTitle} style={{ color: '#111', margin: 0 }}>
             Read receipts
           </p>
-          <p className={styles.listMeta}>If off, you won’t send or see blue ticks. Delivered still shows.</p>
+          <p className={phoneStyles.listMeta}>If off, you won’t send or see blue ticks. Delivered still shows.</p>
         </div>
         <button
           type="button"
           role="switch"
           aria-checked={on ?? true}
-          className={styles.smallPill}
+          className={phoneStyles.smallPill}
           disabled={busy || on === null}
           onClick={() => {
             void (async () => {
@@ -243,19 +244,19 @@ function HideStatusToggle({ onMessage }: { onMessage: (msg: string | null) => vo
     }
   }, [])
   return (
-    <ul className={styles.list}>
-      <li className={styles.listItem}>
+    <ul className={phoneStyles.list}>
+      <li className={phoneStyles.listItem}>
         <div>
-          <p className={styles.promoTitle} style={{ color: '#111', margin: 0 }}>
+          <p className={phoneStyles.promoTitle} style={{ color: '#111', margin: 0 }}>
             Hide relationship status
           </p>
-          <p className={styles.listMeta}>If on, your card won’t say “In a relationship” or “Single”.</p>
+          <p className={phoneStyles.listMeta}>If on, your card won’t say “In a relationship” or “Single”.</p>
         </div>
         <button
           type="button"
           role="switch"
           aria-checked={hidden ?? false}
-          className={styles.smallPill}
+          className={phoneStyles.smallPill}
           disabled={busy || hidden === null}
           onClick={() => {
             void (async () => {
