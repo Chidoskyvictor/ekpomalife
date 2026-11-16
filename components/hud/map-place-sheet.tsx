@@ -3,11 +3,12 @@
 import { hasBuiltInterior } from '@/lib/game/interiors'
 import { placeLock } from '@/lib/game/place-locks'
 import { isPlaceOpen, formatOpenHour } from '@/lib/game/places'
-import { Link2, X } from 'lucide-react'
+import { Link2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { pushNavigation } from '@/lib/navigation/safe-nav'
 import { AuthLinks } from '@/components/hud/auth-links'
+import { BottomSheet, SheetPill } from '@/components/ui/bottom-sheet'
 import { useGoTo } from '@/components/travel/use-go'
 import { useGame } from '@/hooks/use-game'
 import { homeAddress } from '@/lib/game/home-place'
@@ -121,15 +122,6 @@ export function MapPlaceSheet({ hidden = false }: { hidden?: boolean }) {
     return () => window.clearTimeout(id)
   }, [placeId, signedIn, here])
 
-  useEffect(() => {
-    if (!placeId) return
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') select(null)
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [placeId, select])
-
   const option = useMemo(() => options?.places.find((p) => p.id === placeId) ?? null, [options, placeId])
 
   if (!place || hidden) return null
@@ -174,29 +166,36 @@ export function MapPlaceSheet({ hidden = false }: { hidden?: boolean }) {
   const home = isHome ? homeAddress(state?.lodgingId) : null
 
   return (
-    <section className={styles.sheet} aria-label={`${place.label} details`}>
-      <div className={styles.handle} aria-hidden="true" />
-      <header className={styles.head}>
-        <span className={styles.icon} aria-hidden="true">
-          {isHome ? '🏠' : (TYPE_EMOJI[place.type] ?? '📍')}
-        </span>
-        <div className={styles.titles}>
-          <h2>{place.label}</h2>
-          <p>
-            {home ? `${home.kind} · ${home.address}` : (info?.area ?? 'Ekpoma')}
-            {hours ? (
-              <span className={`${styles.pill} ${open ? styles.pillOpen : ''}`}>
-                {open ? 'Open' : `Opens ${formatHour(hours.open)}`}
-              </span>
-            ) : null}
-          </p>
-        </div>
-        <button type="button" className={styles.close} aria-label="Close" onClick={() => select(null)}>
-          <X size={18} aria-hidden="true" />
-        </button>
-      </header>
-
-      <div className={styles.body} ref={body}>
+    <BottomSheet
+      open
+      onClose={() => select(null)}
+      title={place.label}
+      ariaLabel={`${place.label} details`}
+      icon={isHome ? '🏠' : (TYPE_EMOJI[place.type] ?? '📍')}
+      subtitle={
+        <>
+          {home ? `${home.kind} · ${home.address}` : (info?.area ?? 'Ekpoma')}
+          {hours ? <SheetPill tone={open ? 'ok' : 'neutral'}>{open ? 'Open' : `Opens ${formatHour(hours.open)}`}</SheetPill> : null}
+        </>
+      }
+      bodyRef={body}
+      footer={
+        signedIn && !here ? (
+          <button
+            type="button"
+            className={styles.go}
+            // Your own car goes anywhere, open or closed
+            disabled={mode === 'car' ? !carHere || travelling : !options || !option || travelling || short || closed}
+            onClick={() => {
+              if (mode === 'car') driveOff({ id: place.id, label: place.label })
+              else if (options && option) void go(options, option, mode, () => select(null))
+            }}
+          >
+            {mode === 'car' ? 'Drive there' : locked ? 'Opens tonight at 10pm' : closed && hours ? `Closed · opens ${formatOpenHour(hours.open)}` : short ? `Need ${naira(fare)}` : `${isHome ? 'Go home' : 'Go'} · ${fare ? naira(fare) : 'Free'}`}
+          </button>
+        ) : null
+      }
+    >
         {!closed && !hasBuiltInterior(place.id) ? (
           <p className={styles.closed} role="status">
             <span aria-hidden="true">🚧</span> {place.label} is still under construction. You can still use what's here.
@@ -310,24 +309,6 @@ export function MapPlaceSheet({ hidden = false }: { hidden?: boolean }) {
             <AuthLinks className="mt-3 justify-end" />
           </div>
         ) : null}
-      </div>
-
-      {signedIn && !here ? (
-        <footer className={styles.foot}>
-          <button
-            type="button"
-            className={styles.go}
-            // Your own car goes anywhere, open or closed
-            disabled={mode === 'car' ? !carHere || travelling : !options || !option || travelling || short || closed}
-            onClick={() => {
-              if (mode === 'car') driveOff({ id: place.id, label: place.label })
-              else if (options && option) void go(options, option, mode, () => select(null))
-            }}
-          >
-            {mode === 'car' ? 'Drive there' : locked ? 'Opens tonight at 10pm' : closed && hours ? `Closed · opens ${formatOpenHour(hours.open)}` : short ? `Need ${naira(fare)}` : `${isHome ? 'Go home' : 'Go'} · ${fare ? naira(fare) : 'Free'}`}
-          </button>
-        </footer>
-      ) : null}
-    </section>
+    </BottomSheet>
   )
 }

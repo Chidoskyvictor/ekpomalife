@@ -1,7 +1,7 @@
 'use client'
 
-import { Users, X } from 'lucide-react'
-import { useEffect } from 'react'
+import { Users } from 'lucide-react'
+import { BottomSheet, SheetPill } from '@/components/ui/bottom-sheet'
 import { useGame } from '@/hooks/use-game'
 import { COMING_SOON } from '@/lib/game/place-info'
 import base from './map-place-sheet.module.css'
@@ -17,37 +17,22 @@ export function MarketHubSheet({ hidden = false }: { hidden?: boolean }) {
   const { selectedId, select } = useGame()
   const info = selectedId ? COMING_SOON[selectedId] : null
 
-  useEffect(() => {
-    if (!info) return
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') select(null)
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [info, select])
-
   if (!info || hidden) return null
 
   return (
-    <section className={base.sheet} aria-label={`${info.title} details`}>
-      <div className={base.handle} aria-hidden="true" />
-      <header className={base.head}>
-        <span className={base.icon} aria-hidden="true">
-          🚧
-        </span>
-        <div className={base.titles}>
-          <h2>{info.title}</h2>
-          <p>
-            {info.by}
-            <span className={styles.pill}>Under construction</span>
-          </p>
-        </div>
-        <button type="button" className={base.close} aria-label="Close" onClick={() => select(null)}>
-          <X size={18} aria-hidden="true" />
-        </button>
-      </header>
-
-      <div className={base.body}>
+    <BottomSheet
+      open
+      onClose={() => select(null)}
+      title={info.title}
+      ariaLabel={`${info.title} details`}
+      icon="🚧"
+      subtitle={
+        <>
+          {info.by}
+          <SheetPill tone="warn">Under construction</SheetPill>
+        </>
+      }
+    >
         <img
           src="/prodigy-market-hub.webp"
           alt="Prodigy Market Hub"
@@ -70,7 +55,6 @@ export function MarketHubSheet({ hidden = false }: { hidden?: boolean }) {
         <a className={styles.join} href={MARKET_HUB_GROUP} target="_blank" rel="noopener noreferrer">
           <Users size={16} aria-hidden="true" /> Join our WhatsApp group
         </a>
-      </div>
-    </section>
+    </BottomSheet>
   )
 }

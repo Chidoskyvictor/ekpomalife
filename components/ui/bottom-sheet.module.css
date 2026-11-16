@@ -1,0 +1,251 @@
+/* The shared bottom sheet. Short stop: at most 45% of the screen (the map stays visible).
+   Tall stop: 85%, reached by dragging the handle up or scrolling the body. */
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-drawer);
+  background: rgba(0, 0, 0, 0.28);
+  animation: backdropIn var(--dur-backdrop) ease-out;
+  transition: opacity var(--dur-backdrop) ease-out;
+}
+
+.backdropLeaving {
+  opacity: 0;
+}
+
+.sheet {
+  --sheet-drag: 0px;
+  pointer-events: auto;
+  inset-inline: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  max-height: 45dvh;
+  padding: 6px max(16px, env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom))
+    max(16px, env(safe-area-inset-left));
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-bottom: 0;
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 -10px 32px rgba(0, 0, 0, 0.16);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  letter-spacing: -0.01em;
+  outline: none;
+  transform: translateY(var(--sheet-drag));
+  animation: sheetIn var(--dur-sheet) var(--ease-ui);
+  transition:
+    max-height var(--dur-sheet) var(--ease-ui),
+    transform var(--dur-backdrop) var(--ease-ui),
+    opacity var(--dur-backdrop) ease-out;
+}
+
+/* Over the map, inside the HUD layer: the map stays usable around it */
+.inline {
+  position: absolute;
+  z-index: calc(var(--z-hud) + 4);
+}
+
+.modal {
+  position: fixed;
+  z-index: calc(var(--z-drawer) + 1);
+}
+
+.expanded {
+  max-height: 85dvh;
+}
+
+.fill {
+  height: 85dvh;
+}
+
+/* Follows the finger: no easing while dragging */
+.sheet[data-dragging] {
+  transition: max-height var(--dur-sheet) var(--ease-ui);
+}
+
+.leaving {
+  transform: translateY(100%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+@keyframes sheetIn {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes backdropIn {
+  from {
+    opacity: 0;
+  }
+}
+
+.grab {
+  flex: none;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.handle {
+  width: 44px;
+  height: 5px;
+  margin: 0 auto 8px;
+  border-radius: var(--r-pill);
+  background: #d1d5db;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 8px;
+}
+
+.icon {
+  display: grid;
+  width: 52px;
+  height: 52px;
+  flex: none;
+  place-items: center;
+  border-radius: 50%;
+  background: #eef2ff;
+  font-size: 26px;
+}
+
+.leading {
+  flex: none;
+}
+
+.titles {
+  min-width: 0;
+  flex: 1;
+}
+
+.title {
+  margin: 0;
+  overflow: hidden;
+  font-size: var(--fs-20);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.subtitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 2px 0 0;
+  overflow: hidden;
+  color: var(--ink-2);
+  font-size: var(--fs-14);
+}
+
+.pill {
+  flex: none;
+  padding: 1px 8px;
+  border-radius: var(--r-pill);
+  background: var(--fill);
+  color: var(--ink-2);
+  font-size: var(--fs-12);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.pillOk {
+  background: #e8f7ee;
+  color: var(--ok-strong);
+}
+
+.pillWarn {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.close {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: var(--fill);
+  color: var(--ink);
+  cursor: pointer;
+  transition: transform var(--dur-press) var(--ease-ui);
+}
+
+.close:active {
+  transform: scale(0.96);
+}
+
+.close:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.body {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 6px;
+}
+
+/* Stack items keep their height: the body scrolls instead of squeezing them */
+.body > * {
+  flex-shrink: 0;
+}
+
+.bodyPlain {
+  display: block;
+}
+
+.fill .body {
+  flex: 1;
+}
+
+.footer {
+  flex: none;
+  padding-top: 8px;
+}
+
+/* Wider screens: a centred card rising from the bottom edge */
+@media (min-width: 900px) {
+  .sheet {
+    left: 50%;
+    right: auto;
+    width: min(680px, calc(100vw - 48px));
+    margin-left: calc(min(680px, calc(100vw - 48px)) / -2);
+    padding: 6px 24px calc(14px + env(safe-area-inset-bottom));
+  }
+
+  .sheet:not(.desktopCard) {
+    max-height: min(calc(100dvh - 96px), 760px);
+  }
+
+  .desktopCard {
+    max-height: min(58dvh, 560px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet,
+  .backdrop {
+    animation: none;
+    transition: none;
+  }
+}

@@ -1,15 +1,15 @@
 'use client'
 
-import { MessageCircle, X } from 'lucide-react'
+import { MessageCircle } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import { BottomSheet } from '@/components/ui/bottom-sheet'
 import { useGame } from '@/hooks/use-game'
 import { plotFromSelectId } from '@/lib/game/estates'
 import { openDirectChat } from '@/lib/game/hostels-api'
 import { useHouses } from '@/lib/game/houses-api'
 import { requestOpenChat } from '@/lib/game/open-chat'
 import { pushNavigation } from '@/lib/navigation/safe-nav'
-import base from './map-place-sheet.module.css'
 import styles from './house-sheet.module.css'
 
 /**
@@ -29,15 +29,6 @@ export function HouseSheet({ hidden = false }: { hidden?: boolean }) {
   useEffect(() => {
     if (plot !== null && plot === myPlot) select('home')
   }, [plot, myPlot, select])
-
-  useEffect(() => {
-    if (!house) return
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') select(null)
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [house, select])
 
   if (!house || hidden || plot === myPlot) return null
 
@@ -62,23 +53,13 @@ export function HouseSheet({ hidden = false }: { hidden?: boolean }) {
   }
 
   return (
-    <section className={base.sheet} aria-label={`@${house.username}'s house`}>
-      <div className={base.handle} aria-hidden="true" />
-      <header className={base.head}>
-        <span className={base.icon} aria-hidden="true">
-          🏠
-        </span>
-        <div className={base.titles}>
-          <h2>@{house.username}&apos;s house</h2>
-          <p>
-            {house.kind} · {house.area}
-          </p>
-        </div>
-        <button type="button" className={base.close} aria-label="Close" onClick={() => select(null)}>
-          <X size={18} aria-hidden="true" />
-        </button>
-      </header>
-
+    <BottomSheet
+      open
+      onClose={() => select(null)}
+      title={`@${house.username}'s house`}
+      icon="🏠"
+      subtitle={`${house.kind} · ${house.area}`}
+    >
       <div className={styles.status}>
         <span className={`${styles.dot} ${house.home ? styles.dotHome : ''}`} aria-hidden="true" />
         <span>{house.home ? 'Home right now' : 'Not around right now'}</span>
@@ -97,6 +78,6 @@ export function HouseSheet({ hidden = false }: { hidden?: boolean }) {
         </button>
       </div>
       {house.home ? null : <p className={styles.hint}>You can only drop by when they&apos;re home.</p>}
-    </section>
+    </BottomSheet>
   )
 }
