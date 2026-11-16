@@ -9,7 +9,7 @@
   flex-direction: column;
   gap: 6px;
   padding: 8px;
-  border-radius: 20px;
+  border-radius: var(--r-lg);
   background: rgba(17, 17, 17, 0.88);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
   color: #fff;
@@ -23,10 +23,10 @@
   justify-content: center;
   gap: 8px;
   border: none;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: #e11d48;
   color: #fff;
-  font-size: 15px;
+  font-size: var(--fs-16);
   font-weight: 800;
 }
 .listen:disabled {
@@ -45,7 +45,7 @@
   gap: 8px;
   padding-left: 6px;
   overflow: hidden;
-  font-size: 14px;
+  font-size: var(--fs-14);
   font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -54,7 +54,7 @@
   flex: none;
   width: 9px;
   height: 9px;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: #e11d48;
   animation: pulse 1.4s ease-in-out infinite;
 }
@@ -71,7 +71,7 @@
   height: 44px;
   place-items: center;
   border: none;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: rgba(255, 255, 255, 0.14);
   color: #fff;
 }
@@ -86,10 +86,10 @@
   min-height: 44px;
   padding: 0 14px;
   border: none;
-  border-radius: 999px;
-  background: #fff;
-  color: #111;
-  font-size: 14px;
+  border-radius: var(--r-pill);
+  background: var(--paper);
+  color: var(--ink);
+  font-size: var(--fs-14);
   font-weight: 800;
 }
 .hand {
@@ -97,9 +97,9 @@
   align-items: center;
   gap: 6px;
   padding: 6px 6px 6px 10px;
-  border-radius: 14px;
+  border-radius: var(--r-md);
   background: rgba(255, 255, 255, 0.1);
-  font-size: 13px;
+  font-size: var(--fs-14);
 }
 .hand span {
   flex: 1;
@@ -113,8 +113,8 @@
   min-height: 36px;
   padding: 0 12px;
   border: none;
-  border-radius: 999px;
-  font-size: 13px;
+  border-radius: var(--r-pill);
+  font-size: var(--fs-14);
   font-weight: 800;
 }
 .yes {
@@ -128,5 +128,5 @@
 .error {
   padding: 0 6px 2px;
   color: #fecaca;
-  font-size: 12.5px;
+  font-size: var(--fs-12);
 }

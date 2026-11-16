@@ -274,6 +274,9 @@ export function Hud() {
     )
   }
 
+  // Today's missions pill: its own slim row under the status bar
+  const missionsRow = missionsView && !phoneOpen && !buyOpen && !homeBuy.active && !driving ? missionsView : null
+
   return (
     <div
       className={cn(styles.root, lowPerf && styles.lowPerf)}
@@ -293,16 +296,18 @@ export function Hud() {
           />
         </div>
         {/* Today's missions: slim pill under the status bar, its own row so it never covers other HUD buttons */}
-        {missionsView && !phoneOpen && !buyOpen && !homeBuy.active && !driving ? (
+        {missionsRow ? (
           <div className={styles.missionRow}>
-            <MissionsPill view={missionsView} onOpen={() => setMissionsOpen(true)} />
+            <MissionsPill view={missionsRow} onOpen={() => setMissionsOpen(true)} />
+            {/* Settings shares this row, so the row below only exists while you are doing something */}
+            <SettingsMenu inline />
           </div>
         ) : null}
         {/* What you're doing and what's next (Sims-style tiles): fills up, ✕ cancels */}
         <div className={styles.activityRow} style={driving ? { display: "none" } : undefined}>
           <ActionTiles />
           {/* Phones only: Music, Sound and map labels (desktop keeps the icons in the top bar) */}
-          {!phoneOpen ? <SettingsMenu /> : null}
+          {!phoneOpen && !missionsRow ? <SettingsMenu /> : null}
         </div>
         {/* At a school building: level, CGPA, exam prep and today's classes */}
         {/* Only inside the class itself, not on the map after you walk out */}

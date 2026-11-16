@@ -14,7 +14,7 @@
 /* —— Streak card —— */
 .streak {
   padding: 12px;
-  border-radius: 18px;
+  border-radius: var(--r-lg);
   background: linear-gradient(135deg, #fff4e5, #ffe9d6);
   border: 1px solid #fbd5a8;
 }
@@ -27,12 +27,12 @@
 }
 
 .streakHead strong {
-  font-size: 16px;
+  font-size: var(--fs-16);
   color: #9a3412;
 }
 
 .streakHead span {
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 700;
   color: #b45309;
 }
@@ -49,10 +49,10 @@
   min-width: 0;
   height: 28px;
   place-items: center;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   background: rgba(255, 255, 255, 0.75);
   color: #9a6b3c;
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 800;
 }
 
@@ -63,7 +63,7 @@
 
 .streakNote {
   margin: 8px 0 0;
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 700;
   color: #9a3412;
 }
@@ -74,25 +74,25 @@
   align-items: center;
   gap: 10px;
   padding: 10px 12px;
-  border-radius: 14px;
+  border-radius: var(--r-md);
   background: #f3f6fa;
-  font-size: 13px;
+  font-size: var(--fs-14);
 }
 
 .bonusRow strong {
   flex: none;
   min-width: 38px;
   padding: 3px 8px;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: var(--primary);
   color: #fff;
   text-align: center;
-  font-size: 13px;
+  font-size: var(--fs-14);
 }
 
 .bonusRow span {
   min-width: 0;
-  color: #374151;
+  color: var(--ink-2);
   font-weight: 600;
 }
 
@@ -101,9 +101,9 @@
   display: grid;
   gap: 8px;
   padding: 12px;
-  border-radius: 18px;
+  border-radius: var(--r-lg);
   border: 1px solid #e8edf3;
-  background: #fff;
+  background: var(--paper);
 }
 
 .cardDone {
@@ -120,11 +120,11 @@
 .emoji {
   width: 44px;
   height: 44px;
-  border-radius: 14px;
+  border-radius: var(--r-md);
   display: grid;
   place-items: center;
   background: #f3f6fa;
-  font-size: 22px;
+  font-size: var(--fs-20);
 }
 
 .info {
@@ -139,9 +139,9 @@
 }
 
 .tag {
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   padding: 1px 8px;
-  font-size: 10px;
+  font-size: var(--fs-12);
   font-weight: 800;
   letter-spacing: 0.05em;
   background: #eef2ff;
@@ -150,42 +150,42 @@
 
 .tagRisk {
   background: #fff1f0;
-  color: #b42318;
+  color: var(--bad-strong);
 }
 
 .title {
   margin: 0;
-  font-size: 14.5px;
+  font-size: var(--fs-14);
   font-weight: 800;
   line-height: 1.25;
 }
 
 .where {
   margin: 2px 0 0;
-  font-size: 12px;
+  font-size: var(--fs-12);
   line-height: 1.35;
-  color: #6b7280;
+  color: var(--ink-2);
 }
 
 .reward {
   padding: 3px 8px;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: #dcfce7;
   color: #166534;
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 800;
   white-space: nowrap;
 }
 
 .how {
   margin: 0;
-  font-size: 12.5px;
+  font-size: var(--fs-12);
   line-height: 1.4;
-  color: #4b5563;
+  color: var(--ink-2);
 }
 
 .how b {
-  color: #111;
+  color: var(--ink);
 }
 
 .actions {
@@ -196,12 +196,12 @@
 .go {
   flex: 1;
   min-height: 46px;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   border: 0;
   background: var(--primary);
   color: #fff;
   font-weight: 800;
-  font-size: 15px;
+  font-size: var(--fs-16);
 }
 
 .go:disabled {
@@ -211,35 +211,35 @@
 .auto {
   flex: 1;
   align-self: center;
-  font-size: 12.5px;
+  font-size: var(--fs-12);
   font-weight: 700;
-  color: #6b7280;
+  color: var(--ink-2);
 }
 
 .swap {
   flex: none;
   width: 46px;
   height: 46px;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   border: 1px solid #e8edf3;
-  background: #fff;
-  color: #6b7280;
+  background: var(--paper);
+  color: var(--ink-2);
   display: grid;
   place-items: center;
 }
 
 .check {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--fs-14);
   font-weight: 800;
-  color: #15803d;
+  color: var(--ok-strong);
 }
 
 .note {
   margin: 8px 2px 0;
   text-align: center;
-  font-size: 12px;
-  color: #6b7280;
+  font-size: var(--fs-12);
+  color: var(--ink-2);
 }
 
 /* Status-bar counter */
@@ -268,12 +268,12 @@
   max-width: min(100%, 220px);
   margin-top: 6px;
   padding: 3px 3px 3px 8px;
-  border-radius: 12px;
+  border-radius: var(--r-md);
   border: 1.5px solid rgba(17, 24, 39, 0.22);
   background: rgba(255, 255, 255, 0.96);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
-  color: #111;
-  font-size: 12px;
+  color: var(--ink);
+  font-size: var(--fs-12);
   font-weight: 700;
 }
 
@@ -296,8 +296,8 @@
 
 .topCount {
   flex: none;
-  color: #6b7280;
-  font-size: 12px;
+  color: var(--ink-2);
+  font-size: var(--fs-12);
 }
 
 .topGo {
@@ -305,7 +305,7 @@
   min-height: 32px;
   padding: 0 10px;
   border: 0;
-  border-radius: 9px;
+  border-radius: var(--r-sm);
   background: var(--primary);
   color: #fff;
   font: inherit;
@@ -319,9 +319,9 @@
   height: 32px;
   place-items: center;
   border: 0;
-  border-radius: 9px;
+  border-radius: var(--r-sm);
   background: #f3f6fa;
-  color: #374151;
+  color: var(--ink-2);
 }
 
 /* The missions sheet sits above every place's own sheet; the phone and toasts stay above it */

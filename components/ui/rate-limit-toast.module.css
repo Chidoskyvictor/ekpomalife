@@ -13,12 +13,12 @@
   max-width: min(22rem, 100%);
   margin: 0;
   padding: 10px 14px;
-  border-radius: 14px;
+  border-radius: var(--r-md);
   border-left: 3px solid #f59e0b;
   background: rgba(255, 255, 255, 0.96);
   box-shadow: 0 6px 24px rgba(15, 23, 42, 0.14);
   color: #1d1d1f;
-  font-size: 13px;
+  font-size: var(--fs-14);
   line-height: 1.4;
   font-weight: 600;
   animation: rate-limit-in 180ms ease-out;

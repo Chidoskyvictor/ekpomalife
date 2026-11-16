@@ -1,6 +1,6 @@
 'use client'
 
-import { RefreshCw, X } from 'lucide-react'
+import { RefreshCw } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
@@ -11,7 +11,7 @@ import { getPlace } from '@/lib/game/places'
 import { playSfx } from '@/lib/audio/sfx'
 import { missionAction, refreshMissions, ROLE_TAG, useMissions, type MissionView } from '@/lib/game/missions-api'
 import { pushNavigation } from '@/lib/navigation/safe-nav'
-import base from '@/components/hud/map-place-sheet.module.css'
+import { BottomSheet } from '@/components/ui/bottom-sheet'
 import styles from './missions.module.css'
 
 function untilLabel(ms: number) {
@@ -33,15 +33,8 @@ export function MissionsSheet({ open, onClose }: { open: boolean; onClose: () =>
     if (!open) return
     void refreshMissions()
     const id = window.setInterval(() => setTick((n) => n + 1), 30_000)
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => {
-      window.clearInterval(id)
-      window.removeEventListener('keydown', onKey)
-    }
-  }, [open, onClose])
+    return () => window.clearInterval(id)
+  }, [open])
 
   if (!open || isGuest) return null
   const here = state?.locationId ?? ''
@@ -84,21 +77,14 @@ export function MissionsSheet({ open, onClose }: { open: boolean; onClose: () =>
 
   // Drawn at the page's top level, above every place's own sheet (rooms, halls, clubs…)
   return createPortal(
-    <section className={`${base.sheet} ${styles.onTop}`} aria-label="Today's missions">
-      <div className={base.handle} aria-hidden="true" />
-      <header className={base.head}>
-        <span className={base.icon} aria-hidden="true">
-          🎯
-        </span>
-        <div className={base.titles}>
-          <h2>Today&apos;s Missions</h2>
-          <p>{view ? `New missions in ${untilLabel(view.resetsAt - Date.now())}` : 'Loading…'}</p>
-        </div>
-        <button type="button" className={base.close} aria-label="Close" onClick={onClose}>
-          <X size={18} aria-hidden="true" />
-        </button>
-      </header>
-
+    <BottomSheet
+      open
+      onClose={onClose}
+      className={styles.onTop}
+      title="Today's Missions"
+      icon="🎯"
+      subtitle={view ? `New missions in ${untilLabel(view.resetsAt - Date.now())}` : 'Loading…'}
+    >
       {view ? (
         <div className={styles.body}>
           {streak ? (
@@ -197,7 +183,7 @@ export function MissionsSheet({ open, onClose }: { open: boolean; onClose: () =>
           <p className={styles.note}>{view.swapped ? 'Free swap used today' : '1 free swap today: tap ↻ on a mission'}</p>
         </div>
       ) : null}
-    </section>,
+    </BottomSheet>,
     document.body,
   )
 }

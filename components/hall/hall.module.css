@@ -20,8 +20,8 @@
   align-items: center;
   gap: 6px;
   margin: 0;
-  color: #6e6e73;
-  font-size: 14px;
+  color: var(--ink-2);
+  font-size: var(--fs-14);
 }
 
 /* Office: night-blue backdrop like the office scene */

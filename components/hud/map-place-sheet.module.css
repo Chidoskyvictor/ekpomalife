@@ -14,12 +14,12 @@
   padding: 6px max(16px, env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
   border: 1px solid rgba(255, 255, 255, 0.7);
   border-bottom: 0;
-  border-radius: 24px 24px 0 0;
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
   background: rgba(255, 255, 255, 0.97);
   box-shadow: 0 -10px 32px rgba(0, 0, 0, 0.16);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
-  color: #111;
+  color: var(--ink);
   animation: rise 0.2s ease-out;
 }
 
@@ -42,7 +42,7 @@
     margin-left: calc(min(680px, calc(100vw - 48px)) / -2);
     padding: 6px 24px calc(14px + env(safe-area-inset-bottom));
     border-bottom: 0;
-    border-radius: 24px 24px 0 0;
+    border-radius: var(--r-lg) var(--r-lg) 0 0;
   }
 }
 
@@ -52,7 +52,7 @@
   height: 5px;
   flex: none;
   margin-bottom: 8px;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: #d1d5db;
 }
 
@@ -83,7 +83,7 @@
 .titles h2 {
   margin: 0;
   overflow: hidden;
-  font-size: 20px;
+  font-size: var(--fs-20);
   font-weight: 800;
   letter-spacing: -0.01em;
   line-height: 1.2;
@@ -96,22 +96,22 @@
   align-items: center;
   gap: 8px;
   margin: 2px 0 0;
-  color: #6b7280;
-  font-size: 14px;
+  color: var(--ink-2);
+  font-size: var(--fs-14);
 }
 
 .pill {
   padding: 1px 8px;
-  border-radius: 999px;
-  background: #f3f4f6;
-  color: #6b7280;
-  font-size: 12px;
+  border-radius: var(--r-pill);
+  background: var(--fill);
+  color: var(--ink-2);
+  font-size: var(--fs-12);
   font-weight: 700;
 }
 
 .pillOpen {
   background: #e8f7ee;
-  color: #15803d;
+  color: var(--ok-strong);
 }
 
 .close {
@@ -122,8 +122,8 @@
   place-items: center;
   border: 0;
   border-radius: 50%;
-  background: #f3f4f6;
-  color: #111;
+  background: var(--fill);
+  color: var(--ink);
   cursor: pointer;
 }
 
@@ -140,8 +140,8 @@
 
 .about {
   margin: 0;
-  color: #374151;
-  font-size: 15px;
+  color: var(--ink-2);
+  font-size: var(--fs-16);
   line-height: 1.45;
 }
 
@@ -154,9 +154,9 @@
   padding: 0;
   border: 0;
   background: transparent;
-  color: var(--primary, #2f7cf6);
+  color: var(--primary);
   font: inherit;
-  font-size: 15px;
+  font-size: var(--fs-16);
   font-weight: 700;
   text-align: left;
   cursor: pointer;
@@ -164,11 +164,11 @@
 
 .sub {
   margin: 4px 0 0;
-  font-size: 13px;
+  font-size: var(--fs-14);
   font-weight: 800;
   letter-spacing: 0.02em;
   text-transform: uppercase;
-  color: #6b7280;
+  color: var(--ink-2);
 }
 
 .things {
@@ -185,10 +185,10 @@
   align-items: center;
   gap: 8px;
   padding: 10px 14px;
-  border-radius: 999px;
-  background: #f3f4f6;
-  color: #374151;
-  font-size: 14px;
+  border-radius: var(--r-pill);
+  background: var(--fill);
+  color: var(--ink-2);
+  font-size: var(--fs-14);
   font-weight: 600;
 }
 
@@ -205,23 +205,23 @@
   align-items: flex-start;
   gap: 2px;
   padding: 10px 12px;
-  border: 1px solid #e5e7eb;
-  border-radius: 16px;
-  background: #fff;
-  color: #111;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--paper);
+  color: var(--ink);
   font: inherit;
   text-align: left;
   cursor: pointer;
 }
 
 .doBtn strong {
-  font-size: 14px;
+  font-size: var(--fs-14);
   font-weight: 800;
 }
 
 .doBtn span {
-  color: #6b7280;
-  font-size: 12px;
+  color: var(--ink-2);
+  font-size: var(--fs-12);
 }
 
 .modes {
@@ -240,45 +240,45 @@
   gap: 1px;
   padding: 8px 4px;
   border: 2px solid transparent;
-  border-radius: 18px;
-  background: #f3f4f6;
-  color: #111;
+  border-radius: var(--r-lg);
+  background: var(--fill);
+  color: var(--ink);
   font: inherit;
   cursor: pointer;
 }
 
 .modeEmoji {
-  font-size: 28px;
+  font-size: var(--fs-28);
   line-height: 1.2;
 }
 
 .mode strong {
-  font-size: 15px;
+  font-size: var(--fs-16);
   font-weight: 800;
 }
 
 .mode small {
-  color: #6b7280;
-  font-size: 13px;
+  color: var(--ink-2);
+  font-size: var(--fs-14);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 
 .mode .min {
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 600;
 }
 
 .modeOn {
-  border-color: var(--primary, #2f7cf6);
-  background: color-mix(in oklab, var(--primary, #2f7cf6) 10%, #fff);
+  border-color: var(--primary);
+  background: color-mix(in oklab, var(--primary) 10%, #fff);
 }
 
 .note,
 .guest p {
   margin: 0;
-  color: #6b7280;
-  font-size: 14px;
+  color: var(--ink-2);
+  font-size: var(--fs-14);
 }
 
 .foot {
@@ -294,12 +294,12 @@
   align-items: center;
   justify-content: center;
   border: 0;
-  border-radius: 999px;
-  background: var(--primary, #2f7cf6);
-  box-shadow: 0 8px 22px color-mix(in oklab, var(--primary, #2f7cf6) 40%, transparent);
+  border-radius: var(--r-pill);
+  background: var(--primary);
+  box-shadow: 0 8px 22px color-mix(in oklab, var(--primary) 40%, transparent);
   color: #fff;
   font: inherit;
-  font-size: 17px;
+  font-size: var(--fs-16);
   font-weight: 800;
   cursor: pointer;
 }
@@ -311,7 +311,7 @@
 .go:disabled {
   background: #d1d5db;
   box-shadow: none;
-  color: #6b7280;
+  color: var(--ink-2);
   cursor: default;
 }
 
@@ -328,7 +328,7 @@
   gap: 6px;
   margin: 0 0 12px;
   color: #3a3a3c;
-  font-size: 15px;
+  font-size: var(--fs-16);
   font-weight: 600;
 }
 
@@ -339,10 +339,10 @@
   gap: 8px;
   margin: 0 0 10px;
   padding: 10px 12px;
-  border-radius: 14px;
+  border-radius: var(--r-md);
   background: #fff4e5;
   color: #9a3412;
-  font-size: 14px;
+  font-size: var(--fs-14);
   font-weight: 600;
   line-height: 1.35;
 }

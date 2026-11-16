@@ -13,7 +13,7 @@
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
   color: var(--foreground);
-  font-family: var(--font-inter), 'Inter', ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-ui);
   background: var(--app-wash);
   padding-top: env(safe-area-inset-top);
   padding-right: env(safe-area-inset-right);
@@ -64,8 +64,8 @@
   left: calc(1.15rem + env(safe-area-inset-left));
   z-index: 4;
   max-width: calc(100% - 2.5rem);
-  color: #3d9ad6;
-  font-family: var(--font-inter), Inter, ui-sans-serif, system-ui, sans-serif;
+  color: var(--primary);
+  font-family: var(--font-ui);
   font-size: clamp(0.95rem, 2.8vw, 1.0625rem);
   font-weight: 500;
   letter-spacing: -0.01em;
@@ -75,7 +75,7 @@
 }
 
 .back:hover {
-  color: color-mix(in oklab, #3d9ad6 78%, black);
+  color: color-mix(in oklab, var(--primary) 78%, black);
 }
 
 .hero {
@@ -94,7 +94,7 @@
 
 .heroTitle {
   margin: 0;
-  font-family: 'Boogaloo', sans-serif;
+  font-family: var(--font-game);
   font-size: clamp(1.55rem, 5.5vw, 1.85rem);
   font-weight: 400;
   letter-spacing: 0.01em;
@@ -111,7 +111,7 @@
   margin-inline: 0;
   padding: clamp(16px, 4.2vw, 24px);
   background: var(--surface);
-  border: 1px solid #e3e8ef;
+  border: 1px solid var(--line);
   border-bottom-width: 4px;
   border-bottom-color: var(--primary);
   border-radius: 28px;
@@ -148,7 +148,7 @@
   gap: var(--space-4);
   width: 100%;
   min-width: 0;
-  font-family: var(--font-inter), 'Inter', ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-ui);
 }
 
 .field {
@@ -170,7 +170,7 @@
   width: 100%;
   min-width: 0;
   min-height: 48px;
-  border: 2px solid #e3e8ef;
+  border: 2px solid var(--line);
   border-radius: 1rem;
   background: white;
   transition:
@@ -206,7 +206,7 @@
   background: transparent;
   padding: 0 0.75rem 0 0;
   font: inherit;
-  font-size: 16px;
+  font-size: var(--fs-16);
   line-height: 1.25;
   color: var(--foreground);
   outline: none;
@@ -240,10 +240,10 @@
   width: fit-content;
   max-width: 100%;
   padding: 0.2rem 0.65rem;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: color-mix(in oklab, var(--primary) 12%, white);
   color: var(--primary);
-  font-family: 'Boogaloo', sans-serif;
+  font-family: var(--font-game);
   font-size: 1rem;
   font-weight: 400;
   overflow-wrap: anywhere;
@@ -277,8 +277,8 @@
 
 .meterSeg {
   height: 8px;
-  border-radius: 999px;
-  background: #e3e8ef;
+  border-radius: var(--r-pill);
+  background: var(--fill-2);
 }
 
 .meterSeg[data-on]:nth-child(1) {
@@ -323,7 +323,7 @@
   margin-top: 0.15rem;
   display: grid;
   place-items: center;
-  border: 2px solid #e3e8ef;
+  border: 2px solid var(--line);
   border-radius: 7px;
   background: white;
 }
@@ -364,7 +364,7 @@
 
 .stepLead {
   margin: 0;
-  font-family: 'Boogaloo', sans-serif;
+  font-family: var(--font-game);
   font-size: clamp(1.25rem, 4.5vw, 1.45rem);
   font-weight: 400;
   letter-spacing: 0.01em;
@@ -435,9 +435,9 @@
   min-height: 48px;
   margin-top: 0.15rem;
   border: 0;
-  border-radius: 16px;
+  border-radius: var(--r-lg);
   color: var(--primary-foreground);
-  font-family: 'Boogaloo', sans-serif;
+  font-family: var(--font-game);
   font-size: clamp(1.05rem, 3.5vw, 1.2rem);
   font-weight: 400;
   letter-spacing: 0.01em;
@@ -502,7 +502,7 @@
   }
 
   .card {
-    border-radius: 22px;
+    border-radius: var(--r-lg);
   }
 }
 

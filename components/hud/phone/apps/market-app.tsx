@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { ShopGrid } from '@/components/hud/shop-grid'
 import { useEconomy } from '@/hooks/use-economy'
 import styles from '../phone.module.css'
+import { AppLoading } from '../app-state'
 
 export function MarketApp() {
   const { shopItems, loadShop, loading } = useEconomy()
@@ -13,7 +14,7 @@ export function MarketApp() {
   }, [loadShop])
 
   if (loading && shopItems.length === 0) {
-    return <p className={styles.listMeta}>Loading market…</p>
+    return <AppLoading label="Loading market…" />
   }
 
   return <ShopGrid items={shopItems} />

@@ -14,6 +14,7 @@ import {
 } from '@/lib/game/invest-api'
 import { CryptoTab } from './invest-crypto'
 import styles from './invest.module.css'
+import { AppLoading } from '../app-state'
 
 type Tab = 'land' | 'rides' | 'business' | 'crypto'
 
@@ -107,7 +108,7 @@ export function InvestApp() {
             </button>
           </>
         ) : (
-          <p className={styles.hint}>Loading your investments…</p>
+          <AppLoading label="Loading your investments…" />
         )}
       </div>
     )

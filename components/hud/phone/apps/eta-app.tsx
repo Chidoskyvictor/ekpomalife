@@ -23,6 +23,7 @@ import {
   type FeedTab,
 } from '@/lib/game/eta-api'
 import styles from './eta.module.css'
+import { AppEmpty, AppLoading } from '../app-state'
 
 type Tab = FeedTab | 'voices'
 type View = { name: 'feed' } | { name: 'thread'; id: string } | { name: 'profile'; kind: 'user' | 'npc'; id: string }
@@ -344,7 +345,7 @@ function Feed({ tab, onOpen, onAuthor }: { tab: FeedTab; onOpen: (post: EtaPost)
   }, [load])
 
   if (error && !posts.length) return <p className={styles.error}>{error}</p>
-  if (loading && !posts.length) return <p className={styles.hint}>Loading the gist…</p>
+  if (loading && !posts.length) return <AppLoading label="Loading the gist…" />
   return (
     <>
       <GistList
@@ -414,7 +415,7 @@ function Thread({ id, onBack, onAuthor }: { id: string; onBack: () => void; onAu
           <GistList posts={replies} setPosts={setReplies} onAuthor={onAuthor} empty="No replies yet." replies />
         </>
       ) : !error ? (
-        <p className={styles.hint}>Loading…</p>
+        <AppLoading />
       ) : null}
     </div>
   )
@@ -472,7 +473,7 @@ function Profile({ kind, id, onBack, onOpen }: { kind: 'user' | 'npc'; id: strin
           <GistList posts={posts} setPosts={setPosts} onOpen={onOpen} empty="No gist yet." />
         </>
       ) : !error ? (
-        <p className={styles.hint}>Loading…</p>
+        <AppLoading />
       ) : null}
     </div>
   )
@@ -483,8 +484,8 @@ function TopVoices({ onAuthor }: { onAuthor: (a: EtaAuthor) => void }) {
   useEffect(() => {
     void fetchTopVoices().then((res) => setVoices(res.ok ? res.voices : []))
   }, [])
-  if (!voices) return <p className={styles.hint}>Loading…</p>
-  if (!voices.length) return <p className={styles.hint}>No influencers yet. Post gist and get the 🔥 to top this list.</p>
+  if (!voices) return <AppLoading />
+  if (!voices.length) return <AppEmpty>No influencers yet. Post gist and get the 🔥 to top this list.</AppEmpty>
   return (
     <div className={styles.list}>
       <p className={styles.fine}>Real players only. Followers and 🔥 this week.</p>

@@ -7,6 +7,7 @@ import { fetchCoin, fetchCoins, followCoin, launchCoin, tradeCoin, type CoinBag,
 import { fetchTagged, type EtaPost } from '@/lib/game/eta-api'
 import { GistList } from './eta-app'
 import styles from './invest.module.css'
+import { AppEmpty, AppLoading } from '../app-state'
 
 const full = (n: number) => `₦${Math.round(n).toLocaleString('en-NG')}`
 function short(n: number) {
@@ -97,8 +98,8 @@ export function CryptoTab({ onNotice }: { onNotice: (text: string, ok: boolean) 
 
       <h3 className={styles.section}>Trending on ẹta</h3>
       <p className={styles.fine}>Hype comes from followers, ẹta gist and buyers. High hype raises the odds of a pump. Nothing is guaranteed.</p>
-      {!coins ? <p className={styles.hint}>Loading coins…</p> : null}
-      {coins && !coins.length ? <p className={styles.hint}>No coins yet. Launch the first one in Ekpoma!</p> : null}
+      {!coins ? <AppLoading label="Loading coins…" /> : null}
+      {coins && !coins.length ? <AppEmpty>No coins yet. Launch the first one in Ekpoma!</AppEmpty> : null}
       {coins?.map((coin) => (
         <button key={coin.id} type="button" className={styles.coinRow} onClick={() => setOpen(coin.id)}>
           <span className={styles.icon} aria-hidden="true">
@@ -223,7 +224,7 @@ function CoinPage({ id, onBack, onNotice }: { id: string; onBack: () => void; on
     }
   }
 
-  if (!coin) return <p className={styles.hint}>Loading coin…</p>
+  if (!coin) return <AppLoading label="Loading coin…" />
   const spend = Number(amount.replace(/[^0-9]/g, '')) || 0
   const locked = coin.mine && new Date(coin.creatorLockedUntil).getTime() > Date.now()
 

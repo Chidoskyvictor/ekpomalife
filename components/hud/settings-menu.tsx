@@ -52,7 +52,8 @@ function Row({ label, on, onChange }: { label: string; on: boolean; onChange: (v
 }
 
 /** Round settings button under the top bar: Music, Sound and map labels (saved on this device). */
-export function SettingsMenu() {
+/** `inline`: sits in a row that centres its items (no top offset of its own). */
+export function SettingsMenu({ inline = false }: { inline?: boolean } = {}) {
   const [open, setOpen] = useState(false)
   const root = useRef<HTMLDivElement>(null)
   const music = useMusicSettings()
@@ -81,7 +82,7 @@ export function SettingsMenu() {
   const stop = (e: React.SyntheticEvent) => e.stopPropagation()
 
   return (
-    <div ref={root} className={styles.root} onPointerDown={stop} onPointerUp={stop} onClick={stop}>
+    <div ref={root} className={inline ? `${styles.root} ${styles.inline}` : styles.root} onPointerDown={stop} onPointerUp={stop} onClick={stop}>
       <button
         type="button"
         className={styles.trigger}

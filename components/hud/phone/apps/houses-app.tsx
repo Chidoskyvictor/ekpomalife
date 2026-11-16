@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useGame } from '@/hooks/use-game'
 import { fetchRentals, moveToRental, type Rental } from '@/lib/game/rentals-api'
 import styles from '../phone.module.css'
+import { AppLoading } from '../app-state'
 
 const naira = (n: number) => `₦${n.toLocaleString()}`
 
@@ -47,7 +48,7 @@ export function HousesApp() {
   }
 
   if (error) return <p className={styles.listMeta}>{error}</p>
-  if (!data) return <p className={styles.listMeta}>Loading places…</p>
+  if (!data) return <AppLoading label="Loading places…" />
 
   const cash = state?.cash ?? 0
   const blocked = data.owesRent

@@ -3,9 +3,9 @@
   position: absolute;
   inset: 0;
   z-index: var(--z-hud);
-  font-family: var(--font-jakarta), 'Plus Jakarta Sans', var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-ui);
   letter-spacing: -0.01em;
-  color: #111;
+  color: var(--ink);
   font-feature-settings: 'tnum' 1;
 }
 
@@ -22,7 +22,7 @@
   pointer-events: auto;
   background: rgba(255, 255, 255, 0.72);
   border: 1px solid rgba(255, 255, 255, 0.6);
-  border-radius: 22px;
+  border-radius: var(--r-lg);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
@@ -35,26 +35,26 @@
 .lowPerf .moreBtn,
 .lowPerf .avatarBtn,
 .lowPerf [data-overflow] {
-  background: #fff;
+  background: var(--paper);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }
 
 .title {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--fs-16);
   font-weight: 600;
   letter-spacing: -0.01em;
-  color: #111;
+  color: var(--ink);
   line-height: 1.25;
 }
 
 .secondary {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--fs-14);
   font-weight: 400;
   letter-spacing: -0.01em;
-  color: #6e6e73;
+  color: var(--ink-2);
   line-height: 1.35;
 }
 
@@ -97,7 +97,7 @@
   scrollbar-width: none;
   background: rgba(255, 255, 255, 0.72);
   border: 1px solid rgba(255, 255, 255, 0.6);
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
@@ -106,8 +106,8 @@
 /* Guest (welcome) bar: same pill, solid white instead of glass. */
 .statusSolid {
   padding-block: 6px;
-  background: #fff;
-  border-color: #e3e8ef;
+  background: var(--paper);
+  border-color: var(--line);
   box-shadow: 0 10px 30px rgba(18, 40, 70, 0.12);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
@@ -132,13 +132,13 @@
   align-items: center;
   gap: 6px;
   flex: none;
-  font-size: 13px;
+  font-size: var(--fs-14);
   font-weight: 600;
   letter-spacing: -0.01em;
   font-variant-numeric: tabular-nums;
   font-feature-settings: 'tnum' 1;
   white-space: nowrap;
-  color: #111;
+  color: var(--ink);
 }
 
 .statusItem strong {
@@ -146,7 +146,7 @@
 }
 
 .statusMuted {
-  color: #6e6e73;
+  color: var(--ink-2);
   font-weight: 400;
 }
 
@@ -175,16 +175,16 @@
   align-items: center;
   gap: 4px;
   padding: 3px 8px;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: rgba(255, 247, 237, 0.9);
   border: 1px solid rgba(253, 186, 116, 0.7);
   color: #c2410c;
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 600;
 }
 
 .moodGood {
-  color: #16a34a;
+  color: var(--ok);
 }
 
 .moodWarn {
@@ -218,7 +218,7 @@
   gap: 6px;
   min-height: 36px;
   padding: 2px 2px 2px 10px;
-  border-radius: 14px;
+  border-radius: var(--r-md);
   border: 1px solid rgba(17, 17, 17, 0.08);
   background: rgba(255, 255, 255, 0.92);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
@@ -232,9 +232,9 @@
   min-width: 44px;
   padding: 0;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: transparent;
-  color: #6e6e73;
+  color: var(--ink-2);
   cursor: pointer;
 }
 
@@ -242,12 +242,12 @@
   position: relative;
   display: inline-flex;
   align-items: center;
-  font-size: 15px;
+  font-size: var(--fs-16);
   font-weight: 700;
   letter-spacing: -0.01em;
   font-variant-numeric: tabular-nums;
   font-feature-settings: 'tnum' 1;
-  color: #111;
+  color: var(--ink);
 }
 
 .cashAmount {
@@ -266,10 +266,10 @@
   position: absolute;
   z-index: 2;
   padding: 1px 6px;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: rgba(255, 255, 255, 0.94);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -277,7 +277,7 @@
 }
 
 .cashUp {
-  color: #16a34a;
+  color: var(--ok);
 }
 
 .cashDown {
@@ -308,7 +308,7 @@
   padding: 0 4px;
   color: #e11d48;
   font: inherit;
-  font-size: 13px;
+  font-size: var(--fs-14);
   font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
@@ -357,7 +357,7 @@
   border: 0;
   background: transparent;
   font: inherit;
-  font-size: 13px;
+  font-size: var(--fs-14);
   font-weight: 600;
   cursor: pointer;
 }
@@ -382,7 +382,7 @@
   gap: 10px;
   max-width: min(22rem, calc(100% - 32px));
   padding: 10px 16px;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: #111;
   color: #fff;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.28);
@@ -397,7 +397,7 @@
 
 .islandText {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--fs-14);
   font-weight: 600;
   letter-spacing: -0.01em;
   white-space: nowrap;
@@ -429,7 +429,7 @@
   flex: 1;
   padding: 10px 14px;
   border: 1px solid rgba(255, 255, 255, 0.6);
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: rgba(255, 255, 255, 0.72);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
   backdrop-filter: blur(20px) saturate(180%);
@@ -445,7 +445,7 @@
   flex: none;
   width: 28px;
   height: 28px;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: rgba(0, 0, 0, 0.04);
   display: grid;
   place-items: center;
@@ -471,12 +471,12 @@
   height: 44px;
   min-width: 44px;
   border: 1px solid rgba(255, 255, 255, 0.6);
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: rgba(255, 255, 255, 0.72);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
-  color: #111;
+  color: var(--ink);
   cursor: pointer;
 }
 
@@ -487,10 +487,10 @@
   min-width: 16px;
   height: 16px;
   padding: 0 4px;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: #ff3b30;
   color: #fff;
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 600;
   font-feature-settings: 'tnum' 1;
   display: grid;
@@ -559,7 +559,7 @@
   position: absolute;
   inset: 3px;
   border-radius: 50%;
-  background: #fff;
+  background: var(--paper);
   display: grid;
   place-items: center;
   overflow: hidden;
@@ -583,7 +583,7 @@
   gap: 6px 10px;
   padding: 8px 12px;
   border: 1px solid rgba(255, 255, 255, 0.7);
-  border-radius: 16px;
+  border-radius: var(--r-lg);
   background: rgba(255, 255, 255, 0.92);
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.1);
   backdrop-filter: blur(16px) saturate(170%);
@@ -592,7 +592,7 @@
 }
 
 .lowPerf .needsPanel {
-  background: #fff;
+  background: var(--paper);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }
@@ -615,14 +615,14 @@
   width: 38px;
   height: 6px;
   overflow: hidden;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: rgba(0, 0, 0, 0.08);
 }
 
 .needFill {
   position: absolute;
   inset: 0 auto 0 0;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   transition: width 0.4s ease, background 0.4s ease;
 }
 
@@ -634,12 +634,12 @@
   min-height: 40px;
   padding: 0 12px;
   border: 1px solid rgba(255, 255, 255, 0.7);
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: rgba(255, 255, 255, 0.92);
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.1);
   backdrop-filter: blur(16px) saturate(170%);
   -webkit-backdrop-filter: blur(16px) saturate(170%);
-  font-size: 14px;
+  font-size: var(--fs-14);
 }
 
 /* Avatar button + needs pill side by side (the pill is its own button) */
@@ -649,13 +649,45 @@
   gap: 10px;
 }
 
+/* A need in the red: loud (solid fill, one pop). Everything else stays calm. */
+.needChip[data-tone='bad'] {
+  border-color: transparent;
+  background: var(--bad);
+  color: #fff;
+  box-shadow: 0 6px 18px color-mix(in oklab, var(--bad) 40%, transparent);
+  animation: needPop var(--dur-pop) var(--ease-ui) 1;
+}
+
+.needChip[data-tone='bad'] strong,
+.needChip[data-tone='bad'] .needName,
+.needChip[data-tone='bad'] .needMore {
+  color: #fff !important;
+}
+
+.needCell[data-tone='bad'] .needIcon {
+  animation: needPop var(--dur-pop) var(--ease-ui) 1;
+}
+
+@keyframes needPop {
+  50% {
+    transform: scale(1.08);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .needChip[data-tone='bad'],
+  .needCell[data-tone='bad'] .needIcon {
+    animation: none;
+  }
+}
+
 /* Button reset for the needs pill; its glass look stays in .needChip */
 button.needChip {
   pointer-events: auto;
   min-height: 44px;
-  color: #111;
+  color: var(--ink);
   font: inherit;
-  font-size: 14px;
+  font-size: var(--fs-14);
   cursor: pointer;
 }
 
@@ -666,8 +698,8 @@ button.needChip {
 
 .needMore {
   /* #6e6e73: 4.6:1 on the white pill (AA at 12px) */
-  color: #6e6e73;
-  font-size: 12px;
+  color: var(--ink-2);
+  font-size: var(--fs-12);
   font-weight: 600;
 }
 
@@ -712,10 +744,18 @@ button.needChip {
   }
 
   button.needChip {
+    position: relative;
     min-height: 36px;
     gap: 4px;
     padding: 0 10px;
-    font-size: 12.5px;
+    font-size: var(--fs-12);
+  }
+
+  /* Looks 36px tall, taps as 44px */
+  button.needChip::after {
+    content: '';
+    position: absolute;
+    inset: -4px 0;
   }
 
   .needChip .needIcon {
@@ -724,7 +764,7 @@ button.needChip {
   }
 
   .needMore {
-    font-size: 11px;
+    font-size: var(--fs-12);
   }
 
   .critBadge {
@@ -746,7 +786,7 @@ button.needChip {
   .needsPanel {
     gap: 6px 10px;
     padding: 9px 12px;
-    border-radius: 16px;
+    border-radius: var(--r-lg);
   }
 
   .needTrack {
@@ -766,8 +806,8 @@ button.needChip {
   bottom: -2px;
   width: 22px;
   height: 22px;
-  border-radius: 999px;
-  background: #fff;
+  border-radius: var(--r-pill);
+  background: var(--paper);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
   display: grid;
   place-items: center;
@@ -826,12 +866,12 @@ button.needChip {
   height: 44px;
   min-width: 44px;
   border: 1px solid rgba(255, 255, 255, 0.6);
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: rgba(255, 255, 255, 0.72);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
-  color: #111;
+  color: var(--ink);
   cursor: pointer;
 }
 
@@ -845,9 +885,9 @@ button.needChip {
   min-height: 44px;
   padding: 8px 16px;
   border: 0;
-  border-radius: 16px;
+  border-radius: var(--r-lg);
   color: var(--primary-foreground);
-  font-family: 'Boogaloo', sans-serif;
+  font-family: var(--font-game);
   font-size: 1.05rem;
   font-weight: 400;
   letter-spacing: 0.01em;
@@ -892,7 +932,7 @@ button.needChip {
   min-width: 16px;
   height: 16px;
   padding: 0 4px;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: #ff3b30;
   color: #fff;
   font-size: 0.75rem;
@@ -929,7 +969,7 @@ button.needChip {
   min-height: 52px;
   padding: 12px 14px;
   border: 1px solid rgba(0, 0, 0, 0.06);
-  border-radius: 16px;
+  border-radius: var(--r-lg);
   background: rgba(255, 255, 255, 0.9);
   text-align: left;
   font: inherit;
@@ -941,7 +981,7 @@ button.needChip {
   flex: none;
   width: 36px;
   height: 36px;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: rgba(0, 0, 0, 0.04);
   display: grid;
   place-items: center;
@@ -982,7 +1022,7 @@ button.needChip {
 
 .needTrack {
   height: 8px;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: rgba(0, 0, 0, 0.06);
   overflow: hidden;
 }
@@ -994,10 +1034,10 @@ button.needChip {
 }
 
 .needVal {
-  font-size: 13px;
+  font-size: var(--fs-14);
   font-weight: 600;
   font-feature-settings: 'tnum' 1;
-  color: #6e6e73;
+  color: var(--ink-2);
   min-width: 2.5rem;
   text-align: right;
 }
@@ -1017,26 +1057,26 @@ button.needChip {
   min-height: 52px;
   padding: 14px 16px;
   border: 0;
-  border-radius: 14px;
+  border-radius: var(--r-md);
   background: rgba(0, 0, 0, 0.04);
   font: inherit;
-  font-size: 15px;
+  font-size: var(--fs-16);
   font-weight: 600;
-  color: #111;
+  color: var(--ink);
   cursor: pointer;
   text-align: left;
 }
 
 .settingsActionDanger {
-  color: #ff3b30;
+  color: var(--bad);
 }
 
 .settingsHint {
   margin: 0;
   padding: 4px 4px 12px;
-  font-size: 14px;
+  font-size: var(--fs-14);
   font-weight: 400;
-  color: #6e6e73;
+  color: var(--ink-2);
 }
 
 .toastSlot {
@@ -1049,7 +1089,7 @@ button.needChip {
 .toast {
   max-width: min(22rem, 100%);
   padding: 10px 14px;
-  font-size: 13px;
+  font-size: var(--fs-14);
   line-height: 1.4;
   font-weight: 600;
 }
@@ -1073,7 +1113,7 @@ button.needChip {
   min-height: 44px;
   padding: 0 14px;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: var(--primary);
   color: var(--primary-foreground);
   font: inherit;
@@ -1092,10 +1132,10 @@ button.needChip {
   min-height: 56px;
   padding: 6px 4px 6px 10px;
   border: 1px solid rgba(255, 255, 255, 0.8);
-  border-radius: 18px;
+  border-radius: var(--r-lg);
   background: rgba(255, 255, 255, 0.98);
-  color: #111;
-  font-size: 14px;
+  color: var(--ink);
+  font-size: var(--fs-14);
   font-weight: 600;
   line-height: 1.35;
   box-shadow:
@@ -1117,9 +1157,9 @@ button.needChip {
   place-items: center;
   width: 36px;
   height: 36px;
-  border-radius: 12px;
+  border-radius: var(--r-md);
   background: #eef2ff;
-  font-size: 18px;
+  font-size: var(--fs-20);
   line-height: 1;
 }
 
@@ -1135,10 +1175,10 @@ button.needChip {
   width: 44px;
   height: 44px;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: transparent;
-  color: #6e6e73;
-  font-size: 14px;
+  color: var(--ink-2);
+  font-size: var(--fs-14);
   cursor: pointer;
 }
 
@@ -1167,13 +1207,13 @@ button.needChip {
   .statusBar {
     flex-wrap: nowrap;
     gap: 8px;
-    border-radius: 999px;
+    border-radius: var(--r-pill);
     max-width: 100%;
     padding: 8px 10px 8px 12px;
   }
 
   .statusItem {
-    font-size: 12px;
+    font-size: var(--fs-12);
   }
 
   .statusItem .statusMuted {
@@ -1193,22 +1233,22 @@ button.needChip {
     gap: 5px;
     min-height: 28px;
     padding: 4px 10px;
-    border-radius: 999px;
+    border-radius: var(--r-pill);
     background: rgba(255, 255, 255, 0.72);
     border: 1px solid rgba(255, 255, 255, 0.6);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
     backdrop-filter: blur(20px) saturate(180%);
     -webkit-backdrop-filter: blur(20px) saturate(180%);
-    font-size: 12px;
+    font-size: var(--fs-12);
     font-weight: 600;
     font-variant-numeric: tabular-nums;
     letter-spacing: -0.01em;
-    color: #111;
+    color: var(--ink);
     white-space: nowrap;
   }
 
   .playersDock .statusMuted {
-    font-size: 12px;
+    font-size: var(--fs-12);
   }
 
   .playersDock .liveDot {
@@ -1222,7 +1262,7 @@ button.needChip {
   }
 
   .moneyWrap {
-    font-size: 14px;
+    font-size: var(--fs-14);
   }
 
   .iconGhost {
@@ -1276,4 +1316,6 @@ button.needChip {
   display: flex;
   width: 100%;
   min-width: 0;
+  align-items: center;
+  gap: 8px;
 }

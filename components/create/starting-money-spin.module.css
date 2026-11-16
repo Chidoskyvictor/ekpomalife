@@ -24,17 +24,17 @@
   gap: 20px;
   overflow: auto;
   border-radius: 28px;
-  background: #fff;
+  background: var(--paper);
   box-shadow: 0 10px 40px rgba(16, 24, 40, 0.12);
   padding: clamp(16px, 4vw, 24px) clamp(14px, 3.5vw, 20px);
-  font-family: var(--font-jakarta), 'Plus Jakarta Sans', sans-serif;
-  color: #1a2233;
+  font-family: var(--font-ui);
+  color: var(--ink);
   text-align: center;
 }
 
 .title {
   margin: 0;
-  font-family: 'Boogaloo', sans-serif;
+  font-family: var(--font-game);
   font-size: 1.7rem;
   font-weight: 400;
   letter-spacing: 0.01em;
@@ -53,7 +53,7 @@
 .comma {
   font-size: 1.65rem;
   font-weight: 600;
-  color: #1a2233;
+  color: var(--ink);
 }
 
 .digit {
@@ -61,7 +61,7 @@
   width: 1.15rem;
   justify-content: center;
   overflow: hidden;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   background: #f3f5f8;
   font-size: 1.65rem;
   font-weight: 700;
@@ -74,7 +74,7 @@
   font-size: 2rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  color: #15803d;
+  color: var(--ok-strong);
 }
 
 .badge {
@@ -83,7 +83,7 @@
   justify-content: center;
   gap: 8px;
   align-self: center;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: #eef6ff;
   padding: 8px 14px;
   font-size: 0.95rem;
@@ -92,7 +92,7 @@
 
 .message {
   margin: 0;
-  color: #4b5563;
+  color: var(--ink-2);
   font-size: 0.95rem;
   font-weight: 400;
   line-height: 1.45;
@@ -101,9 +101,9 @@
 .error {
   margin: 0;
   padding: 12px 14px;
-  border-radius: 12px;
+  border-radius: var(--r-md);
   background: #fef3f2;
-  color: #b42318;
+  color: var(--bad-strong);
   font-size: 0.9rem;
   font-weight: 500;
   line-height: 1.45;
@@ -113,7 +113,7 @@
 
 .hint {
   margin: 0;
-  color: #6b7280;
+  color: var(--ink-2);
   font-size: 0.875rem;
   line-height: 1.4;
   text-align: left;
@@ -128,9 +128,9 @@
 .share {
   min-height: 48px;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: #eef2f6;
-  color: #1a2233;
+  color: var(--ink);
   font-family: inherit;
   font-size: 0.95rem;
   font-weight: 600;
@@ -138,7 +138,7 @@
 }
 
 .share:focus-visible {
-  outline: 2px solid var(--primary, #3d9ad6);
+  outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
 
