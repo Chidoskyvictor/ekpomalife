@@ -63,7 +63,7 @@
 
 .titles strong {
   overflow: hidden;
-  font-size: 19px;
+  font-size: var(--fs-20);
   font-weight: 800;
   letter-spacing: -0.01em;
   text-overflow: ellipsis;
@@ -74,7 +74,7 @@
   overflow: hidden;
   display: -webkit-box;
   color: var(--ink-2);
-  font-size: 13px;
+  font-size: var(--fs-14);
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
 }
@@ -125,11 +125,11 @@
   .icon {
     width: 42px;
     height: 42px;
-    font-size: 21px;
+    font-size: var(--fs-20);
   }
 
   .titles strong {
-    font-size: 17px;
+    font-size: var(--fs-16);
   }
 
   .body {

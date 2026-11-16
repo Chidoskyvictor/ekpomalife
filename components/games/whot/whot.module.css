@@ -159,7 +159,7 @@
 
 .timer {
   text-align: center;
-  font-size: 22px;
+  font-size: var(--fs-20);
   font-weight: 800;
   font-variant-numeric: tabular-nums;
   color: #ff9f43;
@@ -431,7 +431,7 @@
   background: rgba(255, 255, 255, 0.12);
   color: #fff;
   font-weight: 700;
-  font-size: 13px;
+  font-size: var(--fs-14);
 }
 
 .shapeSheet {

@@ -156,7 +156,7 @@
 }
 .text strong {
   overflow: hidden;
-  font-size: 15px;
+  font-size: var(--fs-16);
   font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -164,7 +164,7 @@
 .text span {
   overflow: hidden;
   color: var(--ink-2);
-  font-size: 12.5px;
+  font-size: var(--fs-12);
   text-overflow: ellipsis;
   white-space: nowrap;
 }

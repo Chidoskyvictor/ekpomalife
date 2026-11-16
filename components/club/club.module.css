@@ -22,7 +22,7 @@
   display: grid;
   place-items: center;
   color: #e9e6ff;
-  font-size: 15px;
+  font-size: var(--fs-16);
 }
 
 /* The in-club HUD is the shared place sheet (components/hud/place-sheet), night tone. */
@@ -63,7 +63,7 @@
   border: 0;
   border-radius: var(--r-pill);
   font: inherit;
-  font-size: 15px;
+  font-size: var(--fs-16);
   font-weight: 700;
   cursor: pointer;
 }
@@ -86,7 +86,7 @@
 .error {
   margin: 0;
   color: var(--bad-strong);
-  font-size: 13px;
+  font-size: var(--fs-14);
 }
 
 /* —— People —— */
@@ -170,7 +170,7 @@
   border-radius: var(--r-pill);
   background: var(--fill-2);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--fs-14);
   font-weight: 700;
   cursor: pointer;
 }

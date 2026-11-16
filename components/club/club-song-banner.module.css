@@ -49,7 +49,7 @@
 }
 
 .text strong {
-  font-size: 13px;
+  font-size: var(--fs-14);
 }
 
 .go {

@@ -84,14 +84,14 @@
 }
 .titles strong {
   overflow: hidden;
-  font-size: 17px;
+  font-size: var(--fs-16);
   font-weight: 800;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .titles span {
   color: var(--ink-2);
-  font-size: 13px;
+  font-size: var(--fs-14);
 }
 
 .close {
@@ -157,7 +157,7 @@
   place-items: center;
   border-radius: 50%;
   background: #e8f0ff;
-  font-size: 21px;
+  font-size: var(--fs-20);
 }
 .time {
   display: inline-flex;

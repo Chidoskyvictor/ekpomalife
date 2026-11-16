@@ -52,19 +52,19 @@
   border-radius: var(--r-pill);
   background: var(--fill);
   color: var(--ink-2);
-  font-size: 13px;
+  font-size: var(--fs-14);
   font-weight: 700;
 }
 
 .price {
   color: var(--ok-strong);
-  font-size: 17px;
+  font-size: var(--fs-16);
   font-weight: 800;
 }
 
 .title {
   margin-bottom: 8px;
-  font-size: 15px;
+  font-size: var(--fs-16);
   font-weight: 500;
 }
 

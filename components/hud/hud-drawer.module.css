@@ -63,7 +63,7 @@
 
 .title {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--fs-16);
   font-weight: 600;
   color: var(--ink);
 }

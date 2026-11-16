@@ -134,7 +134,7 @@
 .mutedInline {
   margin: 0;
   color: var(--ink-3);
-  font-size: 13px;
+  font-size: var(--fs-14);
   line-height: 1.4;
 }
 
@@ -181,7 +181,7 @@
 
 .rowText strong {
   color: var(--ink);
-  font-size: 15px;
+  font-size: var(--fs-16);
   font-weight: 650;
 }
 
@@ -209,7 +209,7 @@
   width: 28px;
   flex: none;
   color: var(--ink-2);
-  font-size: 13px;
+  font-size: var(--fs-14);
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
@@ -271,7 +271,7 @@
   padding: 6px 10px;
   border-radius: var(--r-pill);
   background: var(--fill);
-  font-size: 13px;
+  font-size: var(--fs-14);
   font-weight: 600;
 }
 
@@ -284,7 +284,7 @@
   border-radius: var(--r-md);
   background: var(--primary);
   color: #fff;
-  font-size: 18px;
+  font-size: var(--fs-20);
   font-weight: 800;
 }
 
@@ -304,7 +304,7 @@
   flex: none;
   border-radius: var(--r-pill);
   color: #fff;
-  font-size: 17px;
+  font-size: var(--fs-16);
   font-weight: 700;
 }
 
@@ -362,7 +362,7 @@
   background: var(--paper);
   color: var(--ink);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--fs-14);
   font-weight: 600;
   cursor: pointer;
 }
@@ -396,7 +396,7 @@
 .editError {
   margin: 0;
   color: var(--bad-strong);
-  font-size: 13px;
+  font-size: var(--fs-14);
 }
 
 .editActions {
@@ -440,6 +440,6 @@
   .tab {
     min-height: 34px;
     padding: 0 13px;
-    font-size: 13px;
+    font-size: var(--fs-14);
   }
 }

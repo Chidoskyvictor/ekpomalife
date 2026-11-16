@@ -25,7 +25,7 @@
   border-radius: var(--r-pill);
   background: #111;
   color: #fff;
-  font-size: 15px;
+  font-size: var(--fs-16);
   font-weight: 800;
 }
 .go:disabled {
@@ -34,7 +34,7 @@
 .note {
   margin: 0;
   color: var(--ink-2);
-  font-size: 12.5px;
+  font-size: var(--fs-12);
   line-height: 1.4;
 }
 .live {
@@ -66,13 +66,13 @@
 }
 .liveText strong {
   overflow: hidden;
-  font-size: 15px;
+  font-size: var(--fs-16);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .liveText span {
   color: var(--ink-2);
-  font-size: 12.5px;
+  font-size: var(--fs-12);
 }
 
 /* The sheet lays actions out in a 2-column grid: the stage cards take the full row */
@@ -85,7 +85,7 @@
 .error {
   margin: 0;
   color: var(--bad-strong);
-  font-size: 13px;
+  font-size: var(--fs-14);
   font-weight: 600;
   line-height: 1.4;
 }

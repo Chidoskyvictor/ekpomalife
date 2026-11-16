@@ -136,7 +136,7 @@
   min-height: 38px;
   padding: 0 12px;
   border-radius: var(--r-pill);
-  font-size: 13px;
+  font-size: var(--fs-14);
   font-weight: 700;
   text-decoration: none;
 }

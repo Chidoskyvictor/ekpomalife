@@ -139,7 +139,7 @@
   background: var(--primary);
   color: #fff;
   font: inherit;
-  font-size: 13px;
+  font-size: var(--fs-14);
   font-weight: 700;
   cursor: pointer;
 }
@@ -185,7 +185,7 @@
   background: rgba(0, 0, 0, 0.05);
   color: var(--ink);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--fs-14);
   font-weight: 650;
   cursor: pointer;
 }

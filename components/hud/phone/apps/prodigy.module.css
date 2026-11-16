@@ -31,7 +31,7 @@
 }
 
 .topTitle {
-  font-size: 15px;
+  font-size: var(--fs-16);
   font-weight: 800;
 }
 
@@ -67,7 +67,7 @@
 .name {
   margin: 4px 0 0;
   color: #2b3a52;
-  font-size: 18px;
+  font-size: var(--fs-20);
   font-weight: 800;
   line-height: 1.2;
 }
@@ -90,7 +90,7 @@
   border-radius: var(--r-pill);
   background: #25d366;
   color: #fff;
-  font-size: 15px;
+  font-size: var(--fs-16);
   font-weight: 800;
   text-decoration: none;
 }
@@ -98,7 +98,7 @@
 .heading {
   margin: 18px 4px 8px;
   color: #2b3a52;
-  font-size: 13px;
+  font-size: var(--fs-14);
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -134,7 +134,7 @@
   place-items: center;
   border-radius: var(--r-md);
   background: #eafaf0;
-  font-size: 22px;
+  font-size: var(--fs-20);
 }
 
 .card:active {
@@ -157,13 +157,13 @@
 
 .cardText strong {
   color: #2b3a52;
-  font-size: 15px;
+  font-size: var(--fs-16);
   font-weight: 800;
 }
 
 .cardText span {
   color: var(--ink-2);
-  font-size: 13px;
+  font-size: var(--fs-14);
   font-weight: 600;
 }
 
@@ -177,7 +177,7 @@
   border-radius: var(--r-pill);
   background: #e8f9ee;
   color: #128c4b;
-  font-size: 13px;
+  font-size: var(--fs-14);
   font-weight: 800;
   text-decoration: none;
 }

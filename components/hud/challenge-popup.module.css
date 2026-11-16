@@ -59,7 +59,7 @@
   border: 0;
   border-radius: var(--r-pill);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--fs-14);
   font-weight: 700;
   cursor: pointer;
 }

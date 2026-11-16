@@ -41,7 +41,7 @@
 .djTitle {
   overflow: hidden;
   max-width: 100%;
-  font-size: 18px;
+  font-size: var(--fs-20);
   font-weight: 900;
   line-height: 1.2;
   text-overflow: ellipsis;

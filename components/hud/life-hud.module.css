@@ -42,7 +42,7 @@
 
 .title {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--fs-16);
   font-weight: 600;
   letter-spacing: -0.01em;
   color: var(--ink);
@@ -51,7 +51,7 @@
 
 .secondary {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--fs-14);
   font-weight: 400;
   letter-spacing: -0.01em;
   color: var(--ink-2);
@@ -132,7 +132,7 @@
   align-items: center;
   gap: 6px;
   flex: none;
-  font-size: 13px;
+  font-size: var(--fs-14);
   font-weight: 600;
   letter-spacing: -0.01em;
   font-variant-numeric: tabular-nums;
@@ -242,7 +242,7 @@
   position: relative;
   display: inline-flex;
   align-items: center;
-  font-size: 15px;
+  font-size: var(--fs-16);
   font-weight: 700;
   letter-spacing: -0.01em;
   font-variant-numeric: tabular-nums;
@@ -308,7 +308,7 @@
   padding: 0 4px;
   color: #e11d48;
   font: inherit;
-  font-size: 13px;
+  font-size: var(--fs-14);
   font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
@@ -357,7 +357,7 @@
   border: 0;
   background: transparent;
   font: inherit;
-  font-size: 13px;
+  font-size: var(--fs-14);
   font-weight: 600;
   cursor: pointer;
 }
@@ -397,7 +397,7 @@
 
 .islandText {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--fs-14);
   font-weight: 600;
   letter-spacing: -0.01em;
   white-space: nowrap;
@@ -748,7 +748,7 @@ button.needChip {
     min-height: 36px;
     gap: 4px;
     padding: 0 10px;
-    font-size: 12.5px;
+    font-size: var(--fs-12);
   }
 
   /* Looks 36px tall, taps as 44px */
@@ -1034,7 +1034,7 @@ button.needChip {
 }
 
 .needVal {
-  font-size: 13px;
+  font-size: var(--fs-14);
   font-weight: 600;
   font-feature-settings: 'tnum' 1;
   color: var(--ink-2);
@@ -1060,7 +1060,7 @@ button.needChip {
   border-radius: var(--r-md);
   background: rgba(0, 0, 0, 0.04);
   font: inherit;
-  font-size: 15px;
+  font-size: var(--fs-16);
   font-weight: 600;
   color: var(--ink);
   cursor: pointer;
@@ -1089,7 +1089,7 @@ button.needChip {
 .toast {
   max-width: min(22rem, 100%);
   padding: 10px 14px;
-  font-size: 13px;
+  font-size: var(--fs-14);
   line-height: 1.4;
   font-weight: 600;
 }
@@ -1159,7 +1159,7 @@ button.needChip {
   height: 36px;
   border-radius: var(--r-md);
   background: #eef2ff;
-  font-size: 18px;
+  font-size: var(--fs-20);
   line-height: 1;
 }
 

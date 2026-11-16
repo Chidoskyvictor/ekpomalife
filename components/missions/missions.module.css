@@ -76,7 +76,7 @@
   padding: 10px 12px;
   border-radius: var(--r-md);
   background: #f3f6fa;
-  font-size: 13px;
+  font-size: var(--fs-14);
 }
 
 .bonusRow strong {
@@ -87,7 +87,7 @@
   background: var(--primary);
   color: #fff;
   text-align: center;
-  font-size: 13px;
+  font-size: var(--fs-14);
 }
 
 .bonusRow span {
@@ -124,7 +124,7 @@
   display: grid;
   place-items: center;
   background: #f3f6fa;
-  font-size: 22px;
+  font-size: var(--fs-20);
 }
 
 .info {
@@ -155,7 +155,7 @@
 
 .title {
   margin: 0;
-  font-size: 14.5px;
+  font-size: var(--fs-14);
   font-weight: 800;
   line-height: 1.25;
 }
@@ -179,7 +179,7 @@
 
 .how {
   margin: 0;
-  font-size: 12.5px;
+  font-size: var(--fs-12);
   line-height: 1.4;
   color: var(--ink-2);
 }
@@ -201,7 +201,7 @@
   background: var(--primary);
   color: #fff;
   font-weight: 800;
-  font-size: 15px;
+  font-size: var(--fs-16);
 }
 
 .go:disabled {
@@ -211,7 +211,7 @@
 .auto {
   flex: 1;
   align-self: center;
-  font-size: 12.5px;
+  font-size: var(--fs-12);
   font-weight: 700;
   color: var(--ink-2);
 }
@@ -230,7 +230,7 @@
 
 .check {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--fs-14);
   font-weight: 800;
   color: var(--ok-strong);
 }

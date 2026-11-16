@@ -17,7 +17,7 @@
 .status small {
   margin-left: auto;
   color: var(--ink-2);
-  font-size: 13px;
+  font-size: var(--fs-14);
   font-weight: 600;
 }
 
@@ -50,7 +50,7 @@
   background: #eef2f7;
   color: var(--ink);
   font: inherit;
-  font-size: 15px;
+  font-size: var(--fs-16);
   font-weight: 700;
   cursor: pointer;
 }

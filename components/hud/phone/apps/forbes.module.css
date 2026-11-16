@@ -13,19 +13,19 @@
 .gold { box-shadow: 0 0 0 3px #f5c542, 0 0 18px 4px rgba(245, 197, 66, 0.55); }
 .silver { box-shadow: 0 0 0 3px #c4cad4, 0 0 16px 3px rgba(196, 202, 212, 0.45); }
 .bronze { box-shadow: 0 0 0 3px #cd7f32, 0 0 16px 3px rgba(205, 127, 50, 0.45); }
-.cName { max-width: 100%; margin-top: 10px; font-size: 13px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cName { max-width: 100%; margin-top: 10px; font-size: var(--fs-14); font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cDetail { max-width: 100%; font-size: var(--fs-12); opacity: 0.6; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cWorth { margin-top: 4px; font-size: var(--fs-12); font-weight: 800; color: #4ade80; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .list li { content-visibility: auto; contain-intrinsic-size: auto 56px; }
 .row { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 56px; padding: 8px 10px; border: 1px solid rgba(255, 255, 255, 0.06); border-radius: var(--r-md); background: #1c1f26; color: inherit; text-align: left; cursor: pointer; }
 .mine { border-color: rgba(74, 222, 128, 0.5); }
-.rank { width: 30px; flex: none; text-align: center; font-weight: 800; font-size: 13px; opacity: 0.7; }
+.rank { width: 30px; flex: none; text-align: center; font-weight: 800; font-size: var(--fs-14); opacity: 0.7; }
 .faceSlot { flex: none; display: inline-block; }
 .who { flex: 1; min-width: 0; }
 .name { display: block; font-size: var(--fs-14); font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .detail { display: block; font-size: var(--fs-12); opacity: 0.6; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.worth { flex: none; font-weight: 800; font-size: 13px; color: #4ade80; max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.worth { flex: none; font-weight: 800; font-size: var(--fs-14); color: #4ade80; max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sentinel { min-height: 24px; text-align: center; font-size: var(--fs-12); opacity: 0.5; padding: 8px 0; }
 .me { flex: none; width: 100%; min-height: 48px; border: 0; border-top: 1px solid rgba(255, 255, 255, 0.1); background: #232730; color: #eef0f4; font-weight: 800; font-size: var(--fs-14); padding: 12px 14px calc(12px + env(safe-area-inset-bottom)); cursor: pointer; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.note { padding: 24px 12px; text-align: center; opacity: 0.75; font-size: 13px; }
+.note { padding: 24px 12px; text-align: center; opacity: 0.75; font-size: var(--fs-14); }

@@ -424,7 +424,7 @@
 .cardName {
   width: 100%;
   overflow: hidden;
-  font-size: 13px;
+  font-size: var(--fs-14);
   font-weight: 800;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -486,7 +486,7 @@
   place-items: center;
   border-radius: 50%;
   background: #eef2ff;
-  font-size: 22px;
+  font-size: var(--fs-20);
 }
 
 .placingText {

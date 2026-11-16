@@ -90,7 +90,7 @@
   place-items: center;
   border-radius: 50%;
   background: rgba(47, 107, 240, 0.1);
-  font-size: 22px;
+  font-size: var(--fs-20);
 }
 
 .text {
@@ -112,7 +112,7 @@
 .text span {
   overflow: hidden;
   opacity: 0.7;
-  font-size: 13px;
+  font-size: var(--fs-14);
   font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -206,7 +206,7 @@
   place-items: center;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.9);
-  font-size: 17px;
+  font-size: var(--fs-16);
 }
 
 .socialText {
@@ -217,7 +217,7 @@
 }
 
 .socialText strong {
-  font-size: 15px;
+  font-size: var(--fs-16);
   font-weight: 700;
 }
 

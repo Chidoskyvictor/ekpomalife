@@ -201,7 +201,7 @@
   border-radius: var(--r-pill);
   background: #fee2e2;
   color: #991b1b;
-  font-size: 13px;
+  font-size: var(--fs-14);
   font-weight: 700;
 }
 
@@ -221,7 +221,7 @@
   background: var(--primary);
   box-shadow: 0 8px 22px color-mix(in oklab, var(--primary) 40%, transparent);
   color: #fff;
-  font-size: 15px;
+  font-size: var(--fs-16);
   font-weight: 800;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -341,7 +341,7 @@
 }
 
 .pedal strong {
-  font-size: 13px;
+  font-size: var(--fs-14);
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -459,7 +459,7 @@
 }
 
 .place strong {
-  font-size: 15px;
+  font-size: var(--fs-16);
   font-weight: 800;
 }
 

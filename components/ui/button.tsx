@@ -1,3 +1,9 @@
+/**
+ * shadcn primitive, kept ONLY for the pieces that are built on it (Calendar day cells, the
+ * date-of-birth picker trigger). For any button a player taps, use the Arc button:
+ * `@/components/arc/button` (primary / secondary / ghost / danger, press spring, loading).
+ * Do not add new imports of this file.
+ */
 import { Button as ButtonPrimitive } from "@base-ui/react/button"
 import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"

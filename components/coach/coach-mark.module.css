@@ -98,7 +98,7 @@
   background: #2563eb;
   color: #fff;
   font: inherit;
-  font-size: 13px;
+  font-size: var(--fs-14);
   font-weight: 700;
 }
 

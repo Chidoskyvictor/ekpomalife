@@ -124,6 +124,6 @@
   }
 
   .emoji {
-    font-size: 22px;
+    font-size: var(--fs-20);
   }
 }

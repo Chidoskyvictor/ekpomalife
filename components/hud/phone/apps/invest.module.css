@@ -12,7 +12,7 @@
 .error {
   margin: 12px 4px;
   color: var(--ink-2);
-  font-size: 13px;
+  font-size: var(--fs-14);
   text-align: center;
 }
 
@@ -73,7 +73,7 @@
 }
 
 .stat strong {
-  font-size: 15px;
+  font-size: var(--fs-16);
   font-variant-numeric: tabular-nums;
 }
 
@@ -120,7 +120,7 @@
   background: var(--fill);
   color: var(--ink-2);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--fs-14);
   font-weight: 650;
   cursor: pointer;
 }
@@ -330,7 +330,7 @@
   background: #0f766e;
   color: #fff;
   font: inherit;
-  font-size: 13px;
+  font-size: var(--fs-14);
   font-weight: 700;
   cursor: pointer;
 }
@@ -349,7 +349,7 @@
   background: linear-gradient(120deg, #5b3fd1, #db2777);
   color: #fff;
   font: inherit;
-  font-size: 13px;
+  font-size: var(--fs-14);
   font-weight: 700;
   cursor: pointer;
 }
@@ -397,7 +397,7 @@
   padding: 12px;
   border-radius: var(--r-lg);
   background: #f2f0fb;
-  font-size: 13px;
+  font-size: var(--fs-14);
 }
 
 .field {
@@ -441,7 +441,7 @@
   border: 0;
   border-radius: var(--r-sm);
   background: var(--paper);
-  font-size: 17px;
+  font-size: var(--fs-16);
   cursor: pointer;
 }
 
@@ -497,13 +497,13 @@
 
 .coinPrice {
   margin: 0;
-  font-size: 22px;
+  font-size: var(--fs-20);
   font-weight: 800;
   font-variant-numeric: tabular-nums;
 }
 
 .coinPrice em {
-  font-size: 13px;
+  font-size: var(--fs-14);
   font-style: normal;
 }
 

@@ -45,7 +45,7 @@
   border: 2px solid var(--surface);
   border-radius: var(--r-pill);
   background: color-mix(in oklab, var(--primary) 14%, white);
-  font-size: 13px;
+  font-size: var(--fs-14);
   line-height: 1;
 }
 

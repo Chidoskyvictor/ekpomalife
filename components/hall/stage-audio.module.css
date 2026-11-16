@@ -26,7 +26,7 @@
   border-radius: var(--r-pill);
   background: #e11d48;
   color: #fff;
-  font-size: 15px;
+  font-size: var(--fs-16);
   font-weight: 800;
 }
 .listen:disabled {
@@ -99,7 +99,7 @@
   padding: 6px 6px 6px 10px;
   border-radius: var(--r-md);
   background: rgba(255, 255, 255, 0.1);
-  font-size: 13px;
+  font-size: var(--fs-14);
 }
 .hand span {
   flex: 1;
@@ -114,7 +114,7 @@
   padding: 0 12px;
   border: none;
   border-radius: var(--r-pill);
-  font-size: 13px;
+  font-size: var(--fs-14);
   font-weight: 800;
 }
 .yes {
@@ -128,5 +128,5 @@
 .error {
   padding: 0 6px 2px;
   color: #fecaca;
-  font-size: 12.5px;
+  font-size: var(--fs-12);
 }

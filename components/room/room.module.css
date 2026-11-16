@@ -91,7 +91,7 @@
 }
 
 .missingModel code {
-  font-size: 13px;
+  font-size: var(--fs-14);
 }
 
 .mainCol {
@@ -471,7 +471,7 @@
   background: var(--fill);
   color: var(--ink);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--fs-14);
   font-weight: 650;
   cursor: pointer;
 }
