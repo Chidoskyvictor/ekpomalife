@@ -7,12 +7,16 @@ import { BodyPortal } from '@/components/ui/body-portal'
 import { useGame } from '@/hooks/use-game'
 import { playSfx } from '@/lib/audio/sfx'
 import { useTrip } from '@/lib/game/trip'
+import { watMinuteOfDay } from '@/lib/game/wat-clock'
 import { pushNavigation } from '@/lib/navigation/safe-nav'
 import styles from './launch-invite.module.css'
 
 const SAZZA = 'sazza'
-/** Shown once per player (per device): bump the version for a future announcement. */
-const KEY = 'ekpoma-sazza-live-v2'
+/** Shown once per night window (per device). Bump for a later announcement. */
+const KEY = 'ekpoma-sazza-live-v3'
+/** Club hours, WAT: 8:00pm until 5:00am. */
+const OPEN_MIN = 20 * 60
+const CLOSE_MIN = 5 * 60
 
 function seen(): boolean {
   try {
@@ -30,10 +34,15 @@ function markSeen() {
   }
 }
 
+/** True from 8:00pm through 4:59am WAT, when Sazza is open. */
+export function sazzaNight(now = Date.now()): boolean {
+  const minutes = watMinuteOfDay(now)
+  return minutes >= OPEN_MIN || minutes < CLOSE_MIN
+}
+
 /*
- * Launch night: "Sazza is open" once per player, with Go to Sazza (opens Sazza on the map with its
- * ride choices) and Cancel. Waits until the Innovation Hub invite is closed so the two never stack,
- * and never shows to guests, during a ride, or when you're already at Sazza.
+ * "Sazza is active" once per device while the club is open (8pm–5am WAT). Go opens Sazza on the
+ * map with the ride choices. Hidden for guests, during a ride, and when you're already at Sazza.
  */
 export function SazzaLive() {
   const { state, isGuest, select } = useGame()
@@ -47,15 +56,13 @@ export function SazzaLive() {
 
   useEffect(() => {
     if (!eligible || open || seen()) return
-    // Give the page a moment, and wait while the Innovation Hub card is up
-    const timer = window.setInterval(() => {
-      if (document.getElementById('launch-invite-title')) return
-      window.clearInterval(timer)
+    if (!sazzaNight()) return
+    const timer = window.setTimeout(() => {
       markSeen()
       setOpen(true)
       playSfx('invite')
-    }, 1500)
-    return () => window.clearInterval(timer)
+    }, 800)
+    return () => window.clearTimeout(timer)
   }, [eligible, open])
 
   useEffect(() => {
@@ -87,7 +94,7 @@ export function SazzaLive() {
             🪩
           </span>
           <h2 id="sazza-live-title" className={styles.title}>
-            Sazza is open tonight
+            Sazza is active
           </h2>
           <p className={styles.why}>The music is on and the DJ is live. Bring your guys, spray, and get a shout-out.</p>
           <div className={styles.actions}>
