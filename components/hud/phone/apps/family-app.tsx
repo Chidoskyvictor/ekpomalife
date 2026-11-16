@@ -23,6 +23,7 @@ import { normalizeAppearance, type Appearance } from '@/lib/game/look'
 import { requestOpenChat } from '@/lib/game/open-chat'
 import { FamilyRequestCard } from './family-request-card'
 import styles from './family.module.css'
+import { AppEmpty, AppLoading } from '../app-state'
 
 const AvatarPortrait = dynamic(() => import('@/components/hud/avatar-portrait').then((m) => m.AvatarPortrait), { ssr: false })
 
@@ -71,7 +72,7 @@ export function FamilyApp() {
   }
 
   if (error && !family) return <p className={styles.empty}>{error}</p>
-  if (!family) return <p className={styles.empty}>Loading...</p>
+  if (!family) return <AppLoading />
 
   const waiting = family.incoming.length
   return (
@@ -103,7 +104,7 @@ export function FamilyApp() {
             Baes {family.baes.length}/{family.maxBaes}
           </p>
           {family.baes.length === 0 ? (
-            <p className={styles.empty}>No baes yet. Chat, gist and hang out with someone, then tap “Ask to be my bae” on their card.</p>
+            <AppEmpty>No baes yet. Chat, gist and hang out with someone, then tap “Ask to be my bae” on their card.</AppEmpty>
           ) : null}
           {family.baes.map((b) => (
             <BaeCard key={b.username} bae={b} family={family} apply={apply} toast={toast} onChanged={() => void refreshServer()} />
@@ -114,7 +115,7 @@ export function FamilyApp() {
       {tab === 'family' ? (
         <>
           <p className={styles.section}>Relatives</p>
-          {family.relatives.length === 0 ? <p className={styles.empty}>No relatives yet. Tap 👪 “Add as family” on a player’s card.</p> : null}
+          {family.relatives.length === 0 ? <AppEmpty>No relatives yet. Tap 👪 “Add as family” on a player’s card.</AppEmpty> : null}
           {family.relatives.map((r) => (
             <RelativeCard key={r.username} rel={r} apply={apply} />
           ))}
