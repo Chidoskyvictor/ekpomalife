@@ -5,9 +5,14 @@ import { musicSignedIn, setClubMusic, SOUND_EVENT, soundMuted, useMusicSettings 
 
 /**
  * Club set (Sazza and Forbes). Each track plays through, then the next, then the set repeats.
- * Order: the original club song, then the two tracks the owner added (2026-11-10).
+ * Order: the original club song, the two tracks added 2026-11-10, then Abena.
  */
-const CLUB_SET = ['/audio/club/club-night.mp3', '/audio/club/club-set-2.mp3', '/audio/club/club-set-3.m4a']
+const CLUB_SET = [
+  '/audio/club/club-night.mp3',
+  '/audio/club/club-set-2.mp3',
+  '/audio/club/club-set-3.m4a',
+  '/audio/club/abena.mp3',
+]
 /** Fired on a spray: the song dips for a moment so the DJ's air horn cuts through. */
 export const CLUB_DUCK_EVENT = 'ekpoma-club-duck'
 const DUCK_LEVEL = 0.25
