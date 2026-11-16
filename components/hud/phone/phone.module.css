@@ -294,8 +294,7 @@
   text-shadow: 0 2px 16px rgba(0, 0, 0, 0.35);
 }
 
-.dateLine,
-.locLine {
+.dateLine {
   margin: 6px 0 0;
   font-size: var(--fs-14);
   font-weight: 500;
@@ -332,15 +331,6 @@
 .modeBtnActive {
   background: rgba(255, 255, 255, 0.92);
   color: var(--ink);
-}
-
-.miniStats {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: var(--fs-14);
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
 }
 
 .promo {
@@ -593,10 +583,6 @@
   cursor: grab;
 }
 
-.appFrameDark .homeIndicator {
-  background: rgba(255, 255, 255, 0.35);
-}
-
 .offlineBanner {
   margin-bottom: 10px;
   padding: 10px 12px;
@@ -660,17 +646,6 @@
 
 .primaryPill:disabled {
   opacity: 0.5;
-}
-
-.ghostPill {
-  min-height: 44px;
-  border-radius: var(--r-pill);
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  padding: 0 20px;
-  background: transparent;
-  color: #fff;
-  font-size: var(--fs-14);
-  font-weight: 600;
 }
 
 .comingSoon {
