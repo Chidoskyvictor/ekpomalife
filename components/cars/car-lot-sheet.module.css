@@ -3,8 +3,6 @@
 
 .sheet {
   z-index: calc(var(--z-hud) + 5);
-  height: min(calc(100dvh - 84px - env(safe-area-inset-top)), 88dvh);
-  max-height: min(calc(100dvh - 84px - env(safe-area-inset-top)), 88dvh);
 }
 
 .head {

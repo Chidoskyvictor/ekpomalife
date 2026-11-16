@@ -21,6 +21,8 @@ export type BottomSheetProps = {
   title: string
   /** Line under the title (text, or text with a status pill). */
   subtitle?: ReactNode
+  /** Replaces the icon + title block (tabs, a wallet…). The handle and close button stay. */
+  header?: ReactNode
   /** Left of the title: an emoji / sticker in a round badge. */
   icon?: ReactNode
   /** Left of the title, unstyled (e.g. an avatar). Wins over `icon`. */
@@ -43,6 +45,7 @@ export type BottomSheetProps = {
   bodyRef?: Ref<HTMLDivElement>
   /** Body as a plain block instead of a 10px-gap stack (for content that brings its own layout). */
   plainBody?: boolean
+  bodyClassName?: string
   className?: string
   children: ReactNode
 }
@@ -68,6 +71,8 @@ export function BottomSheet({
   ariaLabel,
   bodyRef,
   plainBody = false,
+  bodyClassName,
+  header,
   className,
   children,
 }: BottomSheetProps) {
@@ -173,17 +178,21 @@ export function BottomSheet({
       >
         <div className={styles.handle} aria-hidden="true" />
         <header className={styles.head}>
-          {leading ? (
+          {header ? (
+            <div className={styles.custom}>{header}</div>
+          ) : leading ? (
             <div className={styles.leading}>{leading}</div>
           ) : icon ? (
             <span className={styles.icon} aria-hidden="true">
               {icon}
             </span>
           ) : null}
-          <div className={styles.titles}>
-            {heading}
-            {subtitle ? <p className={styles.subtitle}>{subtitle}</p> : null}
-          </div>
+          {header ? null : (
+            <div className={styles.titles}>
+              {heading}
+              {subtitle ? <p className={styles.subtitle}>{subtitle}</p> : null}
+            </div>
+          )}
           {hideClose ? null : (
             <button type="button" className={styles.close} aria-label="Close" onClick={requestClose}>
               <X size={18} aria-hidden="true" />
@@ -193,7 +202,7 @@ export function BottomSheet({
       </div>
       <div
         ref={bodyRef}
-        className={plainBody ? `${styles.body} ${styles.bodyPlain}` : styles.body}
+        className={[styles.body, plainBody ? styles.bodyPlain : '', bodyClassName ?? ''].filter(Boolean).join(' ')}
         onScroll={(event) => {
           // Scrolling for more is the same wish as dragging up
           if (!expanded && event.currentTarget.scrollTop > 8) setExpanded(true)
@@ -222,7 +231,7 @@ export function BottomSheet({
     >
       <Dialog.Portal>
         <Dialog.Overlay className={`${styles.backdrop} ${leaving ? styles.backdropLeaving : ''}`} />
-        <Dialog.Content ref={sheetRef} className={classes} aria-label={ariaLabel} aria-describedby={undefined}>
+        <Dialog.Content ref={sheetRef} className={classes} aria-label={header ? (ariaLabel ?? title) : ariaLabel} aria-describedby={undefined}>
           {inner}
         </Dialog.Content>
       </Dialog.Portal>

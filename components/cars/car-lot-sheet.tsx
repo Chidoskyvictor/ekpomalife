@@ -1,7 +1,6 @@
 'use client'
 
 import { Canvas, useFrame } from '@react-three/fiber'
-import { X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import type { Group } from 'three'
 import { useGame } from '@/hooks/use-game'
@@ -23,7 +22,7 @@ import {
 } from '@/lib/game/cars-api'
 import { CARS, PAINTS, PARKING_PRICE, carById, carSellBack, dentFixPrice } from '@/lib/game/cars-rules'
 import type { ServerGameState } from '@/lib/game/game-api'
-import base from '@/components/hud/map-place-sheet.module.css'
+import { BottomSheet } from '@/components/ui/bottom-sheet'
 import { CarModel } from './car-model'
 import styles from './car-lot-sheet.module.css'
 
@@ -86,15 +85,6 @@ export function CarLotSheet({ hidden = false }: { hidden?: boolean }) {
     key.current = newIdempotencyKey()
   }, [tab, modelId, carId])
 
-  useEffect(() => {
-    if (!tab) return
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') closeCarLot()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [tab])
-
   if (!tab || hidden || !signedIn) return null
 
   const cash = state?.cash ?? 0
@@ -131,9 +121,16 @@ export function CarLotSheet({ hidden = false }: { hidden?: boolean }) {
   }
 
   return (
-    <section className={`${base.sheet} ${styles.sheet} ${atMechanic ? '' : styles.half}`} aria-label={atMechanic ? 'Magmus Autos car lot' : 'My garage'}>
-      <div className={base.handle} aria-hidden="true" />
-      <header className={styles.head}>
+    <BottomSheet
+      open
+      onClose={closeCarLot}
+      title={atMechanic ? 'Magmus Autos car lot' : 'My garage'}
+      // The showroom may grow to the tall stop straight away (car, specs, buy); it still only takes the height it needs
+      startExpanded={atMechanic}
+      className={styles.sheet}
+      bodyClassName={styles.body}
+      header={
+        <>
         {atMechanic ? (
           <div className={styles.tabs} role="tablist">
             <button type="button" role="tab" aria-selected={tab === 'showroom'} className={tab === 'showroom' ? styles.tabOn : ''} onClick={() => openCarLot('showroom')}>
@@ -149,12 +146,9 @@ export function CarLotSheet({ hidden = false }: { hidden?: boolean }) {
         <span className={styles.wallet} title="Your wallet">
           {short(cash)}
         </span>
-        <button type="button" className={base.close} aria-label="Close" onClick={closeCarLot}>
-          <X size={18} aria-hidden="true" />
-        </button>
-      </header>
-
-      <div className={`${base.body} ${styles.body}`}>
+        </>
+      }
+    >
         {inShowroom ? (
           <>
             <div className={styles.card}>
@@ -321,7 +315,6 @@ export function CarLotSheet({ hidden = false }: { hidden?: boolean }) {
             )}
           </>
         )}
-      </div>
-    </section>
+    </BottomSheet>
   )
 }
