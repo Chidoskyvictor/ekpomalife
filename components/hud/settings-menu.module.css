@@ -7,6 +7,10 @@
   margin-top: 8px;
 }
 
+.inline {
+  margin-top: 0;
+}
+
 .trigger {
   display: grid;
   place-items: center;

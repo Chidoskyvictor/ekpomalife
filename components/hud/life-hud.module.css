@@ -649,6 +649,38 @@
   gap: 10px;
 }
 
+/* A need in the red: loud (solid fill, one pop). Everything else stays calm. */
+.needChip[data-tone='bad'] {
+  border-color: transparent;
+  background: var(--bad);
+  color: #fff;
+  box-shadow: 0 6px 18px color-mix(in oklab, var(--bad) 40%, transparent);
+  animation: needPop var(--dur-pop) var(--ease-ui) 1;
+}
+
+.needChip[data-tone='bad'] strong,
+.needChip[data-tone='bad'] .needName,
+.needChip[data-tone='bad'] .needMore {
+  color: #fff !important;
+}
+
+.needCell[data-tone='bad'] .needIcon {
+  animation: needPop var(--dur-pop) var(--ease-ui) 1;
+}
+
+@keyframes needPop {
+  50% {
+    transform: scale(1.08);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .needChip[data-tone='bad'],
+  .needCell[data-tone='bad'] .needIcon {
+    animation: none;
+  }
+}
+
 /* Button reset for the needs pill; its glass look stays in .needChip */
 button.needChip {
   pointer-events: auto;
@@ -712,10 +744,18 @@ button.needChip {
   }
 
   button.needChip {
+    position: relative;
     min-height: 36px;
     gap: 4px;
     padding: 0 10px;
     font-size: 12.5px;
+  }
+
+  /* Looks 36px tall, taps as 44px */
+  button.needChip::after {
+    content: '';
+    position: absolute;
+    inset: -4px 0;
   }
 
   .needChip .needIcon {
@@ -1276,4 +1316,6 @@ button.needChip {
   display: flex;
   width: 100%;
   min-width: 0;
+  align-items: center;
+  gap: 8px;
 }
