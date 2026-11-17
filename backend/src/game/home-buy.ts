@@ -106,13 +106,13 @@ function cleanFinishes(raw: unknown): HomeFinish[] {
 }
 
 /** The finish to save for a piece: a colour the item is sold in, or null for its own colours. */
-function pickFinish(item: HomeItem, finish: string | null | undefined): string | null | 'BAD' {
+export function pickFinish(item: HomeItem, finish: string | null | undefined): string | null | 'BAD' {
   if (!finish) return null
   const want = finish.toLowerCase()
   return item.finishes.some((f) => f.c === want) ? want : 'BAD'
 }
 
-async function loadCatalog(db: Pick<PoolClient, 'query'>): Promise<HomeItem[]> {
+export async function loadCatalog(db: Pick<PoolClient, 'query'>): Promise<HomeItem[]> {
   const rows = await db.query<ItemRow>(`SELECT * FROM home_furniture ORDER BY sort ASC, id ASC`)
   return rows.rows.map(mapItem)
 }
@@ -132,13 +132,13 @@ async function loadStyles(db: Pick<PoolClient, 'query'>): Promise<HomeStyle[]> {
   }))
 }
 
-const shapesOf = (catalog: HomeItem[]) =>
+export const shapesOf = (catalog: HomeItem[]) =>
   new Map<string, HomeShape>(
     catalog.map((i) => [i.id, { id: i.id, w: i.w, d: i.d, wall: i.wall, maxPerHome: i.maxPerHome }]),
   )
 
 /** Placed pieces (or, with `stored`, the ones put away in storage). */
-async function loadPlacements(db: Pick<PoolClient, 'query'>, characterId: string, stored = false) {
+export async function loadPlacements(db: Pick<PoolClient, 'query'>, characterId: string, stored = false) {
   const rows = await db.query<PlacementRow>(
     `SELECT id, item_id, x, z, rot, paid, finish FROM home_placements WHERE character_id = $1 AND stored = $2 ORDER BY created_at ASC, id ASC`,
     [characterId, stored],
@@ -155,7 +155,7 @@ async function loadPlacements(db: Pick<PoolClient, 'query'>, characterId: string
 }
 
 /** Hostel bunks are not yours to rearrange; the other homes have a grid. */
-function specFor(lodgingId: string | null) {
+export function specFor(lodgingId: string | null) {
   return HOME_GRID[normalizeLodgingId(lodgingId)] ?? null
 }
 
@@ -519,7 +519,7 @@ export async function rehomeFurniture(characterId: string, lodgingId: string) {
 }
 
 /** A home's design (wall paint, floor, kitchen & bathroom tiles). */
-async function loadDecor(db: Pick<PoolClient, 'query'>, characterId: string) {
+export async function loadDecor(db: Pick<PoolClient, 'query'>, characterId: string) {
   const res = await db.query<{ home_decor: unknown }>(`SELECT home_decor FROM characters WHERE id = $1`, [characterId])
   return cleanDecor(res.rows[0]?.home_decor)
 }

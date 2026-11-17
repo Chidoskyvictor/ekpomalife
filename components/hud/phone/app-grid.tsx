@@ -22,6 +22,7 @@ import {
   Bike,
   Heart,
   Crown,
+  Hammer,
   type LucideIcon,
 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -50,6 +51,7 @@ const ICONS: Partial<Record<PhoneAppId, { Icon: LucideIcon; from: string; to: st
   forbes: { Icon: Crown, from: '#fff1b8', to: '#f5c542' },
   settings: { Icon: Settings, from: '#eef1f5', to: '#dce2ea' },
   support: { Icon: LifeBuoy, from: '#dbeafe', to: '#bfdbfe' },
+  gigs: { Icon: Hammer, from: '#ffe8d6', to: '#ffd0a8' },
   portal: { Icon: GraduationCap, from: '#e6e9ff', to: '#cdd3ff' },
   music: { Icon: Headphones, from: '#ffe3ea', to: '#ffc8d5' },
 }

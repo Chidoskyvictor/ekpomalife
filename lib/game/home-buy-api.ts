@@ -63,6 +63,8 @@ type OkWrite = {
   /** Pieces in storage (sent when a move or style changes it). */
   stored?: OwnedPiece[]
   refunded?: number
+  /** Decorator jobs: the item budget left after this change. */
+  budgetLeft?: number
 }
 
 export type HomeBuyFail = ApiFail & { reason?: string }
@@ -122,3 +124,30 @@ export async function buyHomeStyle(
 ): Promise<{ ok: true; placements: OwnedPiece[]; stored: OwnedPiece[]; decor: HomeDecor; state: ServerGameState; message: string } | HomeBuyFail> {
   return apiPost<{ ok: true; placements: OwnedPiece[]; stored: OwnedPiece[]; decor: HomeDecor; state: ServerGameState; message: string }>('/home/style', { styleId, scope }, idem(key))
 }
+
+/** A decorator's view of the owner's house (needs an open job key); same shape as your own list, plus the budget left. */
+export type GigHomeOk = {
+  ok: true
+  enabled: boolean
+  lodgingId: string
+  ownerUsername: string
+  catalog: HomeItem[]
+  placements: OwnedPiece[]
+  stored: OwnedPiece[]
+  decor?: HomeDecor
+  budgetLeft: number
+}
+
+export const fetchGigHome = (gigId: string): Promise<GigHomeOk | HomeBuyFail> => apiGet<GigHomeOk>(`/gigs/${encodeURIComponent(gigId)}/home`)
+
+type Spot = { x: number; z: number; rot: HomeRotation }
+
+export const gigMoveItem = (gigId: string, pieceId: string, spot: Spot, key: string): Promise<OkWrite | HomeBuyFail> =>
+  apiPost<OkWrite>(`/gigs/${encodeURIComponent(gigId)}/home/move`, { pieceId, ...spot }, idem(key))
+
+/** Decorators can't sell: this puts the piece in the owner's storage. */
+export const gigStoreItem = (gigId: string, pieceId: string, key: string): Promise<OkWrite | HomeBuyFail> =>
+  apiPost<OkWrite>(`/gigs/${encodeURIComponent(gigId)}/home/store`, { pieceId }, idem(key))
+
+export const gigPlaceItem = (gigId: string, itemId: string, spot: Spot, key: string, finish?: string | null): Promise<OkWrite | HomeBuyFail> =>
+  apiPost<OkWrite>(`/gigs/${encodeURIComponent(gigId)}/home/place`, { itemId, ...spot, ...(finish ? { finish } : {}) }, idem(key))

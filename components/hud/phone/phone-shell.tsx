@@ -39,6 +39,7 @@ import { ProdigyApp } from './apps/prodigy-app'
 import { InvestApp } from './apps/invest-app'
 import { EtaApp } from './apps/eta-app'
 import { GamesApp } from './apps/games-app'
+import { GigsApp } from './apps/gigs-app'
 import { AnonymousApp } from './apps/anonymous-app'
 import { FamilyApp } from './apps/family-app'
 import { ForbesApp } from './apps/forbes-app'
@@ -340,6 +341,7 @@ export function PhoneShell({
                           <SpacesApp currentPlaceId={mobileApi.location?.placeId ?? state?.locationId ?? null} onHome={goHome} />
                         ) : null}
                         {appId === 'support' ? <SupportApp /> : null}
+                        {appId === 'gigs' ? <GigsApp onHome={goHome} onClose={close} /> : null}
                         {appId === 'guide' ? (
                           <GuideApp
                             onOpenApp={(id) => void openApp(id)}

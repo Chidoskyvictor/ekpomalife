@@ -5,6 +5,7 @@ import { env } from '../env.js'
 import { AD_ACTIONS, adClickReport, logAdClick } from '../game/ad-clicks.js'
 import { deleteSong, listAllSongs, saveSong } from '../game/promoted-songs.js'
 import { listGameChatReports } from '../game/game-chat.js'
+import { listDisputes, resolveDispute } from '../game/gigs.js'
 import { adminAnonAction, listAnonReports } from '../game/anonymous.js'
 import { adminBanHost, adminEndSpace, listSpaceReports, type SpacesFail } from '../game/spaces.js'
 import {
@@ -217,6 +218,21 @@ export async function adminRoutes(app: FastifyInstance) {
     const id = idParam.safeParse(request.params)
     if (!id.success) return reply.code(400).send({ ok: false, error: 'Bad id.' })
     return hubSend(reply, await adminDeletePost(id.data.id))
+  })
+
+  // Gigs: disputed jobs (money stays held until an admin decides) and player reports
+  app.get('/admin/gigs/disputes', rate(30), async (request, reply) => {
+    if (!(await requireAdmin(request, reply))) return
+    return reply.send(await listDisputes())
+  })
+
+  app.post('/admin/gigs/:id/resolve', rate(20), async (request, reply) => {
+    if (!(await requireAdmin(request, reply))) return
+    const id = idParam.safeParse(request.params)
+    const body = z.object({ to: z.enum(['worker', 'owner']) }).safeParse(request.body)
+    if (!id.success || !body.success) return reply.code(400).send({ ok: false, error: 'Pick worker or owner.' })
+    const res = await resolveDispute(id.data.id, body.data.to)
+    return res.ok ? reply.send(res) : reply.code(res.code).send({ ok: false, error: res.error })
   })
 }
 

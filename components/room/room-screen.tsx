@@ -9,7 +9,7 @@ import { markSelfDone, type SelfAction } from '@/lib/game/self-actions'
 import { fetchHostCard, type HostCard } from '@/lib/game/hostels-api'
 import { normalizeAppearance, type Appearance } from '@/lib/game/look'
 import type { FurnitureAction, FurnitureId } from '@/lib/game/room-furniture'
-import { fetchHomeFurniture, fetchVisitFurniture, type HomeItem, type HomeStyle, type OwnedPiece } from '@/lib/game/home-buy-api'
+import { fetchGigHome, fetchHomeFurniture, fetchVisitFurniture, type HomeItem, type HomeStyle, type OwnedPiece } from '@/lib/game/home-buy-api'
 import { exitBuyMode, setBuyAvailable, useBuyUi } from '@/lib/game/home-buy-store'
 import { furnitureUse, homeSpecFor, layoutWithPlaced, placedIdOf, startersFor } from '@/lib/game/home-placed'
 import { resolvePaint } from '@/lib/game/house-paint'
@@ -33,6 +33,8 @@ import { ClubPeers } from '@/components/club/club-peers'
 import { useClubLive } from '@/lib/game/club-live'
 import type { Object3D } from 'three'
 import { VisitBanner } from './visit-banner'
+import { fetchJobKey, type JobKey } from '@/lib/game/gigs-api'
+import { setGigHouse } from '@/lib/game/gig-house-store'
 import { AskPrompt, PeopleBar, PersonSheet, useHomePeople } from './people-panel'
 import styles from './room.module.css'
 
@@ -98,7 +100,23 @@ export function RoomScreen() {
   const baseLayout = layoutForLodging(lodgingId)
   // Furniture bought in Buy mode: yours, or the host's when visiting
   const spec = useMemo(() => homeSpecFor(lodgingId), [lodgingId])
-  const home = useHomeFurniture(visitingOther ? (host ? visiting : null) : '', spec !== null)
+  // A hired decorator holds a job key to this house: Buy mode works on the owner's furniture (see gig-house-store)
+  const [jobKey, setJobKey] = useState<JobKey | null>(null)
+  useEffect(() => {
+    if (!visitingOther || !visiting || !state) {
+      setJobKey(null)
+      return
+    }
+    let cancelled = false
+    void fetchJobKey(visiting).then((res) => {
+      if (!cancelled) setJobKey(res.ok && res.key?.category === 'decorator' ? res.key : null)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [visitingOther, visiting, state])
+  const gigId = jobKey?.gigId ?? null
+  const home = useHomeFurniture(visitingOther ? (host ? visiting : null) : '', spec !== null, gigId)
   const layout = useMemo(
     () => layoutWithPlaced(baseLayout, spec, home.placements, home.catalog, startersFor(lodgingId)),
     [baseLayout, spec, home.placements, home.catalog, lodgingId],
@@ -155,11 +173,15 @@ export function RoomScreen() {
 
   // The nav's Buy tab opens Buy mode while you are inside your own home (and only then)
   // (as soon as the home is known: waiting for the furniture list made an early tap open the town shop)
-  const canBuy = own && !scene.outside && spec !== null
+  const canBuy = (own || gigId !== null) && !scene.outside && spec !== null
   useEffect(() => {
     setBuyAvailable(canBuy)
     return () => setBuyAvailable(false)
   }, [canBuy])
+  useEffect(() => {
+    setGigHouse(jobKey && visiting ? { gigId: jobKey.gigId, ownerUsername: visiting, budgetLeft: jobKey.budgetLeft } : null)
+    return () => setGigHouse(null)
+  }, [jobKey, visiting])
   // Stop whatever you were doing when Buy mode opens
   useEffect(() => {
     if (buy.active) leaveInside()
@@ -328,7 +350,7 @@ export function RoomScreen() {
         ) : null}
         {HOME_STREET && own && scene.outside && !scene.cover ? <WalkStick /> : null}
         {visiting && !isOwn ? (
-          <VisitBanner username={host?.username ?? visiting} displayName={host?.displayName ?? null} place={layout.label} hostHome={hostLive} />
+          <VisitBanner username={host?.username ?? visiting} displayName={host?.displayName ?? null} place={layout.label} hostHome={hostLive} job={jobKey ? 'Decorator job · tap Buy' : undefined} />
         ) : null}
         {owner && !scene.outside && !buy.active && !selfOpen ? <PeopleBar live={live} people={people} onOpen={people.setTarget} /> : null}
         {owner ? <PersonSheet peer={people.target} homeOwner={owner} onClose={() => people.setTarget(null)} people={people} /> : null}
@@ -548,7 +570,7 @@ function useRoomActionQueue(control: RoomPlayerControl, run: (action: FurnitureA
  * What was bought and placed in a home: yours (`who` = '') or a host's when visiting. The catalogue
  * comes with it. `enabled` is false for homes without a grid (the hostel bunk) and when it can't load.
  */
-function useHomeFurniture(who: string | null, hasGrid: boolean) {
+function useHomeFurniture(who: string | null, hasGrid: boolean, gigId: string | null = null) {
   const [catalog, setCatalog] = useState<HomeItem[]>([])
   const [placements, setPlacements] = useState<OwnedPiece[]>([])
   const [decor, setDecor] = useState<HomeDecor>({})
@@ -562,7 +584,7 @@ function useHomeFurniture(who: string | null, hasGrid: boolean) {
     if (who === null || !hasGrid) return
     let cancelled = false
     setFailed(false)
-    void (who === '' ? fetchHomeFurniture() : fetchVisitFurniture(who)).then((res) => {
+    void (gigId ? fetchGigHome(gigId) : who === '' ? fetchHomeFurniture() : fetchVisitFurniture(who)).then((res) => {
       if (cancelled) return
       if (!res.ok) {
         setFailed(true)
@@ -580,6 +602,6 @@ function useHomeFurniture(who: string | null, hasGrid: boolean) {
     return () => {
       cancelled = true
     }
-  }, [who, hasGrid, attempt])
+  }, [who, hasGrid, attempt, gigId])
   return { catalog, placements, setPlacements, styles, stored, setStored, decor, loaded, enabled, failed, retry: () => setAttempt((n) => n + 1) }
 }

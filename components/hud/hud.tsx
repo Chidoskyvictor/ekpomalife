@@ -205,7 +205,8 @@ export function Hud() {
     if (next !== 'buy') exitBuyMode()
     // Buy is furniture for your own room, so it only works inside it
     if (next === 'buy') {
-      if (pathname === '/room' && buyUi().available) {
+      // (a hired decorator's job key also makes Buy available inside someone else's house, /room/<name>)
+      if ((pathname === '/room' || pathname.startsWith('/room/')) && buyUi().available) {
         setBuyOpen(false)
         setPhoneOpen(false)
         setTab('buy')

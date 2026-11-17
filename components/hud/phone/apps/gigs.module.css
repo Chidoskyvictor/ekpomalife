@@ -1,0 +1,286 @@
+/* Phone → Gigs. 360px first: chips scroll sideways, cards are one column, buttons are 44px tall. */
+
+.screen {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  color: var(--ink);
+}
+
+.screen > * {
+  flex: none;
+}
+
+.tabs {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--r-lg);
+  background: var(--fill);
+}
+
+.tab {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 4px;
+  border: 0;
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--ink-2);
+  font-size: var(--fs-12);
+  font-weight: 700;
+  line-height: 1.15;
+  cursor: pointer;
+}
+
+.tabOn {
+  background: var(--btn);
+  color: var(--on-btn);
+}
+
+.chips {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 2px 0;
+  scrollbar-width: none;
+}
+
+.chips::-webkit-scrollbar {
+  display: none;
+}
+
+.chip {
+  flex: none;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--fill);
+  border-radius: var(--r-pill);
+  background: var(--fill);
+  color: var(--ink);
+  font-size: var(--fs-12);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.chipOn {
+  border-color: var(--btn);
+  background: var(--btn);
+  color: var(--on-btn);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  padding: 12px;
+  border: 0;
+  border-radius: var(--r-lg);
+  background: var(--fill);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+button.card {
+  cursor: pointer;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.rowTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.title {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  font-size: var(--fs-14);
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.titleWrap {
+  margin: 0;
+  font-size: var(--fs-16, 16px);
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.fee {
+  flex: none;
+  color: var(--ok-strong);
+  font-size: var(--fs-14);
+  font-weight: 800;
+}
+
+.meta {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--fs-12);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.body {
+  margin: 0;
+  font-size: var(--fs-14);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 8px;
+  border-radius: var(--r-pill);
+  background: rgba(0, 0, 0, 0.07);
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.pillTop {
+  background: #fde68a;
+  color: #78350f;
+}
+
+.pillPro {
+  background: #c7d2fe;
+  color: #312e81;
+}
+
+.pillRising {
+  background: #bbf7d0;
+  color: #14532d;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: 50%;
+  background: #94a3b8;
+}
+
+.dotOn {
+  background: #22c55e;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.btn {
+  min-height: 44px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--btn);
+  color: var(--on-btn);
+  font-size: var(--fs-14);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.btnGhost {
+  background: var(--fill);
+  color: var(--ink);
+}
+
+.btnDanger {
+  background: transparent;
+  color: var(--bad-strong);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.label {
+  color: var(--ink-2);
+  font-size: var(--fs-12);
+  font-weight: 700;
+}
+
+.input {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  background: var(--fill);
+  color: var(--ink);
+  font: inherit;
+  font-size: 16px; /* no zoom on focus on phones */
+}
+
+textarea.input {
+  min-height: 72px;
+  resize: none;
+}
+
+.note {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--r-md);
+  background: rgba(37, 99, 235, 0.1);
+  color: var(--ink);
+  font-size: var(--fs-12);
+  line-height: 1.4;
+}
+
+.stars {
+  display: flex;
+  gap: 4px;
+}
+
+.star {
+  width: 44px;
+  height: 44px;
+  border: 0;
+  background: transparent;
+  color: #f59e0b;
+  font-size: 28px;
+  cursor: pointer;
+}
+
+.sub {
+  margin: 6px 4px 0;
+  color: var(--ink-3);
+  font-size: var(--fs-12);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.error {
+  margin: 0 4px;
+  color: var(--bad-strong);
+  font-size: var(--fs-14);
+}

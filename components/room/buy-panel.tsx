@@ -28,7 +28,11 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useGame } from '@/hooks/use-game'
 import {
   buyHomeStyle,
+  fetchGigHome,
   fetchHomeFurniture,
+  gigMoveItem,
+  gigPlaceItem,
+  gigStoreItem,
   moveHomeItem,
   newIdempotencyKey,
   placeHomeItem,
@@ -52,6 +56,7 @@ import {
   turnBuyItem,
   useBuyUi,
 } from '@/lib/game/home-buy-store'
+import { patchGigBudget, useGigHouse } from '@/lib/game/gig-house-store'
 import { shapeMap } from '@/lib/game/home-placed'
 import { compactNaira, formatNaira } from '@/lib/game/live'
 import type { RoomView } from '@/lib/game/room-camera'
@@ -123,7 +128,14 @@ export function BuyPanel({
 }) {
   const { state, applyServerState, refreshServer } = useGame()
   const ui = useBuyUi()
-  const cash = state?.cash ?? 0
+  /** A hired decorator working in the owner's house: their item budget is the wallet and nothing can be sold. */
+  const gig = useGigHouse()
+  const cash = gig ? gig.budgetLeft : (state?.cash ?? 0)
+  const doMove = (id: string, spot: { x: number; z: number; rot: OwnedPiece['rot'] }, key: string, finish?: string | null) =>
+    gig ? gigMoveItem(gig.gigId, id, spot, key) : moveHomeItem(id, spot, key, finish)
+  const doPlace = (itemId: string, spot: { x: number; z: number; rot: OwnedPiece['rot'] }, key: string, finish?: string | null) =>
+    gig ? gigPlaceItem(gig.gigId, itemId, spot, key, finish) : placeHomeItem(itemId, spot, key, finish)
+  const doSell = (id: string, key: string) => (gig ? gigStoreItem(gig.gigId, id, key) : sellHomeItem(id, key))
   const [category, setCategory] = useState<HomeCategory>('sleep')
   /** The Design tab (paint, floor, tiles) instead of furniture */
   const [design, setDesign] = useState(false)
@@ -252,14 +264,16 @@ export function BuyPanel({
     onPlacements(res.placements)
     if ('stored' in res && Array.isArray(res.stored)) onStored(res.stored as OwnedPiece[])
     applyServerState(res.state)
+    if (gig && 'budgetLeft' in res && typeof res.budgetLeft === 'number') patchGigBudget(res.budgetLeft)
     setNote({ text: res.message })
     return true
   }
 
   /** The request timed out but the server may have finished: reload what is really in the home. */
   const resync = async () => {
-    const res = await fetchHomeFurniture()
+    const res = gig ? await fetchGigHome(gig.gigId) : await fetchHomeFurniture()
     if (!res.ok) return false
+    if (gig && 'budgetLeft' in res) patchGigBudget(res.budgetLeft)
     const changed = res.placements.length !== placements.length || res.placements.some((p, i) => p.id !== placements[i]?.id)
     onPlacements(res.placements)
     if ('stored' in res && Array.isArray(res.stored)) onStored(res.stored as OwnedPiece[])
@@ -275,11 +289,11 @@ export function BuyPanel({
     try {
       const key = newIdempotencyKey()
       if (ui.movingId) {
-        const res = await moveHomeItem(ui.movingId, ui.spot, key, ui.finish)
+        const res = await doMove(ui.movingId, ui.spot, key, ui.finish)
         if (finish(res) || (isNetwork(res) && (await resync()))) stopPlacing()
         return
       }
-      const res = await placeHomeItem(item.id, ui.spot, key, ui.finish)
+      const res = await doPlace(item.id, ui.spot, key, ui.finish)
       if (finish(res) || (isNetwork(res) && (await resync()))) {
         stopPlacing()
         if (more) pick(item)
@@ -295,7 +309,7 @@ export function BuyPanel({
     if (!picked || busy) return
     setBusy(true)
     try {
-      const res = await moveHomeItem(picked.id, { x: picked.x, z: picked.z, rot: picked.rot }, newIdempotencyKey(), colour)
+      const res = await doMove(picked.id, { x: picked.x, z: picked.z, rot: picked.rot }, newIdempotencyKey(), colour)
       if (!finish(res) && isNetwork(res)) await resync()
     } finally {
       setBusy(false)
@@ -329,7 +343,7 @@ export function BuyPanel({
     if (!picked || busy) return
     setBusy(true)
     try {
-      const res = await sellHomeItem(picked.id, newIdempotencyKey())
+      const res = await doSell(picked.id, newIdempotencyKey())
       if (finish(res) || (isNetwork(res) && (await resync()))) pickPlaced(null)
     } finally {
       setBusy(false)
@@ -359,7 +373,8 @@ export function BuyPanel({
         <span className={styles.modePill}>
           <LayoutGrid size={16} aria-hidden="true" /> Buy mode
         </span>
-        <span className={styles.wallet} aria-label={`Wallet ${formatNaira(cash)}`}>
+        <span className={styles.wallet} aria-label={`${gig ? 'Item budget' : 'Wallet'} ${formatNaira(cash)}`}>
+          {gig ? 'Budget ' : ''}
           {compactNaira(cash)}
         </span>
         <span className={styles.actions}>
@@ -448,7 +463,7 @@ export function BuyPanel({
                   <X size={18} aria-hidden="true" />
                 </button>
               </div>
-              <Finishes finishes={pickedItem.finishes} value={picked.finish ?? null} onPick={(c) => void recolour(c)} disabled={busy} />
+              {gig ? null : <Finishes finishes={pickedItem.finishes} value={picked.finish ?? null} onPick={(c) => void recolour(c)} disabled={busy} />}
               <div className={styles.twoUp}>
                 <button
                   type="button"
@@ -458,7 +473,7 @@ export function BuyPanel({
                   Move
                 </button>
                 <button type="button" className={`${styles.pill} ${styles.goFlex}`} disabled={busy} onClick={() => void sell()}>
-                  {pickedItem.starter ? 'Remove' : `Sell · ${formatNaira(sellBackPrice(picked.paid ?? pickedItem.price))}`}
+                  {gig ? 'Put in storage' : pickedItem.starter ? 'Remove' : `Sell · ${formatNaira(sellBackPrice(picked.paid ?? pickedItem.price))}`}
                 </button>
               </div>
             </div>
@@ -501,6 +516,8 @@ export function BuyPanel({
                   if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) e.currentTarget.scrollLeft += e.deltaY
                 }}
               >
+                {gig ? null : (
+                  <>
                 <button
                   type="button"
                   role="tab"
@@ -529,6 +546,8 @@ export function BuyPanel({
                 >
                   <Paintbrush size={16} aria-hidden="true" /> Design
                 </button>
+                  </>
+                )}
                 {CATEGORIES.map(({ id, label, Icon }) => (
                   <button
                     key={id}
