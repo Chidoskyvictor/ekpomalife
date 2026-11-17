@@ -15,6 +15,7 @@ import { NewSpacePage } from './spaces-form'
 import { SpaceRoom } from './spaces-room'
 import { Avatar, ReportSheet, placeLabel } from './spaces-ui'
 import { AppHeader } from '../app-header'
+import { AppEmpty, AppError, AppLoading } from '../app-state'
 import styles from './spaces.module.css'
 
 /*
@@ -159,10 +160,10 @@ export function SpacesApp({ currentPlaceId, onHome }: { currentPlaceId: string |
         {note ? <p className={styles.note}>{note}</p> : null}
 
         {spaces === null ? (
-          <p className={styles.empty}>Loading…</p>
+          <AppLoading />
         ) : spaces.length === 0 ? (
           <>
-            <p className={styles.empty}>{EMPTY[tab]}</p>
+            <AppEmpty>{EMPTY[tab]}</AppEmpty>
             {tab === 'here' && currentPlaceId ? (
               <button type="button" className={styles.big} onClick={() => setView({ name: 'new' })}>
                 Start

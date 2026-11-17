@@ -25,6 +25,7 @@ import { useLive } from './spaces-live-context'
 import { PlayerFace } from '@/components/look/player-face'
 import { Avatar, ReportSheet, Sheet, colorFor, placeLabel } from './spaces-ui'
 import { BackButton } from '../app-header'
+import { AppEmpty, AppError, AppLoading } from '../app-state'
 import styles from './spaces.module.css'
 
 const SpaceLive = dynamic(() => import('./spaces-live'), { ssr: false })
@@ -119,7 +120,7 @@ export function SpaceRoom({
       <div className={styles.root}>
         {header}
         <div className={styles.screen}>
-          {error ? <p className={styles.error}>{error}</p> : <p className={styles.empty}>Loading…</p>}
+          {error ? <AppError>{error}</AppError> : <AppLoading />}
         </div>
       </div>
     )

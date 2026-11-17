@@ -26,6 +26,7 @@ import {
   type AnonPost,
   type AnonYou,
 } from '@/lib/game/anonymous-api'
+import { AppEmpty, AppError, AppLoading } from '../app-state'
 import styles from './anonymous.module.css'
 
 export const timeAgo = (iso: string) => {
@@ -256,15 +257,8 @@ export function Feed({
       </div>
 
       <div className={styles.scroller} ref={scroller} onScroll={onScroll}>
-        {posts === null ? <p className={styles.state}>Loading…</p> : null}
-        {error ? (
-          <div className={styles.state}>
-            <p>{error}</p>
-            <button type="button" className={styles.ghost} onClick={() => void load()}>
-              Try again
-            </button>
-          </div>
-        ) : null}
+        {posts === null && !error ? <AppLoading /> : null}
+        {error ? <AppError onRetry={() => void load()}>{error}</AppError> : null}
         {posts?.length === 0 && !error ? (
           <div className={styles.state}>
             <p>{wallName ? `Nothing on ${wallName} yet.` : 'Nothing here yet.'}</p>
@@ -376,8 +370,8 @@ function Comments({ post, flash, onClose, onAdded }: { post: AnonPost; flash: (m
   return (
     <Sheet title={`Comments · ${post.comments}`} onClose={onClose}>
       <div className={styles.commentList}>
-        {items === null ? <p className={styles.fine}>Loading…</p> : null}
-        {items?.length === 0 ? <p className={styles.fine}>No comments yet. Say something kind.</p> : null}
+        {items === null ? <AppLoading rows={2} /> : null}
+        {items?.length === 0 ? <AppEmpty>No comments yet. Say something kind.</AppEmpty> : null}
         {items?.map((c) => (
           <div key={c.id} className={styles.comment}>
             <div className={styles.commentHead}>

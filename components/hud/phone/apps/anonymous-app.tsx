@@ -18,6 +18,7 @@ import {
 } from '@/lib/game/anonymous-api'
 import { Composer, Feed, PostCard, timeAgo } from './anonymous-feed'
 import { AppHeader } from '../app-header'
+import { AppEmpty, AppError, AppLoading } from '../app-state'
 import styles from './anonymous.module.css'
 
 /*
@@ -177,9 +178,9 @@ function Walls({ onOpen, flash }: { onOpen: (w: AnonWall) => void; flash: (m: st
       <button type="button" className={styles.primary} onClick={() => setCreating(true)}>
         Start a wall
       </button>
-      {walls === null ? <p className={styles.fine}>Loading…</p> : null}
-      {error ? <p className={styles.fine}>{error}</p> : null}
-      {walls?.length === 0 && !error ? <p className={styles.fine}>No walls yet. Start the first one for your hostel or department.</p> : null}
+      {walls === null && !error ? <AppLoading rows={2} /> : null}
+      {error ? <AppError>{error}</AppError> : null}
+      {walls?.length === 0 && !error ? <AppEmpty>No walls yet. Start the first one for your hostel or department.</AppEmpty> : null}
       <ul className={styles.list}>
         {walls?.map((w) => (
           <li key={w.id} className={styles.wall}>
@@ -333,8 +334,8 @@ function Mine({ flash }: { flash: (m: string) => void }) {
           </button>
         ))}
       </div>
-      {(sub === 'comments' ? comments : posts) === null ? <p className={styles.fine}>Loading…</p> : null}
-      {empty ? <p className={styles.fine}>{sub === 'posts' ? "You haven't posted yet." : sub === 'comments' ? 'No comments yet.' : 'Posts you like show up here.'}</p> : null}
+      {(sub === 'comments' ? comments : posts) === null ? <AppLoading rows={2} /> : null}
+      {empty ? <AppEmpty>{sub === 'posts' ? "You haven't posted yet." : sub === 'comments' ? 'No comments yet.' : 'Posts you like show up here.'}</AppEmpty> : null}
       <ul className={styles.list}>
         {sub !== 'comments'
           ? posts?.map((p) => (

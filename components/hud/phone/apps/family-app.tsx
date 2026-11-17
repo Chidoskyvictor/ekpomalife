@@ -22,8 +22,8 @@ import { openDirectChat, sendChatMoney } from '@/lib/game/hostels-api'
 import { normalizeAppearance, type Appearance } from '@/lib/game/look'
 import { requestOpenChat } from '@/lib/game/open-chat'
 import { FamilyRequestCard } from './family-request-card'
+import { AppEmpty, AppError, AppLoading } from '../app-state'
 import styles from './family.module.css'
-import { AppEmpty, AppLoading } from '../app-state'
 
 const AvatarPortrait = dynamic(() => import('@/components/hud/avatar-portrait').then((m) => m.AvatarPortrait), { ssr: false })
 
@@ -125,7 +125,7 @@ export function FamilyApp() {
       {tab === 'requests' ? (
         <>
           <p className={styles.section}>For you</p>
-          {family.incoming.length === 0 ? <p className={styles.empty}>Nothing waiting.</p> : null}
+          {family.incoming.length === 0 ? <AppEmpty>Nothing waiting.</AppEmpty> : null}
           {family.incoming.map((r) => (
             <FamilyRequestCard key={r.id} id={r.id} initial={r} compact />
           ))}
