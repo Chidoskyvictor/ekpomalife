@@ -49,19 +49,19 @@ export default function AdminPage() {
         <span className="text-sm text-neutral-500">@{me}</span>
       </header>
       <nav className="mt-2 flex flex-wrap gap-x-4 gap-y-2 text-sm">
-        <Link href="/" className="text-[var(--primary)] underline">
+        <Link href="/" className="text-[#1a6fb0] underline">
           Game
         </Link>
-        <Link href="/admin/spaces" className="text-[var(--primary)] underline">
+        <Link href="/admin/spaces" className="text-[#1a6fb0] underline">
           Spaces reports
         </Link>
-        <Link href="/admin/anonymous" className="text-[var(--primary)] underline">
+        <Link href="/admin/anonymous" className="text-[#1a6fb0] underline">
           Anonymous reports
         </Link>
-        <Link href="/admin/songs" className="text-[var(--primary)] underline">
+        <Link href="/admin/songs" className="text-[#1a6fb0] underline">
           Club songs
         </Link>
-        <Link href="/admin/billboards" className="text-[var(--primary)] underline">
+        <Link href="/admin/billboards" className="text-[#1a6fb0] underline">
           Billboards
         </Link>
       </nav>
@@ -168,7 +168,7 @@ function Revenue() {
               key={k}
               type="button"
               onClick={() => setStatus(k)}
-              className={`min-h-9 rounded-full border px-3 ${status === k ? 'border-[#1a6fb0] bg-[#1a6fb0] text-white' : 'border-[var(--line)]'}`}
+              className={`min-h-9 rounded-full border px-3 ${status === k ? 'border-[#1a6fb0] bg-[#1a6fb0] text-white' : 'border-neutral-300'}`}
             >
               {k}
             </button>
@@ -221,7 +221,7 @@ function Inbox() {
     <Section
       title="Innovation Hub inbox"
       right={
-        <select className="min-h-9 rounded-lg border border-[var(--line)] px-2 text-sm" value={status} onChange={(e) => setStatus(e.target.value as typeof status)}>
+        <select className="min-h-9 rounded-lg border border-neutral-300 px-2 text-sm" value={status} onChange={(e) => setStatus(e.target.value as typeof status)}>
           <option value="new">Waiting</option>
           <option value="rewarded">Rewarded</option>
           <option value="rejected">Rejected</option>
@@ -236,7 +236,7 @@ function Inbox() {
         {rows?.map((s) => {
           const amount = Number((amounts[s.id] ?? '').replace(/[^\d]/g, '')) || 0
           return (
-            <article key={s.id} className={`rounded-2xl border p-3 ${s.hidden ? 'border-dashed border-[var(--line)] opacity-60' : 'border-neutral-200'}`}>
+            <article key={s.id} className={`rounded-2xl border p-3 ${s.hidden ? 'border-dashed border-neutral-300 opacity-60' : 'border-neutral-200'}`}>
               <p className="text-xs text-neutral-500">
                 {s.label}
                 {s.stars ? ` · ${'★'.repeat(s.stars)}` : ''} · @{s.username} · {when(s.createdAt)}
@@ -250,7 +250,7 @@ function Inbox() {
                     <button
                       key={p}
                       type="button"
-                      className={`min-h-9 rounded-full border px-3 text-sm ${amount === p ? 'border-[#1a6fb0] bg-[#e8f1fb]' : 'border-[var(--line)]'}`}
+                      className={`min-h-9 rounded-full border px-3 text-sm ${amount === p ? 'border-[#1a6fb0] bg-[#e8f1fb]' : 'border-neutral-300'}`}
                       onClick={() => setAmounts((a) => ({ ...a, [s.id]: String(p) }))}
                     >
                       {naira(p)}
@@ -259,7 +259,7 @@ function Inbox() {
                   <input
                     inputMode="numeric"
                     placeholder="Amount"
-                    className="min-h-9 w-28 rounded-lg border border-[var(--line)] px-2 text-base"
+                    className="min-h-9 w-28 rounded-lg border border-neutral-300 px-2 text-base"
                     value={amounts[s.id] ?? ''}
                     onChange={(e) => setAmounts((a) => ({ ...a, [s.id]: e.target.value }))}
                   />
@@ -274,7 +274,7 @@ function Inbox() {
                   <button
                     type="button"
                     disabled={busy === s.id}
-                    className="min-h-9 rounded-full border border-[var(--line)] px-4 text-sm"
+                    className="min-h-9 rounded-full border border-neutral-300 px-4 text-sm"
                     onClick={() => void run(s.id, () => rejectSubmission(s.id))}
                   >
                     Reject
@@ -290,7 +290,7 @@ function Inbox() {
                 <button
                   type="button"
                   disabled={busy === s.id}
-                  className="mt-2 text-xs text-[var(--primary)] underline"
+                  className="mt-2 text-xs text-[#1a6fb0] underline"
                   onClick={() => void run(s.id, () => hideSubmission(s.id, !s.hidden))}
                 >
                   {s.hidden ? 'Show it to players again' : 'Hide from players'}
@@ -333,7 +333,7 @@ function DevPosts({ author }: { author: string }) {
   return (
     <Section title="Developers' Corner (Chidosky's desk)">
       <textarea
-        className="w-full rounded-2xl border border-[var(--line)] p-3 text-base"
+        className="w-full rounded-2xl border border-neutral-300 p-3 text-base"
         rows={4}
         maxLength={4000}
         placeholder={`Post an update as @${author}…`}
