@@ -1,9 +1,4 @@
 .root { position: fixed; inset: 0; z-index: 200; display: flex; flex-direction: column; background: #15171c; color: #eef0f4; padding-top: env(safe-area-inset-top); padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); }
-.head { flex: none; display: flex; align-items: center; gap: 8px; padding: 6px 12px 8px 6px; }
-.close { flex: none; width: 44px; height: 44px; display: grid; place-items: center; border: 0; border-radius: var(--r-md); background: rgba(255, 255, 255, 0.08); color: inherit; cursor: pointer; }
-.headText { min-width: 0; }
-.title { margin: 0; font-size: var(--fs-20); font-weight: 800; letter-spacing: 0.01em; }
-.sub { margin: 1px 0 0; font-size: var(--fs-12); opacity: 0.65; }
 .scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 4px 12px 12px; }
 .top3 { display: grid; grid-template-columns: 1fr 1.12fr 1fr; align-items: stretch; gap: 8px; margin: 4px 0 16px; }
 .card { display: flex; flex-direction: column; align-items: center; min-width: 0; padding: 12px 6px 10px; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: var(--r-lg); background: #1f2229; color: inherit; cursor: pointer; text-align: center; position: relative; }
@@ -18,14 +13,10 @@
 .cWorth { margin-top: 4px; font-size: var(--fs-12); font-weight: 800; color: #4ade80; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .list li { content-visibility: auto; contain-intrinsic-size: auto 56px; }
-.row { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 56px; padding: 8px 10px; border: 1px solid rgba(255, 255, 255, 0.06); border-radius: var(--r-md); background: #1c1f26; color: inherit; text-align: left; cursor: pointer; }
-.mine { border-color: rgba(74, 222, 128, 0.5); }
+.list .row { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 56px; padding: 8px 10px; border: 1px solid rgba(255, 255, 255, 0.06); border-radius: var(--r-md); background: #1c1f26; color: inherit; text-align: left; cursor: pointer; }
+.list .mine { border-color: rgba(74, 222, 128, 0.5); }
 .rank { width: 30px; flex: none; text-align: center; font-weight: 800; font-size: var(--fs-14); opacity: 0.7; }
 .faceSlot { flex: none; display: inline-block; }
-.who { flex: 1; min-width: 0; }
-.name { display: block; font-size: var(--fs-14); font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.detail { display: block; font-size: var(--fs-12); opacity: 0.6; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.worth { flex: none; font-weight: 800; font-size: var(--fs-14); color: #4ade80; max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.list .worth { flex: none; font-weight: 800; font-size: var(--fs-14); color: #4ade80; max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sentinel { min-height: 24px; text-align: center; font-size: var(--fs-12); opacity: 0.5; padding: 8px 0; }
 .me { flex: none; width: 100%; min-height: 48px; border: 0; border-top: 1px solid rgba(255, 255, 255, 0.1); background: #232730; color: #eef0f4; font-weight: 800; font-size: var(--fs-14); padding: 12px 14px calc(12px + env(safe-area-inset-bottom)); cursor: pointer; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.note { padding: 24px 12px; text-align: center; opacity: 0.75; font-size: var(--fs-14); }

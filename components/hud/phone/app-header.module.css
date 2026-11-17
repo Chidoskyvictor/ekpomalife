@@ -1,0 +1,68 @@
+/* Shared phone app header: back button + title (+ optional subtitle and right slot).
+   Colours follow the host app's text colour, so it works in light and dark apps. */
+.header {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  min-height: 52px;
+  padding: 4px 10px 4px 6px;
+  padding-left: max(6px, env(safe-area-inset-left));
+  padding-right: max(10px, env(safe-area-inset-right));
+  color: inherit;
+}
+
+.bar {
+  border-bottom: 1px solid var(--line);
+}
+
+.back {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  transition: transform var(--dur-press) var(--ease-ui);
+}
+
+.back:active {
+  transform: scale(0.94);
+}
+
+.text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-16);
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.sub {
+  margin: 1px 0 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-12);
+  opacity: 0.65;
+}
+
+.right {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+}

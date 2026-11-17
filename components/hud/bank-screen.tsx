@@ -4,6 +4,8 @@ import { useEffect, useRef } from 'react'
 import NumberFlow from '@number-flow/react'
 import { useEconomy } from '@/hooks/use-economy'
 import { useGame } from '@/hooks/use-game'
+import { AppEmpty, AppError, AppLoading } from './phone/app-state'
+import { ListRow } from './phone/list-row'
 import styles from './economy.module.css'
 
 function timeLabel(iso: string) {
@@ -77,29 +79,26 @@ export function BankScreen() {
       </div>
       <p className={styles.sectionTitle}>Recent</p>
       {networkDown && ledger.length === 0 ? (
-        <p className={styles.cardMeta}>Can&apos;t reach the server, retrying…</p>
-      ) : null}
-      {loading && ledger.length === 0 ? (
-        <>
-          <div className={styles.skeleton} />
-          <div className={styles.skeleton} />
-        </>
+        <AppError>Can&apos;t reach the server, retrying…</AppError>
+      ) : loading && ledger.length === 0 ? (
+        <AppLoading label="Loading transactions…" rows={2} />
+      ) : ledger.length === 0 ? (
+        <AppEmpty icon="🏦">No transactions yet.</AppEmpty>
       ) : (
         <div className={styles.ledgerList}>
           {ledger.map((entry) => (
-            <div key={entry.id} className={styles.ledgerRow}>
-              <div>
-                <p className={styles.cardTitle}>{entry.reason}</p>
-                <p className={styles.cardMeta}>{timeLabel(entry.createdAt)}</p>
-              </div>
-              <span className={entry.amount >= 0 ? styles.ledgerUp : styles.ledgerDown}>
-                {entry.amount >= 0 ? '+' : '−'}₦{Math.abs(entry.amount).toLocaleString()}
-              </span>
-            </div>
+            <ListRow
+              key={entry.id}
+              className={styles.ledgerRow}
+              title={entry.reason}
+              subtitle={timeLabel(entry.createdAt)}
+              trailing={
+                <span className={entry.amount >= 0 ? styles.ledgerUp : styles.ledgerDown}>
+                  {entry.amount >= 0 ? '+' : '−'}₦{Math.abs(entry.amount).toLocaleString()}
+                </span>
+              }
+            />
           ))}
-          {ledger.length === 0 && !networkDown ? (
-            <p className={styles.cardMeta}>No transactions yet.</p>
-          ) : null}
           {ledgerNextCursor ? <div ref={sentinelRef} aria-hidden="true" /> : null}
         </div>
       )}

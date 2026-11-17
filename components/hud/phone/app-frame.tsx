@@ -3,6 +3,7 @@
 import { motion, useReducedMotion } from 'motion/react'
 import { useRef, type ReactNode } from 'react'
 import { PHONE_APPS, type PhoneAppId } from '@/lib/game/phone'
+import { AppHeader } from './app-header'
 import phoneStyles from './phone.module.css'
 import styles from './app-frame.module.css'
 
@@ -36,15 +37,16 @@ export function AppFrame({
       aria-label={meta?.label ?? 'App'}
     >
       {bare ? null : (
-        <header className={styles.appHeader}>
-          <button type="button" className={styles.backBtn} aria-label="Back home" onClick={onHome}>
-            ‹
-          </button>
-          <h2 className={styles.appTitle}>
-            <span aria-hidden="true">{meta?.emoji} </span>
-            {meta?.label}
-          </h2>
-        </header>
+        <AppHeader
+          title={
+            <>
+              <span aria-hidden="true">{meta?.emoji} </span>
+              {meta?.label}
+            </>
+          }
+          onBack={onHome}
+          backLabel="Back home"
+        />
       )}
       <div className={`${styles.appBody} ${bare ? styles.appBodyBare : ''}`}>
         {offline ? (

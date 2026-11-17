@@ -1,6 +1,5 @@
 'use client'
 
-import { X } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { BodyPortal } from '@/components/ui/body-portal'
 import { PlayerFace } from '@/components/look/player-face'
@@ -9,6 +8,9 @@ import { fetchForbes, FORBES_PAGE, meLabel, mergePage, podiumOrder, updatedLabel
 import { openDirectChat } from '@/lib/game/hostels-api'
 import { compactNaira } from '@/lib/game/live'
 import { requestOpenChat } from '@/lib/game/open-chat'
+import { AppHeader } from '../app-header'
+import { AppEmpty, AppError, AppLoading } from '../app-state'
+import { ListRow } from '../list-row'
 import styles from './forbes.module.css'
 
 const RING = { 1: styles.gold, 2: styles.silver, 3: styles.bronze } as const
@@ -114,20 +116,16 @@ export function ForbesApp({ onClose }: { onClose: () => void }) {
   return (
     <BodyPortal>
       <div className={styles.root} role="dialog" aria-label="Richest in Ekpoma">
-        <header className={styles.head}>
-          <button type="button" className={styles.close} onClick={onClose} aria-label="Close">
-            <X size={22} />
-          </button>
-          <div className={styles.headText}>
-            <h2 className={styles.title}>Richest in Ekpoma</h2>
-            <p className={styles.sub}>
-              {loaded ? `${total.toLocaleString()} players · ${updatedLabel(updatedAt).replace('Updated ', 'updated ')}` : 'Counting the money…'}
-            </p>
-          </div>
-        </header>
+        <AppHeader
+          title="Richest in Ekpoma"
+          subtitle={loaded ? `${total.toLocaleString()} players · ${updatedLabel(updatedAt).replace('Updated ', 'updated ')}` : 'Counting the money…'}
+          onBack={onClose}
+          backLabel="Close"
+        />
         <div className={styles.scroll}>
-          {error ? <p className={styles.note}>{error}</p> : null}
-          {loaded && entries.length === 0 ? <p className={styles.note}>Nobody is ranked yet.</p> : null}
+          {error ? <AppError onRetry={() => void loadMore()}>{error}</AppError> : null}
+          {!loaded && !error ? <AppLoading label="Counting the money…" /> : null}
+          {loaded && entries.length === 0 ? <AppEmpty icon="💰">Nobody is ranked yet.</AppEmpty> : null}
           <div className={styles.top3}>
             {podiumOrder(top3).map((e) => (
               <button key={e.userId} id={`forbes-${e.userId}`} type="button" className={`${styles.card} ${e.rank === 1 ? styles.first : ''}`} onClick={() => void message(e)} aria-label={`#${e.rank} @${e.username}`}>
@@ -144,15 +142,19 @@ export function ForbesApp({ onClose }: { onClose: () => void }) {
           <ul className={styles.list}>
             {rest.map((e) => (
               <li key={e.userId} id={`forbes-${e.userId}`}>
-                <button type="button" className={`${styles.row} ${me?.userId === e.userId ? styles.mine : ''}`} onClick={() => void message(e)}>
-                  <span className={styles.rank}>{e.rank}</span>
-                  <LazyFace e={e} size={40} />
-                  <span className={styles.who}>
-                    <span className={styles.name}>@{e.username}</span>
-                    <span className={styles.detail}>{e.detail}</span>
-                  </span>
-                  <span className={styles.worth}>{compactNaira(e.netWorth)}</span>
-                </button>
+                <ListRow
+                  className={`${styles.row} ${me?.userId === e.userId ? styles.mine : ''}`}
+                  onClick={() => void message(e)}
+                  lead={
+                    <>
+                      <span className={styles.rank}>{e.rank}</span>
+                      <LazyFace e={e} size={40} />
+                    </>
+                  }
+                  title={`@${e.username}`}
+                  subtitle={e.detail}
+                  trailing={<span className={styles.worth}>{compactNaira(e.netWorth)}</span>}
+                />
               </li>
             ))}
           </ul>

@@ -9,31 +9,6 @@
   border-radius: 0;
 }
 
-.appHeader {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  /* Slim header — the status bar above already clears the Dynamic Island; no divider so it reads as one surface */
-  padding: 2px 10px 8px;
-  background: var(--paper);
-}
-
-.backBtn {
-  min-height: 34px;
-  min-width: 34px;
-  border: none;
-  border-radius: var(--r-pill);
-  background: #eee;
-  font-size: var(--fs-20);
-  font-weight: 700;
-}
-
-.appTitle {
-  margin: 0;
-  font-size: var(--fs-16);
-  font-weight: 700;
-}
-
 .appBody {
   flex: 1;
   min-height: 0;

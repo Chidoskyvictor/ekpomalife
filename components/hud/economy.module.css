@@ -196,7 +196,7 @@
   gap: 0.5rem;
 }
 
-.ledgerRow {
+.ledgerList .ledgerRow {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
