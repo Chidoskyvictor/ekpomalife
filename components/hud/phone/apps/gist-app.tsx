@@ -25,7 +25,7 @@ export function GistApp() {
         <li key={entry.id} className={styles.feedItem}>
           <span className={`${styles.toneDot} ${TONE[entry.tone]}`} aria-hidden="true" />
           <div>
-            <p className={phoneStyles.promoTitle} style={{ color: '#111' }}>
+            <p className={phoneStyles.promoTitle} style={{ color: 'var(--ink)' }}>
               {entry.text}
             </p>
             <p className={phoneStyles.listMeta}>

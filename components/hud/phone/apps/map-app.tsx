@@ -31,7 +31,7 @@ export function MapApp({
               return (
                 <li key={place.id} className={phoneStyles.listItem}>
                   <div>
-                    <p className={phoneStyles.promoTitle} style={{ color: '#111', margin: 0 }}>
+                    <p className={phoneStyles.promoTitle} style={{ color: 'var(--ink)', margin: 0 }}>
                       {place.label}
                       {here ? ' · here' : ''}
                     </p>

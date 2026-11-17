@@ -70,13 +70,13 @@ export function HousesApp() {
             <li key={h.id} className={styles.listItem} style={{ flexDirection: 'column', alignItems: 'stretch', gap: 6 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'flex-start' }}>
                 <div>
-                  <p className={styles.promoTitle} style={{ color: '#111', margin: 0 }}>
+                  <p className={styles.promoTitle} style={{ color: 'var(--ink)', margin: 0 }}>
                     {h.name}
                   </p>
                   <p className={styles.listMeta}>{h.address}</p>
                 </div>
                 {h.current ? (
-                  <span className={styles.listMeta} style={{ fontWeight: 700, color: '#15803d', whiteSpace: 'nowrap' }}>
+                  <span className={styles.listMeta} style={{ fontWeight: 700, color: 'var(--ok-strong)', whiteSpace: 'nowrap' }}>
                     Your home
                   </span>
                 ) : (
@@ -96,7 +96,7 @@ export function HousesApp() {
               </p>
               {open ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, paddingTop: 4 }}>
-                  <p className={styles.listMeta} style={{ color: '#111' }}>
+                  <p className={styles.listMeta} style={{ color: 'var(--ink)' }}>
                     Move from your {current?.name.toLowerCase() ?? 'home'} to this {h.name.toLowerCase()}?{' '}
                     {h.moveIn ? `${naira(h.moveIn)} now, then ${naira(h.rentWeekly)} every week.` : `Free to move in, then ${naira(h.rentWeekly)} every week.`}{' '}
                     {h.decorate

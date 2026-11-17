@@ -12,11 +12,11 @@ export const metadata = pageMetadata({
 export default function PrivacyPage() {
   return (
     <main className="app-wash mx-auto min-h-dvh w-full max-w-lg overflow-x-hidden px-4 py-10 pt-[max(2.5rem,env(safe-area-inset-top))] pb-[max(2.5rem,env(safe-area-inset-bottom))]">
-      <Link href="/signup" className="inline-flex min-h-11 items-center text-sm text-neutral-600">
+      <Link href="/signup" className="inline-flex min-h-11 items-center text-sm text-[var(--ink-2)]">
         Back
       </Link>
       <h1 className="mt-6 text-[clamp(1.35rem,5vw,1.5rem)] font-medium break-words">Privacy</h1>
-      <div className="mt-4 space-y-4 break-words text-neutral-700">
+      <div className="mt-4 space-y-4 break-words text-[var(--ink-2)]">
         <p>
           Ekpoma Life stores the account details you provide at signup (such as display name and username) and
           gameplay progress on our servers so you can continue your campus story across sessions.
@@ -27,14 +27,14 @@ export default function PrivacyPage() {
         </p>
         <p>
           We do not sell your personal information. Questions about your data:{' '}
-          <Link href="/contact" className="text-[#1a6fb0] underline">
+          <Link href="/contact" className="text-[var(--primary)] underline">
             contact us
           </Link>
           .
         </p>
         <p>Live voice in Spaces is never recorded.</p>
         <p>
-          For terms of use, see <Link href="/terms" className="text-[#1a6fb0] underline">Terms</Link>.
+          For terms of use, see <Link href="/terms" className="text-[var(--primary)] underline">Terms</Link>.
         </p>
       </div>
       <LegalFooter />

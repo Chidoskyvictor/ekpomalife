@@ -55,7 +55,7 @@ export function LoginExplore() {
             key={item.key}
             type="button"
             onClick={() => setOpen(item)}
-            className="inline-flex h-[26px] shrink-0 items-center gap-1 rounded-full bg-white/55 px-2 text-[11.5px] font-semibold tracking-[-0.01em] text-neutral-900 shadow-[0_2px_8px_rgba(0,0,0,0.12)] ring-1 ring-white/70 backdrop-blur-md"
+            className="inline-flex h-[26px] shrink-0 items-center gap-1 rounded-full bg-[var(--paper)]/55 px-2 text-[11.5px] font-semibold tracking-[-0.01em] text-[var(--ink)] shadow-[0_2px_8px_rgba(0,0,0,0.12)] ring-1 ring-white/70 backdrop-blur-md"
           >
             <span aria-hidden="true" className="text-[12px] leading-none">{item.emoji}</span>
             {item.label}
@@ -73,7 +73,7 @@ export function LoginExplore() {
             aria-modal="true"
             aria-label={open.title}
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-md rounded-t-3xl bg-white px-5 pt-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] font-sans text-neutral-900 shadow-xl"
+            className="w-full max-w-md rounded-t-3xl bg-[var(--paper)] px-5 pt-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] font-sans text-[var(--ink)] shadow-xl"
           >
             <div className="flex items-start justify-between gap-3">
               <h2 className="text-lg font-semibold break-words">
@@ -84,12 +84,12 @@ export function LoginExplore() {
                 type="button"
                 onClick={() => setOpen(null)}
                 aria-label="Close"
-                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-neutral-700"
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--fill)] text-[var(--ink-2)]"
               >
                 <X size={18} aria-hidden="true" />
               </button>
             </div>
-            <p className="mt-3 text-[15px] leading-relaxed text-neutral-700 break-words">{open.body}</p>
+            <p className="mt-3 text-[15px] leading-relaxed text-[var(--ink-2)] break-words">{open.body}</p>
             <Link
               href="/signup"
               className="mt-4 flex min-h-12 items-center justify-center rounded-full bg-[#2563eb] px-5 text-base font-bold text-white shadow-[0_4px_0_#1e40af]"

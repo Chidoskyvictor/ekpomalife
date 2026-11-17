@@ -18,7 +18,7 @@ export function CalendarApp({
       <ul className={styles.list}>
         <li className={styles.listItem}>
           <div>
-            <p className={styles.promoTitle} style={{ color: '#111', margin: 0 }}>
+            <p className={styles.promoTitle} style={{ color: 'var(--ink)', margin: 0 }}>
               Lectures
             </p>
             <p className={styles.listMeta}>Coming soon — timetable wire-up</p>
@@ -27,7 +27,7 @@ export function CalendarApp({
         {calendarItems.map((item) => (
           <li key={item.id} className={styles.listItem}>
             <div>
-              <p className={styles.promoTitle} style={{ color: '#111', margin: 0 }}>
+              <p className={styles.promoTitle} style={{ color: 'var(--ink)', margin: 0 }}>
                 {item.title}
               </p>
               <p className={styles.listMeta}>{item.body}</p>

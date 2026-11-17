@@ -49,7 +49,7 @@ const ACCOUNTS = [
 export function SocialRow() {
   return (
     <nav aria-label="Ekpoma Life official accounts" className="mt-3 flex items-center justify-center gap-2 font-sans">
-      <span className="inline-flex h-6 items-center gap-1 rounded-full bg-neutral-100 px-2 text-[11px] font-semibold text-neutral-700">
+      <span className="inline-flex h-6 items-center gap-1 rounded-full bg-[var(--fill)] px-2 text-[11px] font-semibold text-[var(--ink-2)]">
         <GoldBadge />
         Official
       </span>
@@ -60,7 +60,7 @@ export function SocialRow() {
           target="_blank"
           rel="noopener noreferrer"
           aria-label={`Ekpoma Life on ${a.name} (official)`}
-          className="inline-flex h-7 w-7 items-center justify-center rounded-full text-neutral-900 hover:bg-neutral-100"
+          className="inline-flex h-7 w-7 items-center justify-center rounded-full text-[var(--ink)] hover:bg-[var(--fill)]"
         >
           <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">
             {a.icon}

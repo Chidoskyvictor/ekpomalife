@@ -19,7 +19,7 @@ export function StepDots({ current }: { current: 1 | 2 | 3 | 4 }) {
           />
         ))}
       </div>
-      <span className="text-xs font-medium text-neutral-500">Step {current} of 4</span>
+      <span className="text-xs font-medium text-[var(--ink-2)]">Step {current} of 4</span>
     </div>
   )
 }

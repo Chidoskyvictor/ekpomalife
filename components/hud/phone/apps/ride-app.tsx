@@ -102,7 +102,7 @@ export function RideApp({
               onClick={() => setMode(q.mode)}
             >
               <div>
-                <p className={phoneStyles.promoTitle} style={{ color: '#111', margin: 0 }}>
+                <p className={phoneStyles.promoTitle} style={{ color: 'var(--ink)', margin: 0 }}>
                   {q.mode === 'keke' ? '🛺 Shuttle' : '🏍️ Okada'}
                 </p>
                 <p className={phoneStyles.listMeta}>{q.minutes} min</p>

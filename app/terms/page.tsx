@@ -11,11 +11,11 @@ export const metadata = pageMetadata({
 export default function TermsPage() {
   return (
     <main className="app-wash mx-auto min-h-dvh w-full max-w-lg overflow-x-hidden px-4 py-10 pt-[max(2.5rem,env(safe-area-inset-top))] pb-[max(2.5rem,env(safe-area-inset-bottom))]">
-      <Link href="/signup" className="inline-flex min-h-11 items-center text-sm text-neutral-600">
+      <Link href="/signup" className="inline-flex min-h-11 items-center text-sm text-[var(--ink-2)]">
         Back
       </Link>
       <h1 className="mt-6 text-[clamp(1.35rem,5vw,1.5rem)] font-medium break-words">Terms</h1>
-      <p className="mt-4 break-words text-neutral-700">
+      <p className="mt-4 break-words text-[var(--ink-2)]">
         Ekpoma Life is a game. You must be 18 or older to create an account. Be kind on campus, do not
         share passwords, and treat other players how you want to be treated at AAU. No begging, money or crypto giveaways; giveaways may only use in-game cosmetic items.
       </p>

@@ -11,8 +11,8 @@ export const metadata = pageMetadata({
 export default function NotFound() {
   return (
     <main className="app-wash mx-auto flex min-h-dvh w-full max-w-lg flex-col justify-center px-4 py-10">
-      <h1 className="text-2xl font-semibold text-[#122846]">Page not found</h1>
-      <p className="mt-3 text-neutral-700">
+      <h1 className="text-2xl font-semibold text-[var(--ink)]">Page not found</h1>
+      <p className="mt-3 text-[var(--ink-2)]">
         We could not find that URL. Try the homepage or create an account to start your AAU story.
       </p>
       <div className="mt-6 flex flex-wrap gap-3">
@@ -24,7 +24,7 @@ export default function NotFound() {
         </Link>
         <Link
           href="/signup"
-          className="inline-flex min-h-11 items-center rounded-full border border-neutral-300 px-5 text-sm font-semibold text-[#1a6fb0]"
+          className="inline-flex min-h-11 items-center rounded-full border border-[var(--line)] px-5 text-sm font-semibold text-[var(--primary)]"
         >
           Sign up
         </Link>

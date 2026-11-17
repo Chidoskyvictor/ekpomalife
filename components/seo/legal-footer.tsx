@@ -15,7 +15,7 @@ export function LegalFooter() {
     <footer className="mt-10 border-t border-neutral-200 pt-4">
       <nav aria-label="Legal" className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
         {LINKS.map((l) => (
-          <Link key={l.href} href={l.href} className="inline-flex min-h-11 items-center text-[#1a6fb0] underline">
+          <Link key={l.href} href={l.href} className="inline-flex min-h-11 items-center text-[var(--primary)] underline">
             {l.label}
           </Link>
         ))}

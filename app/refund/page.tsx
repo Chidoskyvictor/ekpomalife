@@ -11,11 +11,11 @@ export const metadata = pageMetadata({
 export default function RefundPage() {
   return (
     <main className="app-wash mx-auto min-h-dvh w-full max-w-lg overflow-x-hidden px-4 py-10 pt-[max(2.5rem,env(safe-area-inset-top))] pb-[max(2.5rem,env(safe-area-inset-bottom))]">
-      <Link href="/" className="inline-flex min-h-11 items-center text-sm text-neutral-600">
+      <Link href="/" className="inline-flex min-h-11 items-center text-sm text-[var(--ink-2)]">
         Back
       </Link>
       <h1 className="mt-6 text-[clamp(1.35rem,5vw,1.5rem)] font-medium break-words">Refund policy</h1>
-      <div className="mt-4 space-y-4 break-words text-neutral-700">
+      <div className="mt-4 space-y-4 break-words text-[var(--ink-2)]">
         <p>
           Ekpoma Life is free to play. Top-ups buy in-game money, which is used only inside the game and
           has no cash value outside it.
@@ -27,7 +27,7 @@ export default function RefundPage() {
         <p>
           If you were charged but the money didn&apos;t arrive in your account, or you were charged twice for
           one top-up, email{' '}
-          <a href={`mailto:${SUPPORT_EMAIL}`} className="text-[#1a6fb0] underline">
+          <a href={`mailto:${SUPPORT_EMAIL}`} className="text-[var(--primary)] underline">
             {SUPPORT_EMAIL}
           </a>{' '}
           with your username, the amount, the date and the Paystack reference from your receipt. We&apos;ll
@@ -35,7 +35,7 @@ export default function RefundPage() {
         </p>
         <p>
           Accounts suspended for breaking the{' '}
-          <Link href="/terms" className="text-[#1a6fb0] underline">
+          <Link href="/terms" className="text-[var(--primary)] underline">
             Terms
           </Link>{' '}
           aren&apos;t refunded.

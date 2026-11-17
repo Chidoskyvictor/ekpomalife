@@ -31,7 +31,7 @@ export function DateOfBirthPicker({
             id={id}
             variant="outline"
             className={cn(
-              'h-11 w-full justify-between rounded-xl bg-white px-3.5 text-base font-normal md:text-sm',
+              'h-11 w-full justify-between rounded-xl bg-[var(--paper)] px-3.5 text-base font-normal md:text-sm',
               !selected && 'text-muted-foreground',
             )}
           />
