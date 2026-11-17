@@ -1,11 +1,11 @@
 'use client'
 
-import { ArrowUp, MapPin, Navigation, Search, X } from 'lucide-react'
+import { ArrowUp, Camera, MapPin, Navigation, Search, X } from 'lucide-react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { useGame } from '@/hooks/use-game'
 import { parkCar } from '@/lib/game/cars-api'
-import { driveInput, driveTelemetry, kmh, leaveDrive, setDriveDest, useDrive } from '@/lib/game/drive'
+import { driveInput, driveTelemetry, driveView, kmh, leaveDrive, setDriveDest, useDrive } from '@/lib/game/drive'
 import { OSM_CREDIT, ROAD_PLACES, ROAD_SCALE, guide, placeSpot, roadById, roadPlaceNear, roadUnder, type Guidance } from '@/lib/game/drive-road'
 import { hasInterior } from '@/lib/game/home-place'
 import { pushNavigation } from '@/lib/navigation/safe-nav'
@@ -110,6 +110,7 @@ export function DriveHud() {
   const [dents, setDents] = useState(0)
   const [roadName, setRoadName] = useState('')
   const [busy, setBusy] = useState(false)
+  const [view, setView] = useState(driveView.mode)
   const [picking, setPicking] = useState(false)
   const [racing, setRacing] = useState(false)
   const [query, setQuery] = useState('')
@@ -208,7 +209,21 @@ export function DriveHud() {
           <span>{drive.dest ? drive.dest.label : 'Where to?'}</span>
         </button>
         <RaceButton onClick={() => setRacing(true)} />
+        <button
+          type="button"
+          className={styles.round}
+          aria-label="Change camera view"
+          onClick={() => {
+            driveView.mode = (driveView.mode + 1) % 3
+            driveView.yaw = 0
+            driveView.tilt = 0
+            setView(driveView.mode)
+          }}
+        >
+          <Camera size={16} aria-hidden="true" />
+        </button>
       </div>
+      <small className={styles.viewName} aria-live="polite">{['Chase view', "Driver's seat", 'Bumper view'][view]}</small>
       <div className={styles.sideAnchor}>
         <div className={styles.side}>
           <MiniMap destId={destId} />

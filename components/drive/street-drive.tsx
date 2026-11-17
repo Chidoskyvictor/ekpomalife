@@ -65,8 +65,8 @@ export function StreetDrive() {
           const now = spread()
           if (before > 0 && now > 0) driveView.zoom = Math.max(0.6, Math.min(3, (driveView.zoom * before) / now))
         } else {
-          driveView.yaw -= (e.clientX - was.x) * 0.008
-          driveView.tilt = Math.max(-0.25, Math.min(1.6, driveView.tilt + (e.clientY - was.y) * 0.006))
+          driveView.yaw -= (e.clientX - was.x) * 0.013
+          driveView.tilt = Math.max(-0.25, Math.min(1.6, driveView.tilt + (e.clientY - was.y) * 0.01))
         }
       }}
       onPointerUp={(e) => lift(e.pointerId)}

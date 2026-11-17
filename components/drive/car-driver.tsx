@@ -5,6 +5,7 @@ import { Suspense, useMemo, useRef, type MutableRefObject } from 'react'
 import { MathUtils, type Group } from 'three'
 import { CharacterFigure, type FigurePose } from '@/components/look/character-figure'
 import { seatFor } from '@/lib/game/car-seats'
+import { driveView } from '@/lib/game/drive'
 import { DEFAULT_APPEARANCE, normalizeAppearance } from '@/lib/game/look'
 
 /** Share of the climb spent walking to the door; the rest is sitting down. */
@@ -53,7 +54,8 @@ export function CarDriver({
     const x = t <= WALK ? MathUtils.lerp(out * (spec.half + 1.3), doorX, w) : MathUtils.lerp(doorX, sx, MathUtils.smoothstep(sit, 0, 1))
     g.position.set(x, MathUtils.lerp(0, sy + SIT_LIFT * spec.scale, MathUtils.smoothstep(sit, 0.3, 1)), sz)
     g.rotation.y = MathUtils.lerp(-out * Math.PI / 2, 0, MathUtils.smoothstep(sit, 0, 0.7))
-    g.visible = t > 0.001
+    // Not drawn when the camera is your own eyes
+    g.visible = t > 0.001 && !(seat === 'driver' && driveView.mode === 1 && t >= 1)
     walking.current = t > 0.001 && t < WALK && t < 0.999
     pose.current = t > WALK ? 'type' : null
     const d = door.current

@@ -8,6 +8,7 @@ import { CarDriver } from '@/components/drive/car-driver'
 import { useLowPerf } from '@/hooks/use-low-perf'
 import type { Peer, PeerState } from '@/lib/game/club-live'
 import { CARS } from '@/lib/game/cars-rules'
+import { seatFor } from '@/lib/game/car-seats'
 import { GET_IN_MS, driveCommand, driveInput, driveTelemetry, driveView, reducedMotion, type DriveStart } from '@/lib/game/drive'
 
 /* Feel of the car, in map units (a car is about 1.9 long there). Multiplied by the world's `unit`.
@@ -153,6 +154,26 @@ export function DriveCar({
       v.tilt -= v.tilt * ease
     }
     const around = b.h + v.yaw
+    if (v.mode !== 0) {
+      // Driver's seat or bumper: the camera rides on the car and the finger turns your head
+      const seat = seatFor(car.model)
+      const sc = world.carScale
+      const lx = v.mode === 1 ? seat.driver[0] : 0
+      const ly = v.mode === 1 ? seat.driver[1] + 0.85 : 0.55
+      const lz = v.mode === 1 ? seat.driver[2] + 0.15 : 2.1
+      const sin = Math.sin(b.h)
+      const cos = Math.cos(b.h)
+      camera.position.set(b.x + (lx * cos + lz * sin) * sc, ly * sc + 0.05, b.z + (lz * cos - lx * sin) * sc)
+      const head = b.h + MathUtils.clamp(v.yaw, -2.4, 2.4)
+      camera.lookAt(camera.position.x + Math.sin(head) * 10, camera.position.y - v.tilt * 4 + 0.1, camera.position.z + Math.cos(head) * 10)
+      placed.current = false
+      driveTelemetry.x = b.x
+      driveTelemetry.z = b.z
+      driveTelemetry.h = b.h
+      driveTelemetry.speed = b.v / u
+      send({ x: b.x, y: 0, z: b.z, h: b.h, pose: 'sit', moving: Math.abs(b.v) > 0.2 * u })
+      return
+    }
     const back = 4.6 * u * v.zoom
     want.set(b.x - Math.sin(around) * back + jolt, (1.9 + v.tilt * 4) * u * v.zoom, b.z - Math.cos(around) * back + jolt)
     if (placed.current) camera.position.lerp(want, 1 - Math.exp(-dt * (v.held ? 14 : 5)))

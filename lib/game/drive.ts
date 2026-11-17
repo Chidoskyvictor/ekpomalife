@@ -31,7 +31,7 @@ export const drivePeers: { current: Map<string, import('./club-live').Peer> } = 
 export const driveInput = { steer: 0, gas: false, brake: false }
 export const driveTelemetry = { x: 0, z: 0, h: 0, speed: 0, dents: 0, bumps: 0 }
 /** Looking around: drag turns the camera about the car, pinch moves it in and out. It swings back behind the car once you let go and drive on. */
-export const driveView = { yaw: 0, tilt: 0, zoom: 1, held: false, at: 0 }
+export const driveView = { yaw: 0, tilt: 0, zoom: 1, held: false, at: 0, /** 0 chase, 1 driver's seat, 2 bumper */ mode: 0 }
 /** Orders to the car: `warp` puts it somewhere at once (a race's start line); `hold` keeps it still (the countdown). */
 export const driveCommand: { warp: DriveStart | null; hold: boolean; exiting: boolean } = { warp: null, hold: false, exiting: false }
 
@@ -76,7 +76,7 @@ export function leaveDrive(): Promise<void> {
 
 export function endDrive() {
   drive = null
-  Object.assign(driveView, { yaw: 0, tilt: 0, zoom: 1, held: false })
+  Object.assign(driveView, { yaw: 0, tilt: 0, zoom: 1, held: false, mode: 0 })
   driveCommand.warp = null
   driveCommand.hold = false
   driveCommand.exiting = false
