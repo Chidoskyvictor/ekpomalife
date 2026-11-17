@@ -160,8 +160,8 @@ export function DriveCar({
       const seat = seatFor(car.model)
       const sc = world.carScale
       const lx = v.mode === 1 ? seat.driver[0] : 0
-      const ly = v.mode === 1 ? seat.driver[1] + 0.85 : 0.55
-      const lz = v.mode === 1 ? seat.driver[2] + 0.15 : 2.1
+      const ly = v.mode === 1 ? seat.driver[1] + 1.0 : 0.55
+      const lz = v.mode === 1 ? seat.driver[2] + 0.3 : 2.1
       const sin = Math.sin(b.h)
       const cos = Math.cos(b.h)
       camera.position.set(b.x + (lx * cos + lz * sin) * sc, ly * sc + 0.05, b.z + (lz * cos - lx * sin) * sc)
