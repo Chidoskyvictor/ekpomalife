@@ -42,7 +42,7 @@
   align-items: center;
   justify-content: center;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: transparent;
   color: inherit;
   cursor: pointer;
@@ -59,7 +59,7 @@
 .warn {
   margin: 0 12px 6px;
   padding: 8px 10px;
-  border-radius: 10px;
+  border-radius: var(--r-sm);
   background: #5b2a2a;
   color: #ffd9d9;
   font-size: 12px;
@@ -87,7 +87,7 @@
   flex: 1;
   min-height: 44px;
   border: 0;
-  border-radius: 12px;
+  border-radius: var(--r-md);
   background: transparent;
   color: #a79bc4;
   font-size: 14px;
@@ -120,7 +120,7 @@
 .toggle {
   display: flex;
   padding: 3px;
-  border-radius: 12px;
+  border-radius: var(--r-md);
   background: #261d38;
   gap: 2px;
 }
@@ -129,7 +129,7 @@
   flex: 1;
   min-height: 36px;
   border: 0;
-  border-radius: 9px;
+  border-radius: var(--r-sm);
   background: transparent;
   color: #a79bc4;
   font-size: 13px;
@@ -159,7 +159,7 @@
   min-height: 34px;
   padding: 0 12px;
   border: 1px solid #3a2f55;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: transparent;
   color: #cfc6e6;
   font-size: 12px;
@@ -211,7 +211,7 @@
   min-height: 0;
   flex-direction: column;
   padding: 14px 14px 12px;
-  border-radius: 22px;
+  border-radius: var(--r-lg);
   box-shadow: 0 6px 20px rgb(0 0 0 / 35%);
 }
 
@@ -229,7 +229,7 @@
 
 .pill {
   padding: 4px 10px;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: rgb(0 0 0 / 25%);
   font-size: 11px;
   font-weight: 700;
@@ -237,7 +237,7 @@
 
 .youBadge {
   padding: 4px 10px;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: #fff;
   color: #222;
   font-size: 11px;
@@ -246,7 +246,7 @@
 
 .youBadgeDark {
   padding: 1px 7px;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: #4c3787;
   color: #fff;
   font-size: 10px;
@@ -331,7 +331,7 @@
   align-items: center;
   justify-content: center;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: #fff;
   color: #3b2a63;
   box-shadow: 0 6px 18px rgb(0 0 0 / 45%);
@@ -345,7 +345,7 @@
   max-width: 86%;
   margin: 0;
   padding: 9px 14px;
-  border-radius: 12px;
+  border-radius: var(--r-md);
   background: #fff;
   color: #222;
   font-size: 13px;
@@ -377,7 +377,7 @@
   width: 100%;
   max-height: 80%;
   flex-direction: column;
-  border-radius: 20px 20px 0 0;
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
   background: #f6f3fc;
   color: #22183a;
 }
@@ -401,7 +401,7 @@
   min-height: 46px;
   padding: 0 14px;
   border: 0;
-  border-radius: 12px;
+  border-radius: var(--r-md);
   background: #fff;
   color: #22183a;
   font-size: 15px;
@@ -426,7 +426,7 @@
 
 .comment {
   padding: 8px 10px;
-  border-radius: 12px;
+  border-radius: var(--r-md);
   background: #fff;
 }
 
@@ -458,7 +458,7 @@
   min-height: 44px;
   padding: 0 14px;
   border: 1px solid #d8d0ea;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: #fff;
   color: #22183a;
   font-size: 16px;
@@ -471,7 +471,7 @@
   align-items: center;
   justify-content: center;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: #4c3787;
   color: #fff;
   cursor: pointer;
@@ -518,7 +518,7 @@
   min-height: 40px;
   padding: 0 18px;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: #fff;
   color: #3b2a63;
   font-size: 14px;
@@ -535,7 +535,7 @@
   display: flex;
   flex: none;
   min-height: 220px;
-  border-radius: 22px;
+  border-radius: var(--r-lg);
   padding: 14px 14px 26px;
 }
 
@@ -576,7 +576,7 @@
   width: 34px;
   height: 34px;
   border: 3px solid transparent;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   cursor: pointer;
 }
 
@@ -617,7 +617,7 @@
   min-height: 46px;
   padding: 0 14px;
   border: 1px solid #3a2f55;
-  border-radius: 12px;
+  border-radius: var(--r-md);
   background: #1f1830;
   color: #fff;
   font-size: 16px;
@@ -628,7 +628,7 @@
   min-height: 46px;
   padding: 0 16px;
   border: 0;
-  border-radius: 12px;
+  border-radius: var(--r-md);
   font-size: 15px;
   font-weight: 700;
   cursor: pointer;
@@ -656,7 +656,7 @@
   gap: 4px;
   padding: 0 12px;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: #2c2340;
   color: #fff;
   font-size: 12px;
@@ -678,7 +678,7 @@
   align-items: center;
   gap: 8px;
   padding: 10px 12px;
-  border-radius: 14px;
+  border-radius: var(--r-md);
   background: #1f1830;
 }
 
@@ -739,7 +739,7 @@
 .private {
   margin: 0;
   padding: 8px 10px;
-  border-radius: 10px;
+  border-radius: var(--r-sm);
   background: #261d38;
   color: #cfc6e6;
   font-size: 12px;
@@ -748,7 +748,7 @@
 
 .myComment {
   padding: 10px 12px;
-  border-radius: 12px;
+  border-radius: var(--r-md);
   background: #1f1830;
 }
 

@@ -46,7 +46,7 @@
   justify-items: start;
   padding: 0.85rem;
   min-height: 44px;
-  border-radius: 1rem;
+  border-radius: var(--r-lg);
   border: 1px solid rgba(0, 0, 0, 0.08);
   background: rgba(255, 255, 255, 0.7);
   text-align: left;
