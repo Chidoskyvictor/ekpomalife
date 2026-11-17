@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic'
 import { useEffect, useRef } from 'react'
 import { useGame } from '@/hooks/use-game'
 import { useClubLive } from '@/lib/game/club-live'
-import { drivePeers, driveView, useDrive } from '@/lib/game/drive'
+import { driveAudio, drivePeers, driveView, useDrive } from '@/lib/game/drive'
 
 // The street world pulls in the ride's road and buildings: loaded only when a drive starts
 const StreetCanvas = dynamic(() => import('./street-world').then((m) => m.StreetCanvas), { ssr: false })
@@ -28,7 +28,15 @@ export function StreetDrive() {
     road.loop = true
     road.volume = 0.25
     void road.play().catch(() => {})
+    // The sound button in the driving controls mutes these too
+    start.muted = driveAudio.muted
+    road.muted = driveAudio.muted
+    driveAudio.onMute = (m) => {
+      start.muted = m
+      road.muted = m
+    }
     return () => {
+      driveAudio.onMute = null
       start.pause()
       road.pause()
     }

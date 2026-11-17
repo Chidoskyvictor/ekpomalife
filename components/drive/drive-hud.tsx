@@ -1,11 +1,13 @@
 'use client'
 
-import { ArrowUp, Camera, MapPin, Navigation, Search, X } from 'lucide-react'
+import { ArrowUp, Camera, LocateFixed, MapPin, Megaphone, Navigation, Search, Volume2, VolumeX, X } from 'lucide-react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
+import { NearbyMic } from '@/components/hud/nearby-mic'
+import { playHorn } from '@/lib/game/horn'
 import { useGame } from '@/hooks/use-game'
 import { parkCar } from '@/lib/game/cars-api'
-import { driveInput, driveTelemetry, driveView, kmh, leaveDrive, setDriveDest, useDrive } from '@/lib/game/drive'
+import { driveInput, driveAudio, driveTelemetry, driveView, kmh, leaveDrive, setDriveMuted, setDriveDest, useDrive } from '@/lib/game/drive'
 import { OSM_CREDIT, ROAD_PLACES, ROAD_SCALE, guide, placeSpot, roadById, roadPlaceNear, roadUnder, type Guidance } from '@/lib/game/drive-road'
 import { hasInterior } from '@/lib/game/home-place'
 import { pushNavigation } from '@/lib/navigation/safe-nav'
@@ -111,6 +113,8 @@ export function DriveHud() {
   const [roadName, setRoadName] = useState('')
   const [busy, setBusy] = useState(false)
   const [view, setView] = useState(driveView.mode)
+  const [muted, setMuted] = useState(driveAudio.muted)
+  const hornAt = useRef(0)
   const [picking, setPicking] = useState(false)
   const [racing, setRacing] = useState(false)
   const [query, setQuery] = useState('')
@@ -227,7 +231,6 @@ export function DriveHud() {
       <div className={styles.sideAnchor}>
         <div className={styles.side}>
           <MiniMap destId={destId} />
-          <RaceVoice />
         </div>
       </div>
 
@@ -256,6 +259,45 @@ export function DriveHud() {
       {dents > 0 ? <p className={styles.dents}>🔧 {dents} new {dents === 1 ? 'dent' : 'dents'}</p> : null}
 
       <div className={styles.fill} />
+      <div className={styles.tools} role="group" aria-label="Driving tools">
+        <NearbyMic className={styles.tool} badgeClassName={styles.toolBadge} />
+        <RaceVoice />
+        <button
+          type="button"
+          className={styles.tool}
+          aria-label="Honk the horn"
+          onClick={() => {
+            // A short pause between honks so it can't be spammed
+            const now = performance.now()
+            if (now - hornAt.current < 700) return
+            hornAt.current = now
+            driveAudio.horn += 1
+            if (!driveAudio.muted) playHorn(1)
+          }}
+        >
+          <Megaphone size={18} aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          className={styles.tool}
+          aria-label="Re-centre the camera behind the car"
+          onClick={() => Object.assign(driveView, { yaw: 0, tilt: 0, zoom: 1, held: false })}
+        >
+          <LocateFixed size={18} aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          className={styles.tool}
+          aria-label={muted ? 'Turn game sounds on' : 'Turn game sounds off'}
+          aria-pressed={muted}
+          onClick={() => {
+            setDriveMuted(!muted)
+            setMuted(!muted)
+          }}
+        >
+          {muted ? <VolumeX size={18} aria-hidden="true" /> : <Volume2 size={18} aria-hidden="true" />}
+        </button>
+      </div>
       {near ? (
         <button type="button" className={styles.park} disabled={busy} onClick={() => void park(near.id, driveTelemetry.x, driveTelemetry.z)}>
           🅿️ {busy ? 'Parking…' : `Park at ${near.label}`}

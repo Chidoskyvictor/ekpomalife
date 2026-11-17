@@ -10,7 +10,7 @@ import type { FigurePose } from '@/components/look/character-figure'
  * group, where they stand and what they're doing, plus money sprays raining on the group.
  */
 
-export type PeerState = { x: number; y: number; z: number; h: number; pose: FigurePose; moving: boolean }
+export type PeerState = { x: number; y: number; z: number; h: number; pose: FigurePose; moving: boolean; /** Honks so far (a counter: a change means a new honk) */ horn?: number }
 
 export type Peer = {
   userId: string
@@ -142,7 +142,7 @@ export function useClubLive(venueId: string, enabled: boolean, myUsername?: stri
         } else if (msg.t === 'state') {
           const peer = peers.current.get(msg.userId)
           if (peer) {
-            peer.state = { x: msg.x, y: msg.y ?? 0, z: msg.z, h: msg.h, pose: msg.pose, moving: msg.moving }
+            peer.state = { x: msg.x, y: msg.y ?? 0, z: msg.z, h: msg.h, pose: msg.pose, moving: msg.moving, horn: msg.horn }
             const trail = (peer.trail ??= [])
             trail.push({ t: performance.now(), x: msg.x, z: msg.z, h: msg.h })
             if (trail.length > 12) trail.splice(0, trail.length - 12)
@@ -208,7 +208,7 @@ export function useClubLive(venueId: string, enabled: boolean, myUsername?: stri
     const ws = socket.current
     if (!ws || ws.readyState !== WebSocket.OPEN) return
     const now = performance.now()
-    const key = `${state.x.toFixed(2)},${state.y.toFixed(2)},${state.z.toFixed(2)},${state.h.toFixed(2)},${state.pose},${state.moving}`
+    const key = `${state.x.toFixed(2)},${state.y.toFixed(2)},${state.z.toFixed(2)},${state.h.toFixed(2)},${state.pose},${state.moving},${state.horn ?? 0}`
     if (key === lastSent.current.key && now - lastSent.current.at < 2000) return
     // Driving: 10 a second so other phones see a smooth car; walking: ~6
     if (now - lastSent.current.at < (state.pose === 'sit' ? 100 : 160)) return

@@ -30,7 +30,7 @@ type PlayerInfo = {
   car?: string
 }
 
-type PlayerState = { x: number; y: number; z: number; h: number; pose: LivePose; moving: boolean }
+type PlayerState = { x: number; y: number; z: number; h: number; pose: LivePose; moving: boolean; horn?: number }
 
 type Member = {
   socket: WebSocket
@@ -127,7 +127,8 @@ function readState(raw: Record<string, unknown>, reach = 30): PlayerState | null
   if (x == null || z == null || h == null || !pose) return null
   const clamp = (v: number) => Math.max(-reach, Math.min(reach, v))
   const y = Math.max(-1, Math.min(3, num(raw.y) ?? 0))
-  return { x: clamp(x), y, z: clamp(z), h, pose, moving: raw.moving === true }
+  const horn = num(raw.horn)
+  return { x: clamp(x), y, z: clamp(z), h, pose, moving: raw.moving === true, ...(horn != null ? { horn: Math.max(0, Math.min(1_000_000, Math.floor(horn))) } : {}) }
 }
 
 /** The one room for the town map: drivers' cars. */

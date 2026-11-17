@@ -8,8 +8,9 @@ import { CarDriver } from '@/components/drive/car-driver'
 import { useLowPerf } from '@/hooks/use-low-perf'
 import type { Peer, PeerState } from '@/lib/game/club-live'
 import { CARS } from '@/lib/game/cars-rules'
+import { playHorn } from '@/lib/game/horn'
 import { seatFor } from '@/lib/game/car-seats'
-import { GET_IN_MS, driveCommand, driveInput, driveTelemetry, driveView, reducedMotion, type DriveStart } from '@/lib/game/drive'
+import { GET_IN_MS, driveAudio, driveCommand, driveInput, driveTelemetry, driveView, reducedMotion, type DriveStart } from '@/lib/game/drive'
 
 /* Feel of the car, in map units (a car is about 1.9 long there). Multiplied by the world's `unit`.
    Each car has its own top speed (km/h on the dial = units × 9) and pull; these are for an unknown model. */
@@ -171,7 +172,7 @@ export function DriveCar({
       driveTelemetry.z = b.z
       driveTelemetry.h = b.h
       driveTelemetry.speed = b.v / u
-      send({ x: b.x, y: 0, z: b.z, h: b.h, pose: 'sit', moving: Math.abs(b.v) > 0.2 * u })
+      send({ x: b.x, y: 0, z: b.z, h: b.h, pose: 'sit', moving: Math.abs(b.v) > 0.2 * u, horn: driveAudio.horn })
       return
     }
     const back = 4.6 * u * v.zoom
@@ -188,7 +189,7 @@ export function DriveCar({
     driveTelemetry.z = b.z
     driveTelemetry.h = b.h
     driveTelemetry.speed = b.v / u
-    send({ x: b.x, y: 0, z: b.z, h: b.h, pose: 'sit', moving: Math.abs(b.v) > 0.2 * u })
+    send({ x: b.x, y: 0, z: b.z, h: b.h, pose: 'sit', moving: Math.abs(b.v) > 0.2 * u, horn: driveAudio.horn })
   })
 
   return (
@@ -229,11 +230,19 @@ const PLAYBACK_DELAY_MS = 250
 function PeerCar({ peer, scale, driver }: { peer: Peer; scale: number; driver: boolean }) {
   const group = useRef<Group>(null)
   const seated = useRef(1)
+  const lastHorn = useRef<number | null>(null)
   const [model, color] = (peer.car ?? '').split(':')
   useFrame((_, delta) => {
     const g = group.current
     const s = peer.state
     if (!g) return
+    // Their horn: a new honk plays here, quieter the further off they are (nothing past ~70 m)
+    if (s && s.horn !== undefined) {
+      if (lastHorn.current !== null && s.horn !== lastHorn.current && !driveAudio.muted) {
+        playHorn(Math.max(0, 1 - Math.hypot(s.x - driveTelemetry.x, s.z - driveTelemetry.z) / 70))
+      }
+      lastHorn.current = s.horn
+    }
     const driving = Boolean(s && s.pose === 'sit')
     if (driving && !g.visible) g.position.set(s!.x, 0.05, s!.z)
     g.visible = driving

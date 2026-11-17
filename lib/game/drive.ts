@@ -28,6 +28,12 @@ const subscribe = (fn: () => void) => {
 
 /** Everyone else on the road right now (the live map room), for the minimap. Set by the street scene. */
 export const drivePeers: { current: Map<string, import('./club-live').Peer> } = { current: new Map() }
+/** Sound while driving: `muted` silences the road hum and other cars' horns; `horn` counts your honks (sent to the live room). */
+export const driveAudio = { muted: false, horn: 0, onMute: null as ((muted: boolean) => void) | null }
+export function setDriveMuted(muted: boolean) {
+  driveAudio.muted = muted
+  driveAudio.onMute?.(muted)
+}
 export const driveInput = { steer: 0, gas: false, brake: false }
 export const driveTelemetry = { x: 0, z: 0, h: 0, speed: 0, dents: 0, bumps: 0 }
 /** Looking around: drag turns the camera about the car, pinch moves it in and out. It swings back behind the car once you let go and drive on. */
