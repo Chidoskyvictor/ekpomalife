@@ -200,25 +200,20 @@ export function PlacedPieces({ furnishing, root }: { furnishing: HomeFurnishing;
   const byId = useMemo(() => new Map(furnishing.catalog.map((i) => [i.id, i])), [furnishing.catalog])
   const starterOf = useMemo(() => new Map((furnishing.starters ?? []).map((d) => [d.item, d])), [furnishing.starters])
   // Starter pieces that are placements are drawn here, so hide the room's built-in copies
-  const placedStarterKey = furnishing.placements
-    .filter((p) => starterOf.has(p.itemId))
-    .map((p) => p.itemId)
-    .sort()
-    .join(',')
+  // Always hidden, even for a piece the player removed (otherwise the GLB's copy reappears)
   useLayoutEffect(() => {
     if (!root) return
-    const placed = new Set(placedStarterKey ? placedStarterKey.split(',') : [])
     const hidden: Object3D[] = []
     for (const child of root.children) {
-      for (const [id, def] of starterOf) {
-        if (placed.has(id) && starterOwnsNode(def, child.name) && child.visible) {
+      for (const [, def] of starterOf) {
+        if (starterOwnsNode(def, child.name) && child.visible) {
           child.visible = false
           hidden.push(child)
         }
       }
     }
     return () => hidden.forEach((child) => (child.visible = true))
-  }, [root, starterOf, placedStarterKey])
+  }, [root, starterOf])
   return (
     <>
       {furnishing.placements.map((p) => {

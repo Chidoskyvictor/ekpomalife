@@ -429,6 +429,20 @@ export function sellHomeItem(userId: string, id: string, idemKey: string) {
     const row = found.rows[0]
     if (!row) return bad('That is not in your home.', 404)
     const item = catalog.find((i) => i.id === row.item_id)
+    // The furniture a home comes with is free, so it can't be sold: Remove puts it in storage, where it can be placed again
+    if (item?.starter) {
+      await client.query(`UPDATE home_placements SET stored = TRUE WHERE id = $1`, [id])
+      return {
+        status: 200,
+        body: {
+          ok: true,
+          placements: await loadPlacements(client, characterId),
+          stored: await loadPlacements(client, characterId, true),
+          refunded: 0,
+          message: 'Removed. It is in your storage.',
+        },
+      }
+    }
     const refunded = sellBackPrice(asMoney(row.paid))
     if (refunded > 0) {
       const wrote = await applyCash(client, characterId, refunded, `Sold ${item?.name ?? 'furniture'}`, 'refund')
