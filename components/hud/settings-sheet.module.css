@@ -1,0 +1,36 @@
+.settingsBody {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.settingsAction {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 52px;
+  padding: 14px 16px;
+  border: 0;
+  border-radius: var(--r-md);
+  background: rgba(0, 0, 0, 0.04);
+  font: inherit;
+  font-size: var(--fs-16);
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+  text-align: left;
+}
+
+.settingsActionDanger {
+  color: var(--bad);
+}
+
+.settingsHint {
+  margin: 0;
+  padding: 4px 4px 12px;
+  font-size: var(--fs-14);
+  font-weight: 400;
+  color: var(--ink-2);
+}

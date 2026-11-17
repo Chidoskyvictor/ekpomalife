@@ -46,7 +46,8 @@ import { usePlaceSheetActive } from '@/components/hud/place-sheet'
 import { playerHasPhone } from '@/lib/game/phone-config'
 import { pushNavigation } from '@/lib/navigation/safe-nav'
 import { cn } from '@/lib/utils'
-import styles from './life-hud.module.css'
+import hudStyles from './life-hud.module.css'
+import styles from './hud.module.css'
 import { HostelFinder } from '@/components/hostel/hostel-finder'
 import { AdViewer } from './ad-viewer'
 import { useChatUnread } from '@/hooks/use-chat-unread'
@@ -252,7 +253,7 @@ export function Hud() {
 
   if (guest) {
     return (
-      <div className={cn(styles.root, lowPerf && styles.lowPerf)}>
+      <div className={cn(hudStyles.root, lowPerf && hudStyles.lowPerf)}>
         <div className={`${styles.safe} absolute inset-x-0 top-0`}>
           <div className={styles.topWrap}>
             <TopBar />
@@ -274,9 +275,12 @@ export function Hud() {
     )
   }
 
+  // Today's missions pill: its own slim row under the status bar
+  const missionsRow = missionsView && !phoneOpen && !buyOpen && !homeBuy.active && !driving ? missionsView : null
+
   return (
     <div
-      className={cn(styles.root, lowPerf && styles.lowPerf)}
+      className={cn(hudStyles.root, lowPerf && hudStyles.lowPerf)}
       aria-busy={cashLoading || undefined}
     >
       {/* Your own car's street view: under every other HUD layer, over the map */}
@@ -293,16 +297,18 @@ export function Hud() {
           />
         </div>
         {/* Today's missions: slim pill under the status bar, its own row so it never covers other HUD buttons */}
-        {missionsView && !phoneOpen && !buyOpen && !homeBuy.active && !driving ? (
+        {missionsRow ? (
           <div className={styles.missionRow}>
-            <MissionsPill view={missionsView} onOpen={() => setMissionsOpen(true)} />
+            <MissionsPill view={missionsRow} onOpen={() => setMissionsOpen(true)} />
+            {/* Settings shares this row, so the row below only exists while you are doing something */}
+            <SettingsMenu inline />
           </div>
         ) : null}
         {/* What you're doing and what's next (Sims-style tiles): fills up, ✕ cancels */}
         <div className={styles.activityRow} style={driving ? { display: "none" } : undefined}>
           <ActionTiles />
           {/* Phones only: Music, Sound and map labels (desktop keeps the icons in the top bar) */}
-          {!phoneOpen ? <SettingsMenu /> : null}
+          {!phoneOpen && !missionsRow ? <SettingsMenu /> : null}
         </div>
         {/* At a school building: level, CGPA, exam prep and today's classes */}
         {/* Only inside the class itself, not on the map after you walk out */}

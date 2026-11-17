@@ -1,0 +1,71 @@
+.safe {
+  padding:
+    max(12px, env(safe-area-inset-top))
+    max(12px, env(safe-area-inset-right))
+    max(12px, env(safe-area-inset-bottom))
+    max(12px, env(safe-area-inset-left));
+}
+
+/* —— Top status bar —— */
+.topWrap {
+  pointer-events: none;
+  display: flex;
+  justify-content: center;
+}
+
+/* Busy pill: hugs the left edge of the screen, under the status bar */
+.activityRow {
+  pointer-events: none;
+  display: flex;
+  width: 100%;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+/* —— Bottom dock —— */
+.bottomDock {
+  pointer-events: none;
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding:
+    0
+    max(8px, env(safe-area-inset-right))
+    max(12px, env(safe-area-inset-bottom))
+    max(8px, env(safe-area-inset-left));
+}
+
+.bottomRow {
+  pointer-events: none;
+  display: grid;
+  grid-template-columns: 1fr;
+  align-items: end;
+  gap: 8px;
+}
+
+.navSlot {
+  pointer-events: none;
+  display: flex;
+  justify-content: center;
+  min-width: 0;
+}
+
+@media (max-width: 639px) {
+
+  .bottomRow {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Missions pill row: full width under the status bar, pill hugs the left edge */
+.missionRow {
+  pointer-events: none;
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+}

@@ -12,27 +12,27 @@
 .say {
   margin: 0;
   padding: 10px 12px;
-  border-radius: 14px;
+  border-radius: var(--r-md);
   background: #f2f5f9;
   color: #1d1d1f;
-  font-size: 14px;
+  font-size: var(--fs-14);
 }
 
 .muted {
   margin: 0;
-  color: #6e6e73;
-  font-size: 12px;
+  color: var(--ink-2);
+  font-size: var(--fs-12);
 }
 
 .good {
-  color: #15803d;
-  font-size: 12px;
+  color: var(--ok-strong);
+  font-size: var(--fs-12);
   font-weight: 700;
 }
 
 .section {
   margin: 6px 0 0;
-  font-size: 13px;
+  font-size: var(--fs-14);
   font-weight: 700;
 }
 
@@ -46,16 +46,16 @@
   min-height: 36px;
   padding: 0 12px;
   border: 1px solid #d7dde5;
-  border-radius: 999px;
-  background: #fff;
+  border-radius: var(--r-pill);
+  background: var(--paper);
   color: #1d1d1f;
-  font-size: 13px;
+  font-size: var(--fs-14);
   font-weight: 600;
 }
 
 .chipOn {
-  border-color: var(--primary, #1a6fb0);
-  background: var(--primary, #1a6fb0);
+  border-color: var(--primary);
+  background: var(--primary);
   color: #fff;
 }
 
@@ -77,19 +77,19 @@
   width: 100%;
   padding: 10px 12px;
   border: 1px solid #d7dde5;
-  border-radius: 14px;
+  border-radius: var(--r-md);
   font: inherit;
-  font-size: 16px; /* no zoom-on-focus on iOS */
+  font-size: var(--fs-16); /* no zoom-on-focus on iOS */
   resize: vertical;
 }
 
 .primary {
   min-height: 44px;
   border: 0;
-  border-radius: 999px;
-  background: var(--primary, #1a6fb0);
+  border-radius: var(--r-pill);
+  background: var(--primary);
   color: #fff;
-  font-size: 15px;
+  font-size: var(--fs-16);
   font-weight: 700;
 }
 
@@ -102,7 +102,7 @@
   justify-content: space-between;
   gap: 10px;
   align-items: center;
-  font-size: 13px;
+  font-size: var(--fs-14);
 }
 
 .clip {
@@ -126,7 +126,7 @@
 
 .ideaText p {
   margin: 0 0 4px;
-  font-size: 14px;
+  font-size: var(--fs-14);
   overflow-wrap: anywhere;
 }
 
@@ -136,14 +136,14 @@
   min-height: 36px;
   padding: 0 10px;
   border: 1px solid #d7dde5;
-  border-radius: 999px;
-  background: #fff;
-  font-size: 13px;
+  border-radius: var(--r-pill);
+  background: var(--paper);
+  font-size: var(--fs-14);
   font-weight: 700;
 }
 
 .voteOn {
-  border-color: var(--primary, #1a6fb0);
+  border-color: var(--primary);
   background: #e8f1fb;
 }
 
@@ -154,7 +154,7 @@
 
 .postBody {
   margin: 0 0 4px;
-  font-size: 14px;
+  font-size: var(--fs-14);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
@@ -169,7 +169,7 @@
 .skel {
   height: 46px;
   margin: 8px 0;
-  border-radius: 12px;
+  border-radius: var(--r-md);
   background: linear-gradient(90deg, #eceef1 0%, #f6f7f9 40%, #eceef1 80%);
   background-size: 200% 100%;
   animation: shine 1.2s ease-in-out infinite;

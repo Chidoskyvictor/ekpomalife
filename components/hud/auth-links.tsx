@@ -9,6 +9,7 @@ export function AuthLinks({
   signupFirst = false,
   variant = 'flat',
   signupLabel = 'Sign up',
+  only,
 }: {
   className?: string
   size?: 'default' | 'lg'
@@ -16,28 +17,30 @@ export function AuthLinks({
   variant?: 'flat' | 'lobby'
   /** Text on the lobby sign-up button. */
   signupLabel?: string
+  /** Lobby only: show a single action, so a screen never offers the same one twice. */
+  only?: 'signup' | 'login'
 }) {
   if (variant === 'lobby') {
     return (
       <div className={cn(styles.lobbyRow, size === 'default' && styles.compact, className)}>
-        <Link href="/signup" className={cn(styles.play, styles.lobbySignup)}>
-          {signupLabel}
-          <Play className={styles.playSticker} fill="currentColor" aria-hidden="true" />
-        </Link>
-        <Link href="/login" className={styles.lobbyLogin}>
-          Log in
-        </Link>
+        {only !== 'login' ? (
+          <Link href="/signup" className={cn(styles.play, styles.lobbySignup)}>
+            {signupLabel}
+            <Play className={styles.playSticker} fill="currentColor" aria-hidden="true" />
+          </Link>
+        ) : null}
+        {only !== 'signup' ? (
+          <Link href="/login" className={styles.lobbyLogin}>
+            Log in
+          </Link>
+        ) : null}
       </div>
     )
   }
 
   const sizing = size === 'lg' ? styles.lg : ''
   const login = (
-    <Link
-      key="login"
-      href="/login"
-      className={cn(styles.link, sizing, signupFirst ? styles.secondary : styles.ghost)}
-    >
+    <Link key="login" href="/login" className={cn(styles.link, sizing, signupFirst ? styles.secondary : styles.ghost)}>
       Log in
     </Link>
   )

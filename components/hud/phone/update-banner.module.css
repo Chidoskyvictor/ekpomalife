@@ -1,0 +1,55 @@
+/* Update notice on the home screen (replaces the promo banner) */
+.updateCard {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 8px 8px 8px 10px;
+  border-radius: var(--r-lg);
+  background: rgba(20, 20, 26, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #fff;
+}
+
+.updateCardNew {
+  background: rgba(22, 128, 61, 0.9);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.updateIcon {
+  flex: none;
+  font-size: var(--fs-20);
+}
+
+.updateText {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.updateText strong {
+  font-size: var(--fs-14);
+  white-space: nowrap;
+}
+
+.updateText span {
+  font-size: var(--fs-12);
+  line-height: 1.25;
+  opacity: 0.85;
+}
+
+.updateBtn {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--paper);
+  color: var(--ink);
+  font-size: var(--fs-12);
+  font-weight: 700;
+}

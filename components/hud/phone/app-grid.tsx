@@ -27,7 +27,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { DOCK_MAX, loadLayout, moveApp, pinApp, saveLayout, unpinApp, type PhoneLayout } from '@/lib/game/phone-layout'
 import { PHONE_APPS, type PhoneAppId, type PhoneState } from '@/lib/game/phone'
-import styles from './phone.module.css'
+import styles from './app-grid.module.css'
 
 /* Soft pastel tiles with a 3D icon on top (Fluent Emoji 3D, MIT, public/apps/icons); a line icon if the picture can't load. */
 const ICONS: Partial<Record<PhoneAppId, { Icon: LucideIcon; from: string; to: string }>> = {

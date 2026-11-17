@@ -49,7 +49,8 @@ import { PhoneHome, phoneModeFromStorage } from './phone-home'
 import { PhoneStatusBar } from './phone-status-bar'
 import { WallpaperSkyline } from './wallpaper-skyline'
 import { requestTip } from '@/lib/game/coach-api'
-import styles from './phone.module.css'
+import phoneStyles from './phone.module.css'
+import styles from './phone-shell.module.css'
 
 const FULL_WEEKDAY: Record<string, string> = {
   Mon: 'Monday',
@@ -269,7 +270,7 @@ export function PhoneShell({
             >
               <span aria-hidden="true">✕</span> Close
             </button>
-            <div className={`${styles.frame} ${lowPerf ? styles.lowPerf : ''}`}>
+            <div className={`${phoneStyles.frame} ${lowPerf ? phoneStyles.lowPerf : ''}`}>
             <div className={styles.screen}>
               <div className={styles.island} aria-hidden="true" />
               <h2 id={titleId} className="sr-only">

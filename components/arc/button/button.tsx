@@ -77,6 +77,7 @@ function LabelPhase({ children, icon, reduced, ref }: { children: ReactNode; ico
   return <motion.span ref={ref} className={styles.labelPhase} aria-hidden={present ? undefined : true} initial={reduced ? fadeIn : icon ? iconIn : textIn} animate={rest} exit={reduced ? fadeOut : icon ? iconOut : textOut} transition={reduced ? { duration: motionTokens.duration.instant } : icon ? iconEnter : { duration: motionTokens.duration.standard, ease: [...motionTokens.ease.enter] }}>{children}</motion.span>;
 }
 
+/** The app button. This one wins over `components/ui/button` (a shadcn primitive kept for the calendar only). */
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
   { className, variant = "primary", size = "md", loading = false, disabled, children, onClick, ...props },
   ref,

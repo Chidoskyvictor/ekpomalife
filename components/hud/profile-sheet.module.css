@@ -6,14 +6,14 @@
   width: 52px;
   height: 52px;
   overflow: hidden;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: linear-gradient(180deg, #e8f1ff, #cfe0fb);
 }
 
 .headAvatarImg {
   width: 100%;
   height: 100%;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   object-fit: cover;
   font-size: 1.1rem;
 }
@@ -40,11 +40,11 @@
   min-height: 38px;
   padding: 0 16px;
   border: 0;
-  border-radius: 999px;
-  background: #f2f2f7;
-  color: #3c3c43;
+  border-radius: var(--r-pill);
+  background: var(--fill);
+  color: var(--ink-2);
   font: inherit;
-  font-size: 14px;
+  font-size: var(--fs-14);
   font-weight: 600;
   cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease;
@@ -66,15 +66,15 @@
 /* Empty / loading messages read as a finished card, not stray text */
 .muted {
   padding: 14px;
-  border-radius: 18px;
-  background: #f2f2f7;
+  border-radius: var(--r-lg);
+  background: var(--fill);
   text-align: center;
 }
 
 /* Rows in People get the same card look as the other tabs */
 .person {
-  border-radius: 16px;
-  background: #f2f2f7;
+  border-radius: var(--r-lg);
+  background: var(--fill);
 }
 
 /* —— Profile: character stage —— */
@@ -82,7 +82,7 @@
   position: relative;
   height: 300px;
   overflow: hidden;
-  border-radius: 24px;
+  border-radius: var(--r-lg);
   background: linear-gradient(180deg, #dbe8fb 0%, #eef3fb 100%);
   touch-action: none;
   cursor: grab;
@@ -114,8 +114,8 @@
   bottom: 10px;
   z-index: 2;
   transform: translateX(-50%);
-  color: #6e6e73;
-  font-size: 12px;
+  color: var(--ink-2);
+  font-size: var(--fs-12);
   font-weight: 600;
   pointer-events: none;
 }
@@ -123,8 +123,8 @@
 /* —— Shared —— */
 .section {
   margin: 6px 2px 0;
-  color: #8e8e93;
-  font-size: 12px;
+  color: var(--ink-3);
+  font-size: var(--fs-12);
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -133,8 +133,8 @@
 .muted,
 .mutedInline {
   margin: 0;
-  color: #8e8e93;
-  font-size: 13px;
+  color: var(--ink-3);
+  font-size: var(--fs-14);
   line-height: 1.4;
 }
 
@@ -143,8 +143,8 @@
   flex-direction: column;
   gap: 10px;
   padding: 14px;
-  border-radius: 18px;
-  background: #f2f2f7;
+  border-radius: var(--r-lg);
+  background: var(--fill);
 }
 
 .track {
@@ -153,14 +153,14 @@
   height: 8px;
   min-width: 60px;
   overflow: hidden;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: rgba(0, 0, 0, 0.08);
 }
 
 .fill {
   position: absolute;
   inset: 0 auto 0 0;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   transition: width 0.4s ease;
 }
 
@@ -175,18 +175,18 @@
   min-width: 0;
   flex-direction: column;
   gap: 2px;
-  font-size: 14px;
-  color: #6e6e73;
+  font-size: var(--fs-14);
+  color: var(--ink-2);
 }
 
 .rowText strong {
-  color: #111;
-  font-size: 15px;
+  color: var(--ink);
+  font-size: var(--fs-16);
   font-weight: 650;
 }
 
 .bigEmoji {
-  font-size: 28px;
+  font-size: var(--fs-28);
   line-height: 1;
 }
 
@@ -200,23 +200,23 @@
 .needLabel {
   width: 76px;
   flex: none;
-  color: #111;
-  font-size: 14px;
+  color: var(--ink);
+  font-size: var(--fs-14);
   font-weight: 600;
 }
 
 .needValue {
   width: 28px;
   flex: none;
-  color: #3c3c43;
-  font-size: 13px;
+  color: var(--ink-2);
+  font-size: var(--fs-14);
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
 
 .statEmoji {
   width: 20px;
-  font-size: 16px;
+  font-size: var(--fs-16);
   text-align: center;
 }
 
@@ -225,8 +225,8 @@
   align-items: center;
   gap: 12px;
   padding: 10px 12px;
-  border-radius: 16px;
-  background: #f2f2f7;
+  border-radius: var(--r-lg);
+  background: var(--fill);
 }
 
 .feelingText {
@@ -235,29 +235,29 @@
   flex: 1;
   flex-direction: column;
   gap: 1px;
-  color: #6e6e73;
-  font-size: 14px;
+  color: var(--ink-2);
+  font-size: var(--fs-14);
 }
 
 .feelingText strong {
-  color: #111;
-  font-size: 14px;
+  color: var(--ink);
+  font-size: var(--fs-14);
 }
 
 .plus,
 .minus {
   flex: none;
-  font-size: 14px;
+  font-size: var(--fs-14);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 
 .plus {
-  color: #16a34a;
+  color: var(--ok);
 }
 
 .minus {
-  color: #dc2626;
+  color: var(--bad);
 }
 
 /* —— Goals / skills —— */
@@ -269,9 +269,9 @@
 
 .chip {
   padding: 6px 10px;
-  border-radius: 999px;
-  background: #f2f2f7;
-  font-size: 13px;
+  border-radius: var(--r-pill);
+  background: var(--fill);
+  font-size: var(--fs-14);
   font-weight: 600;
 }
 
@@ -281,10 +281,10 @@
   width: 40px;
   height: 40px;
   flex: none;
-  border-radius: 12px;
-  background: #2f7cf6;
+  border-radius: var(--r-md);
+  background: var(--primary);
   color: #fff;
-  font-size: 18px;
+  font-size: var(--fs-20);
   font-weight: 800;
 }
 
@@ -302,14 +302,14 @@
   width: 40px;
   height: 40px;
   flex: none;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   color: #fff;
-  font-size: 17px;
+  font-size: var(--fs-16);
   font-weight: 700;
 }
 
 .you {
-  color: #8e8e93;
+  color: var(--ink-3);
   font-weight: 500;
 }
 
@@ -318,12 +318,12 @@
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  color: #6e6e73;
-  font-size: 14px;
+  color: var(--ink-2);
+  font-size: var(--fs-14);
 }
 
 .factRow strong {
-  color: #111;
+  color: var(--ink);
   font-weight: 650;
 }
 
@@ -335,11 +335,11 @@
   gap: 8px;
   min-height: 44px;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: #111827;
   color: #fff;
   font: inherit;
-  font-size: 14px;
+  font-size: var(--fs-14);
   font-weight: 650;
   cursor: pointer;
 }
@@ -358,11 +358,11 @@
   min-height: 34px;
   padding: 0 12px;
   border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 999px;
-  background: #fff;
-  color: #111;
+  border-radius: var(--r-pill);
+  background: var(--paper);
+  color: var(--ink);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--fs-14);
   font-weight: 600;
   cursor: pointer;
 }
@@ -384,19 +384,19 @@
   height: 30px;
   padding: 0;
   border: 2px solid #fff;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12);
   cursor: pointer;
 }
 
 .swatch[aria-pressed='true'] {
-  box-shadow: 0 0 0 2px #2f7cf6;
+  box-shadow: 0 0 0 2px var(--primary);
 }
 
 .editError {
   margin: 0;
-  color: #b42318;
-  font-size: 13px;
+  color: var(--bad-strong);
+  font-size: var(--fs-14);
 }
 
 .editActions {
@@ -409,20 +409,20 @@
   flex: 1;
   min-height: 44px;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   font: inherit;
-  font-size: 14px;
+  font-size: var(--fs-14);
   font-weight: 650;
   cursor: pointer;
 }
 
 .editCancel {
   background: rgba(0, 0, 0, 0.06);
-  color: #111;
+  color: var(--ink);
 }
 
 .editSave {
-  background: #2f7cf6;
+  background: var(--primary);
   color: #fff;
 }
 
@@ -440,6 +440,6 @@
   .tab {
     min-height: 34px;
     padding: 0 13px;
-    font-size: 13px;
+    font-size: var(--fs-14);
   }
 }

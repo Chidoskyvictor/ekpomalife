@@ -5,25 +5,25 @@
   width: min(160px, 48%);
   height: auto;
   margin: 0 auto 8px;
-  border-radius: 14px;
+  border-radius: var(--r-md);
 }
 
 .pill {
   display: inline-block;
   margin-inline-start: 8px;
   padding: 2px 8px;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: #fff1d6;
   color: #9a5b00;
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 800;
   line-height: 1.4;
 }
 
 .note {
   margin: 12px 0 4px;
-  color: #6b7280;
-  font-size: 14px;
+  color: var(--ink-2);
+  font-size: var(--fs-14);
   line-height: 1.4;
 }
 
@@ -36,10 +36,10 @@
   min-height: 44px;
   margin-top: 12px;
   padding: 0 12px;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: #25d366;
   color: #fff;
-  font-size: 14px;
+  font-size: var(--fs-14);
   font-weight: 700;
   text-decoration: none;
 }

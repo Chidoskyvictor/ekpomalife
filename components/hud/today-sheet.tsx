@@ -6,7 +6,8 @@ import type { GameState } from '@/lib/game/types'
 import { hapticTap } from './haptic'
 import { HudDrawer } from './hud-drawer'
 import { RentCard } from './rent-card'
-import styles from './life-hud.module.css'
+import hudStyles from './life-hud.module.css'
+import styles from './today-sheet.module.css'
 
 export function TodaySheet({
   open,
@@ -53,7 +54,7 @@ export function TodaySheet({
               </span>
               <span className={styles.sheetRowCopy}>
                 <span className={styles.title}>{item.title}</span>
-                <span className={styles.secondary}>{item.hint}</span>
+                <span className={hudStyles.secondary}>{item.hint}</span>
               </span>
             </button>
           ))}

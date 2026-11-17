@@ -1,0 +1,28 @@
+.feedItem {
+  /* Grey card on the white app surface */
+  display: flex;
+  gap: 10px;
+  padding: 12px;
+  border-radius: var(--r-lg);
+  background: var(--fill);
+}
+
+.toneDot {
+  width: 8px;
+  height: 8px;
+  margin-top: 6px;
+  border-radius: var(--r-pill);
+  flex-shrink: 0;
+}
+
+.toneGood {
+  background: #16a34a;
+}
+
+.toneBad {
+  background: #ef4444;
+}
+
+.toneNeutral {
+  background: #e2b63a;
+}

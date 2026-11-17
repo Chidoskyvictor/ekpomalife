@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react'
 import type { PhonePromo } from '@/lib/game/phone'
-import styles from './phone.module.css'
+import phoneStyles from './phone.module.css'
+import styles from './promo-banner.module.css'
 
 export function PromoBanner({
   promos,
@@ -45,12 +46,12 @@ export function PromoBanner({
         paused.current = false
       }}
     >
-      <article className={`${styles.promoCard} ${lowPerf ? styles.lowPerf : ''}`}>
+      <article className={`${phoneStyles.promoCard} ${lowPerf ? phoneStyles.lowPerf : ''}`}>
         <span className={styles.promoEmoji} aria-hidden="true">
           {promo.emoji}
         </span>
         <div className={styles.promoBody}>
-          <p className={styles.promoTitle}>{promo.title}</p>
+          <p className={phoneStyles.promoTitle}>{promo.title}</p>
           <p className={styles.promoSub}>{promo.subtitle}</p>
         </div>
         <button type="button" className={styles.promoCta} onClick={() => onAction(promo)}>

@@ -1,6 +1,6 @@
 .stepTitle {
   margin: 0;
-  font-family: 'Boogaloo', sans-serif;
+  font-family: var(--font-game);
   font-size: var(--text-xl);
   font-weight: 400;
   line-height: 1;

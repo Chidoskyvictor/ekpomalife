@@ -62,6 +62,44 @@
   --gold: oklch(0.85 0.16 90);
   --laterite: oklch(0.62 0.15 45);
   --radius: 0.875rem;
+  /* Semantic design tokens (design audit, step 1). Use these in CSS modules instead of
+     hex / px literals. One blue (--primary), three text greys, two fills, one line. */
+  --ink: #111111; /* primary text */
+  --ink-2: #6b7280; /* secondary text */
+  --ink-3: #8e8e93; /* tertiary text, placeholders */
+  --paper: #ffffff; /* cards, sheets */
+  --fill: #f2f2f7; /* grouped rows, chips, inputs */
+  --fill-2: #e5e7eb; /* pressed fill, tracks */
+  --line: #e5e7eb; /* hairlines, borders */
+  --ok: #16a34a;
+  --ok-strong: #15803d;
+  --warn: #d97706;
+  --bad: #dc2626;
+  --bad-strong: #b42318;
+  /* Radii: four steps */
+  --r-sm: 10px;
+  --r-md: 14px;
+  --r-lg: 20px;
+  --r-pill: 999px;
+  /* Elevation */
+  --elev-1: 0 1px 2px rgb(15 23 42 / 0.06);
+  --elev-2: 0 6px 18px rgb(15 23 42 / 0.1);
+  --elev-3: 0 18px 48px rgb(15 23 42 / 0.18);
+  /* Type: two families, one scale (12 / 14 / 16 / 20 / 28) */
+  --font-ui: var(--font-jakarta), 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-game: 'Boogaloo', var(--font-ui);
+  --fs-12: 12px;
+  --fs-14: 14px;
+  --fs-16: 16px;
+  --fs-20: 20px;
+  --fs-28: 28px;
+  /* Motion: one language */
+  --ease-ui: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --dur-press: 120ms;
+  --dur-backdrop: 200ms;
+  --dur-pop: 260ms;
+  --dur-sheet: 320ms;
+  --dur-enter: 420ms;
   --z-hud: 30;
   --z-drawer: 60;
   --z-modal: 80;

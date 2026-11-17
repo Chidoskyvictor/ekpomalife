@@ -2,7 +2,7 @@
 
 import { RefreshCw } from 'lucide-react'
 import { applyUpdate, useUpdateAvailable } from '@/lib/game/update-check'
-import styles from './phone.module.css'
+import styles from './update-banner.module.css'
 
 /** "New update" + Refresh on the phone's home screen, shown only once a newer build is deployed. */
 export function UpdateBanner() {

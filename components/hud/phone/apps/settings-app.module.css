@@ -1,0 +1,17 @@
+.swatchRow {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.swatch {
+  height: 72px;
+  border-radius: var(--r-lg);
+  border: 3px solid transparent;
+  overflow: hidden;
+  padding: 0;
+}
+
+.swatchActive {
+  border-color: #16a34a;
+}

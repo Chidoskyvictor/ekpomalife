@@ -1,7 +1,8 @@
 'use client'
 
 import { COMING_SOON_COPY, PHONE_APPS, type PhoneAppId } from '@/lib/game/phone'
-import styles from '../phone.module.css'
+import phoneStyles from '../phone.module.css'
+import styles from './coming-soon.module.css'
 
 export function ComingSoonApp({ appId, onHome }: { appId: PhoneAppId; onHome: () => void }) {
   const meta = PHONE_APPS.find((a) => a.id === appId)
@@ -12,7 +13,7 @@ export function ComingSoonApp({ appId, onHome }: { appId: PhoneAppId; onHome: ()
       </span>
       <h2 className={styles.comingTitle}>{meta?.label ?? 'App'}</h2>
       <p className={styles.comingCopy}>{COMING_SOON_COPY[appId] || 'Coming soon.'}</p>
-      <button type="button" className={styles.primaryPill} onClick={onHome}>
+      <button type="button" className={phoneStyles.primaryPill} onClick={onHome}>
         Back home
       </button>
     </div>

@@ -2,14 +2,14 @@
   display: inline-flex;
   gap: 0.25rem;
   padding: 0.2rem;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: rgba(0, 0, 0, 0.06);
   align-self: start;
 }
 
 .currencyBtn {
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   padding: 0.35rem 0.8rem;
   font-weight: 700;
   font-size: 0.8rem;
@@ -18,7 +18,7 @@
 }
 
 .currencyActive {
-  background: #fff;
+  background: var(--paper);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
 }
 
@@ -90,7 +90,7 @@
 .price {
   margin-top: 0.15rem;
   padding: 0.2rem 0.6rem;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: #16a34a;
   color: #fff;
   font-weight: 800;
@@ -102,7 +102,7 @@
   top: 0.5rem;
   right: 0.5rem;
   padding: 0.1rem 0.45rem;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: #facc15;
   color: #422006;
   font-size: 0.62rem;

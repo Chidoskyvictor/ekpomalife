@@ -5,7 +5,8 @@ import { setMusic, SOUND_EVENT, useMusicSettings } from '@/lib/audio/music'
 import { ASSET_CREDITS, formatCredit } from '@/lib/game/asset-credits'
 import { hapticTap } from './haptic'
 import { HudDrawer } from './hud-drawer'
-import styles from './life-hud.module.css'
+import hudStyles from './life-hud.module.css'
+import styles from './settings-sheet.module.css'
 
 export function SettingsSheet({
   open,
@@ -47,7 +48,7 @@ export function SettingsSheet({
       <div className={styles.settingsBody}>
         <button type="button" className={styles.settingsAction} onClick={toggleMute}>
           <span>Sound</span>
-          <span className={styles.secondary}>{muted ? 'Off' : 'On'}</span>
+          <span className={hudStyles.secondary}>{muted ? 'Off' : 'On'}</span>
         </button>
         <button
           type="button"
@@ -58,7 +59,7 @@ export function SettingsSheet({
           }}
         >
           <span>Music</span>
-          <span className={styles.secondary}>{music.on && !muted ? 'On' : 'Off'}</span>
+          <span className={hudStyles.secondary}>{music.on && !muted ? 'On' : 'Off'}</span>
         </button>
         {music.on && !muted ? (
           <label className={styles.settingsHint} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>

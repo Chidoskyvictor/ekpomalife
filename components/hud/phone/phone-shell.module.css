@@ -1,0 +1,166 @@
+.overlay {
+  pointer-events: auto;
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-phone);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  /* 16px of map under the phone */
+  padding:
+    0
+    max(8px, env(safe-area-inset-right))
+    calc(16px + env(safe-area-inset-bottom))
+    max(8px, env(safe-area-inset-left));
+  overflow: hidden;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.overlayLow {
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+@media (min-width: 640px) {
+  .overlay {
+    align-items: center;
+    padding:
+      max(12px, env(safe-area-inset-top))
+      max(12px, env(safe-area-inset-right))
+      max(12px, env(safe-area-inset-bottom))
+      max(12px, env(safe-area-inset-left));
+  }
+}
+
+/* Phone + the Close pill that floats above it (outside the frame). */
+.device {
+  --close-h: 44px;
+  --close-gap: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--close-gap);
+  flex-shrink: 0;
+}
+
+.closePill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--close-h);
+  padding: 0 16px;
+  border-radius: var(--r-pill);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(22, 22, 26, 0.88);
+  color: #fff;
+  font-size: var(--fs-14);
+  font-weight: 600;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.closePillLow {
+  background: #16161a;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* Dynamic Island — sits on the screen, between the time and the battery; scales with the frame. */
+.island {
+  position: absolute;
+  top: 2.6%;
+  left: 50%;
+  z-index: 6;
+  width: 30%;
+  aspect-ratio: 4 / 1;
+  transform: translateX(-50%);
+  border-radius: var(--r-pill);
+  background: #000;
+  pointer-events: none;
+}
+
+.screen {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: calc(var(--radius) - var(--bezel));
+}
+
+/* No visible scrollbars anywhere inside the phone (still scrolls by touch / wheel). */
+.screen * {
+  scrollbar-width: none;
+}
+
+.screen *::-webkit-scrollbar {
+  display: none;
+}
+
+.wallpaper {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.35) 0%, rgba(0, 0, 0, 0.15) 35%, rgba(0, 0, 0, 0.55) 100%);
+  pointer-events: none;
+}
+
+.content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.deadScreen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  text-align: center;
+  padding: 24px;
+  background: #050505;
+}
+
+/* Small ring spinner for "Loading your phone…" */
+.phoneSpinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid rgba(255, 255, 255, 0.2);
+  border-top-color: #fff;
+  border-radius: var(--r-pill);
+  animation: phoneSpin 0.9s linear infinite;
+}
+
+@keyframes phoneSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .phoneSpinner {
+    animation: none;
+  }
+}
+
+.deadTitle {
+  margin: 0;
+  font-size: var(--fs-20);
+  font-weight: 700;
+}

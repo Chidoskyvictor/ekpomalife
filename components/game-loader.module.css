@@ -11,9 +11,9 @@
   color: #122846;
   background: linear-gradient(
     180deg,
-    color-mix(in oklab, #3d9ad6 16%, white) 0%,
-    color-mix(in oklab, #3d9ad6 10%, white) 28%,
-    color-mix(in oklab, #3d9ad6 5%, white) 52%,
+    color-mix(in oklab, var(--primary) 16%, white) 0%,
+    color-mix(in oklab, var(--primary) 10%, white) 28%,
+    color-mix(in oklab, var(--primary) 5%, white) 52%,
     white 78%
   );
 }
@@ -21,7 +21,7 @@
 .mark {
   margin: 0;
   color: var(--foreground);
-  font-family: 'Boogaloo', sans-serif;
+  font-family: var(--font-game);
   font-size: clamp(1.9rem, 6vw, 3.4rem);
   font-weight: 400;
   letter-spacing: 0.02em;

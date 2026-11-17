@@ -31,7 +31,7 @@
   place-items: center;
   overflow: visible;
   border: 1px solid rgba(255, 255, 255, 0.7);
-  border-radius: 16px;
+  border-radius: var(--r-lg);
   background: rgba(255, 255, 255, 0.88);
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.14);
   backdrop-filter: blur(14px);
@@ -74,11 +74,11 @@
   gap: 4px;
   padding: 0 10px;
   border: 1px solid rgba(255, 255, 255, 0.7);
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: rgba(31, 41, 55, 0.88);
   color: #fff;
   font: inherit;
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 800;
   font-variant-numeric: tabular-nums;
   line-height: 1;
@@ -98,10 +98,10 @@
 .caption {
   min-width: 28px;
   padding: 1px 6px;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: rgba(17, 17, 17, 0.72);
   color: #fff;
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   text-align: center;
@@ -116,7 +116,7 @@
   .tile {
     width: 46px;
     height: 46px;
-    border-radius: 14px;
+    border-radius: var(--r-md);
   }
 
   .fill {
@@ -124,6 +124,6 @@
   }
 
   .emoji {
-    font-size: 22px;
+    font-size: var(--fs-20);
   }
 }

@@ -6,7 +6,8 @@ import { useEffect, useRef, useState } from 'react'
 import { getRideQuote, takeRide } from '@/lib/game/phone-api'
 import type { RideMode } from '@/lib/game/phone'
 import { hapticTap } from '@/components/hud/haptic'
-import styles from '../phone.module.css'
+import phoneStyles from '../phone.module.css'
+import styles from './ride-app.module.css'
 import { RidePicker, rideRows } from './ride-picker'
 import pick from './ride-picker.module.css'
 
@@ -82,7 +83,7 @@ export function RideApp({
 
   return (
     <div>
-      <p className={styles.sectionTitle}>Where are you going?</p>
+      <p className={phoneStyles.sectionTitle}>Where are you going?</p>
       <button type="button" className={pick.whereBtn} onClick={() => setPicking(true)} aria-haspopup="dialog">
         <span className={pick.whereDot} aria-hidden="true" />
         <span className={toName ? pick.whereName : pick.wherePlaceholder}>{toName ?? 'Where to?'}</span>
@@ -101,10 +102,10 @@ export function RideApp({
               onClick={() => setMode(q.mode)}
             >
               <div>
-                <p className={styles.promoTitle} style={{ color: '#111', margin: 0 }}>
+                <p className={phoneStyles.promoTitle} style={{ color: '#111', margin: 0 }}>
                   {q.mode === 'keke' ? '🛺 Shuttle' : '🏍️ Okada'}
                 </p>
-                <p className={styles.listMeta}>{q.minutes} min</p>
+                <p className={phoneStyles.listMeta}>{q.minutes} min</p>
               </div>
               <span style={{ fontWeight: 800 }}>₦{q.fare}</span>
             </button>
@@ -112,21 +113,21 @@ export function RideApp({
         </div>
       ) : null}
 
-      <p className={styles.listMeta} style={{ marginTop: 12 }}>
+      <p className={phoneStyles.listMeta} style={{ marginTop: 12 }}>
         Cash <NumberFlow value={cash} prefix="₦" format={{ maximumFractionDigits: 0 }} />
       </p>
 
-      {error ? <p className={styles.offlineBanner}>{error}</p> : null}
+      {error ? <p className={phoneStyles.offlineBanner}>{error}</p> : null}
 
       {code === 'INSUFFICIENT_FUNDS' ? (
-        <button type="button" className={styles.primaryPill} onClick={onFindShift}>
+        <button type="button" className={phoneStyles.primaryPill} onClick={onFindShift}>
           Find a shift
         </button>
       ) : null}
 
       <button
         type="button"
-        className={styles.primaryPill}
+        className={phoneStyles.primaryPill}
         style={{ marginTop: 12, width: '100%' }}
         disabled={!picked || busy}
         onClick={() => {

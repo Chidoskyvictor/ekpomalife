@@ -11,11 +11,11 @@
   gap: 4px;
   padding: 0 12px;
   border: 1px solid rgba(255, 255, 255, 0.25);
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: rgba(17, 10, 30, 0.88);
   color: #fff;
   font: inherit;
-  font-size: 13px;
+  font-size: var(--fs-14);
   font-weight: 800;
   cursor: pointer;
 }
@@ -39,7 +39,7 @@
 }
 
 .head span {
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: #57534e;
 }
 
@@ -56,7 +56,7 @@
 
 .group small {
   color: #78716c;
-  font-size: 11px;
+  font-size: var(--fs-12);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -66,7 +66,7 @@
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  font-size: 14px;
+  font-size: var(--fs-14);
 }
 
 .label {
@@ -84,7 +84,7 @@
 }
 
 .total {
-  font-size: 16px;
+  font-size: var(--fs-16);
   font-weight: 900;
 }
 
@@ -92,11 +92,11 @@
 .note,
 .error {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: #78716c;
   text-align: center;
 }
 
 .error {
-  color: #b91c1c;
+  color: var(--bad-strong);
 }

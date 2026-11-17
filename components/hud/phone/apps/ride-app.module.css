@@ -1,0 +1,23 @@
+.rideCards {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.rideCard {
+  /* Grey card on the white app surface */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px;
+  border-radius: var(--r-lg);
+  border: 2px solid transparent;
+  background: var(--fill);
+  text-align: left;
+  cursor: pointer;
+}
+
+.rideCardActive {
+  border-color: #16a34a;
+}

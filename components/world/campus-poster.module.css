@@ -16,7 +16,7 @@
   box-sizing: border-box;
   width: min(320px, calc(100vw - 32px));
   padding: 18px 16px;
-  border-radius: 18px;
+  border-radius: var(--r-lg);
   background: rgb(255 255 255 / 0.95);
   color: #122846;
   text-align: center;
@@ -45,7 +45,7 @@
   min-height: 44px;
   padding: 0 20px;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: #2b7fff;
   color: #fff;
   font: inherit;
@@ -71,7 +71,7 @@
   box-sizing: border-box;
   max-width: calc(100vw - 32px);
   padding: 4px 4px 4px 14px;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: rgb(18 40 70 / 0.94);
   color: #fff;
   font-size: 0.875rem;
@@ -89,7 +89,7 @@
 .offline .button {
   min-height: 44px;
   padding: 0 14px;
-  background: #fff;
+  background: var(--paper);
   color: #122846;
   font-size: 0.875rem;
 }

@@ -21,7 +21,7 @@
 }
 
 .name {
-  font-family: 'Boogaloo', sans-serif;
+  font-family: var(--font-game);
   font-weight: 400;
   letter-spacing: 0.01em;
   font-size: var(--text-base);
