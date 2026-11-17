@@ -1,7 +1,7 @@
 'use client'
 
 import { PlayerFace } from '@/components/look/player-face'
-import { Bell, Check, CheckCheck, ChevronLeft, DoorOpen, Home, MoreHorizontal, Reply, Search, Send, Smile, SquarePen, User, Users, X, Lock, Mic, ChevronUp, Trash2 } from 'lucide-react'
+import { Bell, Check, CheckCheck, DoorOpen, Home, MoreHorizontal, Reply, Search, Send, Smile, SquarePen, User, Users, X, Lock, Mic, ChevronUp, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import { PlayerProfilePanel } from '@/components/profile/player-profile-panel'
@@ -32,6 +32,8 @@ import { requestOpenGames } from '@/lib/game/open-games'
 import type { PhoneNotificationsResponse } from '@/lib/game/phone-api'
 import { FamilyRequestCard } from './family-request-card'
 import { canRecordVoice, clock, useVoiceRecorder, VoiceBubble, VOICE_MAX_MS } from './voice-note'
+import { AppHeader, BackButton } from '../app-header'
+import { AppError, AppLoading } from '../app-state'
 import styles from './messages.module.css'
 
 type GameNotification = PhoneNotificationsResponse['items'][number]
@@ -240,9 +242,7 @@ export function MessagesApp({
   return (
     <div className={styles.screen}>
       <div className={styles.topBar}>
-        <button type="button" className={styles.navBack} onClick={onHome} aria-label="Back to home screen">
-          <ChevronLeft size={22} aria-hidden="true" />
-        </button>
+        <BackButton onBack={onHome} label="Back to home screen" accent="#007aff" />
         <div className={styles.topActions}>
           <button
             type="button"
@@ -416,15 +416,7 @@ function ChatRow({ chat, onOpen }: { chat: ChatSummary; onOpen: () => void }) {
 }
 
 function NavBar({ title, onBack, right, backLabel = 'Back' }: { title: ReactNode; onBack: () => void; right?: ReactNode; backLabel?: string }) {
-  return (
-    <div className={styles.navBar}>
-      <button type="button" className={styles.navBack} onClick={onBack} aria-label={backLabel}>
-        <ChevronLeft size={22} aria-hidden="true" />
-      </button>
-      <div className={styles.navTitle}>{title}</div>
-      <div className={styles.navRight}>{right}</div>
-    </div>
-  )
+  return <AppHeader title={title} onBack={onBack} backLabel={backLabel} right={right} bar accent="#007aff" />
 }
 
 // —— Compose: "To: @username" ——
@@ -766,9 +758,7 @@ function ChatView({
     <div className={styles.screen}>
       {/* One slim row: back, avatar, name + online/last seen, and ⋯ for Invite / Visit / Send money */}
       <div className={styles.chatHead}>
-        <button type="button" className={styles.navBack} onClick={onBack} aria-label="Back to chats">
-          <ChevronLeft size={22} aria-hidden="true" />
-        </button>
+        <BackButton onBack={onBack} label="Back to chats" accent="#007aff" />
         {direct && chat.peer ? (
           <button type="button" className={styles.chatHeadWho} onClick={() => (chat.peer!.avatar.support ? undefined : onProfile(chat.peer!.userId))}>
             <span className={styles.avatarWrap}>
@@ -1646,8 +1636,8 @@ function NeighboursView({
     <div className={styles.screen}>
       <NavBar title="Neighbours" onBack={onBack} />
       <div className={styles.scroll}>
-        {neighbours == null && !error ? <p className={styles.hint}>Loading…</p> : null}
-        {error ? <p className={styles.errorText}>{error}</p> : null}
+        {neighbours == null && !error ? <AppLoading label="Loading neighbours…" /> : null}
+        {error ? <AppError>{error}</AppError> : null}
         {neighbours?.map((n) => (
           <div key={n.userId} className={styles.personRow}>
             <button type="button" className={styles.personMain} onClick={() => (n.avatar.support ? undefined : onProfile(n.userId))}>
