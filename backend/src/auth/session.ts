@@ -4,7 +4,8 @@ import { pool } from '../db.js'
 import { createId } from '../ids.js'
 
 export const SESSION_COOKIE = 'el_session'
-const SESSION_DAYS = 30
+/** Rolling: each day you play pushes the expiry out again, so active players never get logged out. */
+export const SESSION_DAYS = 365
 /**
  * Old sessions were set on this domain (shared with every subdomain). New cookies are host-only on the
  * API host — the frontend never reads el_session, and ekpomalife.app → api.ekpomalife.app is same-site,

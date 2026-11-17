@@ -20,6 +20,8 @@ import { env } from './env.js'
 import { pool } from './db.js'
 import { runMigrations } from './migrations.js'
 import { registerRateLimit } from './rate-limit.js'
+import { renewedSessions } from './auth/current-user.js'
+import { SESSION_COOKIE, setSessionCookie } from './auth/session.js'
 import { characterRoutes } from './routes/character.js'
 import { economyRoutes } from './routes/economy.js'
 import { homeBuyRoutes } from './routes/home-buy.js'
@@ -77,6 +79,16 @@ await app.register(cors, {
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'OPTIONS'],
 })
 await app.register(cookie)
+// Rolling login: when a request pushed the session's expiry out, send the cookie again with the new
+// date (unless this reply is logging out or setting a new session itself).
+app.addHook('onSend', async (request, reply, payload) => {
+  const renewed = renewedSessions.get(request)
+  if (!renewed) return payload
+  const already = reply.getHeader('set-cookie')
+  const list = Array.isArray(already) ? already : already ? [String(already)] : []
+  if (!list.some((c) => String(c).startsWith(`${SESSION_COOKIE}=`))) setSessionCookie(reply, renewed.token, renewed.expiresAt)
+  return payload
+})
 await app.register(websocket)
 await registerRateLimit(app)
 
