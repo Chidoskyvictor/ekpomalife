@@ -1,12 +1,14 @@
 'use client'
 
 import { useFrame, useThree } from '@react-three/fiber'
-import { useEffect, useMemo, useRef, type MutableRefObject } from 'react'
-import { CanvasTexture, SRGBColorSpace, Vector3, type Group } from 'three'
+import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
+import { CanvasTexture, MathUtils, SRGBColorSpace, Vector3, type Group } from 'three'
 import { CarModel } from '@/components/cars/car-model'
+import { CarDriver } from '@/components/drive/car-driver'
+import { useLowPerf } from '@/hooks/use-low-perf'
 import type { Peer, PeerState } from '@/lib/game/club-live'
 import { CARS } from '@/lib/game/cars-rules'
-import { driveCommand, driveInput, driveTelemetry, driveView, type DriveStart } from '@/lib/game/drive'
+import { GET_IN_MS, driveCommand, driveInput, driveTelemetry, driveView, reducedMotion, type DriveStart } from '@/lib/game/drive'
 
 /* Feel of the car, in map units (a car is about 1.9 long there). Multiplied by the world's `unit`.
    Each car has its own top speed (km/h on the dial = units × 9) and pull; these are for an unknown model. */
@@ -37,11 +39,14 @@ export type DriveWorld = {
  */
 export function DriveCar({
   car,
+  driverLook,
   start,
   send,
   world,
 }: {
   car: { model: string; color: string }
+  /** Your character's look, shown at the wheel. */
+  driverLook?: unknown
   start: DriveStart
   send: (state: PeerState) => void
   world: DriveWorld
@@ -56,6 +61,9 @@ export function DriveCar({
   const want = useMemo(() => new Vector3(), [])
   const placed = useRef(false)
   const u = world.unit
+  const lowPerf = useLowPerf()
+  // 0 = stood by the door, 1 = seated. Climbs in on arrival, back out when the drive ends.
+  const climb = useRef(reducedMotion() ? 1 : 0)
 
   // Keyboard for desktop: arrows or WASD
   useEffect(() => {
@@ -84,6 +92,10 @@ export function DriveCar({
   useFrame((_, delta) => {
     const dt = Math.min(delta, 0.05)
     const b = body.current
+    const target = driveCommand.exiting ? 0 : 1
+    climb.current = reducedMotion() ? target : MathUtils.clamp(climb.current + Math.sign(target - climb.current) * (delta * 1000) / GET_IN_MS, 0, 1)
+    // Hands off the pedals until you are in
+    const seated = climb.current >= 1 && !driveCommand.exiting
     const top = (world.fast(b.x, b.z) ? carTop : TOP_OFF_ROAD) * u
     if (driveCommand.warp) {
       Object.assign(b, { x: driveCommand.warp.x, z: driveCommand.warp.z, h: driveCommand.warp.h, v: 0, steer: 0 })
@@ -91,12 +103,16 @@ export function DriveCar({
       placed.current = false
     }
 
+    if (!seated) {
+      driveInput.gas = false
+      driveInput.brake = false
+    }
     if (driveInput.gas) b.v += carGas * u * dt * Math.max(0.35, 1 - Math.abs(b.v) / (carTop * u * 1.15)) // pulls hard, eases near the top
     else if (driveInput.brake) b.v -= (b.v > 0.3 * u ? BRAKE : GAS * 0.7) * u * dt // brake, then roll backwards
     else b.v -= Math.sign(b.v) * Math.min(Math.abs(b.v), DRAG * u * dt)
     if (b.v > top) b.v = Math.max(top, b.v - BRAKE * u * dt)
     if (b.v < -REVERSE * u) b.v = -REVERSE * u
-    if (driveCommand.hold) b.v = 0
+    if (driveCommand.hold || !seated) b.v = !seated ? Math.sign(b.v) * Math.max(0, Math.abs(b.v) - BRAKE * u * dt) : 0
 
     // The wheel eases toward your thumb, bites as the car gets moving, and firms up at speed
     // (reversed when backing up)
@@ -157,6 +173,7 @@ export function DriveCar({
   return (
     <group ref={group} position={[start.x, 0.05, start.z]} rotation={[0, start.h, 0]} scale={world.carScale}>
       <CarModel id={car.model} color={car.color} />
+      <CarDriver model={car.model} appearance={driverLook} color={car.color} progress={climb} doors={!lowPerf} />
     </group>
   )
 }
@@ -188,8 +205,9 @@ function nameTexture(name: string) {
 const PLAYBACK_DELAY_MS = 250
 
 /** Another player's car, gliding after the positions their phone sends. Hidden until they are at the wheel. */
-function PeerCar({ peer, scale }: { peer: Peer; scale: number }) {
+function PeerCar({ peer, scale, driver }: { peer: Peer; scale: number; driver: boolean }) {
   const group = useRef<Group>(null)
+  const seated = useRef(1)
   const [model, color] = (peer.car ?? '').split(':')
   useFrame((_, delta) => {
     const g = group.current
@@ -240,6 +258,7 @@ function PeerCar({ peer, scale }: { peer: Peer; scale: number }) {
     <group ref={group} visible={false}>
       <group scale={scale}>
         <CarModel id={model} color={color ?? '#c9ccd1'} />
+        {driver ? <CarDriver model={model} appearance={peer.appearance} color={color ?? '#c9ccd1'} progress={seated} doors={false} /> : null}
       </group>
       <sprite position={[0, 2.0 * scale + 0.45, 0]} scale={[2.6 * scale, 0.65 * scale, 1]}>
         <spriteMaterial map={nameTexture(peer.username)} depthTest={false} />
@@ -248,14 +267,38 @@ function PeerCar({ peer, scale }: { peer: Peer; scale: number }) {
   )
 }
 
-/** Everyone else who is driving right now. */
+/** Drivers are drawn only for this many cars nearest you, and only within this distance (metres). */
+const DRIVERS_NEAR = 3
+const DRIVERS_WITHIN = 40
+
+/** Everyone else who is driving right now. Their drivers show only for the nearest few cars (none on weak phones). */
 export function PeerCars({ peers, roster, scale }: { peers: MutableRefObject<Map<string, Peer>>; roster: number; scale: number }) {
   // roster bumps when someone joins or leaves
   const list = useMemo(() => [...peers.current.values()].filter((p) => p.car), [peers, roster]) // eslint-disable-line react-hooks/exhaustive-deps
+  const lowPerf = useLowPerf()
+  const [near, setNear] = useState('')
+  const since = useRef(0)
+  useFrame((_, delta) => {
+    since.current += delta
+    if (since.current < 0.5) return
+    since.current = 0
+    let next = ''
+    if (!lowPerf) {
+      const close = list
+        .filter((p) => p.state?.pose === 'sit')
+        .map((p) => ({ id: p.userId, d: Math.hypot(p.state!.x - driveTelemetry.x, p.state!.z - driveTelemetry.z) }))
+        .filter((c) => c.d <= DRIVERS_WITHIN)
+        .sort((a, b) => a.d - b.d)
+        .slice(0, DRIVERS_NEAR)
+      next = close.map((c) => c.id).sort().join('|')
+    }
+    if (next !== near) setNear(next)
+  })
+  const shown = new Set(near ? near.split('|') : [])
   return (
     <group>
       {list.map((p) => (
-        <PeerCar key={p.userId} peer={p} scale={scale} />
+        <PeerCar key={p.userId} peer={p} scale={scale} driver={shown.has(p.userId)} />
       ))}
     </group>
   )

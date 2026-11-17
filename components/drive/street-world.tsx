@@ -367,13 +367,15 @@ function Places() {
 
 export type StreetProps = {
   car: { model: string; color: string }
+  /** Your character's look, shown at the wheel. */
+  look?: unknown
   start: DriveStart
   send: (state: PeerState) => void
   peers: MutableRefObject<Map<string, Peer>>
   roster: number
 }
 
-function Scene({ car, start, send, peers, roster }: StreetProps) {
+function Scene({ car, look: driverLook, start, send, peers, roster }: StreetProps) {
   const tier = useGfxTier()
   // Light for the hour on the game clock, fixed for the drive
   const look = useMemo(() => rideLookAt(rideMinute()), [])
@@ -403,7 +405,7 @@ function Scene({ car, start, send, peers, roster }: StreetProps) {
         <Walkers />
       </Suspense>
       <PeerCars peers={peers} roster={roster} scale={1} />
-      <DriveCar car={car} start={start} send={send} world={STREET_WORLD} />
+      <DriveCar car={car} driverLook={driverLook} start={start} send={send} world={STREET_WORLD} />
     </CarLightsContext.Provider>
   )
 }

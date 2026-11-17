@@ -17,6 +17,7 @@ import {
   type Mesh,
 } from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
+import { seatFor } from '@/lib/game/car-seats'
 
 /*
  * Every car sold at Magmus Autos, in metres: front at +z, wheels on the ground, centred on x/z.
@@ -93,10 +94,12 @@ const SPECS: Record<string, Spec> = {
   },
 }
 
-const GLB: Record<string, { url: string; length: number; paint: [number, number, number][] }> = {
-  scout: { url: '/models/cars/jeep.glb?v=1', length: 4.1, paint: [[0.1, 0.15, 0.05], [0.05, 0.1, 0.05]] },
-  suv: { url: '/models/cars/suv.glb?v=1', length: 5.0, paint: [[0.1, 0.1, 0.15], [0.05, 0.05, 0.1]] },
-  gt3: { url: '/models/cars/gt3.glb?v=1', length: 4.6, paint: [[0.8, 0.8, 0.75]] },
+type Rgb = [number, number, number]
+/** `glass` lists the vertex colours of the windows: those triangles are drawn see-through so the driver shows. */
+const GLB: Record<string, { url: string; length: number; paint: Rgb[]; glass: Rgb[] }> = {
+  scout: { url: '/models/cars/jeep.glb?v=1', length: 4.1, paint: [[0.1, 0.15, 0.05], [0.05, 0.1, 0.05]], glass: [] },
+  suv: { url: '/models/cars/suv.glb?v=1', length: 5.0, paint: [[0.1, 0.1, 0.15], [0.05, 0.05, 0.1]], glass: [] },
+  gt3: { url: '/models/cars/gt3.glb?v=1', length: 4.6, paint: [[0.8, 0.8, 0.75]], glass: [[0.04, 0.05, 0.06], [0.05, 0.06, 0.07]] },
 }
 
 export const isCarModel = (id: string) => id in SPECS || id in GLB
@@ -138,7 +141,18 @@ function wheel(r: number, w: number, at: [number, number, number], color: string
 }
 
 const procCache = new Map<string, BufferGeometry>()
-/** A drawn car as one vertex-coloured geometry. */
+const glassCache = new Map<string, BufferGeometry>()
+/** A drawn car's windows: a see-through shell over the cabin, so the people inside show. */
+function glassGeometry(id: string) {
+  const hit = glassCache.get(id)
+  if (hit) return hit
+  const s = SPECS[id]!
+  const g = outline(s.glass.map(([z, y], i): Pt => [z + (i < 2 ? -0.15 : 0.15), y]), s.width - 0.06, '#9fb4c4')
+  glassCache.set(id, g)
+  return g
+}
+
+/** A drawn car's body (opaque) as one vertex-coloured geometry: sills and bonnet, roof, pillars, seats and wheel. */
 function procGeometry(id: string, color: string) {
   const key = `${id}|${color}`
   const hit = procCache.get(key)
@@ -149,15 +163,41 @@ function procGeometry(id: string, color: string) {
   const rear = Math.min(...s.body.map((p) => p[0]))
   const [ly, lh] = s.lights
   const chrome = '#d5d8dd'
+  const belt = s.glass[0]![1]
+  // The body stops at the window line; the cabin above it is glass, a roof slab and thin pillars
+  const lower = s.body.map(([z, y]): Pt => [z, Math.min(y, belt)])
+  const [g0, g1, g2, g3] = s.glass as [Pt, Pt, Pt, Pt]
+  const gz = [g0[0] - 0.15, g1[0] - 0.15, g2[0] + 0.15, g3[0] + 0.15]
+  const seat = seatFor(id)
+  const dark = '#23262b'
   const parts: BufferGeometry[] = [
-    outline(s.body, s.width, color),
-    // Glass pokes just past the screens' slopes and the doors, so windows read dark from every side
-    outline(s.glass.map(([z, y], i): Pt => [z + (i < 2 ? -0.15 : 0.15), y]), s.width + 0.03, '#141c24'),
+    outline(lower, s.width, color),
+    outline([[gz[1]! - 0.05, g1[1] - 0.03], [gz[1]! - 0.05, g1[1] + 0.07], [gz[2]! + 0.05, g2[1] + 0.07], [gz[2]! + 0.05, g2[1] - 0.03]], s.width, color),
     box([s.width * s.grille[0], s.grille[1], 0.1], [0, s.grille[2], front - 0.06], s.grilleColor ?? '#2a2d33'),
     // Bumpers, a shade darker than the paint
     box([s.width + 0.02, 0.16, 0.12], [0, s.body[0]![1] + 0.1, front - 0.04], '#1c1e22'),
     box([s.width + 0.02, 0.16, 0.12], [0, s.body[0]![1] + 0.1, rear + 0.04], '#1c1e22'),
+    // Dashboard, a floor and the two front seats (the wheel is the driver's, on the left)
+    box([s.width - 0.12, 0.3, 0.28], [0, belt - 0.15, g2[0] + 0.1], dark),
+    box([s.width - 0.1, 0.05, Math.abs(g3[0] - g0[0])], [0, belt - 0.3, (g0[0] + g3[0]) / 2], dark),
   ]
+  for (const side of [-1, 1]) {
+    const sx = side * seat.driver[0]
+    parts.push(box([0.42, 0.1, 0.46], [sx, seat.driver[1] + 0.12, seat.driver[2] + 0.05], dark))
+    parts.push(box([0.42, 0.5, 0.1], [sx, seat.driver[1] + 0.4, seat.driver[2] - 0.2], dark))
+    // Pillars at the corners of the glass, in body paint, a hair proud of the glass
+    for (const [a, b] of [[g0, g1], [g2, g3]] as [Pt, Pt][]) {
+      const rearSide = a === g0
+      const dz = rearSide ? -0.15 : 0.15
+      parts.push(
+        outline([[a[0] + dz, a[1]], [a[0] + dz + 0.09, a[1]], [b[0] + dz + 0.09, b[1]], [b[0] + dz, b[1]]], 0.07, color).translate(side * (half - 0.04), 0, 0),
+      )
+    }
+  }
+  const wheelRing = new CylinderGeometry(0.17, 0.17, 0.035, 14, 1, true)
+  wheelRing.rotateX(-1.1) // tilted toward the driver
+  wheelRing.translate(seat.wheel[0], seat.wheel[1], seat.wheel[2])
+  parts.push(tinted(wheelRing, '#15161a'))
   for (const side of [-1, 1]) {
     for (const z of s.wheels) {
       parts.push(wheel(s.wheelR, 0.24, [side * (half - 0.08), s.wheelR, z], '#111214'))
@@ -177,18 +217,26 @@ function procGeometry(id: string, color: string) {
   return merged
 }
 
+const glassPaint = new MeshStandardMaterial({ vertexColors: true, roughness: 0.15, metalness: 0.6, transparent: true, opacity: 0.28, depthWrite: false })
+
 function ProcCar({ id, color }: { id: string; color: string }) {
   const geometry = useMemo(() => procGeometry(id, color), [id, color])
-  return <mesh geometry={geometry} material={vertexPaint} castShadow />
+  const glass = useMemo(() => glassGeometry(id), [id])
+  return (
+    <>
+      <mesh geometry={geometry} material={vertexPaint} castShadow />
+      <mesh geometry={glass} material={glassPaint} renderOrder={2} />
+    </>
+  )
 }
 
 const vertexPaint = new MeshStandardMaterial({ vertexColors: true, roughness: 0.5, metalness: 0.2 })
 
 const near = (a: number, b: number) => Math.abs(a - b) < 0.04
 
-const glbCache = new Map<string, BufferGeometry>()
+const glbCache = new Map<string, { body: BufferGeometry; glass: BufferGeometry | null }>()
 /** The GLB as one geometry, sized to `length`, with its body paint vertices set to `color`. */
-function glbGeometry(id: string, scene: import('three').Object3D, color: string) {
+function glbGeometry(id: string, scene: import('three').Object3D, color: string): { body: BufferGeometry; glass: BufferGeometry | null } {
   const key = `${id}|${color}`
   const hit = glbCache.get(key)
   if (hit) return hit
@@ -221,9 +269,17 @@ function glbGeometry(id: string, scene: import('three').Object3D, color: string)
   })
   const merged = mergeGeometries(parts)!
   parts.forEach((g) => g.dispose())
-  const paint = new Color(color)
   const colors = merged.getAttribute('color')
+  // Which vertices are window glass, read before the paint swap (their colours can sit close to the paint's)
+  const glassFlag = new Uint8Array(colors.count)
+  if (spec.glass.length) {
+    for (let i = 0; i < colors.count; i++) {
+      glassFlag[i] = spec.glass.some((c) => Math.abs(c[0] - colors.getX(i)) < 0.012 && Math.abs(c[1] - colors.getY(i)) < 0.012 && Math.abs(c[2] - colors.getZ(i)) < 0.012) ? 1 : 0
+    }
+  }
+  const paint = new Color(color)
   for (let i = 0; i < colors.count; i++) {
+    if (glassFlag[i]) continue
     const r = colors.getX(i)
     const g = colors.getY(i)
     const b = colors.getZ(i)
@@ -237,14 +293,55 @@ function glbGeometry(id: string, scene: import('three').Object3D, color: string)
   const scale = spec.length / (box.max.z - box.min.z)
   merged.translate(-(box.min.x + box.max.x) / 2, -box.min.y, -(box.min.z + box.max.z) / 2)
   merged.scale(scale, scale, scale)
-  glbCache.set(key, merged)
-  return merged
+  // Window triangles split off (every three vertices are one triangle) so they can be drawn see-through
+  let out: { body: BufferGeometry; glass: BufferGeometry | null } = { body: merged, glass: null }
+  if (spec.glass.length) {
+    const colorAttr = merged.getAttribute('color')
+    const pos = merged.getAttribute('position')
+    const nor = merged.getAttribute('normal')
+    const bodyV: number[] = []
+    const bodyN: number[] = []
+    const bodyC: number[] = []
+    const glassV: number[] = []
+    const glassN: number[] = []
+    const glassC: number[] = []
+    for (let t = 0; t < pos.count; t += 3) {
+      const glass = glassFlag[t]! && glassFlag[t + 1]! && glassFlag[t + 2]!
+      for (let k = t; k < t + 3; k++) {
+        if (glass) {
+          glassV.push(pos.getX(k), pos.getY(k), pos.getZ(k))
+          glassN.push(nor.getX(k), nor.getY(k), nor.getZ(k))
+          glassC.push(0.62, 0.72, 0.8)
+        } else {
+          bodyV.push(pos.getX(k), pos.getY(k), pos.getZ(k))
+          bodyN.push(nor.getX(k), nor.getY(k), nor.getZ(k))
+          bodyC.push(colorAttr.getX(k), colorAttr.getY(k), colorAttr.getZ(k))
+        }
+      }
+    }
+    const make = (v: number[], n: number[], c: number[]) => {
+      const g = new BufferGeometry()
+      g.setAttribute('position', new Float32BufferAttribute(v, 3))
+      g.setAttribute('normal', new Float32BufferAttribute(n, 3))
+      g.setAttribute('color', new Float32BufferAttribute(c, 3))
+      return g
+    }
+    out = { body: make(bodyV, bodyN, bodyC), glass: glassV.length ? make(glassV, glassN, glassC) : null }
+    merged.dispose()
+  }
+  glbCache.set(key, out)
+  return out
 }
 
 function GlbCar({ id, color }: { id: string; color: string }) {
   const { scene } = useGLTF(GLB[id]!.url)
-  const geometry = useMemo(() => glbGeometry(id, scene, color), [id, scene, color])
-  return <mesh geometry={geometry} material={vertexPaint} castShadow />
+  const { body, glass } = useMemo(() => glbGeometry(id, scene, color), [id, scene, color])
+  return (
+    <>
+      <mesh geometry={body} material={vertexPaint} castShadow />
+      {glass ? <mesh geometry={glass} material={glassPaint} renderOrder={2} /> : null}
+    </>
+  )
 }
 
 /** Where dents show, in order: [x, y, z, turn]. Dark crumpled patches on the corners and doors. */

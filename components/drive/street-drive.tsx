@@ -75,7 +75,7 @@ export function StreetDrive() {
         driveView.zoom = Math.max(0.6, Math.min(3, driveView.zoom * (e.deltaY > 0 ? 1.1 : 0.9)))
       }}
     >
-      <StreetCanvas key={drive.car.id} car={drive.car} start={drive.start} send={live.sendState} peers={live.peers} roster={live.roster} />
+      <StreetCanvas key={drive.car.id} car={drive.car} look={state?.appearance} start={drive.start} send={live.sendState} peers={live.peers} roster={live.roster} />
     </div>
   )
 }

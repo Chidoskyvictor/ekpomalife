@@ -33,7 +33,7 @@ export const driveTelemetry = { x: 0, z: 0, h: 0, speed: 0, dents: 0, bumps: 0 }
 /** Looking around: drag turns the camera about the car, pinch moves it in and out. It swings back behind the car once you let go and drive on. */
 export const driveView = { yaw: 0, tilt: 0, zoom: 1, held: false, at: 0 }
 /** Orders to the car: `warp` puts it somewhere at once (a race's start line); `hold` keeps it still (the countdown). */
-export const driveCommand: { warp: DriveStart | null; hold: boolean } = { warp: null, hold: false }
+export const driveCommand: { warp: DriveStart | null; hold: boolean; exiting: boolean } = { warp: null, hold: false, exiting: false }
 
 export function useDrive() {
   return useSyncExternalStore(subscribe, () => drive, () => null)
@@ -55,11 +55,31 @@ export function setDriveDest(dest: DriveDest | null) {
   emit()
 }
 
+/** Time to climb in or out of the car (instant if the player asked for less motion). */
+export const GET_IN_MS = 1000
+export const reducedMotion = () => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+/** Park or give up: the car stops, the driver climbs out (about a second), then the drive ends. */
+export function leaveDrive(): Promise<void> {
+  if (!drive || reducedMotion()) {
+    endDrive()
+    return Promise.resolve()
+  }
+  driveCommand.exiting = true
+  return new Promise((resolve) =>
+    window.setTimeout(() => {
+      endDrive()
+      resolve()
+    }, GET_IN_MS),
+  )
+}
+
 export function endDrive() {
   drive = null
   Object.assign(driveView, { yaw: 0, tilt: 0, zoom: 1, held: false })
   driveCommand.warp = null
   driveCommand.hold = false
+  driveCommand.exiting = false
   driveInput.steer = 0
   driveInput.gas = false
   driveInput.brake = false

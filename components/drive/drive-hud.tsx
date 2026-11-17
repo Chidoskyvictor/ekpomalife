@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { useGame } from '@/hooks/use-game'
 import { parkCar } from '@/lib/game/cars-api'
-import { driveInput, driveTelemetry, endDrive, kmh, setDriveDest, useDrive } from '@/lib/game/drive'
+import { driveInput, driveTelemetry, kmh, leaveDrive, setDriveDest, useDrive } from '@/lib/game/drive'
 import { OSM_CREDIT, ROAD_PLACES, ROAD_SCALE, guide, placeSpot, roadById, roadPlaceNear, roadUnder, type Guidance } from '@/lib/game/drive-road'
 import { hasInterior } from '@/lib/game/home-place'
 import { pushNavigation } from '@/lib/navigation/safe-nav'
@@ -157,7 +157,7 @@ export function DriveHud() {
       }
       applyServerState(res.state)
       notifyToast(res.message, true)
-      endDrive()
+      await leaveDrive()
       if (hasInterior(placeId) || placeId === 'home') {
         select(null)
         if (pathname !== '/room') pushNavigation(router, '/room', pathname)
@@ -181,7 +181,7 @@ export function DriveHud() {
     const race = racesNow().mine
     if (race && (race.status === 'open' || race.status === 'running')) void leaveRace(race.id)
     if (driveTelemetry.dents > 0) void park(drive.fromPlace, drive.start.x, drive.start.z)
-    else endDrive()
+    else void leaveDrive()
   }
 
   const g = way?.g ?? null
