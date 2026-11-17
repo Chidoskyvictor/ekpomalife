@@ -23,7 +23,7 @@ import {
 import { spaceLink } from '@/lib/game/open-spaces'
 import { useLive } from './spaces-live-context'
 import { PlayerFace } from '@/components/look/player-face'
-import { ReportSheet, Sheet, colorFor, placeLabel } from './spaces-ui'
+import { Avatar, ReportSheet, Sheet, colorFor, placeLabel } from './spaces-ui'
 import styles from './spaces.module.css'
 
 const SpaceLive = dynamic(() => import('./spaces-live'), { ssr: false })
