@@ -11,20 +11,7 @@
   overflow: hidden;
 }
 
-.top {
-  display: flex;
-  flex: none;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 8px 4px 4px;
-}
 
-.title {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-}
 
 .mask {
   font-size: 22px;

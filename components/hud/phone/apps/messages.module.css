@@ -358,7 +358,7 @@
   outline: none;
 }
 
-.personRow {
+.screen .personRow {
   display: flex;
   align-items: center;
   gap: 10px;

@@ -8,32 +8,8 @@
   color: var(--ink);
 }
 
-.top {
-  display: flex;
-  flex: none;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 12px 8px;
-  background: var(--paper);
-  border-bottom: 1px solid var(--line);
-}
 
-.back {
-  display: grid;
-  width: 34px;
-  height: 34px;
-  place-items: center;
-  border: 0;
-  border-radius: 50%;
-  background: var(--fill);
-  color: var(--ink);
-  cursor: pointer;
-}
 
-.topTitle {
-  font-size: var(--fs-16);
-  font-weight: 800;
-}
 
 .scroll {
   flex: 1;
