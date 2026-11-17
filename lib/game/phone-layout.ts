@@ -9,7 +9,7 @@ export const DEFAULT_DOCK: PhoneAppId[] = ['messages', 'bank', 'ride', 'market']
 
 /**
  * Turn whatever was saved into a valid layout for the apps that exist now: unknown or duplicate ids
- * are dropped, apps added since the save land at the end of the grid, and no save gives the default.
+ * are dropped, apps added since the save land at the START of the grid (first row, so a new app is seen),, and no save gives the default.
  */
 export function resolveLayout(saved: unknown, allIds: PhoneAppId[]): PhoneLayout {
   const known = new Set(allIds)
@@ -32,8 +32,8 @@ export function resolveLayout(saved: unknown, allIds: PhoneAppId[]): PhoneLayout
   }
   const dock = clean(obj.dock, DOCK_MAX)
   const grid = clean(obj.grid, allIds.length)
-  for (const id of allIds) if (!seen.has(id)) grid.push(id)
-  return { dock, grid }
+  const added = allIds.filter((id) => !seen.has(id))
+  return { dock, grid: [...added, ...grid] }
 }
 
 /** Pin to the dock (end). Returns null when the dock is full. */

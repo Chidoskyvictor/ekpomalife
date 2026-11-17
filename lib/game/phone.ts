@@ -106,6 +106,7 @@ export type PhoneAppMeta = {
 
 /** Home-screen order: apps with real content first (Messages, Jobs, Invest, Bank, Prodigy), then the rest. */
 export const PHONE_APPS: PhoneAppMeta[] = [
+  { id: 'gigs', label: 'Gigs', emoji: '🛠️', status: 'live', tint: '#ea580c' },
   { id: 'messages', label: 'Messages', emoji: '💬', status: 'live', tint: '#6366f1' },
   { id: 'jobs', label: 'Jobs', emoji: '💼', status: 'live', tint: '#3d9ad6' },
   { id: 'invest', label: 'Invest', emoji: '📈', status: 'live', tint: '#0f766e' },
@@ -134,7 +135,6 @@ export const PHONE_APPS: PhoneAppMeta[] = [
   { id: 'forbes', label: 'Forbes', fullName: 'Ekpoma Forbes', emoji: '👑', status: 'live', tint: '#d9a21b' },
   { id: 'guide', label: 'Guide', emoji: '📖', status: 'live', tint: '#16a34a' },
   { id: 'support', label: 'Support', emoji: '🛟', status: 'live', tint: '#2563eb' },
-  { id: 'gigs', label: 'Gigs', emoji: '🛠️', status: 'live', tint: '#ea580c' },
   { id: 'settings', label: 'Settings', emoji: '⚙️', status: 'live', tint: '#64748b' },
   { id: 'portal', label: 'Results', emoji: '🎓', status: 'soon', tint: '#7c3aed' },
   { id: 'music', label: 'Music', emoji: '🎧', status: 'soon', tint: '#e11d48' },

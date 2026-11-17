@@ -11,10 +11,10 @@ describe('phone layout', () => {
     expect(l.grid).toEqual(['jobs', 'map', 'invest'])
   })
 
-  it('repairs saved data: drops unknown/duplicates, appends new apps', () => {
+  it('repairs saved data: drops unknown/duplicates, puts new apps first', () => {
     const l = resolveLayout({ dock: ['jobs', 'jobs', 'nope'], grid: ['map'] }, ALL)
     expect(l.dock).toEqual(['jobs'])
-    expect(l.grid).toEqual(['map', 'messages', 'bank', 'ride', 'market', 'invest'])
+    expect(l.grid).toEqual(['messages', 'bank', 'ride', 'market', 'invest', 'map'])
   })
 
   it('pins, refuses a fifth dock app, unpins and reorders', () => {
