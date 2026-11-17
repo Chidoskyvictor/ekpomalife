@@ -1,9 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useLayoutEffect, useState } from 'react'
 import { PlayerFace } from '@/components/look/player-face'
 import { SocialRow } from '@/components/seo/social-row'
 import { useGame } from '@/hooks/use-game'
+import { useAuthGate } from '@/lib/auth/auth-gate-context'
 import { calendarForDay, compactMoney } from '@/lib/game/needs'
 import { hapticTap } from './haptic'
 import styles from './welcome-back.module.css'
@@ -36,17 +37,20 @@ function markWelcomed() {
 
 /** "Welcome back" when you reopen the app: your character, day and money, Continue or Log out. */
 export function WelcomeBack() {
-  const { isGuest, state, logOut } = useGame()
+  const { state, logOut } = useGame()
+  const { me } = useAuthGate()
   const [open, setOpen] = useState(false)
 
-  useEffect(() => {
-    if (isGuest || !state || !openedOnGame || alreadyWelcomed()) return
+  // Cover the screen before the first paint, as soon as we know you're signed in (the game loads
+  // behind it); your face, day and cash fill in when your game arrives.
+  useLayoutEffect(() => {
+    if (!me || !me.setupComplete || me.support || !openedOnGame || alreadyWelcomed()) return
     markWelcomed()
     setOpen(true)
-  }, [isGuest, state])
+  }, [me])
 
-  if (!open || !state) return null
-  const cal = calendarForDay(state.day)
+  if (!open) return null
+  const cal = state ? calendarForDay(state.day) : null
 
   return (
     <div className={styles.screen} role="dialog" aria-modal="true" aria-label="Welcome back">
@@ -59,18 +63,20 @@ export function WelcomeBack() {
       <div className={styles.bottom}>
         <div className={styles.card}>
           <div className={styles.me}>
-            <PlayerFace look={state.appearance} color={state.avatarColor} label={state.characterName} size={52} />
+            {state ? (
+              <PlayerFace look={state.appearance} color={state.avatarColor} label={state.characterName} size={52} />
+            ) : (
+              <span className={styles.facePending} aria-hidden="true" />
+            )}
             <span className={styles.who}>
-              <strong>{state.characterName}</strong>
-              <span>
-                {cal.label} · {compactMoney(state.cash)}
-              </span>
+              <strong>{state ? state.characterName : 'Welcome back'}</strong>
+              <span>{state && cal ? `${cal.label} · ${compactMoney(state.cash)}` : 'Loading your life…'}</span>
             </span>
           </div>
           <button
             type="button"
             className={styles.go}
-              onClick={() => {
+            onClick={() => {
               hapticTap()
               setOpen(false)
             }}
@@ -79,7 +85,7 @@ export function WelcomeBack() {
           </button>
           <div className={styles.foot}>
             <span>
-              Signed in as <b>@{state.username}</b>
+              Signed in{state ? <> as <b>@{state.username}</b></> : null}
             </span>
             <button
               type="button"

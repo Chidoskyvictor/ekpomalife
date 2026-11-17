@@ -147,3 +147,12 @@
     transform: translateY(16px);
   }
 }
+
+/* Face spot while your game loads */
+.facePending {
+  width: 52px;
+  height: 52px;
+  flex: none;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #e8f1ff, #cfe0fb);
+}
