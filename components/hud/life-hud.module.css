@@ -349,3 +349,50 @@
     display: none;
   }
 }
+
+/* —— "Settle in" entrance: the HUD arrives piece by piece from its own edge (transform/opacity only).
+   Uses `translate`, so existing `transform` rules and motion animations are untouched. —— */
+@keyframes hudInDown {
+  from { opacity: 0; translate: 0 -14px; }
+  to { opacity: 1; translate: 0 0; }
+}
+
+@keyframes hudInUp {
+  from { opacity: 0; translate: 0 18px; }
+  to { opacity: 1; translate: 0 0; }
+}
+
+@keyframes hudInLeft {
+  from { opacity: 0; translate: -18px 0; }
+  to { opacity: 1; translate: 0 0; }
+}
+
+.statusStack {
+  animation: hudInDown 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.missionRow {
+  animation: hudInDown 420ms cubic-bezier(0.2, 0.8, 0.2, 1) 70ms both;
+}
+
+.activityRow {
+  animation: hudInDown 420ms cubic-bezier(0.2, 0.8, 0.2, 1) 140ms both;
+}
+
+.meDock {
+  animation: hudInLeft 460ms cubic-bezier(0.2, 0.8, 0.2, 1) 210ms both;
+}
+
+.bottomDock {
+  animation: hudInUp 460ms cubic-bezier(0.2, 0.8, 0.2, 1) 280ms both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .statusStack,
+  .missionRow,
+  .activityRow,
+  .meDock,
+  .bottomDock {
+    animation: none;
+  }
+}
