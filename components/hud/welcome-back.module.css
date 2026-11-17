@@ -1,0 +1,149 @@
+/* Welcome back: a solid screen (the game stays hidden until Continue), our sky and our blue. */
+.screen {
+  position: fixed;
+  inset: 0;
+  z-index: calc(var(--z-toast) + 10); /* above event popups and toasts: they wait behind it */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: max(56px, env(safe-area-inset-top)) 16px max(20px, env(safe-area-inset-bottom));
+  overflow-y: auto;
+  background: linear-gradient(180deg, #dbe9ff 0%, #eef5ff 55%, #ffffff 100%);
+  color: var(--ink);
+}
+
+:root[data-theme='dark'] .screen {
+  background: linear-gradient(180deg, #0e1a2b 0%, #111827 60%, #0b0f17 100%);
+}
+
+.brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6vh;
+  text-align: center;
+}
+
+.brand img {
+  border-radius: var(--r-lg);
+  box-shadow: 0 10px 30px rgba(14, 52, 102, 0.22);
+}
+
+.brand strong {
+  font-family: 'Boogaloo', sans-serif;
+  font-size: var(--fs-28);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+.brand span {
+  color: var(--ink-2);
+  font-size: var(--fs-14);
+}
+
+.bottom {
+  display: flex;
+  width: 100%;
+  max-width: 380px;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.card {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: rgb(var(--glass-rgb));
+  box-shadow: 0 18px 50px rgba(14, 52, 102, 0.14);
+}
+
+.me {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: var(--r-md);
+  background: var(--fill);
+}
+
+.who {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.who strong {
+  overflow: hidden;
+  font-size: var(--fs-20);
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.who span {
+  color: var(--ink-2);
+  font-size: var(--fs-14);
+}
+
+.go {
+  min-height: 52px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--primary);
+  color: #fff;
+  font-family: 'Boogaloo', sans-serif;
+  font-size: var(--fs-20);
+  letter-spacing: 0.02em;
+  cursor: pointer;
+}
+
+.go:active {
+  transform: scale(0.97);
+}
+
+.foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--ink-2);
+  font-size: var(--fs-12);
+}
+
+.foot b {
+  color: var(--ink);
+}
+
+/* Small text, full 44px tap height */
+.out {
+  min-height: 44px;
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+  color: var(--primary);
+  font: inherit;
+  font-size: var(--fs-14);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .card {
+    animation: rise 420ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}

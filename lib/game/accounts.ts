@@ -60,6 +60,15 @@ export function getAccount(username: string): Account | null {
   return readAccounts()[normalizeUsername(username)] ?? null
 }
 
+/** You just logged in or signed up: skip the "Welcome back" card for this visit (welcome-back.tsx). */
+function justSignedIn() {
+  try {
+    window.sessionStorage.setItem('ekpoma-welcomed', '1')
+  } catch {
+    /* storage blocked */
+  }
+}
+
 export async function createAccount(input: SignupInput): Promise<Result> {
   const name = input.name.trim()
   const username = normalizeUsername(input.username)
@@ -99,6 +108,7 @@ export async function createAccount(input: SignupInput): Promise<Result> {
     const data = (await response.json()) as Result
     if (!data.ok) return { ok: false, error: data.error || 'Could not create the account.' }
     rememberProfile(data.account)
+    justSignedIn()
     return data
   } catch {
     return { ok: false, error: 'Cannot reach the server. Is the backend running?' }
@@ -122,6 +132,7 @@ export async function verifyLogin(usernameInput: string, password: string): Prom
     const data = (await response.json()) as Result
     if (!data.ok) return { ok: false, error: data.error || 'Wrong username, email or password.' }
     rememberProfile(data.account)
+    justSignedIn()
     return data
   } catch {
     return { ok: false, error: 'Cannot reach the server. Is the backend running?' }
