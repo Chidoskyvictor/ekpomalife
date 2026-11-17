@@ -34,6 +34,7 @@ import { FamilyRequestCard } from './family-request-card'
 import { canRecordVoice, clock, useVoiceRecorder, VoiceBubble, VOICE_MAX_MS } from './voice-note'
 import { AppHeader, BackButton } from '../app-header'
 import { AppError, AppLoading } from '../app-state'
+import { ListRow } from '../list-row'
 import styles from './messages.module.css'
 
 type GameNotification = PhoneNotificationsResponse['items'][number]
@@ -487,12 +488,13 @@ function ComposeView({ onCancel, onOpen }: { onCancel: () => void; onOpen: (chat
           <p className={styles.hint}>No player called @{typed}. Check the spelling.</p>
         ) : null}
         {results.map((person) => (
-          <button key={person.userId} type="button" className={styles.personRow} onClick={() => void pick(person)}>
-            <Avatar person={person} size={38} />
-            <span className={styles.personText}>
-              <span className={styles.personName}>@{person.username}</span>
-            </span>
-          </button>
+          <ListRow
+            key={person.userId}
+            className={styles.personRow}
+            onClick={() => void pick(person)}
+            lead={<Avatar person={person} size={38} />}
+            title={`@${person.username}`}
+          />
         ))}
         {error ? <p className={styles.errorText}>{error}</p> : null}
       </div>
