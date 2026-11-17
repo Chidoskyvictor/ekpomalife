@@ -1,5 +1,6 @@
 'use client'
 
+import { Sun, Moon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import type { PhoneGetResponse } from '@/lib/game/phone-api'
 import type { SpaceCard } from '@/lib/game/spaces-api'
@@ -68,7 +69,7 @@ export function PhoneHome({
             aria-pressed={mode === 'day'}
             onClick={() => setModePersist('day')}
           >
-            ☀️
+            <Sun size={16} aria-hidden="true" />
           </button>
           <button
             type="button"
@@ -76,7 +77,7 @@ export function PhoneHome({
             aria-pressed={mode === 'night'}
             onClick={() => setModePersist('night')}
           >
-            🌙
+            <Moon size={16} aria-hidden="true" />
           </button>
         </div>
       </div>

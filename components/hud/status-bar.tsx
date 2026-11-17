@@ -4,7 +4,7 @@ import { COMPACT_FROM, compactNaira } from '@/lib/game/live'
 import { SOUND_EVENT } from '@/lib/audio/music'
 import NumberFlow from '@number-flow/react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import { Plus, Tag, Volume2, VolumeX } from 'lucide-react'
+import { Plus, Tag, Volume2, VolumeX, Target } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { TextShimmer } from '@/components/arc/text-shimmer/text-shimmer'
 import {
@@ -178,7 +178,7 @@ export function StatusBar({
             aria-label={`Today's missions: ${missions.done} of ${missions.total} done`}
             onClick={missions.onOpen}
           >
-            🎯 {missions.done}/{missions.total}
+            <Target size={12} aria-hidden="true" /> {missions.done}/{missions.total}
           </button>
         ) : null}
 
