@@ -1,5 +1,6 @@
 'use client'
 
+import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { motion, useAnimation, useReducedMotion } from 'motion/react'
 import { Suspense, useState } from 'react'
@@ -40,7 +41,7 @@ export function AuthPage({ initial }: { initial: AuthMode }) {
     <AuthGate mode="public">
       <main className={styles.page}>
         <Link href="/" className={styles.back}>
-          ← Back to the city
+          <ArrowLeft size={16} aria-hidden="true" /> Back to the city
         </Link>
         <FloatingStickers />
         <div className={styles.inner}>

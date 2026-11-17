@@ -1,5 +1,6 @@
 'use client'
 
+import { X } from 'lucide-react'
 import Link from 'next/link'
 import { useState } from 'react'
 
@@ -85,7 +86,7 @@ export function LoginExplore() {
                 aria-label="Close"
                 className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-neutral-700"
               >
-                ✕
+                <X size={18} aria-hidden="true" />
               </button>
             </div>
             <p className="mt-3 text-[15px] leading-relaxed text-neutral-700 break-words">{open.body}</p>

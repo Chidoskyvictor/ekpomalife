@@ -1,5 +1,6 @@
 'use client'
 
+import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { motion, useAnimation, useReducedMotion } from 'motion/react'
 import { AuthGate } from './auth-gate'
@@ -20,7 +21,7 @@ export function ForgotShell() {
     <AuthGate mode="public">
       <main className={styles.page}>
         <Link href="/login" className={styles.back}>
-          ← Back to log in
+          <ArrowLeft size={16} aria-hidden="true" /> Back to log in
         </Link>
         <FloatingStickers />
         <div className={styles.inner}>

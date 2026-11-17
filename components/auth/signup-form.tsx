@@ -1,5 +1,6 @@
 'use client'
 
+import { User, Gamepad2, Mail, Lock, EyeOff, Eye } from 'lucide-react'
 import Link from 'next/link'
 import { useState, type FormEvent } from 'react'
 import { useReducedMotion } from 'motion/react'
@@ -126,7 +127,7 @@ export function SignupForm({ onShake }: { onShake: () => void }) {
       <LobbyField
         id="name"
         label="Name"
-        icon="👤"
+        icon={<User size={18} aria-hidden="true" />}
         value={name}
         onChange={(event) => {
           setName(event.target.value)
@@ -142,7 +143,7 @@ export function SignupForm({ onShake }: { onShake: () => void }) {
       <LobbyField
         id="username"
         label="Username"
-        icon="🎮"
+        icon={<Gamepad2 size={18} aria-hidden="true" />}
         value={username}
         onChange={(event) => {
           const raw = event.target.value.replace(/^@/, '')
@@ -168,7 +169,7 @@ export function SignupForm({ onShake }: { onShake: () => void }) {
       <LobbyField
         id="email"
         label="Email"
-        icon="✉️"
+        icon={<Mail size={18} aria-hidden="true" />}
         type="email"
         value={email}
         onChange={(event) => {
@@ -184,7 +185,7 @@ export function SignupForm({ onShake }: { onShake: () => void }) {
       <LobbyField
         id="password"
         label="Password"
-        icon="🔒"
+        icon={<Lock size={18} aria-hidden="true" />}
         type={showPassword ? 'text' : 'password'}
         value={password}
         onChange={(event) => {
@@ -209,7 +210,7 @@ export function SignupForm({ onShake }: { onShake: () => void }) {
             onClick={() => setShowPassword((on) => !on)}
             aria-label={showPassword ? 'Hide password' : 'Show password'}
           >
-            {showPassword ? '🙈' : '👁️'}
+            {showPassword ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
           </button>
         }
       />

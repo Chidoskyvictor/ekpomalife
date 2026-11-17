@@ -1,5 +1,6 @@
 'use client'
 
+import { Lock, EyeOff, Eye, Mail } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState, type FormEvent } from 'react'
@@ -133,7 +134,7 @@ export function ForgotForm({ onShake }: { onShake: () => void }) {
         <LobbyField
           id="reset-password"
           label="New password"
-          icon="🔒"
+          icon={<Lock size={18} aria-hidden="true" />}
           type={showPassword ? 'text' : 'password'}
           value={password}
           onChange={(event) => setPassword(event.target.value)}
@@ -146,7 +147,7 @@ export function ForgotForm({ onShake }: { onShake: () => void }) {
               onClick={() => setShowPassword((on) => !on)}
               aria-label={showPassword ? 'Hide password' : 'Show password'}
             >
-              {showPassword ? '🙈' : '👁️'}
+              {showPassword ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
             </button>
           }
         />
@@ -154,7 +155,7 @@ export function ForgotForm({ onShake }: { onShake: () => void }) {
         <LobbyField
           id="reset-confirm"
           label="Confirm password"
-          icon="🔒"
+          icon={<Lock size={18} aria-hidden="true" />}
           type={showPassword ? 'text' : 'password'}
           value={confirm}
           onChange={(event) => setConfirm(event.target.value)}
@@ -236,7 +237,7 @@ export function ForgotForm({ onShake }: { onShake: () => void }) {
       <LobbyField
         id="forgot-email"
         label="Email"
-        icon="✉️"
+        icon={<Mail size={18} aria-hidden="true" />}
         type="email"
         value={email}
         onChange={(event) => {
