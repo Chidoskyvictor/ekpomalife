@@ -23,7 +23,7 @@
   flex-direction: column;
   gap: 20px;
   overflow: auto;
-  border-radius: 28px;
+  border-radius: var(--r-lg);
   background: var(--paper);
   box-shadow: 0 10px 40px rgba(16, 24, 40, 0.12);
   padding: clamp(16px, 4vw, 24px) clamp(14px, 3.5vw, 20px);

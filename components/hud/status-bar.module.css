@@ -70,7 +70,7 @@
   min-width: 32px;
   padding: 0;
   border: 0;
-  border-radius: 11px;
+  border-radius: var(--r-sm);
   opacity: 1;
   color: var(--primary-foreground);
   background: linear-gradient(

@@ -5,7 +5,7 @@ import styles from './auth.module.css'
 
 type Props = {
   label: string
-  icon: string
+  icon: ReactNode
   error?: string | null
   hint?: ReactNode
   trailing?: ReactNode

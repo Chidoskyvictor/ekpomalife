@@ -1,7 +1,7 @@
 .plate {
   display: inline-block;
   padding: 2px 7px;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   background: rgba(26, 34, 51, 0.82);
   color: #fff;
   font-size: var(--fs-12);

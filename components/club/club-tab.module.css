@@ -26,7 +26,7 @@
   margin: 0 auto 8px;
   width: min(100%, 360px);
   padding: 16px;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   background: #fffdf6;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
   color: #1c1917;

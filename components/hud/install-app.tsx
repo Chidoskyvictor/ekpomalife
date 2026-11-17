@@ -1,5 +1,6 @@
 'use client'
 
+import { Smartphone, Share2 } from 'lucide-react'
 import { motion, useReducedMotion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 import { BodyPortal } from '@/components/ui/body-portal'
@@ -119,7 +120,7 @@ export function InstallApp() {
           transition={{ duration: 0.28, ease: 'easeOut' }}
         >
           <span className={styles.emoji} aria-hidden="true" style={{ background: '#e8f5ee' }}>
-            📲
+            <Smartphone size={22} aria-hidden="true" />
           </span>
           <h2 id="install-app-title" className={styles.title}>
             Install Ekpoma Life
@@ -128,7 +129,7 @@ export function InstallApp() {
             <p className={styles.why}>Put the game on your home screen: it opens full screen, loads faster and feels like a real app.</p>
           ) : (
             <p className={styles.why}>
-              Put the game on your home screen: tap <strong>Share</strong> <span aria-hidden="true">⬆️</span> at the bottom of Safari, then{' '}
+              Put the game on your home screen: tap <strong>Share</strong> <span aria-hidden="true"><Share2 size={14} aria-hidden="true" /></span> at the bottom of Safari, then{' '}
               <strong>Add to Home Screen</strong>.
             </p>
           )}

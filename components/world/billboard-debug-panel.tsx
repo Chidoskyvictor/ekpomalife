@@ -1,5 +1,6 @@
 'use client'
 
+import { RotateCcw, RotateCw } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { OPEN_AD_EVENT } from '@/lib/game/billboard-ad'
 import { MAP_ZONES, firstSlabUV, frontSlabUV } from '@/lib/game/world-layout'
@@ -122,10 +123,10 @@ export function BillboardDebugPanel() {
             />
             <span className="flex gap-1">
               <button type="button" className="flex-1 rounded-md border border-black/15 bg-white py-0.5" onClick={() => setDegrees(degrees - 90)}>
-                ↺ 90°
+                <RotateCcw size={14} aria-hidden="true" /> 90°
               </button>
               <button type="button" className="flex-1 rounded-md border border-black/15 bg-white py-0.5" onClick={() => setDegrees(degrees + 90)}>
-                ↻ 90°
+                <RotateCw size={14} aria-hidden="true" /> 90°
               </button>
             </span>
           </div>

@@ -1,5 +1,6 @@
 'use client'
 
+import { Gamepad2, Lock, EyeOff, Eye } from 'lucide-react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { useState, type FormEvent } from 'react'
@@ -50,7 +51,7 @@ export function LoginForm({ onShake }: { onShake: () => void }) {
       <LobbyField
         id="login-username"
         label="Username or email"
-        icon="🎮"
+        icon={<Gamepad2 size={18} aria-hidden="true" />}
         value={username}
         onChange={(event) => setUsername(event.target.value.replace(/^@/, ''))}
         autoComplete="username"
@@ -68,7 +69,7 @@ export function LoginForm({ onShake }: { onShake: () => void }) {
       <LobbyField
         id="login-password"
         label="Password"
-        icon="🔒"
+        icon={<Lock size={18} aria-hidden="true" />}
         type={showPassword ? 'text' : 'password'}
         value={password}
         onChange={(event) => setPassword(event.target.value)}
@@ -82,7 +83,7 @@ export function LoginForm({ onShake }: { onShake: () => void }) {
             onClick={() => setShowPassword((on) => !on)}
             aria-label={showPassword ? 'Hide password' : 'Show password'}
           >
-            {showPassword ? '🙈' : '👁️'}
+            {showPassword ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
           </button>
         }
       />

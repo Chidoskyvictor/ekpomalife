@@ -1,5 +1,6 @@
 'use client'
 
+import { X } from 'lucide-react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState, type ReactNode } from 'react'
@@ -47,7 +48,7 @@ export function NoticeCard({
       <span className={styles.noticeText}>{children}</span>
       {action}
       <button type="button" className={styles.noticeClose} aria-label="Dismiss" onClick={onDismiss}>
-        ✕
+        <X size={18} aria-hidden="true" />
       </button>
     </motion.div>
   )

@@ -1,6 +1,6 @@
 'use client'
 
-import { RefreshCw } from 'lucide-react'
+import { RefreshCw, Sparkles } from 'lucide-react'
 import { applyUpdate, useUpdateAvailable } from '@/lib/game/update-check'
 import styles from './update-banner.module.css'
 
@@ -11,7 +11,7 @@ export function UpdateBanner() {
   return (
     <section className={`${styles.updateCard} ${styles.updateCardNew}`} aria-live="polite">
       <span className={styles.updateIcon} aria-hidden="true">
-        ✨
+        <Sparkles size={16} aria-hidden="true" />
       </span>
       <div className={styles.updateText}>
         <strong>New update</strong>

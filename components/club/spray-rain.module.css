@@ -38,7 +38,7 @@
   place-items: center;
   padding: 0;
   border: 2px solid #0f5132;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   background: linear-gradient(135deg, #b9f5c9, #4ade80 55%, #22a55a);
   color: #063d22;
   font: inherit;
