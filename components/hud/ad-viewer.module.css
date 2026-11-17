@@ -76,7 +76,7 @@
   height: 5px;
   transform: translateX(-50%);
   border-radius: var(--r-pill);
-  background: rgba(255, 255, 255, 0.7);
+  background: rgb(var(--glass-rgb) / 0.7);
 }
 
 /* Ad edge to edge on top */

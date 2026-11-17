@@ -20,7 +20,7 @@
   flex-direction: column;
   border: 1px solid rgba(255, 255, 255, 0.7);
   border-radius: var(--r-lg);
-  background: rgba(255, 255, 255, 0.95);
+  background: rgb(var(--glass-rgb) / 0.95);
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.2);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);

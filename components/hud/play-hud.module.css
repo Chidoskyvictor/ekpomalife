@@ -64,7 +64,7 @@
 .nav [data-overflow] {
   border-radius: var(--r-pill);
   border: 1px solid rgba(255, 255, 255, 0.6);
-  background: rgba(255, 255, 255, 0.72);
+  background: rgb(var(--glass-rgb) / 0.72);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);

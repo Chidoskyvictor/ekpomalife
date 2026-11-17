@@ -15,7 +15,7 @@
   border: 1px solid rgba(255, 255, 255, 0.7);
   border-bottom: 0;
   border-radius: var(--r-lg) var(--r-lg) 0 0;
-  background: rgba(255, 255, 255, 0.97);
+  background: rgb(var(--glass-rgb) / 0.97);
   box-shadow: 0 -10px 32px rgba(0, 0, 0, 0.16);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
