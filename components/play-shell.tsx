@@ -35,7 +35,7 @@ function PlayProviders({ children }: { children: ReactNode }) {
 
 /**
  * Lives in the root layout, so it stays mounted while you move between the map, Home and clubs:
- * the HUD, game state and sign-in check load once instead of on every tab.
+ * the HUD, game state and sign-in check load once instead of on every tab (and the nearby voice host, so a call survives moving between them).
  */
 export function PlayShell({ children }: { children: ReactNode }) {
   const pathname = usePathname()
