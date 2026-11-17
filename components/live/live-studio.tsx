@@ -3,6 +3,8 @@
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import { LobbyButton } from '@/components/auth/lobby-button'
+import { SetupCelebration, celebrationMs } from '@/components/create/setup-celebration'
+import { useLowPerf } from '@/hooks/use-low-perf'
 import { CourseSearch } from '@/components/create/course-search'
 import { CreateStage } from '@/components/create/create-stage'
 import { StartingMoneySpin } from '@/components/create/starting-money-spin'
@@ -60,6 +62,7 @@ export function LiveStudio() {
   const [checked, setChecked] = useState(false)
   const [busy, setBusy] = useState(false)
   const [entering, setEntering] = useState(false)
+  const lowPerf = useLowPerf()
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -179,6 +182,8 @@ export function LiveStudio() {
     // Hard nav like post-auth — soft replace('/') often bounces back to /live
     // while AuthGate re-probes, so the button looks like a no-op.
     void (async () => {
+      // Short celebration; the account probe below runs after it.
+      await new Promise((resolve) => window.setTimeout(resolve, celebrationMs(lowPerf)))
       try {
         // game_state row may lag the spin response — probe /auth/me briefly.
         for (let attempt = 0; attempt < 4; attempt += 1) {
@@ -225,6 +230,7 @@ export function LiveStudio() {
           onDismiss={() => replaceNavigation(router, '/dream')}
         />
       ) : null}
+      {entering ? <SetupCelebration name={playerName} /> : null}
       <CreateStage title="Home" step={4} backHref="/dream" appearance={preview} />
 
       <StudioPanel
