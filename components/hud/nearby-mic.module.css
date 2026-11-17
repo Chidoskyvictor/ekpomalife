@@ -1,0 +1,11 @@
+/* Nearby voice: the round place-sheet button turns green while your mic is on. */
+.on {
+  background: #16a34a !important;
+  color: #fff !important;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.28);
+}
+
+/* Someone else is talking: a soft green ring */
+.hearing {
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.45);
+}

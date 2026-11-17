@@ -161,3 +161,13 @@ export function verifyWebhook(cfg: LiveKitConfig, rawBody: string, authorization
     return null
   }
 }
+
+/** People in any room by its full name (0 when the room doesn't exist yet). */
+export async function roomCount(cfg: LiveKitConfig, room: string): Promise<number> {
+  try {
+    const out = await roomService<{ participants?: unknown[] }>(cfg, 'ListParticipants', { room }, room)
+    return out.participants?.length ?? 0
+  } catch {
+    return 0
+  }
+}

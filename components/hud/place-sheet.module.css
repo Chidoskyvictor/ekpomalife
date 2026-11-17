@@ -422,3 +422,17 @@
   font-size: var(--fs-12);
   font-weight: 800;
 }
+
+/* Five round buttons (mic, people, order, map, more) don't fit beside the name on a phone:
+   the buttons move to their own row so the place name stays readable. */
+@media (max-width: 420px) {
+  .head:has(.buttons > :nth-child(5)) {
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+
+  .head:has(.buttons > :nth-child(5)) .buttons {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}

@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation'
 import type { ReactNode } from 'react'
 import { AuthGate } from '@/components/auth/auth-gate'
 import { Hud } from '@/components/hud/hud'
+import { NearbyVoiceHost } from '@/components/hud/nearby-mic'
 import { OfflineBanner } from '@/components/world/map-stage'
 import { EconomyProvider } from '@/hooks/use-economy'
 import { GameProvider } from '@/hooks/use-game'
@@ -24,6 +25,7 @@ function PlayProviders({ children }: { children: ReactNode }) {
           <h1 className="sr-only">Ekpoma Life</h1>
           {children}
           <Hud />
+          <NearbyVoiceHost />
           <OfflineBanner />
         </main>
       </EconomyProvider>

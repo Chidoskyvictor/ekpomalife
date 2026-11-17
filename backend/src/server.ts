@@ -1,5 +1,6 @@
 import { houseRoutes } from './routes/houses.js'
 import { carRoutes } from './routes/cars.js'
+import { nearbyRoutes } from './routes/nearby.js'
 import { familyRoutes } from './routes/family.js'
 import { forbesRoutes } from './routes/forbes.js'
 import { interactionRoutes } from './routes/interactions.js'
@@ -195,6 +196,7 @@ await app.register(rentalsRoutes)
 await app.register(walletRoutes)
 await app.register(houseRoutes)
 await app.register(carRoutes)
+await app.register(nearbyRoutes)
 await app.register(interactionRoutes)
 await app.register(schoolRoutes)
 await app.register(skillRoutes)

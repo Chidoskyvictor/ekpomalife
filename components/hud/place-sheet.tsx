@@ -4,6 +4,7 @@ import { PlayerFace } from '@/components/look/player-face'
 import { ChevronDown, ChevronUp, Clock } from 'lucide-react'
 import { useEffect, useSyncExternalStore, type ReactNode } from 'react'
 import { hapticTap } from './haptic'
+import { NearbyMic } from './nearby-mic'
 import styles from './place-sheet.module.css'
 
 /*
@@ -77,6 +78,8 @@ export function PlaceSheet({
           {subtitle ? <span>{subtitle}</span> : null}
         </button>
         <div className={styles.buttons}>
+          {/* Talk to the people in this place (every place sheet has it) */}
+          <NearbyMic className={styles.round} badgeClassName={styles.badge} />
           {buttons.map((b) => (
             <button key={b.label} type="button" className={styles.round} onClick={b.onClick} disabled={b.disabled} aria-label={b.label} title={b.label}>
               {b.icon}
