@@ -1,6 +1,6 @@
 'use client'
 
-import { ChevronLeft, Flag, Hand, LogOut, Mic, MicOff, PhoneOff, Send, Share2 } from 'lucide-react'
+import { Flag, Hand, LogOut, Mic, MicOff, PhoneOff, Send, Share2 } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
@@ -24,6 +24,7 @@ import { spaceLink } from '@/lib/game/open-spaces'
 import { useLive } from './spaces-live-context'
 import { PlayerFace } from '@/components/look/player-face'
 import { Avatar, ReportSheet, Sheet, colorFor, placeLabel } from './spaces-ui'
+import { BackButton } from '../app-header'
 import styles from './spaces.module.css'
 
 const SpaceLive = dynamic(() => import('./spaces-live'), { ssr: false })
@@ -108,14 +109,7 @@ export function SpaceRoom({
 
   const header = (
     <div className={styles.top}>
-      <button
-        type="button"
-        className={styles.back}
-        aria-label={join ? 'Leave Space' : 'Back'}
-        onClick={() => (join ? void doLeave() : onBack())}
-      >
-        <ChevronLeft size={20} aria-hidden="true" />
-      </button>
+      <BackButton onBack={() => (join ? void doLeave() : onBack())} label={join ? 'Leave Space' : 'Back'} />
       <h2 className={styles.title}>Space</h2>
     </div>
   )

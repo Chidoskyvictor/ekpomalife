@@ -1,11 +1,11 @@
 'use client'
 
-import { ChevronLeft } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { useGame } from '@/hooks/use-game'
 import { fetchCoin, fetchCoins, followCoin, launchCoin, tradeCoin, type CoinBag, type CoinCard, type CoinDetail } from '@/lib/game/crypto-api'
 import { fetchTagged, type EtaPost } from '@/lib/game/eta-api'
 import { GistList } from './eta-app'
+import { BackButton } from '../app-header'
 import styles from './invest.module.css'
 import { AppEmpty, AppLoading } from '../app-state'
 
@@ -231,9 +231,7 @@ function CoinPage({ id, onBack, onNotice }: { id: string; onBack: () => void; on
   return (
     <>
       <div className={styles.coinHead}>
-        <button type="button" className={styles.backBtn} onClick={onBack} aria-label="Back to coins">
-          <ChevronLeft size={18} aria-hidden="true" />
-        </button>
+        <BackButton onBack={onBack} label="Back to coins" />
         <span className={styles.icon} aria-hidden="true">
           {coin.emoji}
         </span>

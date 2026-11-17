@@ -1,10 +1,11 @@
 'use client'
 
-import { ChevronLeft, Clock, Search, X } from 'lucide-react'
+import { Clock, Search, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useGame } from '@/hooks/use-game'
 import { placeInfo } from '@/lib/game/place-info'
 import { isPlaceOpen, PLACES, type Place } from '@/lib/game/places'
+import { BackButton } from '../app-header'
 import styles from './ride-picker.module.css'
 
 const TYPE: Record<string, { emoji: string; title: string; order: number; tint: string }> = {
@@ -109,9 +110,7 @@ export function RidePicker({ value, onPick, onClose }: { value: string; onPick: 
   return (
     <div className={styles.page} role="dialog" aria-label="Where to?">
       <div className={styles.top}>
-        <button type="button" className={styles.back} onClick={onClose} aria-label="Back">
-          <ChevronLeft size={22} aria-hidden="true" />
-        </button>
+        <BackButton onBack={onClose} label="Back" />
         <label className={styles.search}>
           <Search size={18} aria-hidden="true" className={styles.searchIcon} />
           <input

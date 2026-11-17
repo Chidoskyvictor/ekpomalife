@@ -1,10 +1,11 @@
 'use client'
 
-import { Check, ChevronLeft, Search } from 'lucide-react'
+import { Check, Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { PLACES, type PlaceType } from '@/lib/game/places'
 import { stickerForZone } from '@/lib/game/zone-stickers'
 import { placeLabel } from './spaces-ui'
+import { BackButton } from '../app-header'
 import styles from './spaces.module.css'
 
 const TYPE_EMOJI: Record<PlaceType, string> = {
@@ -61,9 +62,7 @@ export function SpacesPlacePicker({
   return (
     <div className={styles.root}>
       <div className={styles.top}>
-        <button type="button" className={styles.back} aria-label="Back" onClick={onBack}>
-          <ChevronLeft size={20} aria-hidden="true" />
-        </button>
+        <BackButton onBack={onBack} label="Back" />
         <h2 className={styles.title}>Pick a place</h2>
       </div>
       <div className={styles.screen}>

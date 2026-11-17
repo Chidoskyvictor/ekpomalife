@@ -4,7 +4,7 @@ import NumberFlow from '@number-flow/react'
 import { hapticTap } from '@/components/hud/haptic'
 import { PlayerFace } from '@/components/look/player-face'
 import { playSfx } from '@/lib/audio/sfx'
-import { BadgeCheck, ChevronLeft, Flame, MessageCircle, Plus } from 'lucide-react'
+import { BadgeCheck, Flame, MessageCircle, Plus } from 'lucide-react'
 import { Fragment, useCallback, useEffect, useState, type ReactNode } from 'react'
 import {
   ETA_POST_MAX,
@@ -22,6 +22,7 @@ import {
   type EtaVoice,
   type FeedTab,
 } from '@/lib/game/eta-api'
+import { BackButton } from '../app-header'
 import styles from './eta.module.css'
 import { AppEmpty, AppLoading } from '../app-state'
 
@@ -509,9 +510,7 @@ function TopVoices({ onAuthor }: { onAuthor: (a: EtaAuthor) => void }) {
 function BackBar({ title, onBack }: { title: string; onBack: () => void }) {
   return (
     <div className={styles.backBar}>
-      <button type="button" className={styles.back} onClick={onBack} aria-label="Back">
-        <ChevronLeft size={20} aria-hidden="true" />
-      </button>
+      <BackButton onBack={onBack} label="Back" />
       <strong>{title}</strong>
       <span className={styles.backSpacer} aria-hidden="true" />
     </div>

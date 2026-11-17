@@ -1,6 +1,6 @@
 'use client'
 
-import { ChevronLeft, Flag, Plus } from 'lucide-react'
+import { Flag, Plus } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import {
   fetchSpaces,
@@ -14,6 +14,7 @@ import { OPEN_SPACES_EVENT, takePendingSpace } from '@/lib/game/open-spaces'
 import { NewSpacePage } from './spaces-form'
 import { SpaceRoom } from './spaces-room'
 import { Avatar, ReportSheet, placeLabel } from './spaces-ui'
+import { AppHeader } from '../app-header'
 import styles from './spaces.module.css'
 
 /*
@@ -115,14 +116,7 @@ export function SpacesApp({ currentPlaceId, onHome }: { currentPlaceId: string |
 
   return (
     <div className={styles.root}>
-      <div className={styles.top}>
-        <button type="button" className={styles.back} aria-label="Back home" onClick={onHome}>
-          <ChevronLeft size={20} aria-hidden="true" />
-        </button>
-        <h2 className={styles.title}>
-          <span className={styles.wordmark}>Spaces</span>
-        </h2>
-      </div>
+      <AppHeader title={<span className={styles.wordmark}>Spaces</span>} onBack={onHome} backLabel="Back home" bar />
 
       <div className={styles.screen}>
         <button type="button" className={styles.start} onClick={() => setView({ name: 'new' })}>

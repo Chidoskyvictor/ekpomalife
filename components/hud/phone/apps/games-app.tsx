@@ -1,6 +1,5 @@
 'use client'
 
-import { ChevronLeft } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react'
 import { useGame } from '@/hooks/use-game'
 import {
@@ -41,6 +40,7 @@ import { GameChatDock } from '@/components/games/game-chat/game-chat-dock'
 import type { GameChatTarget } from '@/lib/game/game-chat-api'
 import { EMBEDDED_GAMES, type EmbeddedGameId } from '@/lib/game/embedded-games'
 import { LudoLobby, LudoPlay, LudoSetup, type LudoPlaySetup } from '@/components/games/ludo/ludo-game'
+import { BackButton } from '../app-header'
 import styles from './games.module.css'
 
 /*
@@ -329,9 +329,7 @@ function GamesScreens({ onHome, view, setView }: { onHome: () => void; view: Vie
   return (
     <div className={styles.screen}>
       <header className={styles.brand}>
-        <button type="button" className={styles.back} onClick={onHome} aria-label="Back home">
-          <ChevronLeft size={18} />
-        </button>
+        <BackButton onBack={onHome} label="Back home" />
         <span className={styles.wordmark}>Games</span>
         <span className={styles.tagline}>Play in your phone</span>
       </header>
@@ -483,9 +481,7 @@ function WhotSetup({
   return (
     <div className={styles.screen}>
       <div className={styles.backBar}>
-        <button type="button" className={styles.back} onClick={onBack} aria-label="Back">
-          <ChevronLeft size={18} />
-        </button>
+        <BackButton onBack={onBack} label="Back" />
         <strong>🃏 Naija Whot!</strong>
         <span className={styles.backSpacer} />
       </div>
@@ -579,9 +575,7 @@ function WhotLobbyView({
   return (
     <div className={styles.screen}>
       <div className={styles.backBar}>
-        <button type="button" className={styles.back} onClick={onBack} aria-label="Back">
-          <ChevronLeft size={18} />
-        </button>
+        <BackButton onBack={onBack} label="Back" />
         <strong>🃏 Lobby</strong>
         <span className={styles.backSpacer} />
       </div>
@@ -679,9 +673,7 @@ function SnookerSetup({
   return (
     <div className={styles.screen}>
       <div className={styles.backBar}>
-        <button type="button" className={styles.back} onClick={onBack} aria-label="Back">
-          <ChevronLeft size={18} />
-        </button>
+        <BackButton onBack={onBack} label="Back" />
         <strong>🎱 Snooker</strong>
         <span className={styles.backSpacer} />
       </div>
@@ -819,9 +811,7 @@ function WaitingView({ match, onBack, onLive }: { match: GameMatch; onBack: () =
   return (
     <div className={styles.screen}>
       <div className={styles.backBar}>
-        <button type="button" className={styles.back} onClick={onBack} aria-label="Back">
-          <ChevronLeft size={18} />
-        </button>
+        <BackButton onBack={onBack} label="Back" />
         <strong>{metaOf(current.game).emoji} {metaOf(current.game).name}</strong>
         <span className={styles.backSpacer} />
       </div>

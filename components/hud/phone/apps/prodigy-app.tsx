@@ -1,6 +1,7 @@
 'use client'
 
-import { ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react'
+import { ChevronRight, ExternalLink } from 'lucide-react'
+import { AppHeader } from '../app-header'
 import styles from './prodigy.module.css'
 
 /*
@@ -68,12 +69,7 @@ const waLink = (message: string) => `https://wa.me/${WHATSAPP}?text=${encodeURIC
 export function ProdigyApp({ onHome }: { onHome: () => void }) {
   return (
     <div className={styles.app}>
-      <header className={styles.top}>
-        <button type="button" className={styles.back} aria-label="Back home" onClick={onHome}>
-          <ChevronLeft size={20} aria-hidden="true" />
-        </button>
-        <span className={styles.topTitle}>Prodigy</span>
-      </header>
+      <AppHeader title="Prodigy" onBack={onHome} backLabel="Back home" bar />
 
       <div className={styles.scroll}>
         <section className={styles.hero}>

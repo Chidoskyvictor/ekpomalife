@@ -1,6 +1,6 @@
 'use client'
 
-import { ChevronLeft, Copy, Plus } from 'lucide-react'
+import { Copy, Plus } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import {
   WALL_KINDS,
@@ -17,6 +17,7 @@ import {
   type WallKind,
 } from '@/lib/game/anonymous-api'
 import { Composer, Feed, PostCard, timeAgo } from './anonymous-feed'
+import { AppHeader } from '../app-header'
 import styles from './anonymous.module.css'
 
 /*
@@ -44,14 +45,13 @@ export function AnonymousApp({ onHome }: { onHome: () => void }) {
 
   return (
     <div className={styles.root}>
-      <header className={styles.top}>
-        <button type="button" className={styles.iconBtn} aria-label={wall ? 'Back to walls' : 'Back home'} onClick={wall ? () => setWall(null) : onHome}>
-          <ChevronLeft size={26} />
-        </button>
-        <h2 className={styles.title}>{title}</h2>
-        <span className={styles.spacer} />
-        <span className={styles.mask} aria-hidden="true">🎭</span>
-      </header>
+      <AppHeader
+        title={title}
+        onBack={wall ? () => setWall(null) : onHome}
+        backLabel={wall ? 'Back to walls' : 'Back home'}
+        right={<span className={styles.mask} aria-hidden="true">🎭</span>}
+        bar
+      />
 
       {you?.banned ? <p className={styles.warn}>You can no longer post in Anonymous. You can still read.</p> : null}
       {you && !you.banned && you.warnings > 0 ? (

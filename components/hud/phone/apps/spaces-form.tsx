@@ -1,6 +1,6 @@
 'use client'
 
-import { ChevronDown, ChevronLeft } from 'lucide-react'
+import { ChevronDown } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import {
   createSpace,
@@ -15,6 +15,7 @@ import {
 } from '@/lib/game/spaces-api'
 import { SpacesPlacePicker } from './spaces-place-picker'
 import { placeLabel } from './spaces-ui'
+import { AppHeader } from '../app-header'
 import styles from './spaces.module.css'
 
 const TITLE_MAX = 60
@@ -94,12 +95,7 @@ export function NewSpacePage({
 
   return (
     <div className={styles.root}>
-      <div className={styles.top}>
-        <button type="button" className={styles.back} aria-label="Back" onClick={onBack}>
-          <ChevronLeft size={20} aria-hidden="true" />
-        </button>
-        <h2 className={styles.title}>New Space</h2>
-      </div>
+      <AppHeader title="New Space" onBack={onBack} bar />
 
       <div className={styles.screen}>
         <label className={styles.titleBox}>
