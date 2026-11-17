@@ -50,12 +50,12 @@
 }
 .no {
   background: var(--fill);
-  color: #334155;
+  color: var(--ink-2);
 }
 .ghost {
   border: 1px solid var(--line);
   background: var(--paper);
-  color: #475569;
+  color: var(--ink-2);
 }
 .yes:disabled,
 .no:disabled,
@@ -101,7 +101,7 @@
   border: 0;
   border-radius: var(--r-md);
   background: var(--fill);
-  color: #475569;
+  color: var(--ink-2);
   font: inherit;
   font-size: var(--fs-14);
   font-weight: 800;
@@ -152,7 +152,7 @@
   height: 44px;
   overflow: hidden;
   border-radius: 50%;
-  background: #fce7f3;
+  background: light-dark(#fce7f3, color-mix(in oklab, #fce7f3 16%, #1c1c1e));
 }
 .names {
   display: flex;
@@ -180,7 +180,7 @@
   height: 8px;
   margin-right: 4px;
   border-radius: 50%;
-  background: #cbd5e1;
+  background: light-dark(#cbd5e1, color-mix(in oklab, #cbd5e1 16%, #1c1c1e));
 }
 .dotOn {
   background: #22c55e;
@@ -201,7 +201,7 @@
   border: 1px solid var(--line);
   border-radius: var(--r-md);
   background: #fafafa;
-  color: #334155;
+  color: var(--ink-2);
   font: inherit;
   font-size: var(--fs-12);
   font-weight: 800;
@@ -251,12 +251,12 @@
   min-width: 0;
   padding: 6px 8px;
   border-radius: var(--r-sm);
-  background: #fdf2f8;
+  background: light-dark(#fdf2f8, color-mix(in oklab, #fdf2f8 16%, #1c1c1e));
   font-size: var(--fs-12);
   font-weight: 700;
 }
 .goalDone {
-  background: #dcfce7;
+  background: light-dark(#dcfce7, color-mix(in oklab, #dcfce7 16%, #1c1c1e));
 }
 .goal span:last-child {
   margin-left: auto;
@@ -268,7 +268,7 @@
   gap: 8px;
   padding: 10px;
   border-radius: var(--r-md);
-  background: #f8fafc;
+  background: light-dark(#f8fafc, color-mix(in oklab, #f8fafc 16%, #1c1c1e));
 }
 .options {
   display: grid;
@@ -280,7 +280,7 @@
   width: 100%;
   min-height: 44px;
   padding: 0 12px;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--line);
   border-radius: var(--r-md);
   font: inherit;
   font-size: var(--fs-16);
@@ -295,7 +295,7 @@
 .event {
   padding: 8px 10px;
   border-radius: var(--r-md);
-  background: #fff7ed;
+  background: light-dark(#fff7ed, color-mix(in oklab, #fff7ed 16%, #1c1c1e));
   font-size: var(--fs-14);
   font-weight: 600;
 }

@@ -67,7 +67,7 @@
   flex: none;
   place-items: center;
   border-radius: 50%;
-  background: #eef2ff;
+  background: light-dark(#eef2ff, color-mix(in oklab, #eef2ff 16%, #1c1c1e));
   font-size: var(--fs-20);
 }
 
@@ -227,8 +227,8 @@
 
 .chipOn,
 .night .chipOn {
-  background: #111;
-  color: #fff;
+  background: var(--btn);
+  color: var(--on-btn);
 }
 
 .night .chipOn {
@@ -283,7 +283,7 @@
   height: 30px;
   place-items: center;
   border-radius: 50%;
-  background: #f0f4ff;
+  background: light-dark(#f0f4ff, color-mix(in oklab, #f0f4ff 16%, #1c1c1e));
   font-size: var(--fs-16);
 }
 

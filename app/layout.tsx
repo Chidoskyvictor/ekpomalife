@@ -12,6 +12,7 @@ import { FaceHost } from '@/components/look/player-face'
 import '@/components/arc/foundation.css'
 import './globals.css'
 import { rootMetadata } from '@/lib/seo/metadata'
+import { THEME_INIT_SCRIPT } from '@/lib/theme'
 
 export const metadata = rootMetadata
 
@@ -46,7 +47,7 @@ const jakarta = localFont({
 })
 
 export const viewport: Viewport = {
-  colorScheme: 'light',
+  colorScheme: 'light dark',
   themeColor: '#ffffff',
   width: 'device-width',
   initialScale: 1,
@@ -62,10 +63,14 @@ export default function RootLayout({
     <html
       lang="en"
       data-theme="light"
+      suppressHydrationWarning
       className={`${geist.variable} ${inter.variable} ${fredoka.variable} ${jakarta.variable}`}
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
       {/* Extensions (Grammarly…) add attributes to <body> before React hydrates */}
-      <body className="font-sans antialiased" style={{ colorScheme: 'light' }} suppressHydrationWarning>
+      <body className="font-sans antialiased" suppressHydrationWarning>
         {process.env.NODE_ENV === 'development' ? <NoHScrollGuard /> : null}
         <PlayShell>{children}</PlayShell>
         {/* Crawlable homepage text, map image and JSON-LD: outside PlayShell's sign-in gate */}

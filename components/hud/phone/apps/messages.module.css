@@ -5,8 +5,8 @@
   height: 100%;
   min-height: 0;
   flex-direction: column;
-  background: #fff;
-  color: #111;
+  background: var(--paper);
+  color: var(--ink);
 }
 
 .scroll {
@@ -20,7 +20,7 @@
 .hint,
 .errorText {
   margin: 14px 16px;
-  color: #8e8e93;
+  color: var(--ink-3);
   font-size: 14px;
   text-align: center;
 }
@@ -63,7 +63,7 @@
   height: 44px;
   border: 0;
   border-radius: var(--r-pill);
-  background: #f2f2f7;
+  background: var(--fill);
   color: #007aff;
   cursor: pointer;
 }
@@ -100,8 +100,8 @@
   margin: 0 12px 8px;
   padding: 0 10px;
   border-radius: var(--r-sm);
-  background: #f2f2f7;
-  color: #8e8e93;
+  background: var(--fill);
+  color: var(--ink-3);
 }
 
 .searchField input {
@@ -109,7 +109,7 @@
   min-width: 0;
   border: 0;
   background: transparent;
-  color: #111;
+  color: var(--ink);
   font: inherit;
   font-size: 14px;
   outline: none;
@@ -135,7 +135,7 @@
 }
 
 .chatRow:hover {
-  background: #f7f7f9;
+  background: light-dark(#f7f7f9, color-mix(in oklab, #f7f7f9 16%, #1c1c1e));
 }
 
 .dot {
@@ -201,19 +201,19 @@
 
 .pin {
   flex: none;
-  color: #8e8e93;
+  color: var(--ink-3);
 }
 
 .chatTime {
   flex: none;
-  color: #8e8e93;
+  color: var(--ink-3);
   font-size: 12px;
 }
 
 .chatPreview {
   display: -webkit-box;
   overflow: hidden;
-  color: #8e8e93;
+  color: var(--ink-3);
   font-size: 13px;
   line-height: 1.3;
   -webkit-box-orient: vertical;
@@ -223,7 +223,7 @@
 .divider {
   height: 6px;
   margin: 2px 0;
-  background: #f2f2f7;
+  background: var(--fill);
 }
 
 .empty {
@@ -243,7 +243,7 @@
 
 .emptyCopy {
   margin: 0;
-  color: #8e8e93;
+  color: var(--ink-3);
   font-size: 14px;
   line-height: 1.4;
 }
@@ -338,7 +338,7 @@
 }
 
 .toLabel {
-  color: #8e8e93;
+  color: var(--ink-3);
   font-size: 14px;
 }
 
@@ -352,7 +352,7 @@
   min-width: 0;
   border: 0;
   background: transparent;
-  color: #111;
+  color: var(--ink);
   font: inherit;
   font-size: 15px;
   outline: none;
@@ -373,7 +373,7 @@
 }
 
 .personRow:hover {
-  background: #f7f7f9;
+  background: light-dark(#f7f7f9, color-mix(in oklab, #f7f7f9 16%, #1c1c1e));
 }
 
 .personMain {
@@ -406,12 +406,12 @@
 }
 
 .personHandle {
-  color: #8e8e93;
+  color: var(--ink-3);
   font-size: 13px;
 }
 
 .you {
-  color: #8e8e93;
+  color: var(--ink-3);
   font-weight: 500;
 }
 
@@ -420,7 +420,7 @@
   padding: 6px 12px;
   border: 0;
   border-radius: var(--r-pill);
-  background: #f2f2f7;
+  background: var(--fill);
   color: #007aff;
   font: inherit;
   font-size: 13px;
@@ -438,7 +438,7 @@
   padding: 10px 12px;
   border: 0;
   border-radius: var(--r-lg);
-  background: #f2f2f7;
+  background: var(--fill);
   color: inherit;
   font: inherit;
   text-align: left;
@@ -475,7 +475,7 @@
 }
 
 .notifBody {
-  color: #3c3c43;
+  color: var(--ink-2);
   font-size: 14px;
   line-height: 1.35;
 }
@@ -498,8 +498,8 @@
   padding: 6px 12px;
   border: 0;
   border-radius: var(--r-pill);
-  background: #f2f2f7;
-  color: #8e8e93;
+  background: var(--fill);
+  color: var(--ink-3);
   font: inherit;
   font-size: 12px;
   font-weight: 600;
@@ -510,7 +510,7 @@
   align-self: center;
   max-width: 85%;
   margin: 6px 0;
-  color: #8e8e93;
+  color: var(--ink-3);
   font-size: 12px;
   font-weight: 600;
   text-align: center;
@@ -558,7 +558,7 @@
   padding: 0;
   border: 0;
   background: transparent;
-  color: #8e8e93;
+  color: var(--ink-3);
   font: inherit;
   font-size: 12px;
   cursor: pointer;
@@ -569,7 +569,7 @@
   padding: 7px 12px;
   border-radius: var(--r-lg);
   background: #e9e9eb;
-  color: #111;
+  color: var(--ink);
   cursor: pointer;
 }
 
@@ -596,7 +596,7 @@
 }
 
 .menuTime {
-  color: #8e8e93;
+  color: var(--ink-3);
   font-size: 12px;
 }
 
@@ -604,7 +604,7 @@
   padding: 4px 10px;
   border: 0;
   border-radius: var(--r-pill);
-  background: #fff;
+  background: var(--paper);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
   color: #ff3b30;
   font: inherit;
@@ -636,8 +636,8 @@
   padding: 11px 16px;
   border: 1px solid #d1d1d6;
   border-radius: var(--r-lg);
-  background: #fff;
-  color: #111;
+  background: var(--paper);
+  color: var(--ink);
   font: inherit;
   /* 16px stops iPhone Safari zooming the page when the box is tapped */
   font-size: 16px;
@@ -671,7 +671,7 @@
 .counter {
   align-self: flex-end;
   margin-right: 42px;
-  color: #8e8e93;
+  color: var(--ink-3);
   font-size: 12px;
 }
 
@@ -770,7 +770,7 @@
   border: 0;
   border-radius: var(--r-pill);
   background: transparent;
-  color: #8e8e93;
+  color: var(--ink-3);
   cursor: pointer;
 }
 
@@ -787,7 +787,7 @@
   padding: 8px;
   overflow-y: auto;
   border-top: 1px solid #ececf0;
-  background: #f9f9fb;
+  background: light-dark(#f9f9fb, color-mix(in oklab, #f9f9fb 16%, #1c1c1e));
 }
 
 .stickerPick {
@@ -802,7 +802,7 @@
 
 .stickerPick:hover,
 .stickerPick:focus-visible {
-  background: #ececf0;
+  background: light-dark(#ececf0, color-mix(in oklab, #ececf0 16%, #1c1c1e));
 }
 
 .sticker {
@@ -826,7 +826,7 @@
 }
 
 .cardMoney {
-  background: #ffe9dc;
+  background: light-dark(#ffe9dc, color-mix(in oklab, #ffe9dc 16%, #1c1c1e));
 }
 
 .cardIcon {
@@ -839,12 +839,12 @@
   min-width: 0;
   flex-direction: column;
   gap: 1px;
-  color: #3c3c43;
+  color: var(--ink-2);
   font-size: 14px;
 }
 
 .cardText strong {
-  color: #111;
+  color: var(--ink);
   font-size: 14px;
 }
 
@@ -872,7 +872,7 @@
   gap: 10px;
   padding: 14px 14px 16px;
   border-radius: var(--r-lg) var(--r-lg) 0 0;
-  background: #fff;
+  background: var(--paper);
   animation: sheetUp 0.22s ease-out;
 }
 
@@ -892,7 +892,7 @@
 
 .sheetHint {
   margin: 0;
-  color: #8e8e93;
+  color: var(--ink-3);
   font-size: 14px;
 }
 
@@ -902,7 +902,7 @@
   gap: 6px;
   padding: 10px 14px;
   border-radius: var(--r-md);
-  background: #f2f2f7;
+  background: var(--fill);
   font-size: 26px;
   font-weight: 700;
 }
@@ -912,7 +912,7 @@
   flex: 1;
   border: 0;
   background: transparent;
-  color: #111;
+  color: var(--ink);
   font: inherit;
   outline: none;
 }
@@ -927,8 +927,8 @@
   min-height: 32px;
   border: 0;
   border-radius: var(--r-pill);
-  background: #f2f2f7;
-  color: #111;
+  background: var(--fill);
+  color: var(--ink);
   font: inherit;
   font-size: 12px;
   font-weight: 650;
@@ -1102,7 +1102,7 @@
 }
 
 .chatPreviewUnread {
-  color: #1c1c1e;
+  color: var(--ink);
   font-weight: 600;
 }
 
@@ -1125,7 +1125,7 @@
   padding: 1px 6px;
   border-radius: var(--r-pill);
   background: #eef2f7;
-  color: #6e6e73;
+  color: var(--ink-2);
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.02em;
@@ -1176,7 +1176,7 @@
 }
 
 .chatHeadSeen {
-  color: #8e8e93;
+  color: var(--ink-3);
   font-size: 11.5px;
 }
 
@@ -1208,7 +1208,7 @@
   flex-direction: column;
   padding: 6px;
   border-radius: var(--r-lg);
-  background: #fff;
+  background: var(--paper);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
 }
 
@@ -1221,7 +1221,7 @@
   border: 0;
   border-radius: var(--r-sm);
   background: transparent;
-  color: #1c1c1e;
+  color: var(--ink);
   font: inherit;
   font-size: 14px;
   font-weight: 600;
@@ -1230,7 +1230,7 @@
 }
 
 .moreMenu button:active {
-  background: #f2f2f7;
+  background: var(--fill);
 }
 
 .nairaIcon {
@@ -1534,7 +1534,7 @@
   place-items: center;
   border-radius: var(--r-pill);
   background: #e5e5ea;
-  color: #3c3c43;
+  color: var(--ink-2);
   opacity: var(--swipe);
   transform: translateY(-50%) scale(calc(0.5 + var(--swipe) * 0.5));
   pointer-events: none;
@@ -1551,7 +1551,7 @@
   border: 0;
   border-radius: var(--r-pill);
   background: #e5e5ea;
-  color: #3c3c43;
+  color: var(--ink-2);
   opacity: 0;
   cursor: pointer;
 }
@@ -1637,7 +1637,7 @@
   padding: 4px 4px 4px 10px;
   border-left: 3px solid #007aff;
   border-radius: var(--r-sm);
-  background: #ececf0;
+  background: light-dark(#ececf0, color-mix(in oklab, #ececf0 16%, #1c1c1e));
 }
 
 .replyText {
@@ -1655,7 +1655,7 @@
 
 .replyText span {
   overflow: hidden;
-  color: #3c3c43;
+  color: var(--ink-2);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1669,7 +1669,7 @@
   place-items: center;
   border: 0;
   background: transparent;
-  color: #8e8e93;
+  color: var(--ink-3);
   cursor: pointer;
 }
 
@@ -1682,7 +1682,7 @@
   margin: -2px 0 2px 36px;
   padding: 0 4px;
   border-radius: var(--r-pill);
-  background: #fff;
+  background: var(--paper);
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.18);
 }
 
@@ -1708,7 +1708,7 @@
 }
 
 .pickEmojiOn {
-  background: #e5f1ff;
+  background: light-dark(#e5f1ff, color-mix(in oklab, #e5f1ff 16%, #1c1c1e));
 }
 
 /* Chip at the bubble's bottom corner */
@@ -1724,7 +1724,7 @@
   padding: 1px 7px;
   border: 1px solid #ececf0;
   border-radius: var(--r-pill);
-  background: #fff;
+  background: var(--paper);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.14);
   font-size: 13px;
   line-height: 1.2;
@@ -1737,7 +1737,7 @@
 }
 
 .chipCount {
-  color: #3c3c43;
+  color: var(--ink-2);
   font-size: 11px;
   font-weight: 700;
 }
@@ -1779,7 +1779,7 @@
 }
 
 .reactorHint {
-  color: #8e8e93;
+  color: var(--ink-3);
   font-size: 12px;
 }
 
@@ -1797,7 +1797,7 @@
 
 .tick {
   display: inline-flex;
-  color: #8e8e93;
+  color: var(--ink-3);
 }
 
 .tickOnDark {
@@ -1840,9 +1840,9 @@
   min-height: 44px;
   padding: 0 14px;
   border-radius: var(--r-lg);
-  background: #fff;
+  background: var(--paper);
   border: 1px solid #d1d1d6;
-  color: #111;
+  color: var(--ink);
   font-size: 15px;
 }
 
@@ -1868,7 +1868,7 @@
 }
 
 .recMax {
-  color: #8e8e93;
+  color: var(--ink-3);
   font-weight: 500;
 }
 
@@ -1876,7 +1876,7 @@
   min-width: 0;
   margin-left: auto;
   overflow: hidden;
-  color: #8e8e93;
+  color: var(--ink-3);
   font-size: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1889,7 +1889,7 @@
 
 .voiceHint {
   margin: 0 0 4px;
-  color: #8e8e93;
+  color: var(--ink-3);
   font-size: 12px;
   text-align: center;
 }
@@ -1904,7 +1904,7 @@
   width: min(208px, 56vw);
   max-width: 100%;
   padding: 4px 2px 2px 0;
-  color: #111;
+  color: var(--ink);
 }
 
 .voiceMine {
@@ -1923,7 +1923,7 @@
   place-items: center;
   border: 0;
   border-radius: var(--r-pill);
-  background: #fff;
+  background: var(--paper);
   color: #007aff;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
   cursor: pointer;
@@ -1949,7 +1949,7 @@
 
 .voiceMine .voiceBadge {
   border-color: #007aff;
-  background: #fff;
+  background: var(--paper);
   color: #007aff;
 }
 
@@ -2006,7 +2006,7 @@
   height: 14px;
   border: 2px solid currentColor;
   border-radius: var(--r-pill);
-  background: #fff;
+  background: var(--paper);
   transform: translate(-50%, -50%);
   pointer-events: none;
 }
@@ -2065,9 +2065,9 @@
   gap: 2px;
   padding: 8px 0 6px;
   border-radius: var(--r-lg);
-  background: #fff;
+  background: var(--paper);
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
-  color: #8e8e93;
+  color: var(--ink-3);
   pointer-events: none;
   animation: lockIn 0.18s ease-out;
 }

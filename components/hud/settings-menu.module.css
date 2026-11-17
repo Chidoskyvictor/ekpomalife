@@ -22,7 +22,7 @@
   background: rgba(255, 255, 255, 0.72);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  color: #1d1d1f;
+  color: var(--ink);
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
   cursor: pointer;
 }
@@ -50,7 +50,7 @@
   border: 0;
   border-radius: var(--r-md);
   background: transparent;
-  color: #1d1d1f;
+  color: var(--ink);
   font-size: var(--fs-16);
   font-weight: 600;
   cursor: pointer;
@@ -65,7 +65,7 @@
   width: 40px;
   height: 24px;
   border-radius: var(--r-pill);
-  background: #d1d1d6;
+  background: light-dark(#d1d1d6, color-mix(in oklab, #d1d1d6 16%, #1c1c1e));
   transition: background 0.15s;
 }
 

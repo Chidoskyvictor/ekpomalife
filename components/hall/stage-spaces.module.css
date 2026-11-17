@@ -5,7 +5,7 @@
   gap: 8px;
   padding: 12px;
   border-radius: var(--r-lg);
-  background: #f5f6f8;
+  background: var(--fill);
 }
 .label {
   font-size: var(--fs-14);
@@ -23,8 +23,8 @@
   min-height: 44px;
   border: none;
   border-radius: var(--r-pill);
-  background: #111;
-  color: #fff;
+  background: var(--btn);
+  color: var(--on-btn);
   font-size: var(--fs-16);
   font-weight: 800;
 }
@@ -43,7 +43,7 @@
   gap: 10px;
   padding: 12px;
   border-radius: var(--r-lg);
-  background: #fff1f3;
+  background: light-dark(#fff1f3, color-mix(in oklab, #fff1f3 16%, #1c1c1e));
 }
 .dot {
   flex: none;

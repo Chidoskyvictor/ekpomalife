@@ -128,8 +128,8 @@
 }
 
 .tabOn {
-  background: #111;
-  color: #fff;
+  background: var(--btn);
+  color: var(--on-btn);
 }
 
 /* —— Code box —— */
@@ -171,8 +171,8 @@
   padding: 0 18px;
   border: 0;
   border-radius: var(--r-pill);
-  background: #111;
-  color: #fff;
+  background: var(--btn);
+  color: var(--on-btn);
   font: inherit;
   font-size: var(--fs-14);
   font-weight: 800;
@@ -776,7 +776,7 @@ button.person {
   height: 20px;
   place-items: center;
   border-radius: 50%;
-  background: #fde68a;
+  background: light-dark(#fde68a, color-mix(in oklab, #fde68a 16%, #1c1c1e));
   font-size: var(--fs-12);
 }
 
@@ -1047,7 +1047,7 @@ button.person {
   flex: none;
   place-items: center;
   border-radius: var(--r-md);
-  background: #e0f2fe;
+  background: light-dark(#e0f2fe, color-mix(in oklab, #e0f2fe 16%, #1c1c1e));
   font-size: var(--fs-20);
 }
 

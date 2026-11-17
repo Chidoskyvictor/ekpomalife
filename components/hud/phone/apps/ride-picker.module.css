@@ -135,7 +135,7 @@
   background: var(--fill);
 }
 .rowOn {
-  background: #eef4ff;
+  background: light-dark(#eef4ff, color-mix(in oklab, #eef4ff 16%, #1c1c1e));
 }
 
 .tile {
@@ -207,7 +207,7 @@
   text-align: left;
 }
 .whereBtn:active {
-  background: #e7e9ec;
+  background: light-dark(#e7e9ec, color-mix(in oklab, #e7e9ec 16%, #1c1c1e));
 }
 .whereDot {
   flex: none;

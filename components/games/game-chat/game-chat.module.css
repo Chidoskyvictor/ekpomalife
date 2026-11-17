@@ -93,7 +93,7 @@
 .hint {
   flex: 1;
   overflow: hidden;
-  color: #9ca3af;
+  color: var(--ink-3);
   font-size: 11px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -146,7 +146,7 @@
 
 .empty {
   margin: auto;
-  color: #9ca3af;
+  color: var(--ink-3);
   font-size: 13px;
 }
 
@@ -164,7 +164,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #9ca3af;
+  color: var(--ink-3);
   font-size: 11px;
 }
 
@@ -187,7 +187,7 @@
   place-items: center;
   border: 0;
   background: none;
-  color: #9ca3af;
+  color: var(--ink-3);
 }
 
 .text {

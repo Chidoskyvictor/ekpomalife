@@ -110,8 +110,8 @@
   border-radius: var(--r-pill);
   border: none;
   padding: 0 12px;
-  background: #111;
-  color: #fff;
+  background: var(--btn);
+  color: var(--on-btn);
   font-size: var(--fs-12);
   font-weight: 700;
 }

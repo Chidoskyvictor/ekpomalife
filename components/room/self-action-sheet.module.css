@@ -47,7 +47,7 @@
   width: 40px;
   height: 4px;
   border-radius: var(--r-pill);
-  background: #d1d5db;
+  background: light-dark(#d1d5db, color-mix(in oklab, #d1d5db 16%, #1c1c1e));
 }
 
 .head {
@@ -68,7 +68,7 @@
   overflow: hidden;
   place-items: center;
   border-radius: 50%;
-  background: #eef2ff;
+  background: light-dark(#eef2ff, color-mix(in oklab, #eef2ff 16%, #1c1c1e));
 }
 .face {
   width: 100%;
@@ -117,7 +117,7 @@
   overscroll-behavior: contain;
   padding: 8px;
   border-radius: var(--r-lg);
-  background: #f5f6f8;
+  background: var(--fill);
 }
 
 .card {
@@ -156,7 +156,7 @@
   height: 40px;
   place-items: center;
   border-radius: 50%;
-  background: #e8f0ff;
+  background: light-dark(#e8f0ff, color-mix(in oklab, #e8f0ff 16%, #1c1c1e));
   font-size: var(--fs-20);
 }
 .time {
@@ -233,8 +233,8 @@
   inset: auto 8px 8px auto;
   padding: 2px 8px;
   border-radius: var(--r-pill);
-  background: #111;
-  color: #fff;
+  background: var(--btn);
+  color: var(--on-btn);
   font-size: var(--fs-12);
   font-weight: 700;
 }

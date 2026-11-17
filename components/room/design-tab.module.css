@@ -19,7 +19,7 @@
   gap: 8px;
   padding: 10px 10px 10px 12px;
   border-radius: var(--r-lg);
-  background: #fff7e0;
+  background: light-dark(#fff7e0, color-mix(in oklab, #fff7e0 16%, #1c1c1e));
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
 }
 .tryingText {
@@ -142,7 +142,7 @@
   gap: 10px;
   padding: 12px;
   border-radius: var(--r-lg);
-  background: #f5f6f8;
+  background: var(--fill);
 }
 .customText {
   display: flex;

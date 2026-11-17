@@ -13,6 +13,7 @@ import { fetchChatSettings, saveChatSettings } from '@/lib/game/hostels-api'
 import { fetchFamily, saveHideStatus } from '@/lib/game/family-api'
 import { notificationsSupported, setNotifications, useNotificationsOn } from '@/lib/notify'
 import { replayTour } from '@/lib/game/coach-api'
+import { setThemePref, useThemePref, type ThemePref } from '@/lib/theme'
 import phoneStyles from '../phone.module.css'
 import styles from './settings-app.module.css'
 
@@ -65,7 +66,7 @@ export function SettingsApp({
         {DATA_BUNDLES.map((bundle) => (
           <li key={bundle.id} className={phoneStyles.listItem}>
             <div>
-              <p className={phoneStyles.promoTitle} style={{ color: '#111', margin: 0 }}>
+              <p className={phoneStyles.promoTitle} style={{ color: 'var(--ink)', margin: 0 }}>
                 {bundle.label}
               </p>
               <p className={phoneStyles.listMeta}>₦{bundle.price}</p>
@@ -117,6 +118,32 @@ export function SettingsApp({
   )
 }
 
+/** Light / Dark / Auto (follows the device). Saved on this device only. */
+function ThemeChoice() {
+  const pref = useThemePref()
+  const options: { id: ThemePref; label: string }[] = [
+    { id: 'light', label: 'Light' },
+    { id: 'dark', label: 'Dark' },
+    { id: 'auto', label: 'Auto' },
+  ]
+  return (
+    <div role="radiogroup" aria-label="Theme" className={styles.themeRow}>
+      {options.map((o) => (
+        <button
+          key={o.id}
+          type="button"
+          role="radio"
+          aria-checked={pref === o.id}
+          className={`${styles.themeBtn} ${pref === o.id ? styles.themeBtnOn : ''}`}
+          onClick={() => setThemePref(o.id)}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 /** Settings → Replay tutorial: the tour starts again (and shows when the phone closes). */
 function ReplayTutorial({ onMessage }: { onMessage: (msg: string | null) => void }) {
   const [busy, setBusy] = useState(false)
@@ -124,7 +151,7 @@ function ReplayTutorial({ onMessage }: { onMessage: (msg: string | null) => void
     <ul className={phoneStyles.list}>
       <li className={phoneStyles.listItem}>
         <div>
-          <p className={phoneStyles.promoTitle} style={{ color: '#111', margin: 0 }}>
+          <p className={phoneStyles.promoTitle} style={{ color: 'var(--ink)', margin: 0 }}>
             Replay tutorial
           </p>
           <p className={phoneStyles.listMeta}>Show the quick tour again</p>
@@ -158,7 +185,7 @@ function NotificationsToggle({ onMessage }: { onMessage: (msg: string | null) =>
     <ul className={phoneStyles.list}>
       <li className={phoneStyles.listItem}>
         <div>
-          <p className={phoneStyles.promoTitle} style={{ color: '#111', margin: 0 }}>
+          <p className={phoneStyles.promoTitle} style={{ color: 'var(--ink)', margin: 0 }}>
             Background notifications
           </p>
           <p className={phoneStyles.listMeta}>New messages and challenges while the game is minimised</p>
@@ -201,7 +228,7 @@ function ReadReceiptsToggle({ onMessage }: { onMessage: (msg: string | null) => 
     <ul className={phoneStyles.list}>
       <li className={phoneStyles.listItem}>
         <div>
-          <p className={phoneStyles.promoTitle} style={{ color: '#111', margin: 0 }}>
+          <p className={phoneStyles.promoTitle} style={{ color: 'var(--ink)', margin: 0 }}>
             Read receipts
           </p>
           <p className={phoneStyles.listMeta}>If off, you won’t send or see blue ticks. Delivered still shows.</p>
@@ -247,7 +274,7 @@ function HideStatusToggle({ onMessage }: { onMessage: (msg: string | null) => vo
     <ul className={phoneStyles.list}>
       <li className={phoneStyles.listItem}>
         <div>
-          <p className={phoneStyles.promoTitle} style={{ color: '#111', margin: 0 }}>
+          <p className={phoneStyles.promoTitle} style={{ color: 'var(--ink)', margin: 0 }}>
             Hide relationship status
           </p>
           <p className={phoneStyles.listMeta}>If on, your card won’t say “In a relationship” or “Single”.</p>

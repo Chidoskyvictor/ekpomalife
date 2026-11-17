@@ -69,7 +69,7 @@
 .ctaSecondary {
   color: #1a6fb0;
   border: 1px solid color-mix(in oklab, #1a6fb0 35%, white);
-  background: white;
+  background: var(--paper);
 }
 
 .section {

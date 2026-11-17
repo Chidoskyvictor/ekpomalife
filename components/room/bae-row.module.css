@@ -14,7 +14,7 @@
   padding: 3px 10px;
   border-radius: var(--r-pill);
   background: var(--fill);
-  color: #334155;
+  color: var(--ink-2);
   font-size: var(--fs-12);
   font-weight: 800;
 }
@@ -28,7 +28,7 @@
   border: 1px solid var(--line);
   border-radius: var(--r-pill);
   background: var(--paper);
-  color: #334155;
+  color: var(--ink-2);
   font: inherit;
   font-size: var(--fs-14);
   font-weight: 800;

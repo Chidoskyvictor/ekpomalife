@@ -160,8 +160,8 @@
 }
 
 .action[aria-pressed='true'] {
-  background: #111;
-  color: #fff;
+  background: var(--btn);
+  color: var(--on-btn);
 }
 
 .skip {

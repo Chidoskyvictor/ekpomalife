@@ -42,7 +42,7 @@
   text-align: center;
   font-size: var(--fs-14);
   line-height: 1.5;
-  color: #475569;
+  color: var(--ink-2);
 }
 
 /* Shown until the room canvas has drawn its first frame */
@@ -72,7 +72,7 @@
   margin: 0;
   font-size: var(--fs-14);
   font-weight: 600;
-  color: #475569;
+  color: var(--ink-2);
 }
 
 @keyframes roomShimmer {
@@ -120,7 +120,7 @@
   border: 0;
   border-radius: var(--r-pill);
   background: rgba(255, 255, 255, 0.75);
-  color: #334155;
+  color: var(--ink-2);
   cursor: pointer;
   box-shadow: 0 1px 8px rgba(0, 0, 0, 0.06);
 }
@@ -503,8 +503,8 @@
   padding: 0 14px;
   border: 0;
   border-radius: var(--r-pill);
-  background: #111;
-  color: #fff;
+  background: var(--btn);
+  color: var(--on-btn);
   font: inherit;
   cursor: pointer;
 }

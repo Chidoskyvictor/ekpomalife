@@ -109,7 +109,7 @@
   height: 42px;
   place-items: center;
   border-radius: var(--r-md);
-  background: #eafaf0;
+  background: light-dark(#eafaf0, color-mix(in oklab, #eafaf0 16%, #1c1c1e));
   font-size: var(--fs-20);
 }
 

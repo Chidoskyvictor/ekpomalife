@@ -48,7 +48,7 @@
   height: 6px;
   overflow: hidden;
   border-radius: var(--r-pill);
-  background: #dbe3f0;
+  background: light-dark(#dbe3f0, color-mix(in oklab, #dbe3f0 16%, #1c1c1e));
 }
 .fill {
   position: absolute;

@@ -34,11 +34,11 @@
 }
 
 .noticeOk .noticeIcon {
-  background: #dcfce7;
+  background: light-dark(#dcfce7, color-mix(in oklab, #dcfce7 16%, #1c1c1e));
 }
 
 .noticeBad .noticeIcon {
-  background: #ffe4e6;
+  background: light-dark(#ffe4e6, color-mix(in oklab, #ffe4e6 16%, #1c1c1e));
 }
 
 .noticeIcon {
@@ -48,7 +48,7 @@
   width: 36px;
   height: 36px;
   border-radius: var(--r-md);
-  background: #eef2ff;
+  background: light-dark(#eef2ff, color-mix(in oklab, #eef2ff 16%, #1c1c1e));
   font-size: var(--fs-20);
   line-height: 1;
 }

@@ -172,7 +172,7 @@
   min-height: 48px;
   border: 2px solid var(--line);
   border-radius: var(--r-lg);
-  background: white;
+  background: var(--paper);
   transition:
     border-color 0.16s ease,
     box-shadow 0.16s ease,
@@ -325,7 +325,7 @@
   place-items: center;
   border: 2px solid var(--line);
   border-radius: var(--r-sm);
-  background: white;
+  background: var(--paper);
 }
 
 .checkBox[data-on] {

@@ -30,8 +30,8 @@
   font-weight: 700;
 }
 .barMain {
-  background: #111;
-  color: #fff;
+  background: var(--btn);
+  color: var(--on-btn);
 }
 
 .backdrop {
@@ -59,7 +59,7 @@
   height: 4px;
   margin: 0 auto 8px;
   border-radius: var(--r-pill);
-  background: #d1d5db;
+  background: light-dark(#d1d5db, color-mix(in oklab, #d1d5db 16%, #1c1c1e));
 }
 .head {
   display: flex;
@@ -78,7 +78,7 @@
   overflow: hidden;
   place-items: center;
   border-radius: 50%;
-  background: #eef2ff;
+  background: light-dark(#eef2ff, color-mix(in oklab, #eef2ff 16%, #1c1c1e));
 }
 .face {
   width: 100%;
@@ -122,7 +122,7 @@
   overflow-y: auto;
   padding: 8px;
   border-radius: var(--r-lg);
-  background: #f5f6f8;
+  background: var(--fill);
   overscroll-behavior: contain;
 }
 .note {
@@ -261,8 +261,8 @@
   font-weight: 700;
 }
 .yes {
-  background: #111;
-  color: #fff;
+  background: var(--btn);
+  color: var(--on-btn);
 }
 .no {
   background: var(--fill);

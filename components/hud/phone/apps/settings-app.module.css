@@ -15,3 +15,24 @@
 .swatchActive {
   border-color: #16a34a;
 }
+
+.themeRow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.themeBtn {
+  min-height: 44px;
+  border-radius: var(--r-md);
+  border: 2px solid transparent;
+  background: var(--fill);
+  color: var(--ink);
+  font-size: var(--fs-14);
+  font-weight: 700;
+}
+
+.themeBtnOn {
+  border-color: var(--primary);
+  color: var(--primary);
+}

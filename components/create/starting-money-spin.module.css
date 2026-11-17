@@ -62,7 +62,7 @@
   justify-content: center;
   overflow: hidden;
   border-radius: var(--r-sm);
-  background: #f3f5f8;
+  background: light-dark(#f3f5f8, color-mix(in oklab, #f3f5f8 16%, #1c1c1e));
   font-size: 1.65rem;
   font-weight: 700;
   line-height: 2.4rem;
@@ -84,7 +84,7 @@
   gap: 8px;
   align-self: center;
   border-radius: var(--r-pill);
-  background: #eef6ff;
+  background: light-dark(#eef6ff, color-mix(in oklab, #eef6ff 16%, #1c1c1e));
   padding: 8px 14px;
   font-size: 0.95rem;
   font-weight: 600;
