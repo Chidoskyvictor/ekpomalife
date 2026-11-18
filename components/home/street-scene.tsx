@@ -19,7 +19,7 @@ import {
   type StreetTemplate,
 } from '@/lib/game/street'
 import { InstancedShapes, type Shape } from './instanced-shapes'
-import { BlackBlocks, HomeSign, OrbitStreetCamera, PassingCars, StreetBlocks, StreetDressing, streetView } from './street-dressing'
+import { HomeBlocks, HomeSign, OrbitStreetCamera, PassingCars, StreetBlocks, StreetDressing, streetView } from './street-dressing'
 import { PARKED_CAR, ParkedCar, StreetBoy } from './street-extras'
 import styles from './street.module.css'
 
@@ -66,7 +66,7 @@ function buildCompounds(t: StreetTemplate, own: number, numbers: number[], paint
     const cx = lotX(t, i)
     const wall = i === own && paint ? paint : HOUSE_TINTS[(numbers[i] * 7) % HOUSE_TINTS.length]
     const zc = -1.7 - d / 2
-    // Yard only: the houses themselves are the black blocks behind (BlackBlocks)
+    // Yard only: the houses themselves are the Innovation Hub blocks behind (HomeBlocks)
     boxes.push({ p: [cx, 0.015, -depth / 2], s: [t.lotW - 0.25, 0.03, depth], c: '#cdc4b2' })
     // Front fence with a gap for the gate, pillars and the two gate leaves
     const piece = t.lotW / 2 - t.gateW / 2 - 0.2
@@ -292,7 +292,7 @@ export function StreetScene({ lodgingId, houseNumber, paint, appearance, clock, 
       <StreetBlocks width={LOTS * t.lotW} />
       {t.kind === 'block' ? null : (
         <Suspense fallback={null}>
-          <BlackBlocks width={LOTS * t.lotW} z={-(t.house.d + 3.4) - 0.6} />
+          <HomeBlocks width={LOTS * t.lotW} z={-(t.house.d + 3.4) - 0.6} />
         </Suspense>
       )}
       <PassingCars width={LOTS * t.lotW} skipNear={car ? { x: carX, length: PARKED_CAR.length + 3 } : undefined} />

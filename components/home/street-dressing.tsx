@@ -3,7 +3,7 @@
 import { useGLTF } from '@react-three/drei'
 import { useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useMemo, useRef } from 'react'
-import { CanvasTexture, MeshStandardMaterial as StdMaterial, PerspectiveCamera, SRGBColorSpace, Vector3, type Group, type Mesh, type MeshStandardMaterial } from 'three'
+import { CanvasTexture, PerspectiveCamera, SRGBColorSpace, Vector3, type Group, type Mesh, type MeshStandardMaterial } from 'three'
 import { CarModel } from '@/components/cars/car-model'
 import { InstancedShapes, type Shape } from './instanced-shapes'
 
@@ -110,24 +110,17 @@ export function StreetBlocks({ width }: { width: number }) {
 }
 useGLTF.preload(BLOCKS_URL)
 
-const blackBlock = new StdMaterial({ color: '#050506', roughness: 1, metalness: 0 })
-
 /**
- * Behind your gate: the same campus blocks as across the road, all one flat black (walls, roofs
- * and windows), so the houses behind the fences read as a dark backdrop with no names or colours.
- * `z` is where their fronts stand (behind the compound's back wall).
+ * Behind your gate: the Innovation Hub's campus blocks, the same building as across the road,
+ * turned to face the road. `z` is where their fronts stand (behind the compound's back wall).
  */
-export function BlackBlocks({ width, z }: { width: number; z: number }) {
+export function HomeBlocks({ width, z }: { width: number; z: number }) {
   const { scene } = useGLTF(BLOCKS_URL)
   const rows = Math.max(1, Math.ceil((width + 40) / ROW_W))
   const copies = useMemo(
     () =>
       Array.from({ length: rows }, () => {
         const root = scene.clone(true)
-        root.traverse((o) => {
-          const mesh = o as Mesh
-          if (mesh.isMesh) mesh.material = blackBlock
-        })
         return root
       }),
     [scene, rows],
@@ -272,8 +265,8 @@ export function OrbitStreetCamera({ player }: { player: React.RefObject<[number,
       const dy = e.clientY - was.y
       if (!dragged && Math.hypot(dx, dy) < 2) return
       dragged = true
-      streetView.yaw -= dx * 0.012
-      streetView.pitch = Math.max(0.05, Math.min(1.35, streetView.pitch - dy * 0.007))
+      streetView.yaw -= dx * 0.013
+      streetView.pitch = Math.max(0.05, Math.min(1.35, streetView.pitch - dy * 0.01))
     }
     const up = (e: PointerEvent) => {
       touches.delete(e.pointerId)
@@ -288,14 +281,21 @@ export function OrbitStreetCamera({ player }: { player: React.RefObject<[number,
     const wheel = (e: WheelEvent) => {
       streetView.dist = Math.max(4, Math.min(16, streetView.dist * (e.deltaY > 0 ? 1.1 : 0.9)))
     }
-    el.addEventListener('pointerdown', down)
+    // Anywhere on the screen that isn't a button or sheet turns the view (overlays can't swallow it)
+    const start = (e: PointerEvent) => {
+      const target = e.target as Element | null
+      if (target?.closest?.('button, a, input, textarea, select, [role="dialog"], [role="button"]')) return
+      down(e)
+    }
+    el.style.touchAction = 'none'
+    window.addEventListener('pointerdown', start)
     window.addEventListener('pointermove', move)
     window.addEventListener('pointerup', up)
     window.addEventListener('pointercancel', up)
     el.addEventListener('click', click, true)
     el.addEventListener('wheel', wheel, { passive: true })
     return () => {
-      el.removeEventListener('pointerdown', down)
+      window.removeEventListener('pointerdown', start)
       window.removeEventListener('pointermove', move)
       window.removeEventListener('pointerup', up)
       window.removeEventListener('pointercancel', up)
