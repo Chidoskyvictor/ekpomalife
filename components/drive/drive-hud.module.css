@@ -561,6 +561,11 @@
   align-items: flex-end;
   gap: 8px;
   margin-bottom: 8px;
+  padding: 8px;
+  border: 1px solid color-mix(in oklab, var(--ink) 14%, transparent);
+  border-radius: 28px;
+  background: rgba(var(--glass-rgb, 255, 255, 255), 0.55);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.16);
 }
 
 .tool {
@@ -571,9 +576,8 @@
   place-items: center;
   border: 0;
   border-radius: 50%;
-  background: rgba(var(--glass-rgb, 255, 255, 255), 0.78);
+  background: rgba(var(--glass-rgb, 255, 255, 255), 0.85);
   color: var(--ink);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
   pointer-events: auto;
 }
 

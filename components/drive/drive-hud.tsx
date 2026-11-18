@@ -213,19 +213,6 @@ export function DriveHud() {
           <span>{drive.dest ? drive.dest.label : 'Where to?'}</span>
         </button>
         <RaceButton onClick={() => setRacing(true)} />
-        <button
-          type="button"
-          className={styles.round}
-          aria-label="Change camera view"
-          onClick={() => {
-            driveView.mode = (driveView.mode + 1) % 3
-            driveView.yaw = 0
-            driveView.tilt = 0
-            setView(driveView.mode)
-          }}
-        >
-          <Camera size={16} aria-hidden="true" />
-        </button>
       </div>
       <small className={styles.viewName} aria-live="polite">{['Chase view', "Driver's seat", 'Bumper view'][view]}</small>
       <div className={styles.sideAnchor}>
@@ -260,6 +247,19 @@ export function DriveHud() {
 
       <div className={styles.fill} />
       <div className={styles.tools} role="group" aria-label="Driving tools">
+        <button
+          type="button"
+          className={styles.tool}
+          aria-label="Change camera view"
+          onClick={() => {
+            driveView.mode = (driveView.mode + 1) % 3
+            driveView.yaw = 0
+            driveView.tilt = 0
+            setView(driveView.mode)
+          }}
+        >
+          <Camera size={18} aria-hidden="true" />
+        </button>
         <NearbyMic className={styles.tool} badgeClassName={styles.toolBadge} />
         <RaceVoice />
         <button

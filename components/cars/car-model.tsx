@@ -99,7 +99,7 @@ type Rgb = [number, number, number]
 const GLB: Record<string, { url: string; length: number; paint: Rgb[]; glass: Rgb[] }> = {
   scout: { url: '/models/cars/jeep.glb?v=1', length: 4.1, paint: [[0.1, 0.15, 0.05], [0.05, 0.1, 0.05]], glass: [] },
   suv: { url: '/models/cars/suv.glb?v=1', length: 5.0, paint: [[0.1, 0.1, 0.15], [0.05, 0.05, 0.1]], glass: [] },
-  gt3: { url: '/models/cars/gt3.glb?v=1', length: 4.6, paint: [[0.8, 0.8, 0.75]], glass: [[0.04, 0.05, 0.06], [0.05, 0.06, 0.07]] },
+  gt3: { url: '/models/cars/gt3.glb?v=1', length: 4.6, paint: [[0.8, 0.8, 0.75]], glass: [] }, // GT3 keeps its tinted (opaque) glass
 }
 
 export const isCarModel = (id: string) => id in SPECS || id in GLB
@@ -219,13 +219,16 @@ function procGeometry(id: string, color: string) {
 
 const glassPaint = new MeshStandardMaterial({ vertexColors: true, roughness: 0.15, metalness: 0.6, transparent: true, opacity: 0.28, depthWrite: false })
 
-function ProcCar({ id, color }: { id: string; color: string }) {
+/** Other cars (and the showroom) keep the dark, opaque tint: only your own car is see-through, so you can see yourself in it. */
+const tintedGlass = new MeshStandardMaterial({ color: '#141c24', roughness: 0.3, metalness: 0.4 })
+
+function ProcCar({ id, color, seeThrough }: { id: string; color: string; seeThrough: boolean }) {
   const geometry = useMemo(() => procGeometry(id, color), [id, color])
   const glass = useMemo(() => glassGeometry(id), [id])
   return (
     <>
       <mesh geometry={geometry} material={vertexPaint} castShadow />
-      <mesh geometry={glass} material={glassPaint} renderOrder={2} />
+      <mesh geometry={glass} material={seeThrough ? glassPaint : tintedGlass} renderOrder={seeThrough ? 2 : 0} />
     </>
   )
 }
@@ -333,13 +336,13 @@ function glbGeometry(id: string, scene: import('three').Object3D, color: string)
   return out
 }
 
-function GlbCar({ id, color }: { id: string; color: string }) {
+function GlbCar({ id, color, seeThrough }: { id: string; color: string; seeThrough: boolean }) {
   const { scene } = useGLTF(GLB[id]!.url)
   const { body, glass } = useMemo(() => glbGeometry(id, scene, color), [id, scene, color])
   return (
     <>
       <mesh geometry={body} material={vertexPaint} castShadow />
-      {glass ? <mesh geometry={glass} material={glassPaint} renderOrder={2} /> : null}
+      {glass ? <mesh geometry={glass} material={seeThrough ? glassPaint : tintedGlass} renderOrder={seeThrough ? 2 : 0} /> : null}
     </>
   )
 }
@@ -390,13 +393,13 @@ function headLamps(id: string): [number, number, number] {
 }
 
 /** One car by catalogue id, painted `color`, with `dents` crumpled patches. Unknown ids draw nothing. */
-export function CarModel({ id, color, dents = 0 }: { id: string; color: string; dents?: number }) {
+export function CarModel({ id, color, dents = 0, seeThrough = false }: { id: string; color: string; dents?: number; /** Clear windows, for the car you are sitting in */ seeThrough?: boolean }) {
   const body =
     id in SPECS ? (
-      <ProcCar id={id} color={color} />
+      <ProcCar id={id} color={color} seeThrough={seeThrough} />
     ) : id in GLB ? (
       <Suspense fallback={null}>
-        <GlbCar id={id} color={color} />
+        <GlbCar id={id} color={color} seeThrough={seeThrough} />
       </Suspense>
     ) : null
   if (!body) return null

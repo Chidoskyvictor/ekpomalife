@@ -1,7 +1,7 @@
 'use client'
 
 import { useFrame, useThree } from '@react-three/fiber'
-import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
+import { useEffect, useMemo, useRef, type MutableRefObject } from 'react'
 import { CanvasTexture, MathUtils, SRGBColorSpace, Vector3, type Group } from 'three'
 import { CarModel } from '@/components/cars/car-model'
 import { CarDriver } from '@/components/drive/car-driver'
@@ -194,7 +194,7 @@ export function DriveCar({
 
   return (
     <group ref={group} position={[start.x, 0.05, start.z]} rotation={[0, start.h, 0]} scale={world.carScale}>
-      <CarModel id={car.model} color={car.color} />
+      <CarModel id={car.model} color={car.color} seeThrough />
       <CarDriver model={car.model} appearance={driverLook} color={car.color} progress={climb} doors={!lowPerf} />
     </group>
   )
@@ -227,9 +227,8 @@ function nameTexture(name: string) {
 const PLAYBACK_DELAY_MS = 250
 
 /** Another player's car, gliding after the positions their phone sends. Hidden until they are at the wheel. */
-function PeerCar({ peer, scale, driver }: { peer: Peer; scale: number; driver: boolean }) {
+function PeerCar({ peer, scale }: { peer: Peer; scale: number }) {
   const group = useRef<Group>(null)
-  const seated = useRef(1)
   const lastHorn = useRef<number | null>(null)
   const [model, color] = (peer.car ?? '').split(':')
   useFrame((_, delta) => {
@@ -288,7 +287,6 @@ function PeerCar({ peer, scale, driver }: { peer: Peer; scale: number; driver: b
     <group ref={group} visible={false}>
       <group scale={scale}>
         <CarModel id={model} color={color ?? '#c9ccd1'} />
-        {driver ? <CarDriver model={model} appearance={peer.appearance} color={color ?? '#c9ccd1'} progress={seated} doors={false} /> : null}
       </group>
       <sprite position={[0, 2.0 * scale + 0.45, 0]} scale={[2.6 * scale, 0.65 * scale, 1]}>
         <spriteMaterial map={nameTexture(peer.username)} depthTest={false} />
@@ -297,38 +295,14 @@ function PeerCar({ peer, scale, driver }: { peer: Peer; scale: number; driver: b
   )
 }
 
-/** Drivers are drawn only for this many cars nearest you, and only within this distance (metres). */
-const DRIVERS_NEAR = 3
-const DRIVERS_WITHIN = 40
-
-/** Everyone else who is driving right now. Their drivers show only for the nearest few cars (none on weak phones). */
+/** Everyone else who is driving right now (their cars keep the dark tinted glass: only your own driver shows). */
 export function PeerCars({ peers, roster, scale }: { peers: MutableRefObject<Map<string, Peer>>; roster: number; scale: number }) {
   // roster bumps when someone joins or leaves
   const list = useMemo(() => [...peers.current.values()].filter((p) => p.car), [peers, roster]) // eslint-disable-line react-hooks/exhaustive-deps
-  const lowPerf = useLowPerf()
-  const [near, setNear] = useState('')
-  const since = useRef(0)
-  useFrame((_, delta) => {
-    since.current += delta
-    if (since.current < 0.5) return
-    since.current = 0
-    let next = ''
-    if (!lowPerf) {
-      const close = list
-        .filter((p) => p.state?.pose === 'sit')
-        .map((p) => ({ id: p.userId, d: Math.hypot(p.state!.x - driveTelemetry.x, p.state!.z - driveTelemetry.z) }))
-        .filter((c) => c.d <= DRIVERS_WITHIN)
-        .sort((a, b) => a.d - b.d)
-        .slice(0, DRIVERS_NEAR)
-      next = close.map((c) => c.id).sort().join('|')
-    }
-    if (next !== near) setNear(next)
-  })
-  const shown = new Set(near ? near.split('|') : [])
   return (
     <group>
       {list.map((p) => (
-        <PeerCar key={p.userId} peer={p} scale={scale} driver={shown.has(p.userId)} />
+        <PeerCar key={p.userId} peer={p} scale={scale} />
       ))}
     </group>
   )
