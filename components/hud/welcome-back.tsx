@@ -5,7 +5,7 @@ import { PlayerFace } from '@/components/look/player-face'
 import { SocialRow } from '@/components/seo/social-row'
 import { useGame } from '@/hooks/use-game'
 import { useAuthGate } from '@/lib/auth/auth-gate-context'
-import { calendarForDay, compactMoney } from '@/lib/game/needs'
+import { calendarForDay } from '@/lib/game/needs'
 import { hapticTap } from './haptic'
 import styles from './welcome-back.module.css'
 
@@ -70,7 +70,7 @@ export function WelcomeBack() {
             )}
             <span className={styles.who}>
               <strong>{state ? state.characterName : 'Welcome back'}</strong>
-              <span>{state && cal ? `${cal.label} · ${compactMoney(state.cash)}` : 'Loading your life…'}</span>
+              <span>{state && cal ? `${cal.label} · ₦${state.cash.toLocaleString('en-NG')}` : 'Loading your life…'}</span>
             </span>
           </div>
           <button

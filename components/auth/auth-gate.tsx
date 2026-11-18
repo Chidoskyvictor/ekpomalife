@@ -69,9 +69,12 @@ export function AuthGate({ mode, children }: { mode: AuthGateMode; children: Rea
   if (!ready) {
     return (
       <div className={styles.loading} data-theme="light" aria-busy="true" aria-live="polite">
-        <h1 className={styles.mark}>
-          <TextShimmer>Ekpoma Life</TextShimmer>
-        </h1>
+        <div className={styles.stack}>
+          <img src="/logo.png" alt="" width={88} height={88} className={styles.logo} />
+          <h1 className={styles.mark}>
+            <TextShimmer>Ekpoma Life</TextShimmer>
+          </h1>
+        </div>
       </div>
     )
   }

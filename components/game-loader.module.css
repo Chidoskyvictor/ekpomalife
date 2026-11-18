@@ -27,3 +27,29 @@
   letter-spacing: 0.02em;
   line-height: 1;
 }
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+/* Our logo, glowing softly while the game checks you in */
+.logo {
+  border-radius: 22px;
+  filter: drop-shadow(0 0 14px color-mix(in oklab, var(--primary) 55%, transparent));
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .logo {
+    animation: glow 1.6s ease-in-out infinite;
+  }
+}
+
+@keyframes glow {
+  50% {
+    filter: drop-shadow(0 0 28px color-mix(in oklab, var(--primary) 85%, transparent));
+    transform: scale(1.04);
+  }
+}
