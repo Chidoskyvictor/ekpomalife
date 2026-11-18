@@ -108,7 +108,7 @@ export const removeMyPro = (): Res<Record<string, never>> => apiRequest('/gigs/p
 
 /** The job key for a house: set when you are hired as its decorator (or cleaner) and the window is open. */
 export type JobKey = { gigId: string; category: GigCategory; title: string; budgetLeft: number; started: boolean; endsAt: string }
-export const fetchJobKey = (ownerUsername: string): Res<{ key: JobKey | null }> => apiGet(`/gigs/key/${encodeURIComponent(ownerUsername)}`)
+export const fetchJobKey = (ownerUsername: string): Res<{ key: JobKey | null; keys?: JobKey[] }> => apiGet(`/gigs/key/${encodeURIComponent(ownerUsername)}`)
 
 export const GIG_STATUS_LABEL: Record<GigStatus, string> = {
   open: 'Open',
@@ -128,3 +128,9 @@ export function startsLabel(startAt: string, now = Date.now()): string {
   if (h < 1) return `In ${Math.max(1, Math.round(ms / 60_000))} min`
   return h < 24 ? `In ${h}h` : `In ${Math.round(h / 24)}d`
 }
+
+/** Mess props in a house (Cleaner job): tile positions on the home grid. */
+export type MessProp = { id: string; kind: string; x: number; z: number }
+export const fetchHouseMess = (username: string): Res<{ mess: MessProp[]; cleanliness: number }> => apiGet(`/homes/${encodeURIComponent(username)}/mess`)
+export const cleanMessProp = (gigId: string, messId: string): Res<{ mess: MessProp[]; cleanliness: number; cleaned: number; message?: string }> =>
+  apiPost(`/gigs/${encodeURIComponent(gigId)}/clean`, { messId }, idem(newIdempotencyKey()))

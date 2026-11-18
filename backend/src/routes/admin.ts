@@ -5,7 +5,7 @@ import { env } from '../env.js'
 import { AD_ACTIONS, adClickReport, logAdClick } from '../game/ad-clicks.js'
 import { deleteSong, listAllSongs, saveSong } from '../game/promoted-songs.js'
 import { listGameChatReports } from '../game/game-chat.js'
-import { listDisputes, resolveDispute } from '../game/gigs.js'
+import { listDisputes, resolveDispute, setGigHidden } from '../game/gigs.js'
 import { adminAnonAction, listAnonReports } from '../game/anonymous.js'
 import { adminBanHost, adminEndSpace, listSpaceReports, type SpacesFail } from '../game/spaces.js'
 import {
@@ -224,6 +224,15 @@ export async function adminRoutes(app: FastifyInstance) {
   app.get('/admin/gigs/disputes', rate(30), async (request, reply) => {
     if (!(await requireAdmin(request, reply))) return
     return reply.send(await listDisputes())
+  })
+
+  app.post('/admin/gigs/:id/hide', rate(30), async (request, reply) => {
+    if (!(await requireAdmin(request, reply))) return
+    const id = idParam.safeParse(request.params)
+    const body = z.object({ hidden: z.boolean() }).safeParse(request.body)
+    if (!id.success || !body.success) return reply.code(400).send({ ok: false, error: 'Bad request.' })
+    const res = await setGigHidden(id.data.id, body.data.hidden)
+    return res.ok ? reply.send(res) : reply.code(res.code).send({ ok: false, error: res.error })
   })
 
   app.post('/admin/gigs/:id/resolve', rate(20), async (request, reply) => {

@@ -34,6 +34,7 @@ import type { TraitId } from './traits.js'
 import { lodgingDecayMultiplier } from './lodging.js'
 import { ensureRentRow, mapRentPublic } from './rent-ladder.js'
 import { familyNotifications } from './bae.js'
+import { gigNotifications } from './gigs.js'
 
 export type PhoneAppId =
   | 'jobs'
@@ -821,6 +822,7 @@ export async function listNotifications(userId: string) {
     }
 
     for (const n of await familyNotifications(userId)) items.push({ ...n, appId: 'family' })
+    for (const n of await gigNotifications(userId)) items.push({ ...n, appId: 'gigs' })
 
     const bizSummary = await getBusinessSummary(client, gate.character.id, row.game_time)
     if (bizSummary) {

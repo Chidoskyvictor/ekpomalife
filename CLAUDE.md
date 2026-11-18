@@ -17,4 +17,4 @@ Lead with the answer or the action; cut preamble, farewell pleasantries and play
 Correctness, safety, completeness and your own working context come FIRST; saving tokens comes second. If the two ever conflict, do not compress — cut filler, never substance.
 <!-- prom-saver:end -->
 
-For any UI work, follow .claude/skills/ekpoma-mobile-ui/SKILL.md (mobile-first, 360px).
+For any UI work, follow .claude/skills/ekpoma-design/SKILL.md (the design bar, screen patterns, 3D-first, mandatory screenshot design pass) and .claude/skills/ekpoma-mobile-ui/SKILL.md (mobile-first layout, 360px).
