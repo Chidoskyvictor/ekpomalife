@@ -33,3 +33,10 @@ export const fetchAdClicks = () => apiGet<{ ok: true; totals: AdTotals[]; recent
 export function logAdClick(board: number, adId: string, action: AdAction) {
   void apiPost<{ ok: true }>('/ads/click', { board, adId, action }).catch(() => {})
 }
+
+export type GigDisputeRow = { id: string; title: string; category: string; fee: number; budget: number; escrow: number; owner: string; worker: string | null; reason: string | null; doneAt: string | null }
+export type GigReportRow = { id: string; gigId: string | null; gigTitle: string | null; hidden: boolean | null; pro: string | null; reason: string; reporter: string; createdAt: string }
+
+export const fetchGigDisputes = () => apiGet<{ ok: true; disputes: GigDisputeRow[]; reports: GigReportRow[] }>('/admin/gigs/disputes')
+export const adminResolveGig = (id: string, to: 'worker' | 'owner') => apiPost<{ ok: true }>(`/admin/gigs/${encodeURIComponent(id)}/resolve`, { to })
+export const adminHideGig = (id: string, hidden: boolean) => apiPost<{ ok: true }>(`/admin/gigs/${encodeURIComponent(id)}/hide`, { hidden })

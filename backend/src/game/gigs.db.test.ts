@@ -283,4 +283,21 @@ run('gigs (database)', { timeout: 120_000 }, () => {
     // the key is closed once the job is paid
     expect((await mess.cleanMess(worker.userId, id, first.mess[1]?.id ?? 'x', k())).ok).toBe(false)
   })
+
+  it('notifications follow where the job stands, for each side', async () => {
+    const owner = await player(10_000)
+    const worker = await player(0)
+    const { id } = await post(owner, { category: 'other', budget: 0, fee: 1500 })
+    ok(await g.applyToGig(worker.userId, id, '', k()))
+    expect((await g.gigNotifications(owner.userId)).map((n) => n.id)).toContain(`gig-apps-${id}-1`)
+    ok(await g.hireWorker(owner.userId, id, worker.userId, k()))
+    expect((await g.gigNotifications(worker.userId)).map((n) => n.id)).toContain(`gig-hired-${id}`)
+    ok(await g.markDone(worker.userId, id, k()))
+    expect((await g.gigNotifications(owner.userId)).map((n) => n.id)).toContain(`gig-done-${id}`)
+    ok(await g.acceptWork(owner.userId, id, k()))
+    expect((await g.gigNotifications(worker.userId)).map((n) => n.id)).toContain(`gig-paid-${id}`)
+    expect((await g.gigNotifications(owner.userId)).map((n) => n.id)).toContain(`gig-rate-${id}`)
+    const disputes = ok(await g.listDisputes())
+    expect(Array.isArray(disputes.disputes) && Array.isArray(disputes.reports)).toBe(true)
+  })
 })

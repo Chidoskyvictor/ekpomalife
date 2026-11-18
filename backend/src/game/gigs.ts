@@ -612,14 +612,76 @@ export async function listDisputes() {
      JOIN users uo ON uo.id = g.owner_id LEFT JOIN users uw ON uw.id = g.worker_id
      WHERE g.status = 'disputed' ORDER BY g.done_at`,
   )
-  const reports = await pool.query(
-    `SELECT r.id, r.gig_id, r.pro_id, r.reason, r.created_at, u.username AS reporter FROM gig_reports r JOIN users u ON u.id = r.reporter_id ORDER BY r.created_at DESC LIMIT 100`,
+  const reports = await pool.query<{ id: string; gig_id: string | null; gig_title: string | null; hidden: boolean | null; pro_name: string | null; reason: string; created_at: Date; reporter: string }>(
+    `SELECT r.id, r.gig_id, g.title AS gig_title, g.hidden, up.username AS pro_name, r.reason, r.created_at, u.username AS reporter
+       FROM gig_reports r JOIN users u ON u.id = r.reporter_id
+       LEFT JOIN gigs g ON g.id = r.gig_id LEFT JOIN users up ON up.id = r.pro_id
+      ORDER BY r.created_at DESC LIMIT 100`,
   )
   return {
     ok: true as const,
-    disputes: rows.rows.map((g) => ({ id: g.id, title: g.title, fee: asMoney(g.fee), escrow: asMoney(g.escrow), owner: g.owner_name, worker: g.worker_name, reason: g.dispute_reason })),
-    reports: reports.rows,
+    disputes: rows.rows.map((g) => ({
+      id: g.id,
+      title: g.title,
+      category: g.category,
+      fee: asMoney(g.fee),
+      budget: asMoney(g.budget),
+      escrow: asMoney(g.escrow),
+      owner: g.owner_name,
+      worker: g.worker_name,
+      reason: g.dispute_reason,
+      doneAt: g.done_at?.toISOString() ?? null,
+    })),
+    reports: reports.rows.map((r) => ({
+      id: r.id,
+      gigId: r.gig_id,
+      gigTitle: r.gig_title,
+      hidden: r.hidden,
+      pro: r.pro_name,
+      reason: r.reason,
+      reporter: r.reporter,
+      createdAt: r.created_at.toISOString(),
+    })),
   }
+}
+
+/** Admin: hide or show a post again. */
+export async function setGigHidden(gigId: string, hidden: boolean) {
+  const r = await pool.query(`UPDATE gigs SET hidden = $2 WHERE id = $1`, [gigId, hidden])
+  return r.rowCount ? { ok: true as const } : fail('That job is not there.', 404)
+}
+
+/** Phone notifications for Gigs: derived from where each job stands, so they stay until the state moves on. */
+export async function gigNotifications(userId: string) {
+  const items: { id: string; title: string; body: string; createdAt: string }[] = []
+  const rows = await pool.query<GigRow & { apps: number; owner_name: string; worker_name: string | null }>(
+    `SELECT g.*, uo.username AS owner_name, uw.username AS worker_name,
+            (SELECT COUNT(*)::int FROM gig_applications a WHERE a.gig_id = g.id) AS apps
+       FROM gigs g JOIN users uo ON uo.id = g.owner_id LEFT JOIN users uw ON uw.id = g.worker_id
+      WHERE (g.owner_id = $1 OR g.worker_id = $1 OR g.direct_to = $1)
+        AND g.created_at > NOW() - INTERVAL '14 days'
+        AND (g.status IN ('open','hired','working','done','disputed')
+             OR (g.status IN ('completed','cancelled') AND COALESCE(g.completed_at, g.hired_at, g.created_at) > NOW() - INTERVAL '3 days'))
+      ORDER BY g.created_at DESC LIMIT 30`,
+    [userId],
+  )
+  const naira = (n: number) => `₦${n.toLocaleString('en-NG')}`
+  for (const g of rows.rows) {
+    const fee = naira(asMoney(g.fee))
+    const owner = g.owner_id === userId
+    const worker = g.worker_id === userId
+    const at = (g.done_at ?? g.hired_at ?? g.created_at).toISOString()
+    if (g.status === 'open' && g.direct_to === userId) items.push({ id: `gig-offer-${g.id}`, title: 'Job offer', body: `@${g.owner_name} wants to hire you: ${g.title} (${fee}).`, createdAt: at })
+    else if (g.status === 'open' && owner && g.apps > 0) items.push({ id: `gig-apps-${g.id}-${g.apps}`, title: 'New applicants', body: `${g.apps} applied to “${g.title}”. Pick one to hire.`, createdAt: g.created_at.toISOString() })
+    else if ((g.status === 'hired' || g.status === 'working') && worker) items.push({ id: `gig-hired-${g.id}`, title: 'You got the job', body: `“${g.title}” for @${g.owner_name}, ${fee} is held.`, createdAt: at })
+    else if (g.status === 'done' && owner) items.push({ id: `gig-done-${g.id}`, title: 'Work is done', body: `@${g.worker_name} finished “${g.title}”. Accept to pay ${fee}.`, createdAt: at })
+    else if (g.status === 'done' && worker) items.push({ id: `gig-wait-${g.id}`, title: 'Waiting for OK', body: `“${g.title}”: you are paid automatically at ${g.auto_accept_at?.toLocaleString('en-NG') ?? '24h'}.`, createdAt: at })
+    else if (g.status === 'disputed') items.push({ id: `gig-dispute-${g.id}`, title: 'Job with support', body: `“${g.title}” is being looked at. The money stays held.`, createdAt: at })
+    else if (g.status === 'completed' && worker) items.push({ id: `gig-paid-${g.id}`, title: 'You got paid', body: `${fee} for “${g.title}”.${g.rating_owner ? '' : ' Rate the owner.'}`, createdAt: g.completed_at?.toISOString() ?? at })
+    else if (g.status === 'completed' && owner && !g.rating_worker) items.push({ id: `gig-rate-${g.id}`, title: 'Rate the worker', body: `How was @${g.worker_name} on “${g.title}”?`, createdAt: g.completed_at?.toISOString() ?? at })
+    else if (g.status === 'cancelled' && (owner || worker) && g.hired_at) items.push({ id: `gig-cancel-${g.id}`, title: 'Job cancelled', body: `“${g.title}” was cancelled${owner ? '. Your money is back.' : '.'}`, createdAt: at })
+  }
+  return items
 }
 
 /** Both sides rate once, after the job is paid. */
