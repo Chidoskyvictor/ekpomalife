@@ -59,6 +59,7 @@ import { STREET_AND_TRAVEL } from '@/lib/flags'
 import { CoachTour } from '@/components/coach/coach-tour'
 import { MessageChip } from '@/components/hud/message-chip'
 import { coachSignal, requestTip } from '@/lib/game/coach-api'
+import { SazzaLive } from '@/components/hud/sazza-live'
 
 export function Hud() {
   const { isGuest, state, booting, bootError, retryBoot, select, selectedId, toast, logOut, notifyToast } =
@@ -323,6 +324,8 @@ export function Hud() {
       </div>
 
       <ToastLayer toast={toast} state={state} />
+      {/* Club night: "Sazza is live" drops in at 10pm WAT, once a night */}
+      <SazzaLive />
       {hasPhone && !homeBuy.active ? <MessageChip unread={chatUnread} hidden={phoneOpen || buyOpen} /> : null}
       {!guest && hasPhone ? <BackgroundNotifications chatUnread={chatUnread} challenges={challenges.incoming.length} /> : null}
       <ChallengePopup incoming={challenges.incoming} hidden={phoneOpen} onDone={() => void challenges.reload()} />
