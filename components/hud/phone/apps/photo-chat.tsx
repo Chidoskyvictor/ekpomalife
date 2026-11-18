@@ -230,13 +230,12 @@ export function PhotoBubble({
   tick: 'sent' | 'delivered' | 'read' | null
   onOpen: () => void
 }) {
-  const { w, h, state } = parsePhoto(message.body)
-  const ratio = Math.min(1.5, Math.max(0.75, w / h))
+  const { state } = parsePhoto(message.body)
   const gone = state !== 'sent'
   const mine = message.mine
   const status = gone ? (state === 'expired' ? 'Expired' : 'Opened') : tick === 'sent' || !tick ? 'Sent' : 'Delivered'
-  const label = gone ? (state === 'expired' ? 'Photo expired' : 'Photo opened') : '📷 Photo'
-  const sub = gone ? 'View once' : mine ? 'View once' : 'Hold to view'
+  const label = gone ? (state === 'expired' ? 'Photo expired' : 'Photo opened') : 'Photo'
+  const sub = gone ? 'Gone for good' : mine ? 'View once' : 'Hold to view'
   const body = (
     <>
       {gone ? null : (
@@ -246,10 +245,10 @@ export function PhotoBubble({
           <i />
         </span>
       )}
+      <span className={styles.bubbleGlyph} aria-hidden="true">
+        {gone ? <EyeOff size={20} /> : <Camera size={20} />}
+      </span>
       <span className={styles.bubbleCenter}>
-        <span className={styles.bubbleGlyph} aria-hidden="true">
-          {gone ? <EyeOff size={22} /> : <Camera size={22} />}
-        </span>
         <strong>{label}</strong>
         <span>{sub}</span>
       </span>
@@ -262,14 +261,13 @@ export function PhotoBubble({
   return (
     <span className={styles.photoWrap}>
       {mine || gone ? (
-        <span className={cls} style={{ aspectRatio: String(ratio) }}>
+        <span className={cls}>
           {body}
         </span>
       ) : (
         <button
           type="button"
           className={cls}
-          style={{ aspectRatio: String(ratio) }}
           onClick={(e) => {
             e.stopPropagation()
             onOpen()
@@ -461,7 +459,11 @@ export function PhotoViewer({
         className={styles.holdArea}
         onPointerDown={(e) => {
           e.preventDefault()
-          e.currentTarget.setPointerCapture(e.pointerId)
+          try {
+            e.currentTarget.setPointerCapture(e.pointerId)
+          } catch {
+            // capture is a nicety; holding still works without it
+          }
           void press()
         }}
         onPointerUp={release}
