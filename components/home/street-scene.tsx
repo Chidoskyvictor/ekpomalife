@@ -2,7 +2,7 @@
 
 import { Html, useGLTF } from '@react-three/drei'
 import { useFrame, useThree } from '@react-three/fiber'
-import { useEffect, useMemo, useRef } from 'react'
+import { Suspense, useEffect, useMemo, useRef } from 'react'
 import { PerspectiveCamera, Vector3, type AmbientLight, type DirectionalLight, type HemisphereLight } from 'three'
 import { RoomPlayer, type PlayerMove } from '@/components/room/room-player'
 import type { Appearance } from '@/lib/game/look'
@@ -19,7 +19,7 @@ import {
   type StreetTemplate,
 } from '@/lib/game/street'
 import { InstancedShapes, type Shape } from './instanced-shapes'
-import { HomeSign, OrbitStreetCamera, PassingCars, StreetBlocks, StreetDressing, streetView } from './street-dressing'
+import { BlackBlocks, HomeSign, OrbitStreetCamera, PassingCars, StreetBlocks, StreetDressing, streetView } from './street-dressing'
 import { PARKED_CAR, ParkedCar, StreetBoy } from './street-extras'
 import styles from './street.module.css'
 
@@ -66,18 +66,8 @@ function buildCompounds(t: StreetTemplate, own: number, numbers: number[], paint
     const cx = lotX(t, i)
     const wall = i === own && paint ? paint : HOUSE_TINTS[(numbers[i] * 7) % HOUSE_TINTS.length]
     const zc = -1.7 - d / 2
-    // Yard, house, door and windows
+    // Yard only: the houses themselves are the black blocks behind (BlackBlocks)
     boxes.push({ p: [cx, 0.015, -depth / 2], s: [t.lotW - 0.25, 0.03, depth], c: '#cdc4b2' })
-    boxes.push({ p: [cx, h / 2, zc], s: [w, h, d], c: wall })
-    boxes.push({ p: [cx, 1.0, -1.66], s: [0.95, 2.0, 0.08], c: DOOR })
-    boxes.push({ p: [cx - w * 0.3, 1.55, -1.66], s: [1.0, 0.8, 0.06], c: GLASS })
-    boxes.push({ p: [cx + w * 0.3, 1.55, -1.66], s: [1.0, 0.8, 0.06], c: GLASS })
-    // Zinc roof, two slopes
-    const hd = (d + 0.7) / 2
-    const roof = ROOF[numbers[i] % ROOF.length]
-    const ry = h + (hd / 2) * Math.tan(pitch) + 0.06
-    boxes.push({ p: [cx, ry, zc + hd / 2], s: [w + 0.6, 0.08, hd / Math.cos(pitch)], r: [pitch, 0, 0], c: roof })
-    boxes.push({ p: [cx, ry, zc - hd / 2], s: [w + 0.6, 0.08, hd / Math.cos(pitch)], r: [-pitch, 0, 0], c: roof })
     // Front fence with a gap for the gate, pillars and the two gate leaves
     const piece = t.lotW / 2 - t.gateW / 2 - 0.2
     for (const side of [-1, 1]) {
@@ -300,6 +290,11 @@ export function StreetScene({ lodgingId, houseNumber, paint, appearance, clock, 
       <HomeSign area={area} x={gate[0] - (t.kind === 'block' ? 0.5 : 0)} y={plateY + 1.35} z={0.3} />
       <StreetDressing width={LOTS * t.lotW} gateX={gate[0]} />
       <StreetBlocks width={LOTS * t.lotW} />
+      {t.kind === 'block' ? null : (
+        <Suspense fallback={null}>
+          <BlackBlocks width={LOTS * t.lotW} z={-(t.house.d + 3.4) - 0.6} />
+        </Suspense>
+      )}
       <PassingCars width={LOTS * t.lotW} skipNear={car ? { x: carX, length: PARKED_CAR.length + 3 } : undefined} />
 
       {car ? <ParkedCar model={car.model} color={car.color} x={carX} z={CAR_Z} /> : null}

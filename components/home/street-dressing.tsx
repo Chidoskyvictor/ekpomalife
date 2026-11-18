@@ -3,7 +3,7 @@
 import { useGLTF } from '@react-three/drei'
 import { useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useMemo, useRef } from 'react'
-import { CanvasTexture, PerspectiveCamera, SRGBColorSpace, Vector3, type Group, type Mesh, type MeshStandardMaterial } from 'three'
+import { CanvasTexture, MeshStandardMaterial as StdMaterial, PerspectiveCamera, SRGBColorSpace, Vector3, type Group, type Mesh, type MeshStandardMaterial } from 'three'
 import { CarModel } from '@/components/cars/car-model'
 import { InstancedShapes, type Shape } from './instanced-shapes'
 
@@ -109,6 +109,37 @@ export function StreetBlocks({ width }: { width: number }) {
   )
 }
 useGLTF.preload(BLOCKS_URL)
+
+const blackBlock = new StdMaterial({ color: '#050506', roughness: 1, metalness: 0 })
+
+/**
+ * Behind your gate: the same campus blocks as across the road, all one flat black (walls, roofs
+ * and windows), so the houses behind the fences read as a dark backdrop with no names or colours.
+ * `z` is where their fronts stand (behind the compound's back wall).
+ */
+export function BlackBlocks({ width, z }: { width: number; z: number }) {
+  const { scene } = useGLTF(BLOCKS_URL)
+  const rows = Math.max(1, Math.ceil((width + 40) / ROW_W))
+  const copies = useMemo(
+    () =>
+      Array.from({ length: rows }, () => {
+        const root = scene.clone(true)
+        root.traverse((o) => {
+          const mesh = o as Mesh
+          if (mesh.isMesh) mesh.material = blackBlock
+        })
+        return root
+      }),
+    [scene, rows],
+  )
+  return (
+    <>
+      {copies.map((root, i) => (
+        <primitive key={i} object={root} position={[(i - (rows - 1) / 2) * ROW_W, 0, z]} />
+      ))}
+    </>
+  )
+}
 
 const PASSING = [
   { model: 'corolla', color: '#c9ccd1', lane: 2.6, speed: 6.5, from: 0 },
@@ -239,10 +270,10 @@ export function OrbitStreetCamera({ player }: { player: React.RefObject<[number,
       }
       const dx = e.clientX - was.x
       const dy = e.clientY - was.y
-      if (!dragged && Math.hypot(dx, dy) < 4) return
+      if (!dragged && Math.hypot(dx, dy) < 2) return
       dragged = true
-      streetView.yaw -= dx * 0.0085
-      streetView.pitch = Math.max(0.12, Math.min(1.1, streetView.pitch - dy * 0.005))
+      streetView.yaw -= dx * 0.012
+      streetView.pitch = Math.max(0.05, Math.min(1.35, streetView.pitch - dy * 0.007))
     }
     const up = (e: PointerEvent) => {
       touches.delete(e.pointerId)
@@ -278,13 +309,15 @@ export function OrbitStreetCamera({ player }: { player: React.RefObject<[number,
     const { yaw, pitch, dist } = streetView
     // Yaw 0: camera out on the road (+z) looking back at the houses (-z)
     const goal = new Vector3(px + Math.sin(yaw) * Math.cos(pitch) * dist, 1.2 + Math.sin(pitch) * dist, pz + Math.cos(yaw) * Math.cos(pitch) * dist)
-    // Stay on the street: in front of the fences and short of the buildings across the road, so
-    // turning round to face the road never puts the camera inside a house
-    if (goal.z < 0.7) {
-      goal.y += (0.7 - goal.z) * 0.12
-      goal.z = 0.7
-    }
-    if (goal.z > BUILD_Z - 1.2) goal.z = BUILD_Z - 1.2
+    // Stay on the street (in front of the fences, short of the buildings across the road) without
+    // stopping the turn: when a wall is in the way the camera keeps its distance by rising instead
+    const dirZ = Math.cos(yaw)
+    const minZ = 0.7
+    const maxZ = BUILD_Z - 1.2
+    const room = dirZ < -0.01 ? (pz - minZ) / -dirZ : dirZ > 0.01 ? (maxZ - pz) / dirZ : Infinity
+    const flat = Math.min(Math.cos(pitch) * dist, Math.max(1.5, room))
+    const rise = Math.sqrt(Math.max(0, dist * dist - flat * flat))
+    goal.set(px + Math.sin(yaw) * flat, 1.2 + Math.max(Math.sin(pitch) * dist, rise), pz + dirZ * flat)
     const target = new Vector3(px, 1.2, pz)
     if (!placed.current) {
       camera.position.copy(goal)
