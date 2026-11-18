@@ -62,22 +62,10 @@ function buildCompounds(t: StreetTemplate, own: number) {
   const boxes: Shape[] = []
   for (let i = 0; i < LOTS; i++) {
     const cx = lotX(t, i)
-    // Front fence with a gap for the gate, pillars and the two gate leaves
-    const piece = t.lotW / 2 - t.gateW / 2 - 0.2
-    for (const side of [-1, 1]) {
-      boxes.push({ p: [cx + side * (t.gateW / 2 + 0.2 + piece / 2), t.fenceH / 2, 0], s: [piece, t.fenceH, 0.22], c: FENCE })
-      boxes.push({ p: [cx + side * (t.gateW / 2 + 0.1), (t.fenceH + 0.3) / 2, 0], s: [0.34, t.fenceH + 0.3, 0.34], c: PILLAR })
-      boxes.push({
-        p: [cx + side * (t.gateW / 4), t.fenceH * 0.48, 0.02],
-        s: [t.gateW / 2 - 0.05, t.fenceH * 0.9, 0.06],
-        c: i === own ? OWN_GATE : GATE,
-      })
-    }
-    // Your house's door in the front of the Innovation Hub block, right behind your gate
-    if (i === own) {
-      boxes.push({ p: [cx, 1.2, -FACADE_Z + 0.04], s: [t.gateW + 0.5, 2.5, 0.1], c: '#2a2118' })
-      boxes.push({ p: [cx, 1.1, -FACADE_Z + 0.1], s: [t.gateW, 2.2, 0.08], c: DOOR })
-    }
+    // No fence: a door on the front of the Innovation Hub block for every house, yours green
+    const mine = i === own
+    boxes.push({ p: [cx, 1.2, -FACADE_Z + 0.04], s: [t.gateW + 0.5, 2.5, 0.1], c: '#2a2118' })
+    boxes.push({ p: [cx, 1.1, -FACADE_Z + 0.1], s: [t.gateW, 2.2, 0.08], c: mine ? OWN_GATE : DOOR })
   }
   return boxes
 }
@@ -274,7 +262,7 @@ export function StreetScene({ lodgingId, houseNumber, paint, appearance, clock, 
       {numbers.map((n, i) => (
         <Html
           key={n}
-          position={[t.kind === 'block' ? lotX(t, i) - 0.5 : lotX(t, i), plateY, 0.25]}
+          position={[t.kind === 'block' ? lotX(t, i) - 0.5 : lotX(t, i), plateY, t.kind === 'block' ? 0.25 : -FACADE_Z + 0.12]}
           center
           zIndexRange={[10, 0]}
           style={{ pointerEvents: 'none' }}
@@ -282,7 +270,7 @@ export function StreetScene({ lodgingId, houseNumber, paint, appearance, clock, 
           <span className={i === own ? `${styles.plate} ${styles.plateOwn}` : styles.plate}>No. {n}</span>
         </Html>
       ))}
-      <HomeSign area={area} x={gate[0] - (t.kind === 'block' ? 0.5 : 0)} y={plateY + 1.35} z={0.3} />
+      <HomeSign area={area} x={gate[0] - (t.kind === 'block' ? 0.5 : 0)} y={plateY + 1.35} z={t.kind === 'block' ? 0.3 : -FACADE_Z + 0.06} posts={t.kind === 'block'} />
       <StreetDressing width={LOTS * t.lotW} gateX={gate[0]} />
       <StreetBlocks width={LOTS * t.lotW} />
       {t.kind === 'block' ? null : (

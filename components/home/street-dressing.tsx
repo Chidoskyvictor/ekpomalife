@@ -192,7 +192,7 @@ function signTexture(area: string) {
 }
 
 /** The big green board over your gate: your area (G2, Poultry Road…) and "Your home". */
-export function HomeSign({ area, x, y, z }: { area: string; x: number; y: number; z: number }) {
+export function HomeSign({ area, x, y, z, posts = true }: { area: string; x: number; y: number; z: number; /** The two legs under the board (off when it is fixed to a wall) */ posts?: boolean }) {
   const map = useMemo(() => signTexture(area), [area])
   useEffect(() => () => map.dispose(), [map])
   return (
@@ -205,7 +205,7 @@ export function HomeSign({ area, x, y, z }: { area: string; x: number; y: number
         <planeGeometry args={[2.85, 0.89]} />
         <meshBasicMaterial map={map} toneMapped={false} />
       </mesh>
-      {[-1.25, 1.25].map((px) => (
+      {(posts ? [-1.25, 1.25] : []).map((px) => (
         <mesh key={px} position={[px, -0.95, -0.02]}>
           <boxGeometry args={[0.08, 1.1, 0.08]} />
           <meshStandardMaterial color="#4b5563" />
@@ -310,14 +310,15 @@ export function OrbitStreetCamera({ player }: { player: React.RefObject<[number,
     // Yaw 0: camera out on the road (+z) looking back at the houses (-z)
     const goal = new Vector3(px + Math.sin(yaw) * Math.cos(pitch) * dist, 1.2 + Math.sin(pitch) * dist, pz + Math.cos(yaw) * Math.cos(pitch) * dist)
     // Stay on the street (in front of the fences, short of the buildings across the road) without
-    // stopping the turn: when a wall is in the way the camera keeps its distance by rising instead
+    // stopping the turn
     const dirZ = Math.cos(yaw)
     const minZ = 0.7
     const maxZ = BUILD_Z - 1.2
     const room = dirZ < -0.01 ? (pz - minZ) / -dirZ : dirZ > 0.01 ? (maxZ - pz) / dirZ : Infinity
+    // The camera keeps the tilt you set: near a wall it comes in closer instead
     const flat = Math.min(Math.cos(pitch) * dist, Math.max(1.5, room))
-    const rise = Math.sqrt(Math.max(0, dist * dist - flat * flat))
-    goal.set(px + Math.sin(yaw) * flat, 1.2 + Math.max(Math.sin(pitch) * dist, rise), pz + dirZ * flat)
+    const reach = flat / Math.max(0.2, Math.cos(pitch))
+    goal.set(px + Math.sin(yaw) * flat, 1.2 + Math.sin(pitch) * reach, pz + dirZ * flat)
     const target = new Vector3(px, 1.2, pz)
     if (!placed.current) {
       camera.position.copy(goal)
