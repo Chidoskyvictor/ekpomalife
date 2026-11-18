@@ -10,6 +10,7 @@ let fx: typeof import('../test/db-fixtures.js')
 let g: typeof import('./gigs.js')
 let home: typeof import('./gigs-home.js')
 let mess: typeof import('./house-mess.js')
+let cook: typeof import('./gigs-cook.js')
 
 beforeAll(async () => {
   if (!on) return
@@ -18,6 +19,7 @@ beforeAll(async () => {
   g = await import('./gigs.js')
   home = await import('./gigs-home.js')
   mess = await import('./house-mess.js')
+  cook = await import('./gigs-cook.js')
   // Neon may be cold: wake it before the first test (retry the first connection)
   for (let i = 0; i < 5; i++) {
     try {
@@ -316,5 +318,37 @@ run('gigs (database)', { timeout: 120_000 }, () => {
     expect(me.me.rank.id).toBe('new')
     expect(me.next).toMatchObject({ id: 'rising', minJobs: 2 })
     expect(typeof me.me.avatarColor).toBe('string')
+  })
+
+  it('cook: needs a dish, cooks at a stove once, dish lands in the owner bag, ingredients are paid from the budget', async () => {
+    const owner = await player(20_000)
+    const worker = await player(0)
+    expect((await g.postGig(owner.userId, { category: 'cook', title: 'Cook for me', details: '', fee: 3000, budget: 0, startInHours: 0 }, k())).ok).toBe(false) // no dish
+    const posted = ok(await g.postGig(owner.userId, { category: 'cook', dish: 'dish-jollof-rice', title: 'Cook jollof', details: '', fee: 3000, budget: 5, startInHours: 0 }, k())) as { id: string }
+    const id = posted.id
+    expect(Number((await pool.query(`SELECT budget FROM gigs WHERE id = $1`, [id])).rows[0].budget)).toBe(1500) // ingredients = the dish cost
+    ok(await g.applyToGig(worker.userId, id, '', k()))
+    ok(await g.hireWorker(owner.userId, id, worker.userId, k()))
+    expect(await cashOf(owner.characterId)).toBe(20_000 - 4500)
+    const key = await g.jobKeyFor(worker.userId, owner.username)
+    expect(key.ok && key.key?.category).toBe('cook')
+    expect((await g.markDone(worker.userId, id, k())).ok).toBe(false) // nothing cooked yet
+    expect((await cook.cookDish(worker.userId, id, k())).ok).toBe(false) // no stove in the house
+    await pool.query(`INSERT INTO home_placements (id, character_id, item_id, x, z, rot, paid) VALUES ($1, $2, 'gas-cooker', 0, 0, 0, 0)`, [`hp_${k()}`, owner.characterId])
+    const cookKey = k()
+    ok(await cook.cookDish(worker.userId, id, cookKey))
+    ok(await cook.cookDish(worker.userId, id, cookKey)) // replay
+    ok(await cook.cookDish(worker.userId, id, k())) // a second tap does not cook again
+    const bag = await pool.query(`SELECT qty FROM inventory WHERE character_id = $1 AND item_id = 'dish-jollof-rice'`, [owner.characterId])
+    expect(bag.rows[0].qty).toBe(1)
+    expect((await cook.cookDish(stranger(), id, k())).ok).toBe(false)
+    ok(await g.markDone(worker.userId, id, k()))
+    ok(await g.acceptWork(owner.userId, id, k()))
+    expect(await cashOf(worker.characterId)).toBe(3000)
+    expect(await cashOf(owner.characterId)).toBe(20_000 - 4500) // fee + ingredients, nothing left over
+    expect(Number((await pool.query(`SELECT escrow FROM gigs WHERE id = $1`, [id])).rows[0].escrow)).toBe(0)
+    function stranger() {
+      return 'nobody-' + k()
+    }
   })
 })

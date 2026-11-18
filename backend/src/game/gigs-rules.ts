@@ -14,7 +14,7 @@ export const GIG_CATEGORY_LABEL: Record<GigCategory, string> = {
 }
 
 /** Categories whose work happens inside the owner's house in 3D today. */
-export const GIG_3D_CATEGORIES: readonly GigCategory[] = ['decorator', 'cleaner']
+export const GIG_3D_CATEGORIES: readonly GigCategory[] = ['decorator', 'cleaner', 'cook']
 
 export type GigStatus = 'open' | 'hired' | 'working' | 'done' | 'completed' | 'cancelled' | 'disputed'
 
@@ -139,3 +139,17 @@ export function nextRankFor(jobs: number, avg: number | null) {
   if (!next) return null
   return { id: next.id, label: next.label, emoji: next.emoji, minJobs: next.minJobs, minAvg: next.minAvg }
 }
+
+/** Dishes a Cook job can ask for. `cost` is the ingredient money the owner holds in escrow; the dish (hunger/fun) is the shop_items row of the same id (sql/086). */
+export const COOK_MENU = [
+  { id: 'dish-jollof-rice', name: 'Jollof rice', emoji: '🍲', cost: 1500 },
+  { id: 'dish-fried-rice', name: 'Fried rice and chicken', emoji: '🍛', cost: 1800 },
+  { id: 'dish-egusi', name: 'Egusi and pounded yam', emoji: '🥘', cost: 2500 },
+  { id: 'dish-moi-moi', name: 'Moi moi', emoji: '🫘', cost: 1200 },
+  { id: 'dish-pepper-soup', name: 'Pepper soup', emoji: '🍜', cost: 2000 },
+  { id: 'dish-efo-riro', name: 'Efo riro and rice', emoji: '🥬', cost: 2200 },
+  { id: 'dish-ofada', name: 'Ofada rice and stew', emoji: '🍚', cost: 2800 },
+  { id: 'dish-suya', name: 'Suya platter', emoji: '🍢', cost: 3000 },
+] as const
+export type CookDish = (typeof COOK_MENU)[number]
+export const dishById = (id: unknown): CookDish | null => COOK_MENU.find((d) => d.id === id) ?? null

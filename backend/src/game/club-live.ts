@@ -29,7 +29,7 @@ type PlayerInfo = {
   /** Map room only: the car they drive, "model:#colour". */
   car?: string
   /** Hired to work in this home right now: shown as a tag over them. */
-  work?: 'decorator' | 'cleaner'
+  work?: 'decorator' | 'cleaner' | 'cook'
 }
 
 type PlayerState = { x: number; y: number; z: number; h: number; pose: LivePose; moving: boolean; horn?: number }
@@ -305,9 +305,9 @@ export async function createHomeTicket(userId: string, ownerUsername: string) {
   const row = me.rows[0]
   if (!row) return null
   // A hired decorator / cleaner with an open job key for this home gets a "at work" tag
-  const job = await pool.query<{ category: 'decorator' | 'cleaner' }>(
+  const job = await pool.query<{ category: 'decorator' | 'cleaner' | 'cook' }>(
     `SELECT category FROM gigs WHERE worker_id = $1 AND owner_id = $2 AND status IN ('hired','working')
-       AND category IN ('decorator','cleaner') AND start_at <= NOW() AND expires_at >= NOW() LIMIT 1`,
+       AND category IN ('decorator','cleaner','cook') AND start_at <= NOW() AND expires_at >= NOW() LIMIT 1`,
     [userId, ownerId],
   )
   const token = randomBytes(24).toString('base64url')

@@ -85,3 +85,14 @@ describe('house mess rules', () => {
     expect(messDue(100, 8)).toBe(0)
   })
 })
+
+import { COOK_MENU, dishById } from './gigs-rules.js'
+
+describe('cook menu', () => {
+  it('has unique dishes with a cost, found by id', () => {
+    expect(new Set(COOK_MENU.map((d) => d.id)).size).toBe(COOK_MENU.length)
+    expect(COOK_MENU.every((d) => d.cost > 0)).toBe(true)
+    expect(dishById('dish-jollof-rice')?.name).toBe('Jollof rice')
+    expect(dishById('dish-nope')).toBeNull()
+  })
+})
