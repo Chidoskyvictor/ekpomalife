@@ -40,10 +40,20 @@ export function asApiErrorCode(value: string | undefined | null): ApiErrorCode |
   return undefined
 }
 
+/**
+ * What to tell a player when a request never got an answer. Almost always their connection:
+ * offline, weak signal, or a request that took too long on slow data. Never mention "server"/"backend".
+ */
+export function connectionMessage(kind: 'timeout' | 'failed' = 'failed'): string {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) return "You're offline. Check your internet connection."
+  if (kind === 'timeout') return 'Your connection is slow. Trying again…'
+  return 'Connection problem. Check your internet and try again.'
+}
+
 /** Gentle copy — never shame the player. */
 export function friendlyApiMessage(fail: ApiFail): string {
   const code = fail.code ?? asApiErrorCode(fail.error)
-  if (fail.network) return "Can't reach the server, retrying…"
+  if (fail.network) return fail.error || connectionMessage()
   switch (code) {
     case 'INSUFFICIENT_FUNDS':
       return fail.error && !CODE_SET.has(fail.error)

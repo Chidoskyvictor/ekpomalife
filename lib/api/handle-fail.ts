@@ -3,6 +3,7 @@ import { getPostAuthRoute } from '@/lib/auth/post-auth-redirect'
 import { clearSession } from '@/lib/game/accounts'
 import { pathsEqual } from '@/lib/navigation/safe-nav'
 import { asApiErrorCode, friendlyApiMessage, type ApiFail } from './errors'
+import { connectionMessage } from './errors'
 
 type Handlers = {
   /** Soft toast for soft failures. */
@@ -19,7 +20,7 @@ export async function handleApiFail(fail: ApiFail, handlers: Handlers): Promise<
   const code = fail.code ?? asApiErrorCode(fail.error)
 
   if (fail.network || /can't reach|cannot reach|network wahala|failed to fetch|timeout/i.test(fail.error)) {
-    handlers.toast("Can't reach the server, retrying…", false)
+    handlers.toast(fail.network ? fail.error : connectionMessage(), false)
     return true
   }
 

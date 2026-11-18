@@ -16,6 +16,7 @@ import {
   GIG_CATEGORY_LABEL,
   GIG_LIMITS,
   isCategory,
+  nextRankFor,
   keyOpen,
   rankFor,
   startAtFrom,
@@ -68,6 +69,9 @@ export type GigPerson = {
   userId: string
   username: string
   name: string
+  /** Their character's look and avatar colour, for the face on cards. */
+  appearance: unknown
+  avatarColor: string
   jobs: number
   rating: number | null
   rank: { id: string; label: string; emoji: string; order: number }
@@ -86,14 +90,18 @@ export async function loadPeople(db: Pick<PoolClient, 'query'>, ids: string[]): 
     id: string
     username: string
     name: string
+    appearance: unknown
+    avatar_color: string | null
     jobs: number | null
     avg: number | null
     owner_avg: number | null
     online: boolean
   }>(
-    `SELECT u.id, u.username, u.name, w.jobs, w.avg, o.avg AS owner_avg,
+    `SELECT u.id, u.username, u.name, c.appearance, pp.avatar_color, w.jobs, w.avg, o.avg AS owner_avg,
             EXISTS (SELECT 1 FROM sessions s WHERE s.user_id = u.id AND s.last_seen_at > NOW() - $2::interval AND s.expires_at > NOW()) AS online
      FROM users u
+     LEFT JOIN characters c ON c.user_id = u.id
+     LEFT JOIN player_profiles pp ON pp.user_id = u.id
      LEFT JOIN (SELECT worker_id, COUNT(*)::int AS jobs, AVG(rating_worker)::float AS avg
                   FROM gigs WHERE status = 'completed' AND worker_id = ANY($1::text[]) GROUP BY worker_id) w ON w.worker_id = u.id
      LEFT JOIN (SELECT owner_id, AVG(rating_owner)::float AS avg
@@ -108,6 +116,8 @@ export async function loadPeople(db: Pick<PoolClient, 'query'>, ids: string[]): 
       userId: r.id,
       username: r.username,
       name: r.name,
+      appearance: r.appearance ?? null,
+      avatarColor: r.avatar_color ?? '#3d9ad6',
       jobs,
       rating,
       rank: rankFor(jobs, r.avg),
@@ -185,15 +195,22 @@ export type GigView = Awaited<ReturnType<typeof viewGigs>>[number]
 
 const GIG_COLS = `g.*`
 
-export async function listBoard(userId: string, category?: string | null) {
+/** A search box's text as an ILIKE pattern (or null when empty). */
+const likeOf = (q?: string | null) => {
+  const t = (q ?? '').trim().slice(0, 40).replace(/[%_\\]/g, (m) => `\\${m}`)
+  return t ? `%${t}%` : null
+}
+
+export async function listBoard(userId: string, category?: string | null, q?: string | null) {
   await sweepGigs()
   const cat = category && isCategory(category) ? category : null
   const rows = await pool.query<GigRow>(
     `SELECT ${GIG_COLS} FROM gigs g
      WHERE g.status = 'open' AND g.hidden = FALSE AND g.direct_to IS NULL AND g.owner_id <> $1 AND g.expires_at > NOW()
        AND ($2::text IS NULL OR g.category = $2)
+       AND ($3::text IS NULL OR g.title ILIKE $3 OR g.details ILIKE $3 OR EXISTS (SELECT 1 FROM users uo WHERE uo.id = g.owner_id AND uo.username ILIKE $3))
      ORDER BY g.fee DESC, g.created_at DESC LIMIT 60`,
-    [userId, cat],
+    [userId, cat, likeOf(q)],
   )
   return { ok: true as const, gigs: await viewGigs(pool, userId, rows.rows, false) }
 }
@@ -229,15 +246,16 @@ export async function getGig(userId: string, gigId: string) {
 
 export type ProView = GigPerson & { categories: GigCategory[]; fromPrice: number; pitch: string; free: boolean; isMe: boolean }
 
-export async function listPros(userId: string, category?: string | null) {
+export async function listPros(userId: string, category?: string | null, q?: string | null) {
   const cat = category && isCategory(category) ? category : null
   const rows = await pool.query<{ user_id: string; categories: string[]; from_price: string | number; pitch: string; busy: boolean }>(
     `SELECT p.user_id, p.categories, p.from_price, p.pitch,
             EXISTS (SELECT 1 FROM gigs g WHERE g.worker_id = p.user_id AND g.status IN ('hired','working')) AS busy
      FROM gig_pros p
      WHERE p.active AND p.report_count < $2 AND ($1::text IS NULL OR $1 = ANY(p.categories))
+       AND ($3::text IS NULL OR p.pitch ILIKE $3 OR EXISTS (SELECT 1 FROM users up WHERE up.id = p.user_id AND up.username ILIKE $3))
      ORDER BY p.created_at DESC LIMIT 120`,
-    [cat, GIG_LIMITS.hideAtReports],
+    [cat, GIG_LIMITS.hideAtReports, likeOf(q)],
   )
   const people = await loadPeople(pool, rows.rows.map((r) => r.user_id))
   const pros: ProView[] = rows.rows.flatMap((r) => {
@@ -836,4 +854,13 @@ export function undoLayout(userId: string, gigId: string, key: string) {
     if (extra.length) await client.query(`UPDATE home_placements SET stored = TRUE WHERE id = ANY($1::text[])`, [extra])
     return good({ message: 'Your house is back how it was. Anything new went into storage.' })
   })
+}
+
+/** The player's own Gigs card: rank, rating, jobs, how owners rate them, and what the next rank needs. */
+export async function myGigStats(userId: string) {
+  const people = await loadPeople(pool, [userId])
+  const me = people.get(userId)
+  if (!me) return fail('Player not found.', 404)
+  const open = await pool.query<{ n: number }>(`SELECT COUNT(*)::int AS n FROM gigs WHERE worker_id = $1 AND status IN ('hired','working','done','disputed')`, [userId])
+  return { ok: true as const, me, working: open.rows[0]?.n ?? 0, next: nextRankFor(me.jobs, me.rating) }
 }

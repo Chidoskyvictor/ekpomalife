@@ -7,6 +7,7 @@ import { useGame } from '@/hooks/use-game'
 import { AppEmpty, AppError, AppLoading } from './phone/app-state'
 import { ListRow } from './phone/list-row'
 import styles from './economy.module.css'
+import { connectionMessage } from '@/lib/api/errors'
 
 function timeLabel(iso: string) {
   try {
@@ -63,7 +64,7 @@ export function BankScreen() {
         <p className={styles.cardTitle} style={{ fontSize: '1.4rem' }}>
           {balance == null ? (
             networkDown ? (
-              "Can't reach the server, retrying…"
+              connectionMessage()
             ) : (
               '—'
             )
@@ -79,7 +80,7 @@ export function BankScreen() {
       </div>
       <p className={styles.sectionTitle}>Recent</p>
       {networkDown && ledger.length === 0 ? (
-        <AppError>Can&apos;t reach the server, retrying…</AppError>
+        <AppError>{connectionMessage()}</AppError>
       ) : loading && ledger.length === 0 ? (
         <AppLoading label="Loading transactions…" rows={2} />
       ) : ledger.length === 0 ? (

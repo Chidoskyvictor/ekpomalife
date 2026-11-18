@@ -5,6 +5,7 @@ import type { DreamId, DreamSnapshot } from './dreams'
 import type { Appearance } from './look'
 import type { CharacterRecord, OnboardingStep } from './onboarding'
 import type { TraitId } from './traits'
+import { connectionMessage } from '@/lib/api/errors'
 
 export type DreamCheckResult = {
   ok: true
@@ -23,9 +24,13 @@ const FETCH_MS = 10000
 
 function failMessage(step: string, status: number, body: string) {
   if (status === 429) return RATE_LIMIT_MESSAGE
+  if (process.env.NODE_ENV === 'production' && status === 401) return 'Your login expired. Log in again, then come back.'
   if (status === 401) {
     return `${step}: not logged in (401). Your session cookie is missing — open /login on this same phone/browser, then come back.`
   }
+  // Players never see setup/proxy jargon: no connection or a gateway hiccup reads as a connection problem
+  const dev = process.env.NODE_ENV !== 'production'
+  if (!dev && (status === 0 || status === 502 || status === 503 || status === 504)) return connectionMessage(status === 0 ? 'failed' : 'timeout')
   // Next /api rewrite returns these when API_PROXY_TARGET is down or unreachable.
   if (status === 502 || status === 503 || status === 504) {
     return `${step}: Bad Gateway (${status}). The Next server cannot reach the backend (API_PROXY_TARGET). Start the API on that host/port, then Try again — you do not need to re-do Look.`

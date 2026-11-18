@@ -300,4 +300,21 @@ run('gigs (database)', { timeout: 120_000 }, () => {
     const disputes = ok(await g.listDisputes())
     expect(Array.isArray(disputes.disputes) && Array.isArray(disputes.reports)).toBe(true)
   })
+
+  it('search finds pros and jobs by @username or text; my Gigs card has rank and next rank', async () => {
+    const owner = await player(10_000)
+    const pro = await player(0)
+    ok(await g.saveMyPro(pro.userId, { categories: ['cook'], fromPrice: 2000, pitch: 'Jollof and egusi' }))
+    expect(ok(await g.listPros(owner.userId, null, pro.username.slice(0, 8))).pros.some((p) => p.userId === pro.userId)).toBe(true)
+    expect(ok(await g.listPros(owner.userId, null, 'egusi')).pros.some((p) => p.userId === pro.userId)).toBe(true)
+    expect(ok(await g.listPros(owner.userId, null, 'zzzz-nobody')).pros).toHaveLength(0)
+    const { id } = await post(owner, { category: 'other', title: 'Fix my generator', budget: 0 })
+    expect(ok(await g.listBoard(pro.userId, null, 'generator')).gigs.some((x) => x.id === id)).toBe(true)
+    expect(ok(await g.listBoard(pro.userId, null, owner.username.slice(0, 8))).gigs.some((x) => x.id === id)).toBe(true)
+    expect(ok(await g.listBoard(pro.userId, null, '50%_')).gigs).toHaveLength(0) // % and _ are plain characters
+    const me = ok(await g.myGigStats(pro.userId))
+    expect(me.me.rank.id).toBe('new')
+    expect(me.next).toMatchObject({ id: 'rising', minJobs: 2 })
+    expect(typeof me.me.avatarColor).toBe('string')
+  })
 })
