@@ -12,6 +12,7 @@ import {
   jobKeyFor,
   listBoard,
   listMine,
+  myGigStats,
   listPros,
   listWorking,
   markDone,
@@ -73,9 +74,11 @@ export async function gigsRoutes(app: FastifyInstance) {
 
   const gigParams = z.object({ id })
   const q = (r: FastifyRequest) => (r.query as { category?: string }).category ?? null
+  const text = (r: FastifyRequest) => (r.query as { q?: string }).q ?? null
 
-  app.get('/gigs/board', read, guard(async (u, r, reply) => send(reply, await listBoard(u, q(r)))))
-  app.get('/gigs/pros', read, guard(async (u, r, reply) => send(reply, await listPros(u, q(r)))))
+  app.get('/gigs/board', read, guard(async (u, r, reply) => send(reply, await listBoard(u, q(r), text(r)))))
+  app.get('/gigs/pros', read, guard(async (u, r, reply) => send(reply, await listPros(u, q(r), text(r)))))
+  app.get('/gigs/me', read, guard(async (u, _r, reply) => send(reply, await myGigStats(u))))
   app.get('/gigs/mine', read, guard(async (u, _r, reply) => send(reply, await listMine(u))))
   app.get('/gigs/working', read, guard(async (u, _r, reply) => send(reply, await listWorking(u))))
   app.get<{ Params: { username: string } }>('/gigs/key/:username', read, guard<{ username: string }>(async (u, r, reply) => send(reply, await jobKeyFor(u, r.params.username))))

@@ -131,3 +131,11 @@ export function messDue(hoursSince: number, open: number): number {
   const due = Math.floor(hoursSince / MESS.everyHours)
   return Math.max(0, Math.min(due, MESS.cap - open))
 }
+
+/** What the next rank needs (null at the top): shown as a progress bar on the player's own Gigs card. */
+export function nextRankFor(jobs: number, avg: number | null) {
+  const cur = rankFor(jobs, avg)
+  const next = [...GIG_RANKS].reverse().find((r) => (GIG_RANKS.length - 1 - GIG_RANKS.findIndex((x) => x.id === r.id)) === cur.order + 1)
+  if (!next) return null
+  return { id: next.id, label: next.label, emoji: next.emoji, minJobs: next.minJobs, minAvg: next.minAvg }
+}

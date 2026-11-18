@@ -31,6 +31,8 @@ export type GigPerson = {
   userId: string
   username: string
   name: string
+  appearance: unknown
+  avatarColor: string
   jobs: number
   rating: number | null
   rank: { id: string; label: string; emoji: string; order: number }
@@ -79,8 +81,18 @@ export type MyPro = { categories: GigCategory[]; fromPrice: number; pitch: strin
 type Ok<T> = { ok: true } & T
 type Res<T> = Promise<Ok<T> | ApiFail>
 
-export const fetchBoard = (category?: GigCategory | null): Res<{ gigs: Gig[] }> => apiGet(`/gigs/board${category ? `?category=${category}` : ''}`)
-export const fetchPros = (category?: GigCategory | null): Res<{ pros: Pro[]; mine: MyPro | null }> => apiGet(`/gigs/pros${category ? `?category=${category}` : ''}`)
+const query = (category?: GigCategory | null, q?: string) => {
+  const p = new URLSearchParams()
+  if (category) p.set('category', category)
+  if (q?.trim()) p.set('q', q.trim())
+  const s = p.toString()
+  return s ? `?${s}` : ''
+}
+export const fetchBoard = (category?: GigCategory | null, q?: string): Res<{ gigs: Gig[] }> => apiGet(`/gigs/board${query(category, q)}`)
+export const fetchPros = (category?: GigCategory | null, q?: string): Res<{ pros: Pro[]; mine: MyPro | null }> => apiGet(`/gigs/pros${query(category, q)}`)
+
+export type MyGigStats = { me: GigPerson; working: number; next: { id: string; label: string; emoji: string; minJobs: number; minAvg: number } | null }
+export const fetchMyGigStats = (): Res<MyGigStats> => apiGet('/gigs/me')
 export const fetchGig = (id: string): Res<{ gig: Gig }> => apiGet(`/gigs/${encodeURIComponent(id)}`)
 export const fetchMine = (): Res<{ gigs: Gig[] }> => apiGet('/gigs/mine')
 export const fetchWorking = (): Res<{ gigs: Gig[] }> => apiGet('/gigs/working')
