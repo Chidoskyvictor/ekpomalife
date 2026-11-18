@@ -113,3 +113,21 @@ export function keyOpen(status: GigStatus, startAt: Date, expiresAt: Date, now: 
 export function autoAcceptAt(doneAt: Date): Date {
   return new Date(doneAt.getTime() + GIG_LIMITS.autoAcceptH * 3_600_000)
 }
+
+/** Mess in houses: one new prop every few hours, never more than the cap; each open one lowers cleanliness. */
+export const MESS = {
+  everyHours: 3,
+  cap: 8,
+  /** A house first looked at starts with this many props, so a cleaner has work at once. */
+  starter: 3,
+  kinds: ['paper', 'sock', 'box', 'bottle'] as const,
+  perItemLoss: 12,
+} as const
+
+export const cleanlinessOf = (openMess: number) => Math.max(0, 100 - MESS.perItemLoss * openMess)
+
+/** How many new props are due, from hours since the last spawn and how many are open now. */
+export function messDue(hoursSince: number, open: number): number {
+  const due = Math.floor(hoursSince / MESS.everyHours)
+  return Math.max(0, Math.min(due, MESS.cap - open))
+}

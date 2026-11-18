@@ -26,6 +26,7 @@ import {
   withdrawApplication,
 } from '../game/gigs.js'
 import { getGigHome, gigMove, gigPlace, gigStore } from '../game/gigs-home.js'
+import { cleanMess, getHouseMess } from '../game/house-mess.js'
 import { isUuidV4, readIdempotencyKey } from '../game/idempotency.js'
 
 function idemKey(request: FastifyRequest, reply: FastifyReply): string | null {
@@ -169,5 +170,18 @@ export async function gigsRoutes(app: FastifyInstance) {
     if (!body.success) return reply.code(400).send({ ok: false, error: 'Pick an item and a spot.' })
     const { itemId, finish, ...s } = body.data
     return send(reply, await gigPlace(u, gigParams.parse(r.params).id, itemId, s, finish, key))
+  }))
+
+  // Mess in a house (anyone can look) and the Cleaner tapping it away
+  app.get<{ Params: { username: string } }>('/homes/:username/mess', read, guard<{ username: string }>(async (_u, r, reply) => {
+    if (!/^[A-Za-z0-9_]{1,40}$/.test(r.params.username)) return reply.code(400).send({ ok: false, error: 'Bad username.' })
+    return send(reply, await getHouseMess(r.params.username))
+  }))
+  app.post<{ Params: { id: string } }>('/gigs/:id/clean', write, guard<{ id: string }>(async (u, r, reply) => {
+    const key = idemKey(r, reply)
+    if (!key) return
+    const body = z.object({ messId: id }).safeParse(r.body)
+    if (!body.success) return reply.code(400).send({ ok: false, error: 'Pick what to clean.' })
+    return send(reply, await cleanMess(u, gigParams.parse(r.params).id, body.data.messId, key))
   }))
 }

@@ -9,6 +9,7 @@ let pool: typeof import('../db.js').pool
 let fx: typeof import('../test/db-fixtures.js')
 let g: typeof import('./gigs.js')
 let home: typeof import('./gigs-home.js')
+let mess: typeof import('./house-mess.js')
 
 beforeAll(async () => {
   if (!on) return
@@ -16,6 +17,7 @@ beforeAll(async () => {
   fx = await import('../test/db-fixtures.js')
   g = await import('./gigs.js')
   home = await import('./gigs-home.js')
+  mess = await import('./house-mess.js')
   // Neon may be cold: wake it before the first test (retry the first connection)
   for (let i = 0; i < 5; i++) {
     try {
@@ -249,5 +251,36 @@ run('gigs (database)', { timeout: 120_000 }, () => {
     ok(await g.respondToOffer(pro.userId, id, true, k()))
     expect(await cashOf(owner.characterId)).toBe(17_500)
     expect((await pool.query(`SELECT status, worker_id FROM gigs WHERE id = $1`, [id])).rows[0]).toMatchObject({ status: 'hired', worker_id: pro.userId })
+  })
+
+  it('cleaner: mess appears in the house, a tap clears it once, cleanliness rises, done needs a cleared prop, accept pays', async () => {
+    const owner = await player(20_000)
+    const worker = await player(0)
+    const first = ok(await mess.getHouseMess(owner.username))
+    expect(first.mess.length).toBeGreaterThanOrEqual(1)
+    expect(first.cleanliness).toBe(100 - 12 * first.mess.length)
+    const again = ok(await mess.getHouseMess(owner.username))
+    expect(again.mess.map((m) => m.id)).toEqual(first.mess.map((m) => m.id)) // no new spawn until the wait is up
+    const { id } = await post(owner, { category: 'cleaner', budget: 0, fee: 2000 })
+    ok(await g.applyToGig(worker.userId, id, '', k()))
+    ok(await g.hireWorker(owner.userId, id, worker.userId, k()))
+    expect((await g.markDone(worker.userId, id, k())).ok).toBe(false) // nothing cleaned yet
+    const target = first.mess[0]!
+    const tapKey = k()
+    const res = ok(await mess.cleanMess(worker.userId, id, target.id, tapKey)) as { cleanliness: number; cleaned: number }
+    expect(res.cleaned).toBe(1)
+    expect(res.cleanliness).toBe(100 - 12 * (first.mess.length - 1))
+    ok(await mess.cleanMess(worker.userId, id, target.id, tapKey)) // replay
+    const repeat = ok(await mess.cleanMess(worker.userId, id, target.id, k())) as { message: string; cleaned: number }
+    expect(repeat.message).toBe('Already cleaned.')
+    expect(repeat.cleaned).toBe(1)
+    // a stranger and a decorator job can't clean
+    const stranger = await player(0)
+    expect((await mess.cleanMess(stranger.userId, id, first.mess[1]?.id ?? 'x', k())).ok).toBe(false)
+    ok(await g.markDone(worker.userId, id, k()))
+    ok(await g.acceptWork(owner.userId, id, k()))
+    expect(await cashOf(worker.characterId)).toBe(2000)
+    // the key is closed once the job is paid
+    expect((await mess.cleanMess(worker.userId, id, first.mess[1]?.id ?? 'x', k())).ok).toBe(false)
   })
 })

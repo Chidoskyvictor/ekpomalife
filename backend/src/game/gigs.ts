@@ -559,6 +559,12 @@ export function markDone(userId: string, gigId: string, key: string) {
     if (g.status === 'done') return good({ message: 'Already marked done.' })
     if (!canMove(g.status, 'done')) return bad('This job cannot be marked done now.', 409)
     if (!keyOpen(g.status, g.start_at, g.expires_at, new Date())) return bad('This job has not started yet.', 409, 'NOT_YET')
+    if (g.category === 'cleaner') {
+      // A cleaner has to have cleared something, unless the house has nothing left to clean
+      const cleared = await client.query<{ n: number }>(`SELECT COUNT(*)::int AS n FROM house_mess WHERE gig_id = $1`, [gigId])
+      const open = await client.query<{ n: number }>(`SELECT COUNT(*)::int AS n FROM house_mess WHERE owner_id = $1 AND cleared_at IS NULL`, [g.owner_id])
+      if ((cleared.rows[0]?.n ?? 0) === 0 && (open.rows[0]?.n ?? 0) > 0) return bad('Clear at least one mess in the house first.', 409, 'NOTHING_CLEANED')
+    }
     const done = new Date()
     await client.query(`UPDATE gigs SET status = 'done', done_at = $2, auto_accept_at = $3 WHERE id = $1`, [gigId, done, autoAcceptAt(done)])
     return good({ message: 'Marked done. The owner has 24 hours to accept; then you are paid automatically.' })
@@ -731,21 +737,24 @@ export async function sweepGigs(): Promise<{ autoAccepted: number; refunded: num
   return out
 }
 
-/** The worker's job key for one house right now (decorator or cleaner, window open). */
+/** The worker's job keys for one house right now (a decorator and/or a cleaner job, window open). */
 export async function jobKeyFor(workerId: string, ownerUsername: string) {
   const rows = await pool.query<GigRow>(
     `SELECT g.* FROM gigs g JOIN users u ON u.id = g.owner_id
      WHERE g.worker_id = $1 AND LOWER(u.username) = LOWER($2) AND g.status IN ('hired','working')
        AND g.start_at <= NOW() AND g.expires_at >= NOW() AND g.category IN ('decorator','cleaner')
-     ORDER BY g.start_at LIMIT 1`,
+     ORDER BY g.start_at`,
     [workerId, ownerUsername],
   )
-  const g = rows.rows[0]
-  if (!g) return { ok: true as const, key: null }
-  return {
-    ok: true as const,
-    key: { gigId: g.id, category: g.category, title: g.title, budgetLeft: budgetLeft(asMoney(g.budget), asMoney(g.budget_spent)), started: g.status === 'working', endsAt: g.expires_at.toISOString() },
-  }
+  const keys = rows.rows.map((g) => ({
+    gigId: g.id,
+    category: g.category,
+    title: g.title,
+    budgetLeft: budgetLeft(asMoney(g.budget), asMoney(g.budget_spent)),
+    started: g.status === 'working',
+    endsAt: g.expires_at.toISOString(),
+  }))
+  return { ok: true as const, key: keys[0] ?? null, keys }
 }
 
 /** Owner undo: put the layout back as it was when the decorator started; anything added goes to storage. */

@@ -607,18 +607,18 @@ function GigDetail({
             <p className={styles.note}>
               {gig.category === 'decorator'
                 ? 'You have a key to their house. Go there, open Buy and move, turn or store their furniture, or place items from the item budget. Then tap Done here.'
-                : 'Cleaner work in 3D is coming next. For now, agree what to do in chat, then tap Done.'}
+                : 'You have a key to their house. Go there and tap the mess on the floor to clean it away. Then tap Done here.'}
             </p>
           ) : (
             <p className={styles.note}>The special 3D work for {c.label}s comes later. Agree the details in chat, do it, then tap Done.</p>
           )}
           <span className={styles.actions}>
-            {gig.is3D && gig.category === 'decorator' && gig.houseOwner ? (
+            {gig.is3D && gig.houseOwner ? (
               <button type="button" className={styles.btn} disabled={!gig.keyOpen} onClick={() => goToHouse(gig.houseOwner!)}>
                 🔑 {gig.keyOpen ? 'Go to the house' : `Starts ${startsLabel(gig.startAt).toLowerCase()}`}
               </button>
             ) : null}
-            {gig.status === 'hired' && gig.keyOpen && gig.category !== 'decorator' ? (
+            {gig.status === 'hired' && gig.keyOpen && !gig.is3D ? (
               <button type="button" className={`${styles.btn} ${styles.btnGhost}`} disabled={busy} onClick={() => void act(() => startGig(gig.id))}>
                 Start
               </button>

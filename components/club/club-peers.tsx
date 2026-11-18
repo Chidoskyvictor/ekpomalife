@@ -72,6 +72,23 @@ function PeerFigure({ peer, bubble, onTap }: { peer: Peer; bubble?: string; onTa
         >
           {bubble ?? `@${peer.username}`}
         </span>
+        {peer.work && !bubble ? (
+          <span
+            style={{
+              display: 'block',
+              marginTop: 2,
+              padding: '2px 8px',
+              borderRadius: 999,
+              background: 'rgba(234,88,12,0.92)',
+              color: '#fff',
+              fontSize: 11,
+              fontWeight: 700,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {peer.work === 'cleaner' ? '🧹 Cleaner at work' : '🛋️ Decorator at work'}
+          </span>
+        ) : null}
       </Html>
     </group>
   )

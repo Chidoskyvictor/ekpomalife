@@ -69,3 +69,19 @@ describe('gig time windows', () => {
     expect(autoAcceptAt(now).getTime() - now.getTime()).toBe(24 * 3_600_000)
   })
 })
+
+import { cleanlinessOf, messDue } from './gigs-rules.js'
+
+describe('house mess rules', () => {
+  it('cleanliness falls with each prop and never below 0', () => {
+    expect(cleanlinessOf(0)).toBe(100)
+    expect(cleanlinessOf(3)).toBe(64)
+    expect(cleanlinessOf(20)).toBe(0)
+  })
+  it('spawns one per 3 hours up to the cap', () => {
+    expect(messDue(2.9, 0)).toBe(0)
+    expect(messDue(7, 0)).toBe(2)
+    expect(messDue(100, 6)).toBe(2)
+    expect(messDue(100, 8)).toBe(0)
+  })
+})

@@ -33,7 +33,8 @@ import { ClubPeers } from '@/components/club/club-peers'
 import { useClubLive } from '@/lib/game/club-live'
 import type { Object3D } from 'three'
 import { VisitBanner } from './visit-banner'
-import { fetchJobKey, type JobKey } from '@/lib/game/gigs-api'
+import { cleanMessProp, fetchHouseMess, fetchJobKey, type JobKey, type MessProp } from '@/lib/game/gigs-api'
+import { HomeMess } from './home-mess'
 import { setGigHouse } from '@/lib/game/gig-house-store'
 import { AskPrompt, PeopleBar, PersonSheet, useHomePeople } from './people-panel'
 import styles from './room.module.css'
@@ -55,7 +56,7 @@ const HomeCanvas = dynamic(
 )
 
 export function RoomScreen() {
-  const { state, act } = useGame()
+  const { state, act, notifyToast } = useGame()
   // The piece that was tapped: a built-in one, or one the player bought (`placed:<id>`)
   const [furnitureKey, setFurnitureKey] = useState<SpotKey | null>(null)
   // The 3D character fills in control.use once it has mounted
@@ -101,21 +102,24 @@ export function RoomScreen() {
   // Furniture bought in Buy mode: yours, or the host's when visiting
   const spec = useMemo(() => homeSpecFor(lodgingId), [lodgingId])
   // A hired decorator holds a job key to this house: Buy mode works on the owner's furniture (see gig-house-store)
-  const [jobKey, setJobKey] = useState<JobKey | null>(null)
+  const [jobKeys, setJobKeys] = useState<JobKey[]>([])
+  const decoKey = jobKeys.find((k) => k.category === 'decorator') ?? null
+  const cleanKey = jobKeys.find((k) => k.category === 'cleaner') ?? null
   useEffect(() => {
     if (!visitingOther || !visiting || !state) {
-      setJobKey(null)
+      setJobKeys([])
       return
     }
     let cancelled = false
     void fetchJobKey(visiting).then((res) => {
-      if (!cancelled) setJobKey(res.ok && res.key?.category === 'decorator' ? res.key : null)
+      if (!cancelled) setJobKeys(res.ok ? (res.keys ?? (res.key ? [res.key] : [])) : [])
     })
     return () => {
       cancelled = true
     }
   }, [visitingOther, visiting, state])
-  const gigId = jobKey?.gigId ?? null
+  // Decorators get Buy mode on the owner's furniture; cleaners tap mess away
+  const gigId = decoKey?.gigId ?? null
   const home = useHomeFurniture(visitingOther ? (host ? visiting : null) : '', spec !== null, gigId)
   const layout = useMemo(
     () => layoutWithPlaced(baseLayout, spec, home.placements, home.catalog, startersFor(lodgingId)),
@@ -179,9 +183,9 @@ export function RoomScreen() {
     return () => setBuyAvailable(false)
   }, [canBuy])
   useEffect(() => {
-    setGigHouse(jobKey && visiting ? { gigId: jobKey.gigId, ownerUsername: visiting, budgetLeft: jobKey.budgetLeft } : null)
+    setGigHouse(decoKey && visiting ? { gigId: decoKey.gigId, ownerUsername: visiting, budgetLeft: decoKey.budgetLeft } : null)
     return () => setGigHouse(null)
-  }, [jobKey, visiting])
+  }, [decoKey, visiting])
   // Stop whatever you were doing when Buy mode opens
   useEffect(() => {
     if (buy.active) leaveInside()
@@ -237,14 +241,50 @@ export function RoomScreen() {
     const name = (visiting ?? '').toLowerCase()
     return houses.find((h) => h.username.toLowerCase() === name)?.cars ?? []
   }, [own, garage, houses, visiting])
+  // Mess lying around the house (anyone sees it; a hired cleaner taps it away)
+  const messOwner = visitingOther ? (host ? visiting : null) : (state?.username ?? null)
+  const [mess, setMess] = useState<MessProp[]>([])
+  const [cleanliness, setCleanliness] = useState<number | null>(null)
+  useEffect(() => {
+    if (!messOwner || scene.outside) return
+    let cancelled = false
+    const load = () =>
+      void fetchHouseMess(messOwner).then((res) => {
+        if (cancelled || !res.ok) return
+        setMess(res.mess)
+        setCleanliness(res.cleanliness)
+      })
+    load()
+    const id = window.setInterval(load, 30_000)
+    return () => {
+      cancelled = true
+      window.clearInterval(id)
+    }
+  }, [messOwner, scene.outside])
+  const cleanerKey = cleanKey?.gigId ?? null
+  const onClean = useCallback(
+    async (messId: string) => {
+      if (!cleanerKey) return false
+      const res = await cleanMessProp(cleanerKey, messId)
+      if (!res.ok) {
+        notifyToast(res.error, false)
+        return false
+      }
+      setMess(res.mess)
+      setCleanliness(res.cleanliness)
+      return true
+    },
+    [cleanerKey, notifyToast],
+  )
   const effects = useCallback(
     (_root: Object3D) => (
       <>
+        {spec ? <HomeMess spec={spec} mess={mess} onClean={cleanerKey ? onClean : undefined} /> : null}
         <ClubPeers peers={live.peers} roster={live.roster} bubbles={people.bubbles} onTap={buy.active ? undefined : people.setTarget} />
         <HomeCarport layout={layout} cars={parked} onTap={own && !buy.active ? () => openCarLot('garage') : undefined} />
       </>
     ),
-    [live.peers, live.roster, people.bubbles, people.setTarget, buy.active, layout, parked, own],
+    [live.peers, live.roster, people.bubbles, people.setTarget, buy.active, layout, parked, own, spec, mess, cleanerKey, onClean],
   )
 
   useEffect(() => {
@@ -350,7 +390,7 @@ export function RoomScreen() {
         ) : null}
         {HOME_STREET && own && scene.outside && !scene.cover ? <WalkStick /> : null}
         {visiting && !isOwn ? (
-          <VisitBanner username={host?.username ?? visiting} displayName={host?.displayName ?? null} place={layout.label} hostHome={hostLive} job={jobKey ? 'Decorator job · tap Buy' : undefined} />
+          <VisitBanner username={host?.username ?? visiting} displayName={host?.displayName ?? null} place={layout.label} hostHome={hostLive} job={[decoKey ? 'Decorator job · tap Buy' : null, cleanKey ? `Cleaner job · tap the mess${cleanliness !== null ? ` · ${cleanliness}% clean` : ''}` : null].filter(Boolean).join(' · ') || undefined} />
         ) : null}
         {owner && !scene.outside && !buy.active && !selfOpen ? <PeopleBar live={live} people={people} onOpen={people.setTarget} /> : null}
         {owner ? <PersonSheet peer={people.target} homeOwner={owner} onClose={() => people.setTarget(null)} people={people} /> : null}
