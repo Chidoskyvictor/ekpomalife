@@ -137,7 +137,7 @@ export const PHONE_APPS: PhoneAppMeta[] = [
   { id: 'support', label: 'Support', emoji: '🛟', status: 'live', tint: '#2563eb' },
   { id: 'settings', label: 'Settings', emoji: '⚙️', status: 'live', tint: '#64748b' },
   { id: 'portal', label: 'Results', emoji: '🎓', status: 'soon', tint: '#7c3aed' },
-  { id: 'music', label: 'Music', emoji: '🎧', status: 'soon', tint: '#e11d48' },
+  { id: 'music', label: 'Music', emoji: '🎧', status: 'live', tint: '#e11d48' },
 ]
 
 export const PHONE_DOCK: PhoneAppId[] = ['messages', 'bank', 'map', 'ride']

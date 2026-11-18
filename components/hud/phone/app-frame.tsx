@@ -12,6 +12,7 @@ export function AppFrame({
   offline,
   bare = false,
   onHome,
+  footer,
   children,
 }: {
   appId: PhoneAppId
@@ -19,6 +20,8 @@ export function AppFrame({
   /** The app draws its own header (e.g. Messages) — no title bar, no body padding. */
   bare?: boolean
   onHome: () => void
+  /** Sits above the home indicator (the Now Playing bar). */
+  footer?: ReactNode
   children: ReactNode
 }) {
   const meta = PHONE_APPS.find((a) => a.id === appId)
@@ -56,6 +59,7 @@ export function AppFrame({
         ) : null}
         {children}
       </div>
+      {footer}
       <div
         className={styles.homeIndicator}
         aria-label="Swipe up for home"

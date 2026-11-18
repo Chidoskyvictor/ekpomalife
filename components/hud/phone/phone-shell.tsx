@@ -39,6 +39,8 @@ import { ProdigyApp } from './apps/prodigy-app'
 import { InvestApp } from './apps/invest-app'
 import { EtaApp } from './apps/eta-app'
 import { GamesApp } from './apps/games-app'
+import { MusicApp } from './apps/music-app'
+import { MiniBar } from './apps/music-parts'
 import { GigsApp } from './apps/gigs-app'
 import { AnonymousApp } from './apps/anonymous-app'
 import { FamilyApp } from './apps/family-app'
@@ -292,7 +294,7 @@ export function PhoneShell({
                   <div className={styles.content}>
                     <PhoneStatusBar clock={phoneClock} phone={deviceState} onApp={Boolean(appId)} />
                     {appId ? (
-                      <AppFrame appId={appId} offline={offline} onHome={goHome} bare={appId === 'forbes' || appId === 'messages' || appId === 'games' || appId === 'spaces' || appId === 'prodigy' || appId === 'anonymous'}>
+                      <AppFrame appId={appId} offline={offline} onHome={goHome} footer={appId !== 'music' ? <MiniBar onOpen={() => void openApp('music')} /> : undefined} bare={appId === 'forbes' || appId === 'messages' || appId === 'games' || appId === 'music' || appId === 'spaces' || appId === 'prodigy' || appId === 'anonymous'}>
                         {appId === 'jobs' ? <JobsApp /> : null}
                         {appId === 'bank' ? <BankApp /> : null}
                         {appId === 'gist' ? <GistApp /> : null}
@@ -376,7 +378,8 @@ export function PhoneShell({
                             onOpenApp={(id) => void openApp(id)}
                           />
                         ) : null}
-                        {['portal', 'music', 'games'].includes(appId) ? (
+                        {appId === 'music' ? <MusicApp onHome={goHome} /> : null}
+                        {['portal', 'games'].includes(appId) ? (
                           <ComingSoonApp appId={appId} onHome={goHome} />
                         ) : null}
                       </AppFrame>

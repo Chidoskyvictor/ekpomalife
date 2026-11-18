@@ -4,6 +4,7 @@ import { nearbyRoutes } from './routes/nearby.js'
 import { familyRoutes } from './routes/family.js'
 import { forbesRoutes } from './routes/forbes.js'
 import { gigsRoutes } from './routes/gigs.js'
+import { musicRoutes } from './routes/music.js'
 import { sweepGigs } from './game/gigs.js'
 import { sweepPhotos } from './game/chat.js'
 import { interactionRoutes } from './routes/interactions.js'
@@ -195,6 +196,7 @@ await app.register(phoneRoutes)
 await app.register(familyRoutes)
 await app.register(forbesRoutes)
 await app.register(gigsRoutes)
+await app.register(musicRoutes)
 await app.register(travelRoutes)
 await app.register(playersRoutes)
 await app.register(hostelRoutes)

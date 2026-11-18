@@ -83,3 +83,12 @@ export const clubMusicOn = () => clubPlaying
 export function useMusicSettings(): MusicSettings {
   return useSyncExternalStore(subscribe, read, () => DEFAULTS)
 }
+
+/** True while the phone's Music app is playing a song: the game's background music steps aside. */
+let playerPlaying = false
+export function setPlayerMusic(value: boolean) {
+  if (playerPlaying === value) return
+  playerPlaying = value
+  window.dispatchEvent(new Event(SOUND_EVENT))
+}
+export const playerMusicOn = () => playerPlaying
