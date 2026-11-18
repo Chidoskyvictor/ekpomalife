@@ -5,6 +5,7 @@ import { familyRoutes } from './routes/family.js'
 import { forbesRoutes } from './routes/forbes.js'
 import { gigsRoutes } from './routes/gigs.js'
 import { sweepGigs } from './game/gigs.js'
+import { sweepPhotos } from './game/chat.js'
 import { interactionRoutes } from './routes/interactions.js'
 import { hubRoutes } from './routes/hub.js'
 import { rentalsRoutes } from './routes/rentals.js'
@@ -231,6 +232,7 @@ process.on('SIGTERM', shutdown)
 await runMigrations()
 await app.listen({ port: env.PORT, host: '0.0.0.0' })
 // Gigs: pay out jobs nobody answered after 24h, refund no-shows (also runs before every Gigs list)
+setInterval(() => void sweepPhotos().catch((e) => console.error('photo sweep', e?.message)), 60 * 60_000).unref()
 setInterval(() => void sweepGigs().catch((e) => console.error('gig sweep', e?.message)), 5 * 60_000).unref()
 // Chess matches that were running when the server last stopped keep their clocks going
 void resumeChessMatches().catch((error) => app.log.error(error, 'resume chess matches'))

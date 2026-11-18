@@ -19,10 +19,15 @@ import {
   sendMessage,
   sendMoney,
   sendVoice,
+  sendPhoto,
+  openPhoto,
+  redeemPhotoLink,
+  reportPhoto,
   voiceAudioFor,
   unreadTotal,
 } from '../game/chat.js'
 import { HOSTEL_NAME_MAX } from '../game/hostel-names.js'
+import { PHOTO_MAX_BYTES } from '../game/photo-rules.js'
 import { VOICE_MAX_BYTES } from '../game/voice-rules.js'
 import { createHostel, getMyHostel, joinHostel, leaveHostel, listNeighbours, searchHostels } from '../game/hostels.js'
 
@@ -204,6 +209,47 @@ export async function hostelRoutes(app: FastifyInstance) {
       return reply.code(201).send({ ok: true, message: result.message })
     },
   )
+
+  // —— View-once photos: raw JPEG/WebP body, already shrunk on the phone ——
+  app.addContentTypeParser(/^image\/(jpeg|webp)/, { parseAs: 'buffer', bodyLimit: PHOTO_MAX_BYTES }, (_request, body, done) => {
+    done(null, body)
+  })
+  app.post(
+    '/chats/:id/photo',
+    { bodyLimit: PHOTO_MAX_BYTES, config: { rateLimit: { max: 20, timeWindow: '1 minute' } } },
+    async (request, reply) => {
+      const user = await getSessionUser(request)
+      if (!user) return notLoggedIn(reply)
+      const { id } = request.params as { id: string }
+      const q = z.object({ w: z.coerce.number().int().min(1).max(4000), h: z.coerce.number().int().min(1).max(4000) }).safeParse(request.query)
+      if (!q.success || !Buffer.isBuffer(request.body)) return reply.code(400).send({ ok: false, code: 'BAD_PHOTO', error: 'Couldn’t read that photo.' })
+      const result = await sendPhoto(user.id, id, request.body, q.data.w, q.data.h)
+      if (!result.ok) return fail(reply, result)
+      return reply.code(201).send({ ok: true, message: result.message })
+    },
+  )
+  app.post('/chats/photos/:seq/open', { config: { rateLimit: { max: 30, timeWindow: '1 minute' } } }, async (request, reply) => {
+    const user = await getSessionUser(request)
+    if (!user) return notLoggedIn(reply)
+    const result = await openPhoto(user.id, (request.params as { seq: string }).seq)
+    if (!result.ok) return fail(reply, result)
+    return reply.send({ ok: true, url: result.url, username: result.username })
+  })
+  app.get('/chats/photos/view/:token', { config: { rateLimit: { max: 30, timeWindow: '1 minute' } } }, async (request, reply) => {
+    const user = await getSessionUser(request)
+    if (!user) return notLoggedIn(reply)
+    const link = redeemPhotoLink(user.id, (request.params as { token: string }).token)
+    if (!link) return reply.code(410).send({ ok: false, code: 'GONE', error: 'This photo is gone.' })
+    return reply.header('Content-Type', link.type).header('Cache-Control', 'no-store, private').header('Content-Disposition', 'inline').send(link.data)
+  })
+  app.post('/chats/photos/:seq/report', { config: { rateLimit: { max: 20, timeWindow: '1 minute' } } }, async (request, reply) => {
+    const user = await getSessionUser(request)
+    if (!user) return notLoggedIn(reply)
+    const parsed = reportSchema.safeParse(request.body ?? {})
+    const result = await reportPhoto(user.id, (request.params as { seq: string }).seq, parsed.success ? parsed.data.reason : undefined)
+    if (!result.ok) return fail(reply, result)
+    return reply.send({ ok: true })
+  })
 
   app.get('/chats/voice/:seq', { config: { rateLimit: { max: 120, timeWindow: '1 minute' } } }, async (request, reply) => {
     const user = await getSessionUser(request)

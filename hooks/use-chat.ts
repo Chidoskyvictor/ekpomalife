@@ -10,6 +10,7 @@ import {
   reportChatMessage,
   sendChatMessage,
   sendChatVoice,
+  sendChatPhoto,
   sendChatMoney,
   type ChatMessage,
   type ReceiptMarkers,
@@ -56,6 +57,26 @@ function applyReactions(current: ChatMessage[], byId: Record<string, NonNullable
     return { ...m, reactions: fresh }
   })
   return changed ? next : current
+}
+
+/** Photo bubbles follow the server: sent → opened / expired (from the sync poll). */
+function applyPhotos(current: ChatMessage[], states: Record<string, string> | undefined) {
+  if (!states) return current
+  let changed = false
+  const next = current.map((m) => {
+    const state = m.kind === 'photo' ? states[m.id] : undefined
+    if (!state) return m
+    try {
+      const v = JSON.parse(m.body) as { state?: string }
+      if (v.state === state) return m
+      changed = true
+      return { ...m, body: JSON.stringify({ ...v, state }) }
+    } catch {
+      return m
+    }
+  })
+  return changed ? next : current
+
 }
 
 /** `onMoneyIn` runs when someone sends you money while the chat is open (refresh your wallet). */
@@ -135,7 +156,7 @@ export function useChat(chatId: string | null, open: boolean, onMoneyIn?: () => 
       // Reactions + ticks on messages we already have
       if (sync.ok) {
         setReceipts(sync.receipts)
-        setMessages((current) => applyReactions(current, sync.reactions, oldestId.current))
+        setMessages((current) => applyPhotos(applyReactions(current, sync.reactions, oldestId.current), sync.photos))
       }
       if (!res.ok || res.messages.length === 0) return
       if (res.receipts) setReceipts(res.receipts)
@@ -195,6 +216,25 @@ export function useChat(chatId: string | null, open: boolean, onMoneyIn?: () => 
     [chatId],
   )
 
+  const sendPhoto = useCallback(
+    async (photo: Blob, w: number, h: number): Promise<{ ok: true } | { ok: false; error: string }> => {
+      if (!chatId) return { ok: false, error: 'Open a chat first.' }
+      const res = await sendChatPhoto(chatId, photo, w, h)
+      if (!res.ok) return res
+      playSfx('sent')
+      setMessages((current) => mergeById(current, [res.message]))
+      newest.current = res.message.id
+      lastRead.current = res.message.id
+      return { ok: true }
+    },
+    [chatId],
+  )
+
+  /** Mark a photo opened on this phone straight away (the server already did). */
+  const markPhotoOpened = useCallback((messageId: string) => {
+    setMessages((current) => applyPhotos(current, { [messageId]: 'opened' }))
+  }, [])
+
   const sendMoney = useCallback(
     async (amount: number): Promise<{ ok: true } | { ok: false; error: string }> => {
       if (!chatId) return { ok: false, error: 'Open a chat first.' }
@@ -232,5 +272,5 @@ export function useChat(chatId: string | null, open: boolean, onMoneyIn?: () => 
     return res.ok
   }, [])
 
-  return { messages, hasMore, loading, loadingOlder, error, receipts, loadOlder, send, sendVoice, sendMoney, report, react }
+  return { messages, hasMore, loading, loadingOlder, error, receipts, loadOlder, send, sendVoice, sendPhoto, markPhotoOpened, sendMoney, report, react }
 }

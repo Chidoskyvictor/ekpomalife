@@ -22,7 +22,7 @@ export type ChatMessage = {
   id: string
   chatId: string
   /** sticker: body = sticker id · invite: body = host username · visit: body = visited username · money: body = naira amount · game: body = JSON {matchId, game, stake} */
-  kind: 'text' | 'system' | 'sticker' | 'invite' | 'visit' | 'money' | 'game' | 'nudge' | 'bae' | 'voice'
+  kind: 'text' | 'system' | 'sticker' | 'invite' | 'visit' | 'money' | 'game' | 'nudge' | 'bae' | 'voice' | 'photo'
   body: string
   createdAt: string
   sender: ChatSender | null
@@ -134,7 +134,7 @@ export function sendChatMessage(
 
 /** Reactions on messages from `from` on, plus the tick markers (polled while a chat is open). */
 export function fetchChatSync(chatId: string, from: string) {
-  return apiGet<{ ok: true; reactions: Record<string, ChatReaction[]>; receipts: ReceiptMarkers }>(
+  return apiGet<{ ok: true; reactions: Record<string, ChatReaction[]>; receipts: ReceiptMarkers; photos?: Record<string, string> }>(
     `/chats/${encodeURIComponent(chatId)}/sync?from=${encodeURIComponent(from)}`,
   )
 }
@@ -214,6 +214,47 @@ export async function sendChatVoice(
   } catch {
     return { ok: false, error: 'No connection. The voice note wasn’t sent.' }
   }
+}
+
+/** Send a view-once photo (already shrunk): the raw image is the body, its size rides in the query. */
+export async function sendChatPhoto(
+  chatId: string,
+  photo: Blob,
+  w: number,
+  h: number,
+): Promise<{ ok: true; message: ChatMessage } | { ok: false; error: string }> {
+  try {
+    const res = await fetch(`${apiUrl()}/chats/${encodeURIComponent(chatId)}/photo?w=${w}&h=${h}`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': photo.type || 'image/webp' },
+      body: photo,
+      signal: AbortSignal.timeout(45_000),
+    })
+    const data = (await res.json().catch(() => ({}))) as { ok?: boolean; message?: ChatMessage; error?: string }
+    if (res.ok && data.ok && data.message) return { ok: true, message: data.message }
+    return { ok: false, error: data.error ?? 'Couldn’t send the photo.' }
+  } catch {
+    return { ok: false, error: 'No connection. The photo wasn’t sent.' }
+  }
+}
+
+/** Open a photo (once): returns a one-time link to fetch it from. */
+export async function openChatPhoto(
+  messageId: string,
+): Promise<{ ok: true; url: string; username: string } | { ok: false; error: string; code?: string }> {
+  try {
+    const res = await fetch(`${apiUrl()}/chats/photos/${encodeURIComponent(messageId)}/open`, { method: 'POST', credentials: 'include' })
+    const data = (await res.json().catch(() => ({}))) as { ok?: boolean; url?: string; username?: string; error?: string; code?: string }
+    if (res.ok && data.ok && data.url) return { ok: true, url: data.url, username: data.username ?? '' }
+    return { ok: false, error: data.error ?? 'Couldn’t open the photo.', code: data.code }
+  } catch {
+    return { ok: false, error: 'No connection. Try again.' }
+  }
+}
+
+export function reportChatPhoto(messageId: string) {
+  return apiPost<{ ok: true }>(`/chats/photos/${encodeURIComponent(messageId)}/report`, {})
 }
 
 const voiceUrls = new Map<string, Promise<string | null>>()

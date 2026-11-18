@@ -6,6 +6,21 @@ import { liveSpaceMoneyBlock } from './spaces-money.js'
 import { isStickerId } from './stickers.js'
 import { cleanPeaks, parseVoiceBody, voiceContentType, voiceExt, VOICE_MAX_BYTES, VOICE_MAX_MS, VOICE_MIN_MS } from './voice-rules.js'
 import { getVoice, putVoice, voiceEnabled } from './voice-store.js'
+import { deletePhoto, getPhoto, photosEnabled, putPhoto } from './photo-store.js'
+import { randomBytes } from 'node:crypto'
+import {
+  isoDaysAgo,
+  PHOTO_HOLD_MS,
+  PHOTO_MAX_BYTES,
+  PHOTO_REPORT_DAYS,
+  PHOTO_TOKEN_MS,
+  PHOTO_UNOPENED_DAYS,
+  photoBody,
+  photoContentType,
+  publicPhotoState,
+  sniffPhoto,
+  type PhotoStatus,
+} from './photo-rules.js'
 import {
   canInteractWith,
   isReactionEmoji,
@@ -32,7 +47,7 @@ export type ChatSender = {
 }
 
 /** text · system ("X joined") · sticker (body = sticker id) · invite (body = host username) · visit (body = visited username) · money (body = naira amount) */
-export type MessageKind = 'text' | 'system' | 'sticker' | 'invite' | 'visit' | 'money' | 'game' | 'nudge' | 'bae' | 'voice'
+export type MessageKind = 'text' | 'system' | 'sticker' | 'invite' | 'visit' | 'money' | 'game' | 'nudge' | 'bae' | 'voice' | 'photo'
 
 /** Naira you can send in one go from a direct chat: at least ₦100, no upper limit (only your balance). */
 export const TRANSFER_MIN = 100
@@ -95,6 +110,7 @@ type MessageRow = {
   reply_kind?: MessageKind | null
   reply_body?: string | null
   reply_name?: string | null
+  photo_status?: PhotoStatus | null
 }
 
 const MESSAGE_SELECT = `
@@ -102,7 +118,8 @@ const MESSAGE_SELECT = `
          u.username AS display_name, u.is_support,
          pp.avatar_color, pp.avatar_emoji,
          (SELECT c.appearance FROM characters c WHERE c.user_id = m.sender_id LIMIT 1) AS appearance,
-         q.seq::text AS reply_id, q.kind AS reply_kind, q.body AS reply_body, qu.username AS reply_name
+         q.seq::text AS reply_id, q.kind AS reply_kind, q.body AS reply_body, qu.username AS reply_name,
+         (SELECT p.status FROM chat_photos p WHERE p.message_seq = m.seq) AS photo_status
   FROM chat_messages m
   LEFT JOIN users u ON u.id = m.sender_id
   LEFT JOIN player_profiles pp ON pp.user_id = m.sender_id
@@ -113,12 +130,23 @@ const MESSAGE_SELECT = `
 const NOT_REPORTED_BY = (param: string) =>
   `NOT EXISTS (SELECT 1 FROM chat_reports r WHERE r.message_seq = m.seq AND r.reporter_id = ${param})`
 
+/** A photo message's body (size) plus its public state: sent / opened / expired. Never the object key. */
+function photoBodyWithState(body: string, status: PhotoStatus): string {
+  let v: { w?: number; h?: number } = {}
+  try {
+    v = JSON.parse(body) as { w?: number; h?: number }
+  } catch {
+    // keep defaults
+  }
+  return JSON.stringify({ w: v.w ?? 100, h: v.h ?? 100, state: publicPhotoState(status) })
+}
+
 function toMessage(row: MessageRow, viewerId: string, reactions: ChatReaction[] = []): ChatMessage {
   return {
     id: row.seq,
     chatId: row.chat_id,
     kind: row.kind,
-    body: row.body,
+    body: row.kind === 'photo' ? photoBodyWithState(row.body, row.photo_status ?? 'sent') : row.body,
     createdAt: row.created_at.toISOString(),
     sender:
       row.kind === 'system' || !row.sender_id
@@ -483,14 +511,19 @@ export async function getChatSync(
   userId: string,
   chatId: string,
   from: number,
-): Promise<{ ok: true; reactions: Record<string, ChatReaction[]>; receipts: ReceiptMarkers } | Fail> {
+): Promise<{ ok: true; reactions: Record<string, ChatReaction[]>; receipts: ReceiptMarkers; photos: Record<string, string> } | Fail> {
   if (!(await isMember(chatId, userId))) return fail(403, 'NOT_MEMBER', 'You are not in this chat.')
   const seqs = await pool.query<{ seq: string }>(
     `SELECT seq::text AS seq FROM chat_messages WHERE chat_id = $1 AND seq >= $2 ORDER BY seq LIMIT 200`,
     [chatId, from],
   )
   const reactions = await loadReactions(seqs.rows.map((row) => row.seq))
-  return { ok: true, reactions: Object.fromEntries(reactions), receipts: await getReceipts(userId, chatId) }
+  const photoRows = await pool.query<{ seq: string; status: PhotoStatus }>(
+    `SELECT message_seq::text AS seq, status FROM chat_photos WHERE chat_id = $1 AND message_seq >= $2`,
+    [chatId, from],
+  )
+  const photos = Object.fromEntries(photoRows.rows.map((r) => [r.seq, publicPhotoState(r.status)]))
+  return { ok: true, reactions: Object.fromEntries(reactions), receipts: await getReceipts(userId, chatId), photos }
 }
 
 /** Set (or replace) your one reaction on a message. Members only; not on system / nudge lines. */
@@ -858,4 +891,156 @@ export async function reportMessage(
     [seq, userId, reason?.slice(0, 200) ?? null],
   )
   return { ok: true }
+}
+
+
+// —— View-once photos (direct chats) ——
+
+/**
+ * Send a photo: the bytes go to storage under a random key; the message and `chat_photos` hold metadata only.
+ * The other player can open it once; see openPhoto.
+ */
+export async function sendPhoto(
+  userId: string,
+  chatId: string,
+  data: Buffer,
+  w: number,
+  h: number,
+): Promise<{ ok: true; message: ChatMessage } | Fail> {
+  if (!photosEnabled()) return fail(503, 'PHOTO_OFF', 'Photos are not available yet.')
+  const kind = sniffPhoto(data)
+  if (!kind || !data.length || data.length > PHOTO_MAX_BYTES) return fail(400, 'BAD_PHOTO', 'That photo can’t be sent.')
+  if ((await chatKindOf(chatId)) !== 'direct') return fail(400, 'DIRECT_ONLY', 'Photos can only be sent in a one-to-one chat.')
+  if (!(await isMember(chatId, userId))) return fail(403, 'NOT_MEMBER', 'You are not in this chat.')
+  if (await peerIsSupport(chatId, userId)) return fail(403, 'SUPPORT_NO', SUPPORT_NO)
+  const recent = await pool.query<{ n: number }>(
+    `SELECT COUNT(*)::int AS n FROM chat_messages WHERE sender_id = $1 AND created_at > NOW() - INTERVAL '1 minute'`,
+    [userId],
+  )
+  if ((recent.rows[0]?.n ?? 0) >= CHAT_RATE_PER_MIN) return fail(429, 'SLOW_DOWN', 'You’re sending messages quickly — wait a moment and try again.')
+  const key = `photo/${randomBytes(18).toString('base64url')}.${kind.ext}`
+  try {
+    await putPhoto(key, data, kind.type)
+  } catch {
+    return fail(502, 'UPLOAD_FAILED', 'Couldn’t send the photo. Try again.')
+  }
+  const seq = await insertMessage(pool, userId, chatId, 'photo', photoBody(w, h))
+  await pool.query(`INSERT INTO chat_photos (message_seq, chat_id, sender_id, object_key, bytes) VALUES ($1, $2, $3, $4, $5)`, [
+    seq,
+    chatId,
+    userId,
+    key,
+    data.length,
+  ])
+  const row = await pool.query<MessageRow>(`${MESSAGE_SELECT} WHERE m.seq = $1`, [seq])
+  return { ok: true, message: toMessage(row.rows[0]!, userId) }
+}
+
+/** One-time view links: token -> the bytes, good for one fetch by one player within a minute. */
+const viewLinks = new Map<string, { userId: string; data: Buffer; type: string; expires: number }>()
+/** Opened photos' bytes, kept in memory only for a few minutes so a report can preserve them (never on disk). */
+const heldBytes = new Map<string, { data: Buffer; ext: string; expires: number }>()
+
+function pruneMemory(now = Date.now()) {
+  for (const [k, v] of viewLinks) if (v.expires < now) viewLinks.delete(k)
+  for (const [k, v] of heldBytes) if (v.expires < now) heldBytes.delete(k)
+}
+
+/**
+ * The recipient opens a photo: the first call claims it (status -> opened, once), deletes the stored object
+ * right away and returns a one-time link. A second call, the sender, or anyone outside the chat gets nothing.
+ */
+export async function openPhoto(userId: string, seq: string): Promise<{ ok: true; url: string; username: string } | Fail> {
+  if (!/^\d{1,18}$/.test(seq)) return fail(404, 'NOT_FOUND', 'Photo not found.')
+  const found = await pool.query<{ chat_id: string; sender_id: string; status: PhotoStatus; object_key: string | null }>(
+    `SELECT chat_id, sender_id, status, object_key FROM chat_photos WHERE message_seq = $1`,
+    [seq],
+  )
+  const photo = found.rows[0]
+  if (!photo || !(await isMember(photo.chat_id, userId))) return fail(404, 'NOT_FOUND', 'Photo not found.')
+  if (photo.sender_id === userId) return fail(403, 'OWN_PHOTO', 'You sent this photo — only they can open it.')
+  if (photo.status !== 'sent' || !photo.object_key) return fail(410, 'GONE', 'This photo was already opened.')
+  const claimed = await pool.query(
+    `UPDATE chat_photos SET status = 'opened', opened_at = NOW(), opened_by = $2 WHERE message_seq = $1 AND status = 'sent' RETURNING 1`,
+    [seq, userId],
+  )
+  if (!claimed.rows.length) return fail(410, 'GONE', 'This photo was already opened.')
+  let data: Buffer | null = null
+  try {
+    data = await getPhoto(photo.object_key)
+    await deletePhoto(photo.object_key)
+  } catch {
+    // Storage hiccup before we had the bytes: give the photo back so it can be opened again.
+    if (!data) await pool.query(`UPDATE chat_photos SET status = 'sent', opened_at = NULL, opened_by = NULL WHERE message_seq = $1`, [seq])
+    return fail(502, 'FETCH_FAILED', 'Couldn’t load the photo. Try again.')
+  }
+  if (!data) return fail(410, 'GONE', 'This photo is gone.')
+  await pool.query(`UPDATE chat_photos SET object_key = NULL WHERE message_seq = $1`, [seq])
+  pruneMemory()
+  const token = randomBytes(24).toString('base64url')
+  const type = photoContentType(photo.object_key)
+  viewLinks.set(token, { userId, data, type, expires: Date.now() + PHOTO_TOKEN_MS })
+  heldBytes.set(seq, { data, ext: photo.object_key.endsWith('.webp') ? 'webp' : 'jpg', expires: Date.now() + PHOTO_HOLD_MS })
+  const who = await pool.query<{ username: string }>(`SELECT username FROM users WHERE id = $1`, [userId])
+  return { ok: true, url: `/chats/photos/view/${token}`, username: who.rows[0]?.username ?? '' }
+}
+
+/** Redeem a one-time link (deleted on first use, only for the player it was made for). */
+export function redeemPhotoLink(userId: string, token: string): { data: Buffer; type: string } | null {
+  pruneMemory()
+  const link = viewLinks.get(token)
+  viewLinks.delete(token)
+  if (!link || link.userId !== userId) return null
+  return { data: link.data, type: link.type }
+}
+
+/**
+ * The viewer reports an opened photo. Everything else about a photo is deleted on open, but a reported one is
+ * kept hidden for 30 days (if the server still had the bytes) so support can look at it.
+ */
+export async function reportPhoto(userId: string, seq: string, reason: string | undefined): Promise<{ ok: true; kept: boolean } | Fail> {
+  const r = await reportMessage(userId, Number(seq), reason)
+  if (!r.ok) return r
+  const row = await pool.query<{ status: PhotoStatus }>(`SELECT status FROM chat_photos WHERE message_seq = $1 AND opened_by = $2`, [seq, userId])
+  if (!row.rows[0]) return { ok: true, kept: false }
+  const held = heldBytes.get(seq)
+  heldBytes.delete(seq)
+  if (!held || row.rows[0].status !== 'opened') return { ok: true, kept: false }
+  const key = `held/${randomBytes(18).toString('base64url')}.${held.ext}`
+  try {
+    await putPhoto(key, held.data, held.ext === 'webp' ? 'image/webp' : 'image/jpeg')
+  } catch {
+    return { ok: true, kept: false }
+  }
+  await pool.query(`UPDATE chat_photos SET status = 'reported', held_key = $2, held_until = NOW() + ($3 || ' days')::interval WHERE message_seq = $1`, [
+    seq,
+    key,
+    String(PHOTO_REPORT_DAYS),
+  ])
+  return { ok: true, kept: true }
+}
+
+/** Scheduled clean-up: unopened photos older than 7 days and reports older than 30 days lose their objects. */
+export async function sweepPhotos(now = new Date()): Promise<{ expired: number; purged: number }> {
+  let expired = 0
+  let purged = 0
+  const old = await pool.query<{ message_seq: string; object_key: string | null }>(
+    `SELECT message_seq::text, object_key FROM chat_photos WHERE status = 'sent' AND created_at < $1 LIMIT 200`,
+    [isoDaysAgo(now, PHOTO_UNOPENED_DAYS)],
+  )
+  for (const p of old.rows) {
+    if (p.object_key) await deletePhoto(p.object_key)
+    await pool.query(`UPDATE chat_photos SET status = 'expired', object_key = NULL WHERE message_seq = $1`, [p.message_seq])
+    expired++
+  }
+  const held = await pool.query<{ message_seq: string; held_key: string | null }>(
+    `SELECT message_seq::text, held_key FROM chat_photos WHERE status = 'reported' AND held_until < $1 LIMIT 200`,
+    [now],
+  )
+  for (const p of held.rows) {
+    if (p.held_key) await deletePhoto(p.held_key)
+    await pool.query(`UPDATE chat_photos SET status = 'purged', held_key = NULL WHERE message_seq = $1`, [p.message_seq])
+    purged++
+  }
+  return { expired, purged }
 }

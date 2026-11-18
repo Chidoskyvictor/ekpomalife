@@ -32,6 +32,8 @@ import { OPEN_CHAT_EVENT, takePendingChat } from '@/lib/game/open-chat'
 import { requestOpenGames } from '@/lib/game/open-games'
 import type { PhoneNotificationsResponse } from '@/lib/game/phone-api'
 import { FamilyRequestCard } from './family-request-card'
+import { AttachButton, AttachSheet, parsePhoto, PhotoBubble, PhotoPreview, PhotoViewer, shrinkPhoto, type PhotoDraft } from './photo-chat'
+import photoStyles from './photo-chat.module.css'
 import { canRecordVoice, clock, useVoiceRecorder, VoiceBubble, VOICE_MAX_MS } from './voice-note'
 import { AppHeader, BackButton } from '../app-header'
 import { AppError, AppLoading } from '../app-state'
@@ -316,6 +318,7 @@ function previewText(message: ChatMessage) {
   if (message.kind === 'nudge') return nudgeLine(message)
   if (message.kind === 'bae') return '💕 Request'
   if (message.kind === 'voice') return '🎤 Voice note'
+  if (message.kind === 'photo') return parsePhoto(message.body).state === 'sent' ? '📷 Photo' : '📷 Photo · Opened'
   return message.body
 }
 
@@ -564,13 +567,18 @@ function ChatView({
   const game = useGameOptional()
   const state = game?.state ?? null
   const refreshServer = game?.refreshServer ?? (async () => {})
-  const { messages, hasMore, loading, loadingOlder, error, receipts, loadOlder, send, sendVoice, sendMoney, report, react } = useChat(
+  const { messages, hasMore, loading, loadingOlder, error, receipts, loadOlder, send, sendVoice, sendPhoto, markPhotoOpened, sendMoney, report, react } = useChat(
     chat.id,
     true,
     () => void refreshServer(),
   )
   const [draft, setDraft] = useState('')
   const [stickersOpen, setStickersOpen] = useState(false)
+  const [attachOpen, setAttachOpen] = useState(false)
+  const [photoDraft, setPhotoDraft] = useState<PhotoDraft | null>(null)
+  const [photoSending, setPhotoSending] = useState(false)
+  const [photoError, setPhotoError] = useState<string | null>(null)
+  const [viewing, setViewing] = useState<string | null>(null)
   const [moneyOpen, setMoneyOpen] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
   const [sending, setSending] = useState(false)
@@ -625,6 +633,31 @@ function ChatView({
     } else {
       setSendError(res.error)
     }
+  }
+
+  const pickPhoto = async (file: File) => {
+    setPhotoError(null)
+    const draft = await shrinkPhoto(file)
+    if (!draft) {
+      setNotice('That photo can’t be used. Try another.')
+      return
+    }
+    setPhotoDraft(draft)
+  }
+  const closePreview = () => {
+    if (photoDraft) URL.revokeObjectURL(photoDraft.url)
+    setPhotoDraft(null)
+    setPhotoError(null)
+  }
+  const sendPickedPhoto = async () => {
+    if (!photoDraft || photoSending) return
+    setPhotoSending(true)
+    setPhotoError(null)
+    stickToBottom.current = true
+    const res = await sendPhoto(photoDraft.blob, photoDraft.w, photoDraft.h)
+    setPhotoSending(false)
+    if (res.ok) closePreview()
+    else setPhotoError(res.error)
   }
 
   const sendExtra = async (body: string, kind: 'sticker' | 'invite' | 'visit') => {
@@ -767,7 +800,7 @@ function ChatView({
   }
 
   return (
-    <div className={styles.screen}>
+    <div className={`${styles.screen} ${photoStyles.host}`}>
       {/* One slim row: back, avatar, name + online/last seen, and ⋯ for Invite / Visit / Send money */}
       <div className={styles.chatHead}>
         <BackButton onBack={onBack} label="Back to chats" accent="#007aff" />
@@ -919,11 +952,24 @@ function ChatView({
               onReact={(emoji) => reactTo(message, emoji)}
               onShowReactors={() => setReactorsFor(message.id)}
               onJump={jumpTo}
+              onOpenPhoto={() => setViewing(message.id)}
             />
           )
         })}
       </div>
 
+      {attachOpen ? (
+        <AttachSheet
+          canPhoto={direct && !chat.peer?.avatar.support}
+          onClose={() => setAttachOpen(false)}
+          onFile={(file) => void pickPhoto(file)}
+          onStickers={() => setStickersOpen(true)}
+        />
+      ) : null}
+      {photoDraft ? (
+        <PhotoPreview draft={photoDraft} sending={photoSending} error={photoError} onCancel={closePreview} onSend={() => void sendPickedPhoto()} />
+      ) : null}
+      {viewing ? <PhotoViewer messageId={viewing} onClose={() => setViewing(null)} onOpened={() => markPhotoOpened(viewing)} /> : null}
       {stickersOpen ? (
         <div className={styles.stickerTray} role="group" aria-label="Stickers">
           {STICKERS.map((sticker) => (
@@ -1011,16 +1057,9 @@ function ChatView({
               </span>
             </div>
           ) : null}
-          <button
-            type="button"
-            hidden={recorder.recording}
-            className={`${styles.stickerBtn} ${stickersOpen ? styles.stickerBtnOn : ''}`}
-            aria-label="Stickers"
-            aria-expanded={stickersOpen}
-            onClick={() => setStickersOpen((open) => !open)}
-          >
-            <Smile size={24} aria-hidden="true" />
-          </button>
+          <span hidden={recorder.recording} className={photoStyles.plusWrap}>
+            <AttachButton open={attachOpen} onClick={() => setAttachOpen((o) => !o)} />
+          </span>
           <textarea
             ref={draftBox}
             hidden={recorder.recording}
@@ -1096,6 +1135,7 @@ function MessageRow({
   onReact,
   onShowReactors,
   onJump,
+  onOpenPhoto,
 }: {
   message: ChatMessage
   grouped: boolean
@@ -1117,6 +1157,7 @@ function MessageRow({
   onReact: (emoji: string) => void
   onShowReactors: () => void
   onJump: (id: string) => void
+  onOpenPhoto: () => void
 }) {
   if (message.kind === 'system' || !message.sender) {
     return <p className={styles.system}>{message.body}</p>
@@ -1128,7 +1169,12 @@ function MessageRow({
   if (message.kind === 'nudge') return <p className={styles.nudge}>{nudgeLine(message)}</p>
   if (message.kind === 'bae') return <FamilyRequestCard id={message.body} />
   const sender = message.sender
-  const content = <MessageContent message={message} onVisit={onVisit} />
+  const content =
+    message.kind === 'photo' ? (
+      <PhotoBubble message={message} tick={tick} onOpen={onOpenPhoto} />
+    ) : (
+      <MessageContent message={message} onVisit={onVisit} />
+    )
   // Stickers and cards sit on their own; text and voice notes get the chat bubble
   const special = message.kind !== 'text' && message.kind !== 'voice'
   const reactions = message.reactions ?? []
@@ -1193,7 +1239,7 @@ function MessageRow({
                 </div>
               )}
             </Gesture>
-            {special && tick ? (
+            {special && tick && message.kind !== 'photo' ? (
               <span className={styles.tickRow}>
                 <Ticks tick={tick} />
               </span>

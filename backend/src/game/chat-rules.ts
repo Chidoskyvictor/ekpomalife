@@ -14,6 +14,7 @@ export function quotePreview(kind: string, body: string): string {
   if (kind === 'visit') return 'Place visit'
   if (kind === 'game') return 'Game challenge'
   if (kind === 'voice') return '🎤 Voice note'
+  if (kind === 'photo') return '📷 Photo'
   return (body.split('\n')[0] ?? '').slice(0, 120)
 }
 
