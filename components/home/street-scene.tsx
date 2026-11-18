@@ -55,19 +55,13 @@ const GATE = '#3b4a5a'
 const OWN_GATE = '#2f7a4f'
 const DOOR = '#6b4a2b'
 const GLASS = '#9ec9ef'
+/** The Innovation Hub block's front stands this far behind the fence line (your door is on it). */
+const FACADE_Z = 0.5
 
-function buildCompounds(t: StreetTemplate, own: number, numbers: number[], paint?: string) {
+function buildCompounds(t: StreetTemplate, own: number) {
   const boxes: Shape[] = []
-  const { w, d, h } = t.house
-  const depth = d + 3.4
-  const half = (LOTS * t.lotW) / 2
-  const pitch = 0.32
   for (let i = 0; i < LOTS; i++) {
     const cx = lotX(t, i)
-    const wall = i === own && paint ? paint : HOUSE_TINTS[(numbers[i] * 7) % HOUSE_TINTS.length]
-    const zc = -1.7 - d / 2
-    // Yard only: the houses themselves are the Innovation Hub blocks behind (HomeBlocks)
-    boxes.push({ p: [cx, 0.015, -depth / 2], s: [t.lotW - 0.25, 0.03, depth], c: '#cdc4b2' })
     // Front fence with a gap for the gate, pillars and the two gate leaves
     const piece = t.lotW / 2 - t.gateW / 2 - 0.2
     for (const side of [-1, 1]) {
@@ -79,11 +73,12 @@ function buildCompounds(t: StreetTemplate, own: number, numbers: number[], paint
         c: i === own ? OWN_GATE : GATE,
       })
     }
-    // Side wall on the left of every lot, back wall behind
-    boxes.push({ p: [cx - t.lotW / 2, t.fenceH / 2, -depth / 2], s: [0.22, t.fenceH, depth], c: FENCE })
-    boxes.push({ p: [cx, t.fenceH / 2, -depth], s: [t.lotW, t.fenceH, 0.22], c: FENCE })
+    // Your house's door in the front of the Innovation Hub block, right behind your gate
+    if (i === own) {
+      boxes.push({ p: [cx, 1.2, -FACADE_Z + 0.04], s: [t.gateW + 0.5, 2.5, 0.1], c: '#2a2118' })
+      boxes.push({ p: [cx, 1.1, -FACADE_Z + 0.1], s: [t.gateW, 2.2, 0.08], c: DOOR })
+    }
   }
-  boxes.push({ p: [half, t.fenceH / 2, -depth / 2], s: [0.22, t.fenceH, depth], c: FENCE })
   return boxes
 }
 
@@ -209,7 +204,7 @@ export function StreetScene({ lodgingId, houseNumber, paint, appearance, clock, 
     return { ...base, blocks: [...base.blocks, block] }
   }, [t, own, car, carX])
   const houses = useMemo(
-    () => (t.kind === 'block' ? buildHostel(t, own, paint) : buildCompounds(t, own, numbers, paint)),
+    () => (t.kind === 'block' ? buildHostel(t, own, paint) : buildCompounds(t, own)),
     // numbers only change with own's block
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [t, own, numbers[0], paint],
@@ -292,7 +287,7 @@ export function StreetScene({ lodgingId, houseNumber, paint, appearance, clock, 
       <StreetBlocks width={LOTS * t.lotW} />
       {t.kind === 'block' ? null : (
         <Suspense fallback={null}>
-          <HomeBlocks width={LOTS * t.lotW} z={-(t.house.d + 3.4) - 0.6} />
+          <HomeBlocks width={LOTS * t.lotW} z={-FACADE_Z} />
         </Suspense>
       )}
       <PassingCars width={LOTS * t.lotW} skipNear={car ? { x: carX, length: PARKED_CAR.length + 3 } : undefined} />
