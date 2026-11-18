@@ -338,7 +338,7 @@ export function GameProvider({
         setBooting(false)
         setBootError(
           result.network
-            ? "Can't reach the server, retrying…"
+            ? result.error
             : result.error || 'Could not load your life.',
         )
         return

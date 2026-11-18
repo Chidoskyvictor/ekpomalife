@@ -1,6 +1,7 @@
 import { invalidateAuthMeSession } from '@/lib/auth/auth-me-cache'
 import { RATE_LIMIT_MESSAGE, withRateLimitRetry } from '@/lib/api/rate-limit'
 import { apiUrl } from './api'
+import { connectionMessage } from '@/lib/api/errors'
 
 const ACCOUNTS_KEY = 'ekpoma-life-accounts-v1'
 const SESSION_KEY = 'ekpoma-life-session-v1'
@@ -111,7 +112,7 @@ export async function createAccount(input: SignupInput): Promise<Result> {
     justSignedIn()
     return data
   } catch {
-    return { ok: false, error: 'Cannot reach the server. Is the backend running?' }
+    return { ok: false, error: connectionMessage() }
   }
 }
 
@@ -135,7 +136,7 @@ export async function verifyLogin(usernameInput: string, password: string): Prom
     justSignedIn()
     return data
   } catch {
-    return { ok: false, error: 'Cannot reach the server. Is the backend running?' }
+    return { ok: false, error: connectionMessage() }
   }
 }
 
@@ -167,7 +168,7 @@ export async function requestPasswordReset(emailInput: string): Promise<OkOrFail
     }
     return { ok: true }
   } catch {
-    return { ok: false, error: 'Cannot reach the server. Is the backend running?' }
+    return { ok: false, error: connectionMessage() }
   }
 }
 
@@ -201,7 +202,7 @@ export async function resetPasswordWithCode(input: {
     }
     return { ok: true }
   } catch {
-    return { ok: false, error: 'Cannot reach the server. Is the backend running?' }
+    return { ok: false, error: connectionMessage() }
   }
 }
 

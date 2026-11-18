@@ -1,8 +1,9 @@
 import { apiUrl } from '@/lib/game/api'
-import { asApiErrorCode, type ApiFail } from './errors'
+import { asApiErrorCode, connectionMessage, type ApiFail } from './errors'
 import { RATE_LIMIT_MESSAGE, withRateLimitRetry } from './rate-limit'
 
-const FETCH_MS = 8000
+// Slow mobile data (2G/3G) needs longer than 8s for the bigger loads
+const FETCH_MS = 15000
 
 /** MSW / in-process mocks — tests set this; browser only when opted in. */
 export function useMocks(): boolean {
@@ -87,10 +88,11 @@ export async function apiRequest<T extends { ok: true }>(
       return failFromBody(response.status, raw)
     }
     return raw as T
-  } catch {
+  } catch (error) {
+    const timedOut = error instanceof Error && error.name === 'TimeoutError'
     return {
       ok: false,
-      error: "Can't reach the server, retrying…",
+      error: connectionMessage(timedOut ? 'timeout' : 'failed'),
       network: true,
     }
   }
