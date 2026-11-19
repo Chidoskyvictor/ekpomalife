@@ -100,6 +100,8 @@ export type PhoneAppMeta = {
   tint: string
   /** A logo image instead of the emoji (partner apps). */
   image?: string
+  /** The image is a finished app tile: fill the whole icon square. */
+  fullBleed?: boolean
   /** Full name on the app's own screen when the icon label is shorter. */
   fullName?: string
 }
@@ -121,7 +123,7 @@ export const PHONE_APPS: PhoneAppMeta[] = [
     tint: '#ffffff',
     image: '/apps/prodigy-logo.png',
   },
-  { id: 'eta', label: 'ẹta', emoji: '🗣️', status: 'live', tint: '#5b3fd1' },
+  { id: 'eta', label: 'ẹta', emoji: '🗣️', status: 'live', tint: '#2f6fe8', image: '/apps/eta-logo.svg', fullBleed: true },
   { id: 'gist', label: 'News', emoji: '📰', status: 'live', tint: '#ea580c' },
   { id: 'market', label: 'Market', emoji: '🛍️', status: 'live', tint: '#db2777' },
   { id: 'ride', label: 'Ride', emoji: '🛺', status: 'live', tint: '#ca8a04' },

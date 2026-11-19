@@ -34,6 +34,8 @@
 }
 /* (no glossy shine: flat, grown-up tiles like a real phone) */
 .appIconLogo { background: var(--paper); border: 1px solid rgba(0, 0, 0, 0.08); }
+.appIconFull { background: none; }
+.appIconFull img { width: 100%; height: 100%; border-radius: inherit; object-fit: cover; }
 .appIconLogo img { width: 82%; height: 82%; object-fit: contain; border-radius: var(--r-sm); }
 
 .appLabel {

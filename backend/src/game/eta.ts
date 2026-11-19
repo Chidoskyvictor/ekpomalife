@@ -46,6 +46,11 @@ export type EtaPost = {
   likes: number
   liked: boolean
   replies: number
+  reposts: number
+  reposted: boolean
+  views: number
+  /** Attached photo (served by /eta/photos/:id) with its size */
+  photo: { url: string; w: number; h: number } | null
   replyTo: string | null
   createdAt: string
   mine: boolean
@@ -81,6 +86,12 @@ type PostRow = {
   reply_to: string | null
   like_count: number
   reply_count: number
+  repost_count: number
+  view_count: number
+  photo_id: string | null
+  photo_w: number | null
+  photo_h: number | null
+  reposted: boolean
   giveaway_prize: string | null
   giveaway_ends_at: Date | null
   giveaway_settled: boolean
@@ -96,13 +107,16 @@ type PostRow = {
 
 const POST_SELECT = (viewer: string) => `
   SELECT p.id::text, p.author_user_id, p.author_npc_id, p.body, p.tags, p.reply_to::text, p.like_count, p.reply_count,
+         p.repost_count, p.view_count, p.photo_id::text, ph.w AS photo_w, ph.h AS photo_h,
+         EXISTS (SELECT 1 FROM eta_reposts rp WHERE rp.post_id = p.id AND rp.user_id = ${viewer}) AS reposted,
          p.giveaway_prize::text, p.giveaway_ends_at, p.giveaway_settled, p.giveaway_winner_post::text, p.created_at,
          u.username, u.username AS display_name, pp.avatar_color, pp.avatar_emoji,
          (SELECT c.appearance FROM characters c WHERE c.user_id = u.id LIMIT 1) AS appearance,
          EXISTS (SELECT 1 FROM eta_likes l WHERE l.post_id = p.id AND l.user_id = ${viewer}) AS liked
   FROM eta_posts p
   LEFT JOIN users u ON u.id = p.author_user_id
-  LEFT JOIN player_profiles pp ON pp.user_id = p.author_user_id`
+  LEFT JOIN player_profiles pp ON pp.user_id = p.author_user_id
+  LEFT JOIN eta_photos ph ON ph.id = p.photo_id`
 
 const NOT_REPORTED = (viewer: string) =>
   `NOT EXISTS (SELECT 1 FROM eta_reports r WHERE r.post_id = p.id AND r.reporter_id = ${viewer})`
@@ -131,6 +145,10 @@ function toPost(row: PostRow, viewerId: string): EtaPost {
     likes: row.like_count,
     liked: row.liked,
     replies: row.reply_count,
+    reposts: row.repost_count,
+    reposted: row.reposted,
+    views: row.view_count,
+    photo: row.photo_id ? { url: `/eta/photos/${row.photo_id}`, w: row.photo_w ?? 4, h: row.photo_h ?? 3 } : null,
     replyTo: row.reply_to,
     createdAt: row.created_at.toISOString(),
     mine: Boolean(row.author_user_id && row.author_user_id === viewerId),
@@ -199,10 +217,14 @@ export async function getTagged(viewerId: string, tag: string) {
 
 // —— Writing ——
 
-export async function createPost(userId: string, rawBody: string, replyTo?: number) {
+export async function createPost(userId: string, rawBody: string, replyTo?: number, photoId?: number) {
   const body = rawBody.replace(/\r\n/g, '\n').trim()
-  if (!body) return fail(400, 'EMPTY', 'Write something first.')
+  if (!body && !photoId) return fail(400, 'EMPTY', 'Write something first.')
   if (body.length > POST_MAX) return fail(400, 'TOO_LONG', `Keep it under ${POST_MAX} characters.`)
+  if (photoId) {
+    const mine = await pool.query(`SELECT 1 FROM eta_photos WHERE id = $1 AND user_id = $2`, [photoId, userId])
+    if (!mine.rowCount) return fail(400, 'BAD_PHOTO', 'That photo is gone. Add it again.')
+  }
   const recent = await pool.query<{ n: number }>(
     `SELECT COUNT(*)::int AS n FROM eta_posts WHERE author_user_id = $1 AND created_at > NOW() - INTERVAL '1 minute'`,
     [userId],
@@ -216,8 +238,8 @@ export async function createPost(userId: string, rawBody: string, replyTo?: numb
     if (!parent.rows[0]) return fail(404, 'NOT_FOUND', 'That gist is gone.')
   }
   const inserted = await pool.query<{ id: string }>(
-    `INSERT INTO eta_posts (author_user_id, body, tags, reply_to) VALUES ($1, $2, $3, $4) RETURNING id::text`,
-    [userId, body, extractTags(body), replyTo ?? null],
+    `INSERT INTO eta_posts (author_user_id, body, tags, reply_to, photo_id) VALUES ($1, $2, $3, $4, $5) RETURNING id::text`,
+    [userId, body, extractTags(body), replyTo ?? null, photoId ?? null],
   )
   if (replyTo) await pool.query(`UPDATE eta_posts SET reply_count = reply_count + 1 WHERE id = $1`, [replyTo])
   const row = await pool.query<PostRow>(`${POST_SELECT('$1')} WHERE p.id = $2`, [userId, inserted.rows[0]!.id])
@@ -239,6 +261,49 @@ export async function toggleLike(userId: string, postId: number) {
     [postId],
   )
   return { ok: true as const, liked, likes: count.rows[0]?.like_count ?? 0 }
+}
+
+export async function toggleRepost(userId: string, postId: number) {
+  const post = await pool.query(`SELECT 1 FROM eta_posts WHERE id = $1`, [postId])
+  if (!post.rowCount) return fail(404, 'NOT_FOUND', 'That gist is gone.')
+  const removed = await pool.query(`DELETE FROM eta_reposts WHERE post_id = $1 AND user_id = $2`, [postId, userId])
+  let reposted = false
+  if (!removed.rowCount) {
+    await pool.query(`INSERT INTO eta_reposts (post_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`, [postId, userId])
+    reposted = true
+  }
+  const count = await pool.query<{ repost_count: number }>(
+    `UPDATE eta_posts SET repost_count = (SELECT COUNT(*) FROM eta_reposts WHERE post_id = $1) WHERE id = $1 RETURNING repost_count`,
+    [postId],
+  )
+  return { ok: true as const, reposted, reposts: count.rows[0]?.repost_count ?? 0 }
+}
+
+/** One view per post per phone session (the app dedupes); bounded batch. */
+export async function addViews(ids: number[]) {
+  if (ids.length) await pool.query(`UPDATE eta_posts SET view_count = view_count + 1 WHERE id = ANY($1::bigint[])`, [ids.slice(0, 30)])
+  return { ok: true as const }
+}
+
+export const PHOTO_MAX_BYTES = 300_000
+
+export async function savePhoto(userId: string, mime: string, data: Buffer, w: number, h: number) {
+  if (data.length < 100 || data.length > PHOTO_MAX_BYTES) return fail(400, 'BAD_PHOTO', 'That photo is too big.')
+  const recent = await pool.query<{ n: number }>(
+    `SELECT COUNT(*)::int AS n FROM eta_photos WHERE user_id = $1 AND created_at > NOW() - INTERVAL '1 hour'`,
+    [userId],
+  )
+  if ((recent.rows[0]?.n ?? 0) >= 20) return fail(429, 'SLOW_DOWN', 'Easy. Too many photos this hour.')
+  const row = await pool.query<{ id: string }>(
+    `INSERT INTO eta_photos (user_id, mime, data, w, h) VALUES ($1, $2, $3, $4, $5) RETURNING id::text`,
+    [userId, mime, data, w, h],
+  )
+  return { ok: true as const, id: row.rows[0]!.id }
+}
+
+export async function getPhoto(id: number) {
+  const row = await pool.query<{ mime: string; data: Buffer }>(`SELECT mime, data FROM eta_photos WHERE id = $1`, [id])
+  return row.rows[0] ?? null
 }
 
 export async function toggleFollow(userId: string, kind: 'user' | 'npc', targetId: string) {
@@ -272,13 +337,14 @@ export async function getProfile(viewerId: string, kind: 'user' | 'npc', idOrHan
   if (kind === 'npc') {
     const npc = npcById(idOrHandle) ?? NPCS.find((n) => n.handle === idOrHandle)
     if (!npc) return fail(404, 'NOT_FOUND', 'No such account.')
-    const [posts, following] = await Promise.all([
+    const [posts, following, followers] = await Promise.all([
       pool.query<PostRow>(`${POST_SELECT('$1')} WHERE p.author_npc_id = $2 AND p.reply_to IS NULL ORDER BY p.id DESC LIMIT 30`, [viewerId, npc.id]),
       pool.query(`SELECT 1 FROM eta_follows WHERE follower_id = $1 AND target_kind = 'npc' AND target_id = $2`, [viewerId, npc.id]),
+      pool.query<{ n: number }>(`SELECT COUNT(*)::int AS n FROM eta_follows WHERE target_kind = 'npc' AND target_id = $1`, [npc.id]),
     ])
     return {
       ok: true as const,
-      profile: { author: npcAuthor(npc), bio: npc.bio, followers: null, following: null, isFollowing: Boolean(following.rowCount) },
+      profile: { author: npcAuthor(npc), bio: npc.bio, followers: followers.rows[0]?.n ?? 0, following: 0, isFollowing: Boolean(following.rowCount) },
       posts: posts.rows.map((r) => toPost(r, viewerId)),
     }
   }

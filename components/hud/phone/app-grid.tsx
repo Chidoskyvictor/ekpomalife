@@ -118,7 +118,7 @@ function AppIcon({
       }}
     >
       <span
-        className={`${styles.appIcon} ${app.image ? styles.appIconLogo : ''}`}
+        className={`${styles.appIcon} ${app.image ? (app.fullBleed ? styles.appIconFull : styles.appIconLogo) : ''}`}
         style={look && !app.image ? { background: `linear-gradient(160deg, ${look.from}, ${look.to})` } : undefined}
       >
         {app.image ? (
