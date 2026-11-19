@@ -106,10 +106,9 @@
   .foot {
     display: flex; align-items: center; gap: 18px;
     margin: 0 40px 40px; padding: 18px 18px 18px 22px; border-radius: 34px;
-    background: rgba(255, 255, 255, 0.92); box-shadow: 0 14px 40px rgba(23, 71, 184, 0.16);
+    background: var(--ink); box-shadow: 0 14px 40px rgba(15, 28, 51, 0.28);
   }
-  .foot img { width: 58px; height: 58px; border-radius: 16px; }
-  .foot b { flex: 1; font-family: 'Boogaloo'; font-weight: 400; font-size: 42px; color: var(--ink); }
+  .foot b { flex: 1; padding-left: 12px; font-family: 'Boogaloo'; font-weight: 400; font-size: 42px; color: #fff; }
   .foot span {
     padding: 16px 28px; border-radius: 999px;
     background: var(--blue); color: #fff; font-size: 30px; font-weight: 800;
@@ -130,7 +129,7 @@
     <p class="sign" id="sign"></p>
     <div class="burst" id="burst"></div>
   </main>
-  <footer class="foot"><img src="assets/logo.png" alt="" /><b>Live your AAU story.</b><span>ekpomalife.app</span></footer>
+  <footer class="foot"><b>Live your AAU story.</b><span>ekpomalife.app</span></footer>
 <script>
   // window.POST is set by render.mjs from posts/<name>.json; HTML fields allow <em>/<b>.
   function draw(p) {
