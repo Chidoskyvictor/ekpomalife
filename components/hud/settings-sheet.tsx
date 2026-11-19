@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { setMusic, SOUND_EVENT, useMusicSettings } from '@/lib/audio/music'
 import { ASSET_CREDITS, formatCredit } from '@/lib/game/asset-credits'
+import { setThemePref, useThemePref, type ThemePref } from '@/lib/theme'
 import { hapticTap } from './haptic'
 import { HudDrawer } from './hud-drawer'
 import hudStyles from './life-hud.module.css'
@@ -19,6 +20,9 @@ export function SettingsSheet({
 }) {
   const [muted, setMuted] = useState(false)
   const music = useMusicSettings()
+  const theme = useThemePref()
+  const nextTheme: Record<ThemePref, ThemePref> = { light: 'dark', dark: 'auto', auto: 'light' }
+  const themeLabel: Record<ThemePref, string> = { light: 'Light', dark: 'Dark', auto: 'Auto' }
 
   useEffect(() => {
     if (!open) return
@@ -46,6 +50,17 @@ export function SettingsSheet({
   return (
     <HudDrawer fit open={open} onOpenChange={onOpenChange} title="More" description="Settings and account.">
       <div className={styles.settingsBody}>
+        <button
+          type="button"
+          className={styles.settingsAction}
+          onClick={() => {
+            hapticTap()
+            setThemePref(nextTheme[theme])
+          }}
+        >
+          <span>Theme</span>
+          <span className={hudStyles.secondary}>{themeLabel[theme]}</span>
+        </button>
         <button type="button" className={styles.settingsAction} onClick={toggleMute}>
           <span>Sound</span>
           <span className={hudStyles.secondary}>{muted ? 'Off' : 'On'}</span>
