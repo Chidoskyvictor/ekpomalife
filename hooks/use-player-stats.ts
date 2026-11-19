@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useSyncExternalStore } from 'react'
 import { apiUrl } from '@/lib/game/api'
 
 export type PlayerStats = {
@@ -18,7 +18,8 @@ type StatsResponse =
   | { ok: true; players: number; online: number; today?: number; visits: number }
   | { ok: false; error?: string }
 
-const REFRESH_MS = 20_000
+/** One shared poll for every counter on screen, and only while the app is visible (saves backend bandwidth). */
+const REFRESH_MS = 60_000
 const VISIT_KEY = 'ekpoma-life-visit-counted'
 
 /** Count this browser visit once (per tab session), then forget about it. */
@@ -38,39 +39,54 @@ async function recordVisit() {
 
 const EMPTY: PlayerStats = { players: null, online: null, today: null, visits: null }
 
-export function usePlayerStats(): PlayerStats {
-  const [stats, setStats] = useState<PlayerStats>(EMPTY)
+let current: PlayerStats = EMPTY
+const listeners = new Set<() => void>()
+let timer: number | null = null
+let started = false
 
-  useEffect(() => {
-    let cancelled = false
+function set(next: PlayerStats) {
+  current = next
+  listeners.forEach((l) => l())
+}
 
-    const load = async () => {
-      try {
-        const response = await fetch(`${apiUrl()}/stats`, { credentials: 'omit' })
-        const data = (await response.json()) as StatsResponse
-        if (cancelled) return
-        if (!response.ok || !data.ok) {
-          setStats(EMPTY)
-          return
-        }
-        setStats({
-          players: data.players ?? 0,
-          online: data.online ?? 0,
-          today: typeof data.today === 'number' ? data.today : null,
-          visits: data.visits ?? 0,
-        })
-      } catch {
-        if (!cancelled) setStats(EMPTY)
-      }
-    }
+async function load() {
+  if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return
+  try {
+    const response = await fetch(`${apiUrl()}/stats`, { credentials: 'omit' })
+    const data = (await response.json()) as StatsResponse
+    if (!response.ok || !data.ok) return set(EMPTY)
+    set({
+      players: data.players ?? 0,
+      online: data.online ?? 0,
+      today: typeof data.today === 'number' ? data.today : null,
+      visits: data.visits ?? 0,
+    })
+  } catch {
+    set(EMPTY)
+  }
+}
 
+function onVisible() {
+  if (document.visibilityState === 'visible') void load()
+}
+
+function subscribe(listener: () => void) {
+  listeners.add(listener)
+  if (!started) {
+    started = true
     void recordVisit().then(load)
-    const timer = window.setInterval(() => void load(), REFRESH_MS)
-    return () => {
-      cancelled = true
+    document.addEventListener('visibilitychange', onVisible)
+  }
+  if (timer == null) timer = window.setInterval(() => void load(), REFRESH_MS)
+  return () => {
+    listeners.delete(listener)
+    if (!listeners.size && timer != null) {
       window.clearInterval(timer)
+      timer = null
     }
-  }, [])
+  }
+}
 
-  return stats
+export function usePlayerStats(): PlayerStats {
+  return useSyncExternalStore(subscribe, () => current, () => EMPTY)
 }

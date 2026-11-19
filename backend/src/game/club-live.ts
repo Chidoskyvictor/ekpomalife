@@ -41,6 +41,8 @@ type Member = {
   lastState: number
   picks: number[]
   says: number[]
+  /** Map room only: the drivers this player can currently see (in range), so they get join/leave as cars come and go. */
+  near: Set<string>
 }
 
 /**
@@ -136,6 +138,33 @@ function readState(raw: Record<string, unknown>, reach = 30): PlayerState | null
 
 /** The one room for the town map: drivers' cars. */
 const MAP_ROOM = 'map-drive'
+/**
+ * Town map: a car's position only goes to drivers within this distance (world units), instead of
+ * to everyone in town. This was most of the backend's bandwidth: every update went to every driver.
+ */
+const MAP_SIGHT = 300
+
+/** Map room: send one driver's update only to the drivers near them; announce/remove cars as they come in and out of range. */
+function forwardMapState(key: string, me: Member, state: PlayerState) {
+  const room = rooms.get(key)
+  if (!room) return
+  const text = JSON.stringify({ t: 'state', userId: me.info.userId, ...state })
+  for (const [userId, other] of room) {
+    if (userId === me.info.userId || other.socket.readyState !== other.socket.OPEN) continue
+    const seen = other.near.has(me.info.userId)
+    const inRange = !other.state || Math.hypot(other.state.x - state.x, other.state.z - state.z) <= MAP_SIGHT
+    if (inRange) {
+      if (!seen) {
+        other.near.add(me.info.userId)
+        other.socket.send(JSON.stringify({ t: 'join', player: publicInfo(me) }))
+      }
+      other.socket.send(text)
+    } else if (seen) {
+      other.near.delete(me.info.userId)
+      other.socket.send(JSON.stringify({ t: 'leave', userId: me.info.userId }))
+    }
+  }
+}
 
 /** A phone opened the live socket. */
 export function joinLive(socket: WebSocket, token: string | undefined) {
@@ -152,15 +181,17 @@ export function joinLive(socket: WebSocket, token: string | undefined) {
   // Same player on a second tab/phone: the newer connection wins
   room.get(ticket.userId)?.socket.close(4002, 'replaced')
   const { venueId: _v, night: _n, group: _g, expires: _e, ...info } = ticket
-  const me: Member = { socket, info, state: null, lastState: 0, picks: [], says: [] }
+  const me: Member = { socket, info, state: null, lastState: 0, picks: [], says: [], near: new Set() }
   room.set(ticket.userId, me)
+  const isMap = ticket.venueId === MAP_ROOM
 
+  // On the map, nearby cars arrive one by one (join) with their next update instead of the whole town at once
   send(socket, {
     t: 'snapshot',
     group: ticket.group,
-    players: [...room.values()].filter((m) => m !== me).map(publicInfo),
+    players: isMap ? [] : [...room.values()].filter((m) => m !== me).map(publicInfo),
   })
-  broadcast(key, { t: 'join', player: publicInfo(me) }, ticket.userId)
+  if (!isMap) broadcast(key, { t: 'join', player: publicInfo(me) }, ticket.userId)
 
   socket.on('message', (data) => {
     let msg: Record<string, unknown>
@@ -177,7 +208,8 @@ export function joinLive(socket: WebSocket, token: string | undefined) {
       if (!state) return
       me.lastState = now
       me.state = state
-      broadcast(key, { t: 'state', userId: me.info.userId, ...state }, me.info.userId)
+      if (isMap) forwardMapState(key, me, state)
+      else broadcast(key, { t: 'state', userId: me.info.userId, ...state }, me.info.userId)
     } else if (msg.t === 'say') {
       const line = typeof msg.line === 'string' ? msg.line : ''
       const to = typeof msg.to === 'string' ? msg.to : ''
@@ -199,7 +231,11 @@ export function joinLive(socket: WebSocket, token: string | undefined) {
     if (current?.get(me.info.userId) !== me) return
     current.delete(me.info.userId)
     if (!current.size) rooms.delete(key)
-    broadcast(key, { t: 'leave', userId: me.info.userId })
+    if (isMap) {
+      for (const other of current.values()) {
+        if (other.near.delete(me.info.userId)) send(other.socket, { t: 'leave', userId: me.info.userId })
+      }
+    } else broadcast(key, { t: 'leave', userId: me.info.userId })
   })
 }
 
