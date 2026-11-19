@@ -119,7 +119,7 @@ const POST_SELECT = (viewer: string) => `
   LEFT JOIN eta_photos ph ON ph.id = p.photo_id`
 
 const NOT_REPORTED = (viewer: string) =>
-  `NOT EXISTS (SELECT 1 FROM eta_reports r WHERE r.post_id = p.id AND r.reporter_id = ${viewer})`
+  `p.author_user_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM eta_reports r WHERE r.post_id = p.id AND r.reporter_id = ${viewer})`
 
 function npcAuthor(npc: Npc): EtaAuthor {
   return { kind: 'npc', id: npc.id, name: npc.name, handle: npc.handle, avatar: { color: npc.color, emoji: npc.emoji }, npc: true }
@@ -166,7 +166,6 @@ function toPost(row: PostRow, viewerId: string): EtaPost {
 export type FeedTab = 'foryou' | 'money' | 'following'
 
 export async function getFeed(viewerId: string, tab: FeedTab, before?: number) {
-  void runNpcs() // keep NPCs posting and giveaways paid; never blocks the feed
   const params: unknown[] = [viewerId, PAGE]
   const where = ['p.reply_to IS NULL', NOT_REPORTED('$1')]
   if (before) {
@@ -183,16 +182,6 @@ export async function getFeed(viewerId: string, tab: FeedTab, before?: number) {
     params,
   )
   const posts = rows.rows.map((row) => toPost(row, viewerId))
-  // An open giveaway sits on top of For you
-  if (tab === 'foryou' && !before) {
-    const live = await pool.query<PostRow>(
-      `${POST_SELECT('$1')} WHERE p.giveaway_prize IS NOT NULL AND p.giveaway_settled = FALSE AND p.giveaway_ends_at > NOW()
-       ORDER BY p.id DESC LIMIT 1`,
-      [viewerId],
-    )
-    const pinned = live.rows[0] ? toPost(live.rows[0], viewerId) : null
-    if (pinned) return { posts: [pinned, ...posts.filter((p) => p.id !== pinned.id)], hasMore: posts.length === PAGE }
-  }
   return { posts, hasMore: posts.length === PAGE }
 }
 
@@ -334,20 +323,7 @@ export async function reportPost(userId: string, postId: number) {
 // —— Profiles and Top voices ——
 
 export async function getProfile(viewerId: string, kind: 'user' | 'npc', idOrHandle: string) {
-  if (kind === 'npc') {
-    const npc = npcById(idOrHandle) ?? NPCS.find((n) => n.handle === idOrHandle)
-    if (!npc) return fail(404, 'NOT_FOUND', 'No such account.')
-    const [posts, following, followers] = await Promise.all([
-      pool.query<PostRow>(`${POST_SELECT('$1')} WHERE p.author_npc_id = $2 AND p.reply_to IS NULL ORDER BY p.id DESC LIMIT 30`, [viewerId, npc.id]),
-      pool.query(`SELECT 1 FROM eta_follows WHERE follower_id = $1 AND target_kind = 'npc' AND target_id = $2`, [viewerId, npc.id]),
-      pool.query<{ n: number }>(`SELECT COUNT(*)::int AS n FROM eta_follows WHERE target_kind = 'npc' AND target_id = $1`, [npc.id]),
-    ])
-    return {
-      ok: true as const,
-      profile: { author: npcAuthor(npc), bio: npc.bio, followers: followers.rows[0]?.n ?? 0, following: 0, isFollowing: Boolean(following.rowCount) },
-      posts: posts.rows.map((r) => toPost(r, viewerId)),
-    }
-  }
+  if (kind === 'npc') return fail(404, 'NOT_FOUND', 'No such account.')
   const user = await pool.query<{ id: string; username: string; display_name: string; avatar_color: string | null; avatar_emoji: string | null; bio: string | null; appearance?: unknown }>(
     `SELECT u.id, u.username, u.username AS display_name, pp.avatar_color, pp.avatar_emoji, pp.bio, (SELECT c.appearance FROM characters c WHERE c.user_id = u.id LIMIT 1) AS appearance
      FROM users u LEFT JOIN player_profiles pp ON pp.user_id = u.id
