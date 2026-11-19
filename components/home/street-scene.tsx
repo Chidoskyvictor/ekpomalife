@@ -2,7 +2,7 @@
 
 import { Html, useGLTF } from '@react-three/drei'
 import { useFrame, useThree } from '@react-three/fiber'
-import { useEffect, useMemo, useRef } from 'react'
+import { Suspense, useEffect, useMemo, useRef } from 'react'
 import { PerspectiveCamera, Vector3, type AmbientLight, type DirectionalLight, type HemisphereLight } from 'three'
 import { RoomPlayer, type PlayerMove } from '@/components/room/room-player'
 import type { Appearance } from '@/lib/game/look'
@@ -19,7 +19,7 @@ import {
   type StreetTemplate,
 } from '@/lib/game/street'
 import { InstancedShapes, type Shape } from './instanced-shapes'
-import { HomeSign, OrbitStreetCamera, PassingCars, StreetBlocks, StreetDressing, streetView } from './street-dressing'
+import { HomeBlocks, HomeSign, OrbitStreetCamera, PassingCars, StreetBlocks, StreetDressing, streetView } from './street-dressing'
 import { PARKED_CAR, ParkedCar, StreetBoy } from './street-extras'
 import styles from './street.module.css'
 
@@ -55,45 +55,18 @@ const GATE = '#3b4a5a'
 const OWN_GATE = '#2f7a4f'
 const DOOR = '#6b4a2b'
 const GLASS = '#9ec9ef'
+/** The Innovation Hub block's front stands this far behind the fence line (your door is on it). */
+const FACADE_Z = 0.5
 
-function buildCompounds(t: StreetTemplate, own: number, numbers: number[], paint?: string) {
+function buildCompounds(t: StreetTemplate, own: number) {
   const boxes: Shape[] = []
-  const { w, d, h } = t.house
-  const depth = d + 3.4
-  const half = (LOTS * t.lotW) / 2
-  const pitch = 0.32
   for (let i = 0; i < LOTS; i++) {
     const cx = lotX(t, i)
-    const wall = i === own && paint ? paint : HOUSE_TINTS[(numbers[i] * 7) % HOUSE_TINTS.length]
-    const zc = -1.7 - d / 2
-    // Yard, house, door and windows
-    boxes.push({ p: [cx, 0.015, -depth / 2], s: [t.lotW - 0.25, 0.03, depth], c: '#cdc4b2' })
-    boxes.push({ p: [cx, h / 2, zc], s: [w, h, d], c: wall })
-    boxes.push({ p: [cx, 1.0, -1.66], s: [0.95, 2.0, 0.08], c: DOOR })
-    boxes.push({ p: [cx - w * 0.3, 1.55, -1.66], s: [1.0, 0.8, 0.06], c: GLASS })
-    boxes.push({ p: [cx + w * 0.3, 1.55, -1.66], s: [1.0, 0.8, 0.06], c: GLASS })
-    // Zinc roof, two slopes
-    const hd = (d + 0.7) / 2
-    const roof = ROOF[numbers[i] % ROOF.length]
-    const ry = h + (hd / 2) * Math.tan(pitch) + 0.06
-    boxes.push({ p: [cx, ry, zc + hd / 2], s: [w + 0.6, 0.08, hd / Math.cos(pitch)], r: [pitch, 0, 0], c: roof })
-    boxes.push({ p: [cx, ry, zc - hd / 2], s: [w + 0.6, 0.08, hd / Math.cos(pitch)], r: [-pitch, 0, 0], c: roof })
-    // Front fence with a gap for the gate, pillars and the two gate leaves
-    const piece = t.lotW / 2 - t.gateW / 2 - 0.2
-    for (const side of [-1, 1]) {
-      boxes.push({ p: [cx + side * (t.gateW / 2 + 0.2 + piece / 2), t.fenceH / 2, 0], s: [piece, t.fenceH, 0.22], c: FENCE })
-      boxes.push({ p: [cx + side * (t.gateW / 2 + 0.1), (t.fenceH + 0.3) / 2, 0], s: [0.34, t.fenceH + 0.3, 0.34], c: PILLAR })
-      boxes.push({
-        p: [cx + side * (t.gateW / 4), t.fenceH * 0.48, 0.02],
-        s: [t.gateW / 2 - 0.05, t.fenceH * 0.9, 0.06],
-        c: i === own ? OWN_GATE : GATE,
-      })
-    }
-    // Side wall on the left of every lot, back wall behind
-    boxes.push({ p: [cx - t.lotW / 2, t.fenceH / 2, -depth / 2], s: [0.22, t.fenceH, depth], c: FENCE })
-    boxes.push({ p: [cx, t.fenceH / 2, -depth], s: [t.lotW, t.fenceH, 0.22], c: FENCE })
+    // No fence: a door on the front of the Innovation Hub block for every house, yours green
+    const mine = i === own
+    boxes.push({ p: [cx, 1.2, -FACADE_Z + 0.04], s: [t.gateW + 0.5, 2.5, 0.1], c: '#2a2118' })
+    boxes.push({ p: [cx, 1.1, -FACADE_Z + 0.1], s: [t.gateW, 2.2, 0.08], c: mine ? OWN_GATE : DOOR })
   }
-  boxes.push({ p: [half, t.fenceH / 2, -depth / 2], s: [0.22, t.fenceH, depth], c: FENCE })
   return boxes
 }
 
@@ -219,7 +192,7 @@ export function StreetScene({ lodgingId, houseNumber, paint, appearance, clock, 
     return { ...base, blocks: [...base.blocks, block] }
   }, [t, own, car, carX])
   const houses = useMemo(
-    () => (t.kind === 'block' ? buildHostel(t, own, paint) : buildCompounds(t, own, numbers, paint)),
+    () => (t.kind === 'block' ? buildHostel(t, own, paint) : buildCompounds(t, own)),
     // numbers only change with own's block
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [t, own, numbers[0], paint],
@@ -289,7 +262,7 @@ export function StreetScene({ lodgingId, houseNumber, paint, appearance, clock, 
       {numbers.map((n, i) => (
         <Html
           key={n}
-          position={[t.kind === 'block' ? lotX(t, i) - 0.5 : lotX(t, i), plateY, 0.25]}
+          position={[t.kind === 'block' ? lotX(t, i) - 0.5 : lotX(t, i), plateY, t.kind === 'block' ? 0.25 : -FACADE_Z + 0.12]}
           center
           zIndexRange={[10, 0]}
           style={{ pointerEvents: 'none' }}
@@ -297,9 +270,14 @@ export function StreetScene({ lodgingId, houseNumber, paint, appearance, clock, 
           <span className={i === own ? `${styles.plate} ${styles.plateOwn}` : styles.plate}>No. {n}</span>
         </Html>
       ))}
-      <HomeSign area={area} x={gate[0] - (t.kind === 'block' ? 0.5 : 0)} y={plateY + 1.35} z={0.3} />
+      <HomeSign area={area} x={gate[0] - (t.kind === 'block' ? 0.5 : 0)} y={plateY + 1.35} z={t.kind === 'block' ? 0.3 : -FACADE_Z + 0.06} posts={t.kind === 'block'} />
       <StreetDressing width={LOTS * t.lotW} gateX={gate[0]} />
       <StreetBlocks width={LOTS * t.lotW} />
+      {t.kind === 'block' ? null : (
+        <Suspense fallback={null}>
+          <HomeBlocks width={LOTS * t.lotW} z={-FACADE_Z} />
+        </Suspense>
+      )}
       <PassingCars width={LOTS * t.lotW} skipNear={car ? { x: carX, length: PARKED_CAR.length + 3 } : undefined} />
 
       {car ? <ParkedCar model={car.model} color={car.color} x={carX} z={CAR_Z} /> : null}

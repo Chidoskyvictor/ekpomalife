@@ -110,6 +110,30 @@ export function StreetBlocks({ width }: { width: number }) {
 }
 useGLTF.preload(BLOCKS_URL)
 
+/**
+ * Behind your gate: the Innovation Hub's campus blocks, the same building as across the road,
+ * turned to face the road. `z` is where their fronts stand (behind the compound's back wall).
+ */
+export function HomeBlocks({ width, z }: { width: number; z: number }) {
+  const { scene } = useGLTF(BLOCKS_URL)
+  const rows = Math.max(1, Math.ceil((width + 40) / ROW_W))
+  const copies = useMemo(
+    () =>
+      Array.from({ length: rows }, () => {
+        const root = scene.clone(true)
+        return root
+      }),
+    [scene, rows],
+  )
+  return (
+    <>
+      {copies.map((root, i) => (
+        <primitive key={i} object={root} position={[(i - (rows - 1) / 2) * ROW_W, 0, z]} />
+      ))}
+    </>
+  )
+}
+
 const PASSING = [
   { model: 'corolla', color: '#c9ccd1', lane: 2.6, speed: 6.5, from: 0 },
   { model: 'camry', color: '#7a1c22', lane: 5.0, speed: -5.5, from: 0.45 },
@@ -168,7 +192,7 @@ function signTexture(area: string) {
 }
 
 /** The big green board over your gate: your area (G2, Poultry Road…) and "Your home". */
-export function HomeSign({ area, x, y, z }: { area: string; x: number; y: number; z: number }) {
+export function HomeSign({ area, x, y, z, posts = true }: { area: string; x: number; y: number; z: number; /** The two legs under the board (off when it is fixed to a wall) */ posts?: boolean }) {
   const map = useMemo(() => signTexture(area), [area])
   useEffect(() => () => map.dispose(), [map])
   return (
@@ -181,7 +205,7 @@ export function HomeSign({ area, x, y, z }: { area: string; x: number; y: number
         <planeGeometry args={[2.85, 0.89]} />
         <meshBasicMaterial map={map} toneMapped={false} />
       </mesh>
-      {[-1.25, 1.25].map((px) => (
+      {(posts ? [-1.25, 1.25] : []).map((px) => (
         <mesh key={px} position={[px, -0.95, -0.02]}>
           <boxGeometry args={[0.08, 1.1, 0.08]} />
           <meshStandardMaterial color="#4b5563" />
@@ -239,10 +263,10 @@ export function OrbitStreetCamera({ player }: { player: React.RefObject<[number,
       }
       const dx = e.clientX - was.x
       const dy = e.clientY - was.y
-      if (!dragged && Math.hypot(dx, dy) < 4) return
+      if (!dragged && Math.hypot(dx, dy) < 2) return
       dragged = true
-      streetView.yaw -= dx * 0.0085
-      streetView.pitch = Math.max(0.12, Math.min(1.1, streetView.pitch - dy * 0.005))
+      streetView.yaw -= dx * 0.013
+      streetView.pitch = Math.max(0.05, Math.min(1.35, streetView.pitch - dy * 0.01))
     }
     const up = (e: PointerEvent) => {
       touches.delete(e.pointerId)
@@ -257,14 +281,21 @@ export function OrbitStreetCamera({ player }: { player: React.RefObject<[number,
     const wheel = (e: WheelEvent) => {
       streetView.dist = Math.max(4, Math.min(16, streetView.dist * (e.deltaY > 0 ? 1.1 : 0.9)))
     }
-    el.addEventListener('pointerdown', down)
+    // Anywhere on the screen that isn't a button or sheet turns the view (overlays can't swallow it)
+    const start = (e: PointerEvent) => {
+      const target = e.target as Element | null
+      if (target?.closest?.('button, a, input, textarea, select, [role="dialog"], [role="button"]')) return
+      down(e)
+    }
+    el.style.touchAction = 'none'
+    window.addEventListener('pointerdown', start)
     window.addEventListener('pointermove', move)
     window.addEventListener('pointerup', up)
     window.addEventListener('pointercancel', up)
     el.addEventListener('click', click, true)
     el.addEventListener('wheel', wheel, { passive: true })
     return () => {
-      el.removeEventListener('pointerdown', down)
+      window.removeEventListener('pointerdown', start)
       window.removeEventListener('pointermove', move)
       window.removeEventListener('pointerup', up)
       window.removeEventListener('pointercancel', up)
@@ -278,13 +309,16 @@ export function OrbitStreetCamera({ player }: { player: React.RefObject<[number,
     const { yaw, pitch, dist } = streetView
     // Yaw 0: camera out on the road (+z) looking back at the houses (-z)
     const goal = new Vector3(px + Math.sin(yaw) * Math.cos(pitch) * dist, 1.2 + Math.sin(pitch) * dist, pz + Math.cos(yaw) * Math.cos(pitch) * dist)
-    // Stay on the street: in front of the fences and short of the buildings across the road, so
-    // turning round to face the road never puts the camera inside a house
-    if (goal.z < 0.7) {
-      goal.y += (0.7 - goal.z) * 0.12
-      goal.z = 0.7
-    }
-    if (goal.z > BUILD_Z - 1.2) goal.z = BUILD_Z - 1.2
+    // Stay on the street (in front of the fences, short of the buildings across the road) without
+    // stopping the turn
+    const dirZ = Math.cos(yaw)
+    const minZ = 0.7
+    const maxZ = BUILD_Z - 1.2
+    const room = dirZ < -0.01 ? (pz - minZ) / -dirZ : dirZ > 0.01 ? (maxZ - pz) / dirZ : Infinity
+    // The camera keeps the tilt you set: near a wall it comes in closer instead
+    const flat = Math.min(Math.cos(pitch) * dist, Math.max(1.5, room))
+    const reach = flat / Math.max(0.2, Math.cos(pitch))
+    goal.set(px + Math.sin(yaw) * flat, 1.2 + Math.sin(pitch) * reach, pz + dirZ * flat)
     const target = new Vector3(px, 1.2, pz)
     if (!placed.current) {
       camera.position.copy(goal)
