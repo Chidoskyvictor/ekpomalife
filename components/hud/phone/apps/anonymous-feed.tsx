@@ -1,6 +1,6 @@
 'use client'
 
-import { Heart, MessageCircle, MoreHorizontal, Send, Share2, X } from 'lucide-react'
+import { Flame, Heart, MessageCircle, MoreHorizontal, Send, Share2, Sparkles, X } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   CATEGORIES,
@@ -12,6 +12,7 @@ import {
   blockCommentAuthor,
   blockPostAuthor,
   categoryLabel,
+  categoryEmoji,
   createPost,
   fetchComments,
   fetchFeed,
@@ -26,7 +27,8 @@ import {
   type AnonPost,
   type AnonYou,
 } from '@/lib/game/anonymous-api'
-import { AppEmpty, AppError, AppLoading } from '../app-state'
+import { AppError, AppLoading } from '../app-state'
+import { MaskAvatar, MaskGlyph, aliasFor } from './anonymous-mask'
 import styles from './anonymous.module.css'
 
 export const timeAgo = (iso: string) => {
@@ -55,13 +57,25 @@ export function PostCard({
   compact?: boolean
 }) {
   const [bg, fg] = COLORS[post.color] ?? COLORS.violet
+  const alias = aliasFor(post.id)
+  const [pop, setPop] = useState(false)
   return (
-    <article className={`${styles.card} ${compact ? styles.cardCompact : ''}`} style={{ background: bg, color: fg }}>
+    <article
+      className={`${styles.card} ${compact ? styles.cardCompact : ''}`}
+      style={{ background: `linear-gradient(155deg, ${bg}, color-mix(in oklab, ${bg} 72%, #000))`, color: fg }}
+    >
+      <MaskGlyph size={150} className={styles.watermark} />
       <div className={styles.cardTop}>
-        <span className={styles.pill}>{post.communityName ?? categoryLabel(post.category)}</span>
-        {post.mine ? <span className={styles.youBadge}>You</span> : null}
-        {post.status !== 'ok' ? <span className={styles.pill}>{post.status === 'hidden' ? 'Under review' : 'Removed'}</span> : null}
+        <MaskAvatar id={post.id} size={36} />
+        <span className={styles.aliasCol}>
+          <span className={styles.alias}>{alias.name}</span>
+          <span className={styles.when}>
+            {timeAgo(post.createdAt)}
+            {post.mine ? ' · you' : ''}
+          </span>
+        </span>
         <span className={styles.spacer} />
+        {post.status !== 'ok' ? <span className={styles.pill}>{post.status === 'hidden' ? 'Under review' : 'Removed'}</span> : null}
         {onMenu ? (
           <button type="button" className={styles.iconBtn} aria-label="More" onClick={onMenu}>
             <MoreHorizontal size={22} />
@@ -70,19 +84,32 @@ export function PostCard({
       </div>
       <p className={`${styles.cardText} ${textClass(post.body)}`}>{post.body}</p>
       <div className={styles.cardBottom}>
-        <span className={styles.who}>Anonymous · {timeAgo(post.createdAt)}</span>
+        <span className={styles.pill}>
+          {post.communityName ? '🧱 ' + post.communityName : `${categoryEmoji(post.category)} ${categoryLabel(post.category)}`}
+        </span>
         <span className={styles.spacer} />
-        <button type="button" className={styles.act} aria-label={post.liked ? 'Unlike' : 'Like'} aria-pressed={post.liked} onClick={onLike} disabled={!onLike}>
-          <Heart size={24} fill={post.liked ? 'currentColor' : 'none'} />
+        <button
+          type="button"
+          className={`${styles.act} ${pop ? styles.actPop : ''}`}
+          aria-label={post.liked ? 'Unlike' : 'Like'}
+          aria-pressed={post.liked}
+          onClick={() => {
+            setPop(true)
+            window.setTimeout(() => setPop(false), 320)
+            onLike?.()
+          }}
+          disabled={!onLike}
+        >
+          <Heart size={22} fill={post.liked ? 'currentColor' : 'none'} />
           <span>{post.likes}</span>
         </button>
         <button type="button" className={styles.act} aria-label="Comments" onClick={onComments} disabled={!onComments}>
-          <MessageCircle size={24} />
+          <MessageCircle size={22} />
           <span>{post.comments}</span>
         </button>
         {onShare ? (
           <button type="button" className={styles.act} aria-label="Share" onClick={onShare}>
-            <Share2 size={22} />
+            <Share2 size={20} />
           </button>
         ) : null}
       </div>
@@ -97,6 +124,7 @@ function Sheet({ title, onClose, children }: { title: string; onClose: () => voi
     <div className={styles.sheetWrap}>
       <div className={styles.sheetBackdrop} onClick={onClose} aria-hidden="true" />
       <div className={styles.sheet} role="dialog" aria-label={title}>
+        <span className={styles.grab} aria-hidden="true" />
         <div className={styles.sheetHead}>
           <strong>{title}</strong>
           <button type="button" className={styles.iconBtnDark} aria-label="Close" onClick={onClose}>
@@ -238,19 +266,19 @@ export function Feed({
       <div className={styles.filters}>
         <div className={styles.toggle} role="tablist" aria-label="Sort">
           <button type="button" role="tab" aria-selected={sort === 'new'} className={sort === 'new' ? styles.toggleOn : ''} onClick={() => setSort('new')}>
-            New
+            <Sparkles size={15} aria-hidden="true" /> Fresh
           </button>
           <button type="button" role="tab" aria-selected={sort === 'trending'} className={sort === 'trending' ? styles.toggleOn : ''} onClick={() => setSort('trending')}>
-            🔥 Trending
+            <Flame size={15} aria-hidden="true" /> Hot
           </button>
         </div>
-        <div className={styles.chips}>
+        <div className={styles.chips} aria-label="Mood">
           <button type="button" className={`${styles.chip} ${category === '' ? styles.chipOn : ''}`} onClick={() => setCategory('')}>
-            All
+            🎭 All
           </button>
           {CATEGORIES.map((c) => (
             <button key={c.id} type="button" className={`${styles.chip} ${category === c.id ? styles.chipOn : ''}`} onClick={() => setCategory(c.id)}>
-              {c.label}
+              {c.emoji} {c.label}
             </button>
           ))}
         </div>
@@ -260,10 +288,14 @@ export function Feed({
         {posts === null && !error ? <AppLoading /> : null}
         {error ? <AppError onRetry={() => void load()}>{error}</AppError> : null}
         {posts?.length === 0 && !error ? (
-          <div className={styles.state}>
-            <p>{wallName ? `Nothing on ${wallName} yet.` : 'Nothing here yet.'}</p>
-            <button type="button" className={styles.ghost} onClick={onCompose}>
-              Be the first to post
+          <div className={styles.empty}>
+            <span className={styles.emptyArt}>
+              <MaskGlyph size={64} />
+            </span>
+            <strong>{wallName ? `${wallName} is quiet` : category ? 'No gist in this mood yet' : 'It is very quiet in here'}</strong>
+            <p>Nobody will ever know it was you. Say what everyone is thinking.</p>
+            <button type="button" className={styles.primary} onClick={onCompose}>
+              Put on the mask
             </button>
           </div>
         ) : null}
@@ -278,7 +310,7 @@ export function Feed({
             />
           </div>
         ))}
-        {loadingMore ? <p className={styles.state}>Loading…</p> : null}
+        {loadingMore ? <p className={styles.more}>Loading more…</p> : null}
       </div>
 
       {commentsFor ? (
@@ -371,11 +403,17 @@ function Comments({ post, flash, onClose, onAdded }: { post: AnonPost; flash: (m
     <Sheet title={`Comments · ${post.comments}`} onClose={onClose}>
       <div className={styles.commentList}>
         {items === null ? <AppLoading rows={2} /> : null}
-        {items?.length === 0 ? <AppEmpty>No comments yet. Say something kind.</AppEmpty> : null}
+        {items?.length === 0 ? (
+          <div className={styles.emptySm}>
+            <MaskGlyph size={36} />
+            <p>No replies yet. Be the first masked voice, and keep it kind.</p>
+          </div>
+        ) : null}
         {items?.map((c) => (
           <div key={c.id} className={styles.comment}>
             <div className={styles.commentHead}>
-              <strong>Anonymous</strong>
+              <MaskAvatar id={c.id} size={26} />
+              <strong>{aliasFor(c.id).name}</strong>
               {c.mine ? <span className={styles.youBadgeDark}>You</span> : null}
               <span className={styles.fine}>{timeAgo(c.createdAt)}</span>
               <span className={styles.spacer} />
@@ -394,7 +432,7 @@ function Comments({ post, flash, onClose, onAdded }: { post: AnonPost; flash: (m
           className={styles.commentInput}
           value={text}
           maxLength={COMMENT_MAX}
-          placeholder="Comment as Anonymous"
+          placeholder="Reply under a mask…"
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && void send()}
         />
@@ -452,32 +490,63 @@ export function Composer({
     onPosted(res.post)
   }
 
+  const mood = CATEGORIES.find((c) => c.id === category)
+  const left = POST_MAX - body.length
+  const previewId = useRef(`preview-${Math.random().toString(36).slice(2)}`).current
+  const alias = aliasFor(previewId)
+
   return (
     <div className={styles.composer} role="dialog" aria-label="New post">
       <div className={styles.composerBar}>
-        <button type="button" className={styles.iconBtnDark} aria-label="Close" onClick={onClose}>
+        <button type="button" className={styles.iconBtn} aria-label="Close" onClick={onClose}>
           <X size={22} />
         </button>
-        <span className={styles.composerTitle}>{wallName ? `Post to ${wallName}` : 'New post'}</span>
+        <span className={styles.composerTitle}>{wallName ? `Post to ${wallName}` : 'New confession'}</span>
         <button type="button" className={styles.postBtn} disabled={busy || !body.trim()} onClick={() => void post()}>
           {busy ? 'Posting…' : 'Post'}
         </button>
       </div>
-      <div className={styles.composerCard} style={{ background: bg, color: fg }}>
+
+      <div className={styles.composerCard} style={{ background: `linear-gradient(155deg, ${bg}, color-mix(in oklab, ${bg} 72%, #000))`, color: fg }}>
+        <MaskGlyph size={150} className={styles.watermark} />
+        <div className={styles.cardTop}>
+          <MaskAvatar id={previewId} size={32} />
+          <span className={styles.aliasCol}>
+            <span className={styles.alias}>{alias.name}</span>
+            <span className={styles.when}>this is how you will look</span>
+          </span>
+        </div>
         <textarea
           className={styles.composerText}
           style={{ color: fg }}
           value={body}
           maxLength={POST_MAX}
           autoFocus
-          placeholder="What's on your mind?"
+          placeholder={mood?.prompt ?? "What's on your mind?"}
+          aria-label="Your post"
           onChange={(e) => setBody(e.target.value)}
         />
-        <span className={styles.counter}>
-          {body.length}/{POST_MAX}
-        </span>
+        <span className={`${styles.counter} ${left < 40 ? styles.counterLow : ''}`}>{left}</span>
       </div>
-      <p className={styles.fine}>Posted as Anonymous. No phone numbers, emails or @usernames.</p>
+
+      <p className={styles.sectionLabel}>Pick a mood</p>
+      <div className={styles.moodGrid} role="radiogroup" aria-label="Mood">
+        {CATEGORIES.map((c) => (
+          <button
+            key={c.id}
+            type="button"
+            role="radio"
+            aria-checked={category === c.id}
+            className={`${styles.mood} ${category === c.id ? styles.moodOn : ''}`}
+            onClick={() => setCategory(c.id)}
+          >
+            <span className={styles.moodEmoji}>{c.emoji}</span>
+            <span>{c.short}</span>
+          </button>
+        ))}
+      </div>
+
+      <p className={styles.sectionLabel}>Card colour</p>
       <div className={styles.swatches} role="radiogroup" aria-label="Card colour">
         {(Object.keys(COLORS) as AnonColor[]).map((c) => (
           <button
@@ -492,13 +561,10 @@ export function Composer({
           />
         ))}
       </div>
-      <div className={styles.chips}>
-        {CATEGORIES.map((c) => (
-          <button key={c.id} type="button" className={`${styles.chip} ${category === c.id ? styles.chipOn : ''}`} onClick={() => setCategory(c.id)}>
-            {c.label}
-          </button>
-        ))}
-      </div>
+
+      <p className={styles.safe}>
+        <span aria-hidden="true">🔒</span> Posted under a mask. Other students never see who you are. No phone numbers, emails or @usernames.
+      </p>
       {error ? <p className={styles.error}>{error}</p> : null}
     </div>
   )

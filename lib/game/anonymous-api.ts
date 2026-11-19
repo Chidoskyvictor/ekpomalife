@@ -3,14 +3,14 @@ import { apiGet, apiPost } from '@/lib/api/client'
 /* Mirrors backend/src/routes/anonymous.ts. No response ever carries an author. */
 
 export const CATEGORIES = [
-  { id: 'confessions', label: 'Confessions' },
-  { id: 'relationships', label: 'Relationships' },
-  { id: 'campus-gist', label: 'Campus gist' },
-  { id: 'funny', label: 'Funny experiences' },
-  { id: 'questions', label: 'Questions' },
-  { id: 'opinions', label: 'Opinions' },
-  { id: 'rants', label: 'Rants' },
-  { id: 'general', label: 'General' },
+  { id: 'confessions', label: 'Confessions', emoji: '🤫', short: 'Confess', prompt: 'I have a confession…' },
+  { id: 'relationships', label: 'Relationships', emoji: '💘', short: 'Love', prompt: 'Tell us about your situationship…' },
+  { id: 'campus-gist', label: 'Campus gist', emoji: '☕', short: 'Gist', prompt: 'Have you heard what happened on campus…' },
+  { id: 'funny', label: 'Funny experiences', emoji: '😂', short: 'Funny', prompt: 'The funniest thing that happened to me…' },
+  { id: 'questions', label: 'Questions', emoji: '🤔', short: 'Ask', prompt: 'Ask the campus anything…' },
+  { id: 'opinions', label: 'Opinions', emoji: '🗣️', short: 'Opinion', prompt: 'Unpopular opinion…' },
+  { id: 'rants', label: 'Rants', emoji: '😤', short: 'Rant', prompt: 'Let it all out…' },
+  { id: 'general', label: 'General', emoji: '✨', short: 'Other', prompt: 'What is on your mind?' },
 ] as const
 export type AnonCategory = (typeof CATEGORIES)[number]['id']
 
@@ -43,6 +43,8 @@ export const WALL_KINDS = [
   { id: 'other', label: 'Other' },
 ] as const
 export type WallKind = (typeof WALL_KINDS)[number]['id']
+
+export const WALL_EMOJI: Record<string, string> = { hostel: '🏠', faculty: '🎓', department: '📚', other: '💬' }
 
 export const POST_MAX = 500
 export const COMMENT_MAX = 300
@@ -153,3 +155,5 @@ export type AdminAnonRow = {
 export const adminFetchAnonReports = () => apiGet<{ ok: true; reports: AdminAnonRow[] }>('/admin/anonymous/reports')
 export const adminAnonAction = (type: 'post' | 'comment', id: string, action: 'dismiss' | 'remove' | 'warn' | 'ban') =>
   apiPost<{ ok: true }>(`/admin/anonymous/${type}/${e(id)}/${action}`, {})
+
+export const categoryEmoji = (id: string) => CATEGORIES.find((c) => c.id === id)?.emoji ?? '✨'
