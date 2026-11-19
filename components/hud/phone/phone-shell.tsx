@@ -55,6 +55,7 @@ import { WallpaperSkyline } from './wallpaper-skyline'
 import { requestTip } from '@/lib/game/coach-api'
 import phoneStyles from './phone.module.css'
 import styles from './phone-shell.module.css'
+import { OPEN_BANK_EVENT } from '@/lib/game/open-bank'
 
 const FULL_WEEKDAY: Record<string, string> = {
   Mon: 'Monday',
@@ -221,10 +222,15 @@ export function PhoneShell({
       if (appId !== 'music') void openApp('music')
     }
     window.addEventListener(OPEN_MUSIC_EVENT, onOpenMusic)
+    const onOpenBank = () => {
+      if (appId !== 'bank') void openApp('bank')
+    }
+    window.addEventListener(OPEN_BANK_EVENT, onOpenBank)
     window.addEventListener(OPEN_GAMES_EVENT, onOpenGames)
     window.addEventListener(OPEN_SPACES_EVENT, onOpenSpaces)
     return () => {
       window.removeEventListener(OPEN_MUSIC_EVENT, onOpenMusic)
+      window.removeEventListener(OPEN_BANK_EVENT, onOpenBank)
       window.removeEventListener(OPEN_SPACES_EVENT, onOpenSpaces)
       window.removeEventListener(OPEN_CHAT_EVENT, onOpenChat)
       window.removeEventListener(OPEN_GAMES_EVENT, onOpenGames)

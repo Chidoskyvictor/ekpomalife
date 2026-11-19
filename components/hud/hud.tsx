@@ -60,6 +60,8 @@ import { CoachTour } from '@/components/coach/coach-tour'
 import { MessageChip } from '@/components/hud/message-chip'
 import { coachSignal, requestTip } from '@/lib/game/coach-api'
 import { SazzaLive } from '@/components/hud/sazza-live'
+import { OPEN_BANK_EVENT } from '@/lib/game/open-bank'
+import { GiftNotice } from '@/components/hud/gift-notice'
 
 export function Hud() {
   const { isGuest, state, booting, bootError, retryBoot, select, selectedId, toast, logOut, notifyToast } =
@@ -190,8 +192,10 @@ export function Hud() {
     window.addEventListener(OPEN_CHAT_EVENT, onOpenChat)
     window.addEventListener(OPEN_GAMES_EVENT, onOpenChat)
     window.addEventListener(OPEN_SPACES_EVENT, onOpenChat)
+    window.addEventListener(OPEN_BANK_EVENT, onOpenChat)
     return () => {
       window.removeEventListener(OPEN_SPACES_EVENT, onOpenChat)
+      window.removeEventListener(OPEN_BANK_EVENT, onOpenChat)
       window.removeEventListener(OPEN_CHAT_EVENT, onOpenChat)
       window.removeEventListener(OPEN_GAMES_EVENT, onOpenChat)
     }
@@ -326,6 +330,8 @@ export function Hud() {
       <ToastLayer toast={toast} state={state} />
       {/* Club night: "Sazza is live" drops in at 10pm WAT, once a night */}
       <SazzaLive />
+      {/* Money Ekpoma Life sent you (e.g. sorry for the downtime): once, after Welcome back */}
+      <GiftNotice />
       {hasPhone && !homeBuy.active ? <MessageChip unread={chatUnread} hidden={phoneOpen || buyOpen} /> : null}
       {!guest && hasPhone ? <BackgroundNotifications chatUnread={chatUnread} challenges={challenges.incoming.length} /> : null}
       <ChallengePopup incoming={challenges.incoming} hidden={phoneOpen} onDone={() => void challenges.reload()} />

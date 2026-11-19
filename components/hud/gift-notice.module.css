@@ -1,0 +1,139 @@
+/* A gift from Ekpoma Life: centred card over a dimmed map, coins falling behind the logo. */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: calc(var(--z-toast) + 5); /* under Welcome back (+10), above everything else */
+  display: grid;
+  place-items: center;
+  padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+  background: rgba(10, 18, 32, 0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.card {
+  display: flex;
+  width: 100%;
+  max-width: 340px;
+  flex-direction: column;
+  align-items: center;
+  overflow: hidden;
+  padding: 0 18px 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--paper);
+  box-shadow: var(--elev-3);
+  color: var(--ink);
+  text-align: center;
+}
+
+.hero {
+  position: relative;
+  display: grid;
+  width: calc(100% + 36px);
+  height: 132px;
+  place-items: center;
+  overflow: hidden;
+  margin-bottom: 14px;
+  background: linear-gradient(180deg, #dbe9ff 0%, #eef5ff 100%);
+}
+
+:root[data-theme='dark'] .hero {
+  background: linear-gradient(180deg, #13233a 0%, #18202c 100%);
+}
+
+.logo {
+  position: relative;
+  z-index: 1;
+  border-radius: var(--r-lg);
+  box-shadow: 0 0 0 6px rgb(var(--glass-rgb) / 0.6), 0 12px 30px rgba(14, 52, 102, 0.25);
+}
+
+.coin {
+  position: absolute;
+  top: 0;
+  width: 26px;
+  height: 26px;
+}
+
+.kicker {
+  margin: 0;
+  color: var(--primary);
+  font-size: var(--fs-12);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.title {
+  margin: 4px 0 0;
+  font-family: var(--font-game);
+  font-size: var(--fs-28);
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  line-height: 1.1;
+}
+
+.amount {
+  margin: 10px 0 0;
+  padding: 6px 16px;
+  border-radius: var(--r-pill);
+  background: color-mix(in oklab, var(--ok) 14%, transparent);
+  color: var(--ok);
+  font-size: var(--fs-28);
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.message {
+  margin: 12px 0 0;
+  color: var(--ink-2);
+  font-size: var(--fs-14);
+  line-height: 1.5;
+}
+
+.signed {
+  margin: 8px 0 0;
+  color: var(--ink);
+  font-size: var(--fs-14);
+  font-style: italic;
+  font-weight: 700;
+}
+
+.actions {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 16px;
+}
+
+.bank {
+  min-height: 50px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--primary);
+  color: #fff;
+  font-family: var(--font-game);
+  font-size: var(--fs-20);
+  letter-spacing: 0.02em;
+  cursor: pointer;
+}
+
+.bank:active,
+.later:active {
+  transform: scale(0.97);
+}
+
+.later {
+  min-height: 44px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--ink-2);
+  font: inherit;
+  font-size: var(--fs-14);
+  font-weight: 700;
+  cursor: pointer;
+}
