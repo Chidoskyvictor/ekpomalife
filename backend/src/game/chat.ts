@@ -5,7 +5,7 @@ import { applyCash } from './game-state.js'
 import { liveSpaceMoneyBlock } from './spaces-money.js'
 import { isStickerId } from './stickers.js'
 import { cleanPeaks, parseVoiceBody, voiceContentType, voiceExt, VOICE_MAX_BYTES, VOICE_MAX_MS, VOICE_MIN_MS } from './voice-rules.js'
-import { getVoice, putVoice, voiceEnabled } from './voice-store.js'
+import { getVoice, putVoice, signedVoiceUrl, VOICE_LINK_SECONDS, voiceEnabled } from './voice-store.js'
 import { deletePhoto, getPhoto, photosEnabled, putPhoto } from './photo-store.js'
 import { randomBytes } from 'node:crypto'
 import {
@@ -690,6 +690,25 @@ export async function voiceAudioFor(
   const audio = voice ? await getVoice(voice.key) : null
   if (!voice || !audio) return fail(404, 'NOT_FOUND', 'Voice note not found.')
   return { ok: true, audio, contentType: voiceContentType(voice.key) }
+}
+
+/**
+ * A signed R2 link to a voice note, for a member of its chat only: the phone plays it straight from
+ * R2 so the audio never passes through this server. `url: null` (no R2, development) means use the
+ * audio route instead.
+ */
+export async function voiceLinkFor(userId: string, seq: string): Promise<{ ok: true; url: string | null; expiresIn: number } | Fail> {
+  if (!/^\d{1,18}$/.test(seq)) return fail(404, 'NOT_FOUND', 'Voice note not found.')
+  const row = await pool.query<{ chat_id: string; kind: string; body: string }>(
+    `SELECT chat_id, kind, body FROM chat_messages WHERE seq = $1`,
+    [seq],
+  )
+  const msg = row.rows[0]
+  if (!msg || msg.kind !== 'voice') return fail(404, 'NOT_FOUND', 'Voice note not found.')
+  if (!(await isMember(msg.chat_id, userId))) return fail(403, 'NOT_MEMBER', 'You’re not in this chat.')
+  const voice = parseVoiceBody(msg.body)
+  if (!voice) return fail(404, 'NOT_FOUND', 'Voice note not found.')
+  return { ok: true, url: await signedVoiceUrl(voice.key), expiresIn: VOICE_LINK_SECONDS }
 }
 
 /** Quick actions players do to each other in person (Say Hello, Gist, Joke, Compliment). */

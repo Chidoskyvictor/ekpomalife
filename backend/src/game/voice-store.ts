@@ -45,6 +45,21 @@ export async function putVoice(key: string, data: Buffer, contentType: string): 
   await writeFile(file, data)
 }
 
+/** How long a signed voice-note link works. */
+export const VOICE_LINK_SECONDS = 600
+
+/**
+ * A short-lived signed R2 link to the audio, so the phone downloads it straight from R2 (free egress)
+ * instead of through this server. Null without R2 (development): use getVoice instead.
+ */
+export async function signedVoiceUrl(key: string): Promise<string | null> {
+  if (!r2 || !safeKey(key)) return null
+  const url = new URL(`${r2.base}/${key}`)
+  url.searchParams.set('X-Amz-Expires', String(VOICE_LINK_SECONDS))
+  const signed = await r2.client.sign(url.toString(), { method: 'GET', aws: { signQuery: true } })
+  return signed.url
+}
+
 /** The stored audio, or null when it is missing. */
 export async function getVoice(key: string): Promise<Buffer | null> {
   if (!safeKey(key)) return null

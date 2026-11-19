@@ -24,6 +24,7 @@ import {
   redeemPhotoLink,
   reportPhoto,
   voiceAudioFor,
+  voiceLinkFor,
   unreadTotal,
 } from '../game/chat.js'
 import { HOSTEL_NAME_MAX } from '../game/hostel-names.js'
@@ -249,6 +250,16 @@ export async function hostelRoutes(app: FastifyInstance) {
     const result = await reportPhoto(user.id, (request.params as { seq: string }).seq, parsed.success ? parsed.data.reason : undefined)
     if (!result.ok) return fail(reply, result)
     return reply.send({ ok: true })
+  })
+
+  // Preferred: a short-lived R2 link the phone plays directly (audio never goes through this server)
+  app.get('/chats/voice/:seq/link', { config: { rateLimit: { max: 120, timeWindow: '1 minute' } } }, async (request, reply) => {
+    const user = await getSessionUser(request)
+    if (!user) return notLoggedIn(reply)
+    const { seq } = request.params as { seq: string }
+    const result = await voiceLinkFor(user.id, seq)
+    if (!result.ok) return fail(reply, result)
+    return reply.header('Cache-Control', 'no-store').send(result)
   })
 
   app.get('/chats/voice/:seq', { config: { rateLimit: { max: 120, timeWindow: '1 minute' } } }, async (request, reply) => {

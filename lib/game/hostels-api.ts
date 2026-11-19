@@ -257,19 +257,33 @@ export function reportChatPhoto(messageId: string) {
   return apiPost<{ ok: true }>(`/chats/photos/${encodeURIComponent(messageId)}/report`, {})
 }
 
-const voiceUrls = new Map<string, Promise<string | null>>()
+const voiceUrls = new Map<string, { at: number; url: Promise<string | null> }>()
+/** Signed R2 links last 10 minutes on the server; refresh a little before that. */
+const VOICE_LINK_REUSE_MS = 8 * 60 * 1000
 
-/** A playable blob: URL for a voice note (fetched once with the login cookie, then reused). */
+/** Old way (and development without R2): download through the API once, play from a blob: URL. */
+const viaApi = (messageId: string) =>
+  fetch(`${apiUrl()}/chats/voice/${encodeURIComponent(messageId)}`, { credentials: 'include' })
+    .then(async (res) => (res.ok ? URL.createObjectURL(await res.blob()) : null))
+    .catch(() => null)
+
+/**
+ * A playable URL for a voice note: a short-lived signed link straight to R2 storage, so the audio
+ * never goes through our server (saves its bandwidth). Falls back to the API download.
+ */
 export function voiceNoteUrl(messageId: string): Promise<string | null> {
-  let found = voiceUrls.get(messageId)
-  if (!found) {
-    found = fetch(`${apiUrl()}/chats/voice/${encodeURIComponent(messageId)}`, { credentials: 'include' })
-      .then(async (res) => (res.ok ? URL.createObjectURL(await res.blob()) : null))
-      .catch(() => null)
-    found.then((url) => {
-      if (!url) voiceUrls.delete(messageId)
+  const cached = voiceUrls.get(messageId)
+  if (cached && Date.now() - cached.at < VOICE_LINK_REUSE_MS) return cached.url
+  const url = fetch(`${apiUrl()}/chats/voice/${encodeURIComponent(messageId)}/link`, { credentials: 'include' })
+    .then(async (res) => {
+      if (!res.ok) return viaApi(messageId)
+      const data = (await res.json()) as { ok?: boolean; url?: string | null }
+      return data.ok && data.url ? data.url : viaApi(messageId)
     })
-    voiceUrls.set(messageId, found)
-  }
-  return found
+    .catch(() => viaApi(messageId))
+  url.then((u) => {
+    if (!u) voiceUrls.delete(messageId)
+  })
+  voiceUrls.set(messageId, { at: Date.now(), url })
+  return url
 }
