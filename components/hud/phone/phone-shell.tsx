@@ -29,6 +29,7 @@ import { MapApp } from './apps/map-app'
 import { MarketApp } from './apps/market-app'
 import { RideApp } from './apps/ride-app'
 import { MESSAGES_OPENED_EVENT, OPEN_CHAT_EVENT } from '@/lib/game/open-chat'
+import { OPEN_MUSIC_EVENT } from '@/lib/music/open-music'
 import { OPEN_GAMES_EVENT } from '@/lib/game/open-games'
 import { useLiveSpaces } from '@/hooks/use-live-spaces'
 import { OPEN_SPACES_EVENT, hasPendingSpace, requestOpenSpace } from '@/lib/game/open-spaces'
@@ -216,9 +217,14 @@ export function PhoneShell({
     const onOpenSpaces = () => {
       if (appId !== 'spaces') void openApp('spaces')
     }
+    const onOpenMusic = () => {
+      if (appId !== 'music') void openApp('music')
+    }
+    window.addEventListener(OPEN_MUSIC_EVENT, onOpenMusic)
     window.addEventListener(OPEN_GAMES_EVENT, onOpenGames)
     window.addEventListener(OPEN_SPACES_EVENT, onOpenSpaces)
     return () => {
+      window.removeEventListener(OPEN_MUSIC_EVENT, onOpenMusic)
       window.removeEventListener(OPEN_SPACES_EVENT, onOpenSpaces)
       window.removeEventListener(OPEN_CHAT_EVENT, onOpenChat)
       window.removeEventListener(OPEN_GAMES_EVENT, onOpenGames)

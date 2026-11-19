@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import { CLUB_SET } from '@/lib/music/tracks'
-import { musicSignedIn, setClubMusic, SOUND_EVENT, soundMuted, useMusicSettings } from '@/lib/audio/music'
+import { musicSignedIn, setClubMusic, setClubTrack, SOUND_EVENT, soundMuted, useMusicSettings } from '@/lib/audio/music'
 
 /**
  * Club set (Sazza and Forbes). Each track plays through, then the next, then the set repeats.
@@ -47,6 +47,7 @@ export function ClubMusic() {
 
     const load = (next: number) => {
       index = next % CLUB_SET.length
+      setClubTrack(index)
       el.src = CLUB_SET[index]!
       apply()
     }
@@ -116,6 +117,7 @@ export function ClubMusic() {
       el.load()
       audio.current = null
       setClubMusic(false)
+      setClubTrack(-1)
     }
   }, [])
 

@@ -92,3 +92,12 @@ export function setPlayerMusic(value: boolean) {
   window.dispatchEvent(new Event(SOUND_EVENT))
 }
 export const playerMusicOn = () => playerPlaying
+
+/** Index (in the shared track list) of the song the club is playing right now, or -1. */
+let clubTrack = -1
+export function setClubTrack(index: number) {
+  if (clubTrack === index) return
+  clubTrack = index
+  window.dispatchEvent(new Event(SOUND_EVENT))
+}
+export const clubTrackIndex = () => clubTrack
