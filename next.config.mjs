@@ -85,6 +85,12 @@ const nextConfig = {
         ],
       },
       {
+        // The build check open apps poll to offer "Refresh" after a deploy: never cached, or the
+        // catch-all above lets the CDN serve an old version for up to an hour
+        source: '/version',
+        headers: [{ key: 'Cache-Control', value: 'no-store, max-age=0' }],
+      },
+      {
         source: '/_next/static/:path*',
         headers: [
           {
