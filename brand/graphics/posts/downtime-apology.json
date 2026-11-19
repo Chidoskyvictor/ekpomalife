@@ -1,0 +1,19 @@
+{
+  "tag": "Official · <span>Update</span>",
+  "kicker": "We're back",
+  "headline": "Sorry for the<br /><em>downtime</em>",
+  "lead": "Ekpoma Life is growing faster than our servers expected. So many of you came to play that we hit our server's limit and went down. <b>We've upgraded and fixed it</b>, and to say sorry, everyone gets paid.",
+  "stats": [
+    { "value": "6,100+", "label": "visits" },
+    { "value": "1,200+", "label": "players" }
+  ],
+  "gift": {
+    "kicker": "Sent to every player",
+    "amount": "₦2,000,000",
+    "note": "Already in your bank. Check it in the game.",
+    "icon": "money-bag.png"
+  },
+  "signedLead": "Thank you for playing,",
+  "signed": "Francis",
+  "burst": { "big": "₦2M", "small": "for<br />everyone" }
+}
