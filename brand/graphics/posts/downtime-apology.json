@@ -1,5 +1,5 @@
 {
-  "tag": "Official · <span>Update</span>",
+  "tag": "Official update",
   "kicker": "We're back",
   "headline": "Sorry for the<br /><em>downtime</em>",
   "lead": "Ekpoma Life is growing faster than our servers expected. So many of you came to play that we hit our server's limit and went down. <b>We've upgraded and fixed it</b>, and to say sorry, everyone gets paid.",
@@ -14,6 +14,7 @@
     "icon": "money-bag.png"
   },
   "signedLead": "Thank you for playing,",
-  "signed": "Francis",
+  "signed": "prodigy_francis",
+  "role": "CEO, Ekpoma Life",
   "burst": { "big": "₦2M", "small": "for<br />everyone" }
 }
