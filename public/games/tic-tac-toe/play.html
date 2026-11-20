@@ -5,6 +5,15 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <title>Tic tac toe</title>
+  <script>
+    // Light/dark: follow the Games app (same origin), else the phone.
+    (function () {
+      var t = null
+      try { t = window.top.document.documentElement.dataset.theme } catch (_) {}
+      if (t !== 'dark' && t !== 'light') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+      document.documentElement.dataset.theme = t
+    })()
+  </script>
   <link rel="stylesheet" href="style.css" />
   <script src="game.js" defer></script>
 </head>
@@ -24,14 +33,23 @@
     <p class="who" id="who"></p>
 
     <div class="score" aria-label="Score">
-      <div class="side x"><b>X</b><span id="score-x">0</span></div>
+      <div class="side x">
+        <span class="badge"><svg viewBox="0 0 100 100" aria-hidden="true"><path class="mk x" pathLength="100" d="M22 22L78 78M78 22L22 78" style="stroke-width:16;stroke-dasharray:none"/></svg></span>
+        <div class="txt"><b>X</b><span id="score-x">0</span></div>
+      </div>
       <div class="side draw"><b>Draw</b><span id="score-d">0</span></div>
-      <div class="side o"><b>O</b><span id="score-o">0</span></div>
+      <div class="side o">
+        <span class="badge"><svg viewBox="0 0 100 100" aria-hidden="true"><circle class="mk o" cx="50" cy="50" r="30" style="stroke-width:16;stroke-dasharray:none"/></svg></span>
+        <div class="txt"><b>O</b><span id="score-o">0</span></div>
+      </div>
     </div>
 
     <p class="status" id="status" aria-live="polite">X to play</p>
 
-    <div class="board" id="board" role="grid" aria-label="Board"></div>
+    <div class="boardwrap">
+      <div class="board" id="board" role="grid" aria-label="Board"></div>
+      <svg class="winline" id="winline" viewBox="0 0 3 3" preserveAspectRatio="none" aria-hidden="true"></svg>
+    </div>
 
     <button type="button" class="again" id="again">New round</button>
   </main>

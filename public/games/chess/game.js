@@ -3,9 +3,9 @@
 import { Chess } from './chess.js'
 import { bestMove } from './engine.js'
 import { LESSONS } from './lessons.js'
+import { pieceSvg } from './pieces.js'
 
 const $ = (id) => document.getElementById(id)
-const GLYPH = { k: '♚︎', q: '♛︎', r: '♜︎', b: '♝︎', n: '♞︎', p: '♟︎' }
 const FILES = 'abcdefgh'
 
 let cfg = { mode: 'local', seat: 0, names: ['White', 'Black'], level: 'medium', subtitle: '' }
@@ -87,7 +87,7 @@ function render() {
     const target = legal.find((m) => m.to === sq)
     el.setAttribute('aria-label', `${sq}${piece ? ' ' + piece.color + piece.type : ''}`)
     el.innerHTML =
-      (piece ? `<span class="p ${piece.color}">${GLYPH[piece.type]}</span>` : '') +
+      (piece ? pieceSvg(piece.type, piece.color, 'pc piece') : '') +
       (target ? (piece ? '<span class="ring"></span>' : '<span class="dot"></span>') : '') +
       (i % 8 === 0 ? `<span class="rank">${8 - r}</span>` : '') +
       (i >= 56 ? `<span class="file">${FILES[c]}</span>` : '')
@@ -120,8 +120,9 @@ function tookLine(color) {
       if (p.color === color) mine += w
       else theirs += w
     }
+  // pieces of the opponent's colour that `color` has taken, drawn small
   let glyphs = ''
-  for (const t of ['q', 'r', 'b', 'n', 'p']) glyphs += GLYPH[t].repeat(Math.max(0, START[t] - have[t]))
+  for (const t of ['q', 'r', 'b', 'n', 'p']) glyphs += pieceSvg(t, opp, 'pc mini').repeat(Math.max(0, START[t] - have[t]))
   const lead = mine - theirs
   return { glyphs, lead }
 }
@@ -130,11 +131,16 @@ function setTook(el, color) {
   const { glyphs, lead } = tookLine(color)
   el.innerHTML = glyphs + (lead > 0 ? `<small>+${lead}</small>` : '')
 }
+const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c])
+const who = (color) => {
+  const name = nameOfSide(color)
+  return `<i class="av ${color}">${esc(name.replace('@', '').slice(0, 1).toUpperCase())}</i><span>${esc(name)}</span>`
+}
 function renderBars() {
   const bottomColor = flipped ? 'b' : 'w'
   const topColor = bottomColor === 'w' ? 'b' : 'w'
-  $('botName').textContent = nameOfSide(bottomColor)
-  $('topName').textContent = nameOfSide(topColor)
+  $('botName').innerHTML = who(bottomColor)
+  $('topName').innerHTML = who(topColor)
   setTook($('botTook'), bottomColor)
   setTook($('topTook'), topColor)
   const turn = game.turn()
@@ -215,7 +221,7 @@ function tryMove(from, to) {
     for (const t of ['q', 'r', 'b', 'n']) {
       const b = document.createElement('button')
       b.type = 'button'
-      b.textContent = GLYPH[t]
+      b.innerHTML = pieceSvg(t, game.turn(), 'pc')
       b.setAttribute('aria-label', 'Promote')
       b.addEventListener('click', () => {
         const p = pendingPromo

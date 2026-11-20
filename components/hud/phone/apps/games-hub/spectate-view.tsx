@@ -138,7 +138,7 @@ export function SpectateView({ matchId, onBack }: { matchId: string; onBack: () 
           ludo ? <LudoProgress snap={ludo} names={info.names} /> : <p className={styles.hint}>Waiting for the board…</p>
         ) : (
           <div className={styles.snookerFrame}>
-            <iframe ref={frame} src="/games/snooker/index.html" title="Live snooker table" onLoad={initSnooker} />
+            <iframe ref={frame} src="/games/pool/index.html" title="Live 8 ball pool table" onLoad={initSnooker} />
             <div className={styles.snookerBlock} aria-hidden="true" />
           </div>
         )}

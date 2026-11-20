@@ -17,7 +17,7 @@ import { recordGameResult } from './game-results.js'
  */
 
 export const GAMES: Record<string, { name: string; emoji: string; variants: string[] }> = {
-  snooker: { name: 'Snooker', emoji: '🎱', variants: ['six', 'classic', 'clearance', 'black'] },
+  snooker: { name: '8 Ball Pool', emoji: '🎱', variants: ['eight'] },
   whot: { name: 'Naija Whot!', emoji: '🃏', variants: ['standard'] },
   tictactoe: { name: 'Tic tac toe', emoji: '⭕', variants: ['standard'] },
   chess: { name: 'Chess', emoji: '♟️', variants: ['standard'] },

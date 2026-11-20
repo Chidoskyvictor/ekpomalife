@@ -1,5 +1,5 @@
 import { randomInt } from 'node:crypto'
-import { applyMove, applyRoll, autoToken, legalTokens, newLudo, type LudoMoveResult, type LudoState } from './ludo-engine.js'
+import { applyMove, applyRoll, autoMove, legalMoves, newLudo, type LudoMoveResult, type LudoState } from './ludo-engine.js'
 
 /*
  * Live Ludo matches (1v1). The server holds the board, rolls the dice and checks every
@@ -15,7 +15,9 @@ const AWAY_TURN_MS = 2_500
 
 type Room = {
   state: LudoState
-  last: { seat: number; roll?: number; move?: LudoMoveResult; passed?: boolean } | null
+  last: { seat: number; roll?: [number, number]; move?: LudoMoveResult; passed?: boolean; n: number } | null
+  /** counts every roll/move so phones can tell a new event from a repeat */
+  seq: number
   deadline: number
   timer: ReturnType<typeof setTimeout> | null
   settled: boolean
@@ -55,6 +57,7 @@ export function openLudoRoom(id: string, seats: number, roomHooks: LudoRoomHooks
   const room: Room = {
     state: newLudo(COLORS_FOR[seats] ?? COLORS_FOR[2]!),
     last: null,
+    seq: 0,
     deadline: Date.now() + LUDO_TURN_MS,
     timer: null,
     settled: false,
@@ -97,7 +100,8 @@ export function ludoView(matchId: string) {
     seats,
     turn: s.turn,
     dice: s.dice,
-    legal: legalTokens(s),
+    used: s.used,
+    moves: legalMoves(s),
     winner: s.winner,
     last: room.last,
     secondsLeft: Math.max(0, Math.ceil((room.deadline - Date.now()) / 1000)),
@@ -115,37 +119,43 @@ function arm(matchId: string, room: Room) {
   if (room.state.winner != null) return
   room.timer = setTimeout(() => {
     // Out of time: roll and play for the player so the game never stalls
-    const s = room.state
-    if (s.winner != null) return
-    const seat = s.turn
-    if (s.dice == null) act(matchId, seat, { t: 'roll' })
-    const token = autoToken(room.state)
-    if (room.state.turn === seat && token != null) act(matchId, seat, { t: 'move', token })
+    const st = room.state
+    if (st.winner != null) return
+    const seat = st.turn
+    if (st.dice == null) act(matchId, seat, { t: 'roll' })
+    const move = autoMove(room.state)
+    if (room.state.turn === seat && move) act(matchId, seat, { t: 'move', token: move.token, die: move.die })
   }, wait)
   room.timer.unref?.()
 }
 
 /** A phone asks to roll or move. Anything not allowed is refused with a short reason. */
-export function act(matchId: string, seat: number, msg: { t?: unknown; token?: unknown }): { ok: boolean; error?: string } {
+export function act(
+  matchId: string,
+  seat: number,
+  msg: { t?: unknown; token?: unknown; die?: unknown },
+): { ok: boolean; error?: string } {
   const room = ludoRoom(matchId)
   const s = room.state
   if (s.winner != null) return { ok: false, error: 'Game over.' }
   if (s.turn !== seat) return { ok: false, error: 'Not your turn.' }
   if (msg.t === 'roll') {
-    if (s.dice != null) return { ok: false, error: 'Move a token first.' }
-    const value = rollDie()
-    const res = applyRoll(s, value)
-    room.last = { seat, roll: value, passed: res.passed }
+    if (s.dice != null) return { ok: false, error: 'Play your dice first.' }
+    const a = rollDie()
+    const b = rollDie()
+    const res = applyRoll(s, a, b)
+    room.last = { seat, roll: [a, b], passed: res.passed, n: ++room.seq }
     arm(matchId, room)
     push(matchId)
     return { ok: true }
   }
   if (msg.t === 'move') {
     const token = typeof msg.token === 'number' ? msg.token : -1
+    const die = msg.die === 0 || msg.die === 1 || msg.die === 'sum' ? msg.die : null
     const roll = s.dice
-    const moved = applyMove(s, token)
-    if (!moved) return { ok: false, error: 'That token can’t move.' }
-    room.last = { seat, roll: roll ?? undefined, move: moved }
+    const moved = die == null ? null : applyMove(s, { token, die })
+    if (!moved) return { ok: false, error: 'That seed can’t move.' }
+    room.last = { seat, roll: roll ?? undefined, move: moved, n: ++room.seq }
     arm(matchId, room)
     push(matchId)
     if (s.winner != null && !room.settled) {

@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyReply } from 'fastify'
 import { z } from 'zod'
 import { getSessionUser } from '../auth/current-user.js'
-import { createWhotTicket, joinWhot } from '../game/whot-live.js'
+import { createWhotTicket, joinWhot, setWhotTableRules } from '../game/whot-live.js'
 import {
   createWhotTable,
   getWhotTable,
@@ -25,6 +25,8 @@ const idParams = z.object({ id: z.string().min(1).max(64) })
 const createBody = z.object({
   maxPlayers: z.number().int().min(2).max(4).default(4),
   stake: z.number().int().min(0).max(1_000_000_000_000).default(0),
+  stackPicks: z.boolean().default(true),
+  lastCardCall: z.boolean().default(true),
 })
 const joinBody = z.object({ code: z.string().min(4).max(8) })
 const wsQuery = z.object({ ticket: z.string().min(10).max(80).optional() })
@@ -36,7 +38,11 @@ export async function whotRoutes(app: FastifyInstance) {
     if (!user) return notLoggedIn(reply)
     const parsed = createBody.safeParse(request.body)
     if (!parsed.success) return reply.code(400).send({ ok: false, error: 'Pick table size.' })
-    return send(reply, await createWhotTable(user.id, parsed.data))
+    const made = await createWhotTable(user.id, parsed.data)
+    if (made.ok && 'table' in made) {
+      setWhotTableRules(made.table.id, { stackPicks: parsed.data.stackPicks, lastCardCall: parsed.data.lastCardCall })
+    }
+    return send(reply, made)
   })
 
   app.post('/whot/tables/join', rate, async (request, reply) => {

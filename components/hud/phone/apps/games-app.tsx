@@ -21,6 +21,8 @@ import { fetchChats, type ChatSummary } from '@/lib/game/hostels-api'
 import { OPEN_GAMES_EVENT, takePendingGames } from '@/lib/game/open-games'
 import { WhotCpuGame } from '@/components/games/whot/whot-cpu-game'
 import { WhotOnlineGame } from '@/components/games/whot/whot-online-game'
+import { WhotRulesChips } from '@/components/games/whot/whot-rules-chips'
+import { DEFAULT_RULES, type WhotRules } from '@/lib/game/whot-rules'
 import {
   createWhotTable,
   fetchWhotTable,
@@ -59,7 +61,7 @@ type PlaySetup =
   | { opponent: 'online'; match: GameMatch }
 
 type WhotPlay =
-  | { mode: 'cpu'; players: number }
+  | { mode: 'cpu'; players: number; rules: WhotRules }
   | { mode: 'online'; tableId: string; potLabel: string }
 
 type View =
@@ -82,7 +84,7 @@ type View =
 const naira = (n: number) => `₦${n.toLocaleString()}`
 const variantLabel = (v: string) => SNOOKER_VARIANTS.find((x) => x.id === v)?.label ?? (v === 'classic' ? 'Classic' : v)
 const GAME_META: Record<string, { emoji: string; name: string }> = {
-  snooker: { emoji: '🎱', name: 'Snooker' },
+  snooker: { emoji: '🎱', name: '8 Ball Pool' },
   chess: { emoji: '♟️', name: 'Chess' },
   tictactoe: { emoji: '⭕', name: 'Tic tac toe' },
   ludo: { emoji: '🎲', name: 'Ludo' },
@@ -265,7 +267,7 @@ function GamesScreens({ onHome, view, setView }: { onHome: () => void; view: Vie
       return (
         <BodyPortal>
           <div className={`${styles.playScreen} ${styles.fullScreen}`}>
-            <WhotCpuGame players={view.play.players} onExit={() => setView({ name: 'home' })} notify={notifyToast} />
+            <WhotCpuGame players={view.play.players} rules={view.play.rules} onExit={() => setView({ name: 'home' })} notify={notifyToast} />
           </div>
         </BodyPortal>
       )
@@ -298,7 +300,7 @@ function GamesScreens({ onHome, view, setView }: { onHome: () => void; view: Vie
       <WhotSetup
         betLeft={betLeft}
         onBack={() => setView({ name: 'home' })}
-        onCpu={(players) => setView({ name: 'whot-play', play: { mode: 'cpu', players } })}
+        onCpu={(players, rules) => setView({ name: 'whot-play', play: { mode: 'cpu', players, rules } })}
         onLobby={(table) => setView({ name: 'whot-lobby', table })}
       />
     )
@@ -364,12 +366,13 @@ function WhotSetup({
 }: {
   betLeft: number | null
   onBack: () => void
-  onCpu: (players: number) => void
+  onCpu: (players: number, rules: WhotRules) => void
   onLobby: (table: WhotTable) => void
 }) {
   const [mode, setMode] = useState<'cpu' | 'friends'>('cpu')
   const [players, setPlayers] = useState(4)
   const [maxPlayers, setMaxPlayers] = useState(4)
+  const [rules, setRules] = useState<WhotRules>(DEFAULT_RULES)
   const [bet, setBet] = useState(false)
   const [stake, setStake] = useState('')
   const [code, setCode] = useState('')
@@ -382,7 +385,7 @@ function WhotSetup({
     if (betInvalid) return
     setBusy(true)
     setError(null)
-    const res = await createWhotTable(maxPlayers, amount)
+    const res = await createWhotTable(maxPlayers, amount, rules)
     setBusy(false)
     if (!res.ok) return setError(res.error)
     onLobby(res.table)
@@ -423,7 +426,8 @@ function WhotSetup({
               </button>
             ))}
           </div>
-          <button type="button" className={styles.big} onClick={() => onCpu(players)}>Play vs computer</button>
+          <WhotRulesChips rules={rules} onChange={setRules} />
+          <button type="button" className={styles.big} onClick={() => onCpu(players, rules)}>Play vs computer</button>
         </>
       ) : (
         <>
@@ -449,6 +453,7 @@ function WhotSetup({
               </button>
             ))}
           </div>
+          <WhotRulesChips rules={rules} onChange={setRules} />
           <button type="button" className={styles.big} disabled={busy || betInvalid} onClick={() => void create()}>Create & get code</button>
           <p className={styles.section}>Join with code</p>
           <div className={styles.row}>
@@ -551,7 +556,7 @@ function SnookerSetup({
   onWaiting: (match: GameMatch) => void
 }) {
   const [mode, setMode] = useState<Mode>(initialUsername ? 'online' : 'cpu')
-  const [variant, setVariant] = useState<SnookerVariant>('six')
+  const variant: SnookerVariant = 'eight'
   const [difficulty, setDifficulty] = useState<Difficulty>('medium')
   const [username, setUsername] = useState(initialUsername ?? '')
   const [bet, setBet] = useState(false)
@@ -593,7 +598,7 @@ function SnookerSetup({
     <div className={styles.screen}>
       <div className={styles.backBar}>
         <BackButton onBack={onBack} label="Back" />
-        <strong>🎱 Snooker</strong>
+        <strong>🎱 8 Ball Pool</strong>
         <span className={styles.backSpacer} />
       </div>
 
@@ -609,16 +614,6 @@ function SnookerSetup({
           <button key={id} type="button" className={`${styles.chip} ${mode === id ? styles.chipOn : ''}`} onClick={() => setMode(id)}>
             <span>{emoji}</span>
             {label}
-          </button>
-        ))}
-      </div>
-
-      <p className={styles.section}>Frame</p>
-      <div className={styles.chips}>
-        {SNOOKER_VARIANTS.map((v) => (
-          <button key={v.id} type="button" className={`${styles.chip} ${variant === v.id ? styles.chipOn : ''}`} onClick={() => setVariant(v.id)}>
-            {v.label}
-            <small>{v.note}</small>
           </button>
         ))}
       </div>
@@ -798,6 +793,7 @@ function PlayView({ setup, onExit, notify }: { setup: PlaySetup; onExit: () => v
         names: m.names,
         shotSeconds: 30,
         subtitle: m.stake ? `Pot ${naira(m.stake * 2)} · Online` : 'Friendly · Online',
+        seed: m.id,
       })
       if (lastSnap.current) toGame({ type: 'sync', snap: lastSnap.current })
     }
@@ -947,7 +943,7 @@ function PlayView({ setup, onExit, notify }: { setup: PlaySetup; onExit: () => v
         </div>
       ) : null}
       {result ? <div className={styles.banner}>{result}</div> : null}
-      <iframe ref={frame} className={styles.frame} src="/games/snooker/index.html" title="Snooker" onLoad={init} />
+      <iframe ref={frame} className={styles.frame} src="/games/pool/index.html" title="8 Ball Pool" onLoad={init} />
     </div>
     </BodyPortal>
   )

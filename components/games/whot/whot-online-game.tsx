@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { fetchWhotTable, whotSocketUrl, whotTicket, type WhotClientState } from '@/lib/game/whot-api'
+import type { Shape } from '@/lib/game/whot-rules'
 import { WhotBoard } from './whot-board'
 
 type Props = {
@@ -56,8 +57,9 @@ export function WhotOnlineGame({ tableId, potLabel, onExit, notify }: Props) {
       state={state}
       subtitle={potLabel}
       onExit={onExit}
-      onPlay={(cardIndex, shape) => send({ t: 'play', cardIndex, shape })}
+      onPlay={(cardId: number, shape?: Shape) => send({ t: 'play', cardId, shape })}
       onPick={() => send({ t: 'pick' })}
+      onCall={() => send({ t: 'call' })}
       disabled={!socket.current}
     />
   )

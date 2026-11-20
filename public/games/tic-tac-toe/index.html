@@ -9,24 +9,34 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <title>Tic tac toe</title>
   <style>
+    :root { --bg: #eef2fa; --ink: #14203a; --btn: rgb(20 32 58 / 0.08); }
+    :root[data-theme='dark'] { --bg: #0e1426; --ink: #e8eeff; --btn: rgb(255 255 255 / 0.1); }
     * { box-sizing: border-box; margin: 0; }
-    html, body { height: 100%; background: #0f1a14; }
+    html, body { height: 100%; background: var(--bg); }
     .shell { display: flex; height: 100%; flex-direction: column; }
     .top {
       display: flex; align-items: center; gap: 8px; flex: none;
       padding: 8px 10px max(8px, env(safe-area-inset-top));
-      background: #0f1a14; color: #e8f0eb;
+      background: var(--bg); color: var(--ink);
       font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
     }
     .top button {
       width: 44px; height: 44px; border: 0; border-radius: 12px;
-      background: rgba(255,255,255,0.12); color: #fff; font-size: 17px; font-weight: 800;
+      background: var(--btn); color: var(--ink); font-size: 17px; font-weight: 800;
     }
-    .top b { font-size: 15px; font-weight: 800; }
-    iframe { flex: 1; min-height: 0; width: 100%; border: 0; background: #12251b; }
+    .top b { font-size: 18px; font-weight: 800; }
+    iframe { flex: 1; min-height: 0; width: 100%; border: 0; background: var(--bg); }
   </style>
 </head>
 <body>
+  <script>
+    (function () {
+      var t = null
+      try { t = window.top.document.documentElement.dataset.theme } catch (_) {}
+      if (t !== 'dark' && t !== 'light') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+      document.documentElement.dataset.theme = t
+    })()
+  </script>
   <div class="shell">
     <div class="top">
       <button type="button" id="close" aria-label="Close game">✕</button>

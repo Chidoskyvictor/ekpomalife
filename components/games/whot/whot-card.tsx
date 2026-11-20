@@ -1,182 +1,167 @@
 'use client'
 
-import type { WhotCardView } from '@/lib/game/whot-api'
+import type { Card, Shape } from '@/lib/game/whot-rules'
+import { specialOf } from '@/lib/game/whot-rules'
 import styles from './whot.module.css'
 
-/** Classic Nigerian Whot suit colours (Papilo-style deck). */
-const SUIT: Record<
-  string,
-  { ink: string; fill: string; name: string }
-> = {
-  Circle: { ink: '#c62828', fill: '#ef5350', name: 'Circle' },
-  Triangle: { ink: '#2e7d32', fill: '#66bb6a', name: 'Triangle' },
-  Cross: { ink: '#1565c0', fill: '#42a5f5', name: 'Cross' },
-  Square: { ink: '#212121', fill: '#424242', name: 'Square' },
-  Star: { ink: '#f57f17', fill: '#ffca28', name: 'Star' },
-  Whot: { ink: '#1a1a1a', fill: '#c62828', name: 'Whot' },
+/** Printed colours of a Nigerian Whot pack (cream card, one colour per shape). */
+export const SHAPE_INK: Record<Shape, string> = {
+  circle: '#d62f2a',
+  triangle: '#16864a',
+  cross: '#2f55c8',
+  square: '#d6336c',
+  star: '#e0a000',
+  whot: '#b3201c',
 }
 
-const SPECIAL: Record<string, string> = {
-  PickTwo: 'Pick 2',
-  PickThree: 'Pick 3',
-  HoldOn: 'Hold on',
-  Suspension: 'Suspend',
-  GeneralMarket: 'Gen. market',
+export const SHAPE_NAME: Record<Shape, string> = {
+  circle: 'Circle',
+  triangle: 'Triangle',
+  cross: 'Cross',
+  square: 'Square',
+  star: 'Star',
+  whot: 'Whot',
 }
 
-function moveLabel(card: WhotCardView) {
-  if (card.move && card.move !== 'None') return SPECIAL[card.move] ?? null
-  return null
+const SPECIAL_LABEL: Record<string, string> = {
+  'hold-on': 'HOLD ON',
+  'pick-two': 'PICK 2',
+  'pick-three': 'PICK 3',
+  suspension: 'SUSPENSION',
+  'general-market': 'GENERAL MARKET',
 }
 
-function displayNumber(card: WhotCardView) {
-  if (card.shape === 'Whot') return '20'
-  return String(card.value)
+/** One printed shape on a 48×48 grid. Used big in the middle and tiny in the corners. */
+export function ShapeMark({ shape, size, className }: { shape: Shape; size: number; className?: string }) {
+  const ink = SHAPE_INK[shape]
+  const dark = 'rgb(0 0 0 / 0.28)'
+  const common = { className, width: size, height: size, viewBox: '0 0 48 48', 'aria-hidden': true } as const
+  switch (shape) {
+    case 'circle':
+      return (
+        <svg {...common}>
+          <circle cx="24" cy="24" r="19" fill={ink} stroke={dark} strokeWidth="1.5" />
+          <circle cx="24" cy="24" r="12" fill="none" stroke="rgb(255 255 255 / 0.55)" strokeWidth="2" />
+        </svg>
+      )
+    case 'triangle':
+      return (
+        <svg {...common}>
+          <polygon points="24,4 45,42 3,42" fill={ink} stroke={dark} strokeWidth="1.5" strokeLinejoin="round" />
+          <polygon points="24,16 36,37 12,37" fill="none" stroke="rgb(255 255 255 / 0.55)" strokeWidth="2" strokeLinejoin="round" />
+        </svg>
+      )
+    case 'cross':
+      return (
+        <svg {...common}>
+          <path
+            d="M18 3h12v15h15v12H30v15H18V30H3V18h15z"
+            fill={ink}
+            stroke={dark}
+            strokeWidth="1.5"
+            strokeLinejoin="round"
+          />
+          <path d="M21 9h6v12h12v6H27v12h-6V27H9v-6h12z" fill="none" stroke="rgb(255 255 255 / 0.5)" strokeWidth="1.5" />
+        </svg>
+      )
+    case 'square':
+      return (
+        <svg {...common}>
+          <rect x="6" y="6" width="36" height="36" rx="4" fill={ink} stroke={dark} strokeWidth="1.5" />
+          <rect x="13" y="13" width="22" height="22" rx="2" fill="none" stroke="rgb(255 255 255 / 0.55)" strokeWidth="2" />
+        </svg>
+      )
+    case 'star':
+      return (
+        <svg {...common}>
+          <polygon
+            points="24,3 30,17.5 45.5,18.5 33.5,28.5 37.5,43.5 24,35 10.5,43.5 14.5,28.5 2.5,18.5 18,17.5"
+            fill={ink}
+            stroke="rgb(120 80 0 / 0.55)"
+            strokeWidth="1.5"
+            strokeLinejoin="round"
+          />
+        </svg>
+      )
+    default:
+      return null
+  }
 }
 
-type GlyphProps = { shape: string; size: number; className?: string }
-
-/** Large centre suit mark — matches how the physical deck reads at a glance. */
-export function WhotShapeGlyph({ shape, size, className }: GlyphProps) {
-  const suit = SUIT[shape] ?? SUIT.Square
-  const s = size
-  const c = suit.fill
-  const stroke = suit.ink
-
-  if (shape === 'Circle') {
-    return (
-      <svg className={className} width={s} height={s} viewBox="0 0 48 48" aria-hidden>
-        <circle cx="24" cy="24" r="18" fill={c} stroke={stroke} strokeWidth="2" />
-        <circle cx="24" cy="24" r="8" fill="#fff" opacity="0.35" />
-      </svg>
-    )
-  }
-  if (shape === 'Triangle') {
-    return (
-      <svg className={className} width={s} height={s} viewBox="0 0 48 48" aria-hidden>
-        <polygon points="24,6 44,42 4,42" fill={c} stroke={stroke} strokeWidth="2" strokeLinejoin="round" />
-      </svg>
-    )
-  }
-  if (shape === 'Cross') {
-    return (
-      <svg className={className} width={s} height={s} viewBox="0 0 48 48" aria-hidden>
-        <rect x="18" y="6" width="12" height="36" rx="2" fill={c} stroke={stroke} strokeWidth="1.5" />
-        <rect x="6" y="18" width="36" height="12" rx="2" fill={c} stroke={stroke} strokeWidth="1.5" />
-      </svg>
-    )
-  }
-  if (shape === 'Square') {
-    return (
-      <svg className={className} width={s} height={s} viewBox="0 0 48 48" aria-hidden>
-        <rect x="8" y="8" width="32" height="32" rx="3" fill="none" stroke={stroke} strokeWidth="4" />
-        <rect x="14" y="14" width="20" height="20" rx="2" fill={c} opacity="0.35" />
-      </svg>
-    )
-  }
-  if (shape === 'Star') {
-    return (
-      <svg className={className} width={s} height={s} viewBox="0 0 48 48" aria-hidden>
-        <polygon
-          points="24,4 29,18 44,18 32,28 37,42 24,33 11,42 16,28 4,18 19,18"
-          fill={c}
-          stroke={stroke}
-          strokeWidth="1.5"
-          strokeLinejoin="round"
-        />
-      </svg>
-    )
-  }
-  return null
-}
-
-function CornerIndex({ card, corner }: { card: WhotCardView; corner: 'tl' | 'br' }) {
-  const suit = SUIT[card.shape] ?? SUIT.Square
-  const num = displayNumber(card)
+function Corner({ card, pos }: { card: Card; pos: 'tl' | 'br' }) {
   return (
-    <div
-      className={`${styles.cardCorner} ${corner === 'tl' ? styles.cornerTl : styles.cornerBr}`}
-      style={{ color: suit.ink }}
-    >
-      <span className={styles.cornerNum}>{num}</span>
-      <WhotShapeGlyph shape={card.shape} size={14} />
+    <div className={`${styles.corner} ${pos === 'tl' ? styles.cornerTl : styles.cornerBr}`} style={{ color: SHAPE_INK[card.shape] }}>
+      <span className={styles.cornerNum}>{card.num}</span>
+      <ShapeMark shape={card.shape} size={12} />
     </div>
   )
 }
 
-function WhotTwentyFace({ iNeed }: { iNeed?: string }) {
-  return (
-    <div className={styles.whotFace}>
-      <div className={styles.whotStripe} aria-hidden />
-      <span className={styles.whotTitle}>WHOT</span>
-      <span className={styles.whotNum}>20</span>
-      {iNeed ? (
-        <div className={styles.whotNeed}>
-          <span>Needs</span>
-          <WhotShapeGlyph shape={iNeed} size={22} />
-        </div>
-      ) : null}
-    </div>
-  )
-}
+export type CardSize = 'hand' | 'pile' | 'mini'
 
-function StandardFace({ card }: { card: WhotCardView }) {
-  const special = moveLabel(card)
-  return (
-    <>
-      <CornerIndex card={card} corner="tl" />
-      <CornerIndex card={card} corner="br" />
-      <div className={styles.cardCenter}>
-        <WhotShapeGlyph shape={card.shape} size={36} className={styles.centerGlyph} />
-      </div>
-      {special ? <span className={styles.cardSpecial}>{special}</span> : null}
-      {card.iNeed && card.shape !== 'Whot' ? (
-        <div className={styles.calledShape}>
-          <WhotShapeGlyph shape={card.iNeed} size={16} />
-        </div>
-      ) : null}
-    </>
-  )
-}
-
-export function WhotCardBack({ className }: { className?: string }) {
-  return (
-    <div className={`${styles.cardFace} ${styles.cardBack} ${className ?? ''}`} aria-hidden>
-      <div className={styles.backPattern} />
-      <span className={styles.backLabel}>WHOT</span>
-    </div>
-  )
-}
-
-/** Mini card used for shape picker (play Whot → call a suit). */
-export function WhotShapePickerCard({ shape, onClick }: { shape: string; onClick: () => void }) {
-  const fake: WhotCardView = { value: 1, shape }
-  return (
-    <button type="button" className={styles.shapePickBtn} onClick={onClick} aria-label={`Call ${shape}`}>
-      <WhotCardFace card={fake} size="mini" />
-    </button>
-  )
-}
-
-export function WhotCardFace({
+/** The face of a card. `called` shows the shape demanded after a Whot 20. */
+export function CardFace({
   card,
   size = 'hand',
+  called,
+  playable,
+  className,
 }: {
-  card: WhotCardView
-  size?: 'hand' | 'pile' | 'mini'
+  card: Card
+  size?: CardSize
+  called?: Shape | null
+  playable?: boolean
+  className?: string
 }) {
-  const isWhot = card.shape === 'Whot'
+  const kind = specialOf(card)
+  const label = kind ? SPECIAL_LABEL[kind] : null
+  const whot = card.shape === 'whot'
   return (
     <div
-      className={`${styles.cardFace} ${styles[`cardSize_${size}`]} ${isWhot ? styles.cardFaceWhot : ''}`}
+      className={`${styles.card} ${styles[`size_${size}`]} ${whot ? styles.cardWhot : ''} ${playable ? styles.cardPlayable : ''} ${className ?? ''}`}
       data-shape={card.shape}
     >
-      {isWhot ? <WhotTwentyFace iNeed={card.iNeed} /> : <StandardFace card={card} />}
+      {whot ? (
+        <div className={styles.whotFace}>
+          <span className={styles.whotWord}>WHOT</span>
+          <span className={styles.whotNum}>20</span>
+          <div className={styles.whotShapes} aria-hidden>
+            {(['circle', 'triangle', 'cross', 'square', 'star'] as Shape[]).map((s) => (
+              <ShapeMark key={s} shape={s} size={size === 'mini' ? 6 : 10} />
+            ))}
+          </div>
+          <span className={`${styles.whotNum} ${styles.whotNumFlip}`}>20</span>
+        </div>
+      ) : (
+        <>
+          <Corner card={card} pos="tl" />
+          <Corner card={card} pos="br" />
+          <div className={styles.centre}>
+            <ShapeMark shape={card.shape} size={size === 'mini' ? 22 : size === 'pile' ? 52 : 40} />
+          </div>
+          {label && size !== 'mini' ? <span className={styles.badge}>{label}</span> : null}
+        </>
+      )}
+      {called ? (
+        <span className={styles.calledChip} title={`Needs ${SHAPE_NAME[called]}`}>
+          <ShapeMark shape={called} size={size === 'mini' ? 10 : 16} />
+        </span>
+      ) : null}
     </div>
   )
 }
 
-/** @deprecated use WhotShapeGlyph */
-export function WhotShape({ shape }: { shape: string }) {
-  return <WhotShapeGlyph shape={shape} size={22} className={styles.shape} />
+export function CardBack({ className }: { className?: string }) {
+  return (
+    <div className={`${styles.card} ${styles.size_hand} ${styles.cardBack} ${className ?? ''}`} aria-hidden>
+      <div className={styles.backInner}>
+        <span>WHOT</span>
+      </div>
+    </div>
+  )
+}
+
+/** A tiny face-down card used to show how many cards an opponent holds. */
+export function MiniBack() {
+  return <span className={styles.miniBack} aria-hidden />
 }

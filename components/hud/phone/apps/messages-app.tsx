@@ -1536,7 +1536,7 @@ function GameNotice({ message }: { message: ChatMessage }) {
   try {
     info = JSON.parse(message.body) as typeof info
   } catch {}
-  const game = info.game === 'snooker' ? 'Snooker' : info.game === 'chess' ? 'Chess' : info.game === 'ludo' ? 'Ludo' : info.game === 'tictactoe' ? 'Tic tac toe' : 'a game'
+  const game = info.game === 'snooker' ? '8 Ball Pool' : info.game === 'chess' ? 'Chess' : info.game === 'ludo' ? 'Ludo' : info.game === 'tictactoe' ? 'Tic tac toe' : 'a game'
   const stake = info.stake ? ` · ${naira(info.stake)}` : ''
   const name = message.sender?.username ? `@${message.sender.username}` : 'They'
   const text = info.sat

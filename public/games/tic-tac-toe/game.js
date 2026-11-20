@@ -40,6 +40,26 @@
     return b
   })
 
+  const winLineEl = document.getElementById('winline')
+  const X_SVG = '<svg viewBox="0 0 100 100" aria-hidden="true"><path class="mk x" pathLength="100" d="M22 22L78 78"/><path class="mk x second" pathLength="100" d="M78 22L22 78"/></svg>'
+  const O_SVG = '<svg viewBox="0 0 100 100" aria-hidden="true"><circle class="mk o" pathLength="100" cx="50" cy="50" r="30"/></svg>'
+  const markSvg = (m) => (m === 'X' ? X_SVG : m === 'O' ? O_SVG : '')
+  /** Draw the cells of a finished line and the stroke through them. */
+  function showWin(line) {
+    winLineEl.innerHTML = ''
+    if (!line || line.length !== 3) return
+    line.forEach((k) => cells[k].classList.add('win'))
+    cells.forEach((c, k) => !line.includes(k) && c.classList.add('dim'))
+    const pt = (k) => [(k % 3) + 0.5, Math.floor(k / 3) + 0.5]
+    const [x1, y1] = pt(line[0])
+    const [x2, y2] = pt(line[2])
+    winLineEl.innerHTML = `<line pathLength="100" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`
+  }
+  function setTurn(mark) {
+    document.querySelector('.side.x').classList.toggle('turn', mark === 'X')
+    document.querySelector('.side.o').classList.toggle('turn', mark === 'O')
+  }
+
   function winnerOf(b) {
     for (const line of LINES) {
       const [a, c, d] = line
@@ -115,10 +135,13 @@
 
   function render(justPlayed) {
     cells.forEach((c, i) => {
-      c.textContent = board[i] || ''
+      c.innerHTML = markSvg(board[i])
       c.className = `cell${board[i] ? ` ${board[i].toLowerCase()}` : ''}${i === justPlayed ? ' mark' : ''}`
       c.disabled = over || Boolean(board[i]) || (mode === 'cpu' && turn === 'O')
     })
+    winLineEl.innerHTML = ''
+    statusEl.classList.remove('won')
+    setTurn(over ? null : turn)
     scoreEl.X.textContent = score.X
     scoreEl.O.textContent = score.O
     scoreEl.D.textContent = score.D
@@ -133,7 +156,8 @@
       over = true
       score[w.mark] += 1
       render(i)
-      w.line.forEach((k) => cells[k].classList.add('win'))
+      showWin(w.line)
+      if (w.mark !== 'D') statusEl.classList.add('won')
       statusEl.textContent =
         w.mark === 'D' ? 'Draw!' : mode === 'cpu' ? (w.mark === 'X' ? 'You win! 🎉' : 'The phone wins') : `${w.mark} wins! 🎉`
       return
@@ -208,11 +232,14 @@
     const over = st.winnerSeat !== null
     board = st.board.slice()
     cells.forEach((c, i) => {
-      c.textContent = board[i] || ''
+      c.innerHTML = markSvg(board[i])
       c.className = `cell${board[i] ? ` ${board[i].toLowerCase()}` : ''}${i === st.last ? ' mark' : ''}`
       c.disabled = over || Boolean(board[i]) || st.turn !== mine
     })
-    ;(st.line || []).forEach((k) => cells[k].classList.add('win'))
+    winLineEl.innerHTML = ''
+    statusEl.classList.toggle('won', over && st.winnerSeat === net.mySeat)
+    setTurn(over ? null : st.turn)
+    if (over && st.line) showWin(st.line)
     scoreEl.X.textContent = st.winnerSeat === 0 ? 1 : 0
     scoreEl.O.textContent = st.winnerSeat === 1 ? 1 : 0
     scoreEl.D.textContent = st.draws
