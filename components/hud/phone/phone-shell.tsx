@@ -306,7 +306,7 @@ export function PhoneShell({
                   <div className={styles.content}>
                     <PhoneStatusBar clock={phoneClock} phone={deviceState} onApp={Boolean(appId)} />
                     {appId ? (
-                      <AppFrame appId={appId} offline={offline} onHome={goHome} footer={appId !== 'music' ? <MiniBar onOpen={() => void openApp('music')} /> : undefined} bare={appId === 'forbes' || appId === 'messages' || appId === 'games' || appId === 'music' || appId === 'spaces' || appId === 'prodigy' || appId === 'anonymous'}>
+                      <AppFrame appId={appId} offline={offline} onHome={goHome} footer={appId !== 'music' ? <MiniBar onOpen={() => void openApp('music')} /> : undefined} bare={appId === 'forbes' || appId === 'messages' || appId === 'games' || appId === 'music' || appId === 'spaces' || appId === 'prodigy' || appId === 'anonymous' || appId === 'eta'}>
                         {appId === 'jobs' ? <JobsApp /> : null}
                         {appId === 'bank' ? <BankApp /> : null}
                         {appId === 'gist' ? <GistApp /> : null}
@@ -346,7 +346,7 @@ export function PhoneShell({
                         {appId === 'houses' ? <HousesApp /> : null}
                         {appId === 'invest' ? <InvestApp /> : null}
                         {appId === 'prodigy' ? <ProdigyApp onHome={goHome} /> : null}
-                        {appId === 'eta' ? <EtaApp /> : null}
+                        {appId === 'eta' ? <EtaApp onHome={goHome} /> : null}
                         {appId === 'games' ? <GamesApp onHome={goHome} /> : null}
                         {appId === 'anonymous' ? <AnonymousApp onHome={goHome} /> : null}
                         {appId === 'family' ? <FamilyApp /> : null}

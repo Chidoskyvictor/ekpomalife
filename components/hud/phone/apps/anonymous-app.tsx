@@ -1,8 +1,9 @@
 'use client'
 
-import { Copy, Plus } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { Copy, Lock, MessagesSquare, Pencil, Search, Users } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
+  WALL_EMOJI,
   WALL_KINDS,
   createWall,
   fetchMine,
@@ -17,17 +18,24 @@ import {
   type WallKind,
 } from '@/lib/game/anonymous-api'
 import { Composer, Feed, PostCard, timeAgo } from './anonymous-feed'
+import { MaskAvatar, MaskGlyph } from './anonymous-mask'
 import { AppHeader } from '../app-header'
-import { AppEmpty, AppError, AppLoading } from '../app-state'
+import { AppError, AppLoading } from '../app-state'
 import styles from './anonymous.module.css'
 
 /*
- * Phone → Anonymous. A Whisper-style anonymous campus feed. Everyone shows as "Anonymous".
- * Three tabs: Feed (full-card posts), Walls (public communities), Mine (your own, private).
+ * Phone → Anonymous. A masked campus feed: every post and reply shows a random alias and mask, never a name.
+ * Three tabs: Feed (colour cards + mood chips), Walls (public circles), Mine (private to you).
  * Draws its own header (bare app frame).
  */
 
 type Tab = 'feed' | 'walls' | 'mine'
+
+const TABS: { id: Tab; label: string; Icon: typeof MessagesSquare }[] = [
+  { id: 'feed', label: 'Feed', Icon: MessagesSquare },
+  { id: 'walls', label: 'Walls', Icon: Users },
+  { id: 'mine', label: 'Mine', Icon: Lock },
+]
 
 export function AnonymousApp({ onHome }: { onHome: () => void }) {
   const [tab, setTab] = useState<Tab>('feed')
@@ -43,14 +51,20 @@ export function AnonymousApp({ onHome }: { onHome: () => void }) {
   }, [])
 
   const title = wall ? wall.name : tab === 'feed' ? 'Anonymous' : tab === 'walls' ? 'Walls' : 'Mine'
+  const subtitle = wall ? 'Wall · masks on' : tab === 'feed' ? 'Nobody knows it is you' : tab === 'walls' ? 'Public circles, still masked' : 'Only you can see this'
 
   return (
     <div className={styles.root}>
       <AppHeader
         title={title}
+        subtitle={subtitle}
         onBack={wall ? () => setWall(null) : onHome}
         backLabel={wall ? 'Back to walls' : 'Back home'}
-        right={<span className={styles.mask} aria-hidden="true">🎭</span>}
+        right={
+          <span className={styles.maskBadge} aria-hidden="true">
+            <MaskGlyph size={22} />
+          </span>
+        }
         bar
       />
 
@@ -67,29 +81,31 @@ export function AnonymousApp({ onHome }: { onHome: () => void }) {
         {tab === 'walls' && wall ? (
           <WallView key={`${wall.id}:${feedKey}`} wall={wall} flash={flash} onChange={setWall} onLeft={() => setWall(null)} onCompose={() => setComposing(true)} />
         ) : null}
-        {tab === 'mine' ? <Mine flash={flash} /> : null}
+        {tab === 'mine' ? <Mine flash={flash} onCompose={() => setComposing(true)} /> : null}
 
         {tab !== 'mine' && !you?.banned && (tab === 'feed' || wall?.joined) ? (
           <button type="button" className={styles.fab} aria-label="New post" onClick={() => setComposing(true)}>
-            <Plus size={28} />
+            <Pencil size={20} aria-hidden="true" />
+            <span>Confess</span>
           </button>
         ) : null}
         {note ? <p className={styles.toast} role="status">{note}</p> : null}
       </div>
 
       <nav className={styles.tabs} aria-label="Anonymous sections">
-        {(['feed', 'walls', 'mine'] as const).map((t) => (
+        {TABS.map(({ id, label, Icon }) => (
           <button
-            key={t}
+            key={id}
             type="button"
-            className={`${styles.tab} ${tab === t ? styles.tabOn : ''}`}
-            aria-current={tab === t ? 'page' : undefined}
+            className={`${styles.tab} ${tab === id ? styles.tabOn : ''}`}
+            aria-current={tab === id ? 'page' : undefined}
             onClick={() => {
-              setTab(t)
+              setTab(id)
               setWall(null)
             }}
           >
-            {t === 'feed' ? 'Feed' : t === 'walls' ? 'Walls' : 'Mine'}
+            <Icon size={20} aria-hidden="true" />
+            <span>{label}</span>
           </button>
         ))}
       </nav>
@@ -102,7 +118,7 @@ export function AnonymousApp({ onHome }: { onHome: () => void }) {
           onPosted={() => {
             setComposing(false)
             setFeedKey((k) => k + 1)
-            flash('Posted as Anonymous')
+            flash('Posted under a mask 🎭')
           }}
         />
       ) : null}
@@ -116,6 +132,7 @@ function Walls({ onOpen, flash }: { onOpen: (w: AnonWall) => void; flash: (m: st
   const [walls, setWalls] = useState<AnonWall[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [code, setCode] = useState('')
+  const [query, setQuery] = useState('')
   const [creating, setCreating] = useState(false)
 
   const load = useCallback(async () => {
@@ -132,6 +149,12 @@ function Walls({ onOpen, flash }: { onOpen: (w: AnonWall) => void; flash: (m: st
   useEffect(() => {
     void load()
   }, [load])
+
+  const shown = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!walls) return walls
+    return q ? walls.filter((w) => w.name.toLowerCase().includes(q) || w.description.toLowerCase().includes(q)) : walls
+  }, [walls, query])
 
   async function join(w: AnonWall) {
     const res = await joinWall(w.id)
@@ -161,38 +184,77 @@ function Walls({ onOpen, flash }: { onOpen: (w: AnonWall) => void; flash: (m: st
 
   return (
     <div className={styles.page}>
-      <div className={styles.codeRow}>
-        <input
-          className={styles.input}
-          value={code}
-          maxLength={8}
-          placeholder="Invite code"
-          autoCapitalize="characters"
-          onChange={(e) => setCode(e.target.value.toUpperCase())}
-          onKeyDown={(e) => e.key === 'Enter' && void joinCode()}
-        />
-        <button type="button" className={styles.ghost} disabled={code.trim().length < 6} onClick={() => void joinCode()}>
-          Join
+      <div className={styles.hero}>
+        <div className={styles.heroHead}>
+          <span className={styles.heroArt}>
+            <MaskGlyph size={30} />
+          </span>
+          <div>
+            <strong>Got an invite code?</strong>
+            <p className={styles.heroSub}>Private circles for your hostel, faculty or squad.</p>
+          </div>
+        </div>
+        <div className={styles.codeRow}>
+          <input
+            className={styles.input}
+            value={code}
+            maxLength={8}
+            placeholder="CODE"
+            aria-label="Invite code"
+            autoCapitalize="characters"
+            onChange={(e) => setCode(e.target.value.toUpperCase())}
+            onKeyDown={(e) => e.key === 'Enter' && void joinCode()}
+          />
+          <button type="button" className={styles.primary} disabled={code.trim().length < 6} onClick={() => void joinCode()}>
+            Join
+          </button>
+        </div>
+      </div>
+
+      <div className={styles.actionRow}>
+        <label className={styles.search}>
+          <Search size={18} aria-hidden="true" />
+          <input value={query} placeholder="Search walls" aria-label="Search walls" onChange={(e) => setQuery(e.target.value)} />
+        </label>
+        <button type="button" className={styles.primary} onClick={() => setCreating(true)}>
+          + Start a wall
         </button>
       </div>
-      <button type="button" className={styles.primary} onClick={() => setCreating(true)}>
-        Start a wall
-      </button>
+
       {walls === null && !error ? <AppLoading rows={2} /> : null}
-      {error ? <AppError>{error}</AppError> : null}
-      {walls?.length === 0 && !error ? <AppEmpty>No walls yet. Start the first one for your hostel or department.</AppEmpty> : null}
+      {error ? <AppError onRetry={() => void load()}>{error}</AppError> : null}
+      {walls?.length === 0 && !error ? (
+        <div className={styles.empty}>
+          <span className={styles.emptyArt}>
+            <Users size={40} aria-hidden="true" />
+          </span>
+          <strong>No walls yet</strong>
+          <p>Be the first to open a wall for your hostel or department.</p>
+          <button type="button" className={styles.primary} onClick={() => setCreating(true)}>
+            Start the first wall
+          </button>
+        </div>
+      ) : null}
+      {walls && walls.length > 0 && shown?.length === 0 ? <p className={styles.fine}>No wall matches “{query}”.</p> : null}
       <ul className={styles.list}>
-        {walls?.map((w) => (
+        {shown?.map((w) => (
           <li key={w.id} className={styles.wall}>
             <button type="button" className={styles.wallMain} onClick={() => onOpen(w)}>
-              <strong>{w.name}</strong>
-              <span className={styles.fine}>
-                {WALL_KINDS.find((k) => k.id === w.kind)?.label} · {w.members} member{w.members === 1 ? '' : 's'} · {w.posts} post{w.posts === 1 ? '' : 's'}
+              <span className={styles.wallTile} aria-hidden="true">
+                {WALL_EMOJI[w.kind] ?? '💬'}
               </span>
-              {w.description ? <span className={styles.wallDesc}>{w.description}</span> : null}
+              <span className={styles.wallText}>
+                <strong>{w.name}</strong>
+                <span className={styles.fine}>
+                  {WALL_KINDS.find((k) => k.id === w.kind)?.label} · {w.members} member{w.members === 1 ? '' : 's'} · {w.posts} post{w.posts === 1 ? '' : 's'}
+                </span>
+                {w.description ? <span className={styles.wallDesc}>{w.description}</span> : null}
+              </span>
             </button>
-            {w.joined ? <span className={styles.joined}>Joined</span> : (
-              <button type="button" className={styles.ghost} onClick={() => void join(w)}>
+            {w.joined ? (
+              <span className={styles.joined}>Joined</span>
+            ) : (
+              <button type="button" className={styles.ghostSm} onClick={() => void join(w)}>
                 Join
               </button>
             )}
@@ -223,15 +285,24 @@ function NewWall({ onCancel, onCreated }: { onCancel: () => void; onCreated: (w:
   return (
     <div className={styles.page}>
       <h3 className={styles.h3}>Start a wall</h3>
-      <div className={styles.chips}>
+      <p className={styles.fine}>Pick what it is for. You get an invite code to share.</p>
+      <div className={styles.kindGrid} role="radiogroup" aria-label="Kind of wall">
         {WALL_KINDS.map((k) => (
-          <button key={k.id} type="button" className={`${styles.chip} ${kind === k.id ? styles.chipOn : ''}`} onClick={() => setKind(k.id)}>
-            {k.label}
+          <button
+            key={k.id}
+            type="button"
+            role="radio"
+            aria-checked={kind === k.id}
+            className={`${styles.mood} ${kind === k.id ? styles.moodOn : ''}`}
+            onClick={() => setKind(k.id)}
+          >
+            <span className={styles.moodEmoji}>{WALL_EMOJI[k.id]}</span>
+            <span>{k.label}</span>
           </button>
         ))}
       </div>
-      <input className={styles.input} value={name} maxLength={40} placeholder="Wall name, e.g. Block C girls" onChange={(e) => setName(e.target.value)} />
-      <input className={styles.input} value={description} maxLength={140} placeholder="What is it about? (optional)" onChange={(e) => setDescription(e.target.value)} />
+      <input className={styles.input} value={name} maxLength={40} placeholder="Wall name, e.g. Block C girls" aria-label="Wall name" onChange={(e) => setName(e.target.value)} />
+      <input className={styles.input} value={description} maxLength={140} placeholder="What is it about? (optional)" aria-label="Description" onChange={(e) => setDescription(e.target.value)} />
       {error ? <p className={styles.error}>{error}</p> : null}
       <button type="button" className={styles.primary} disabled={busy || name.trim().length < 3} onClick={() => void submit()}>
         {busy ? 'Creating…' : 'Create wall'}
@@ -279,7 +350,10 @@ function WallView({
   return (
     <div className={styles.wallView}>
       <div className={styles.wallBar}>
-        <span className={styles.fine}>{wall.members} members</span>
+        <span className={styles.wallTileSm} aria-hidden="true">
+          {WALL_EMOJI[wall.kind] ?? '💬'}
+        </span>
+        <span className={styles.fine}>{wall.members} member{wall.members === 1 ? "" : "s"}</span>
         <span className={styles.spacer} />
         {wall.joined && wall.inviteCode ? (
           <button type="button" className={styles.ghostSm} onClick={() => void copyCode()}>
@@ -303,10 +377,10 @@ function WallView({
 
 /* ---------- mine ---------- */
 
-function Mine({ flash }: { flash: (m: string) => void }) {
+function Mine({ flash, onCompose }: { flash: (m: string) => void; onCompose: () => void }) {
   const [sub, setSub] = useState<'posts' | 'comments' | 'likes'>('posts')
   const [posts, setPosts] = useState<AnonPost[] | null>(null)
-  const [comments, setComments] = useState<(AnonComment)[] | null>(null)
+  const [comments, setComments] = useState<AnonComment[] | null>(null)
 
   useEffect(() => {
     setPosts(null)
@@ -324,18 +398,36 @@ function Mine({ flash }: { flash: (m: string) => void }) {
   }, [sub, flash])
 
   const empty = sub === 'comments' ? comments?.length === 0 : posts?.length === 0
+  const emptyText =
+    sub === 'posts' ? ['Nothing confessed yet', 'Your posts live here, only visible to you.'] : sub === 'comments' ? ['No replies yet', 'Jump into a post and say something kind.'] : ['No likes yet', 'Posts you like show up here.']
   return (
     <div className={styles.page}>
-      <p className={styles.private}>🔒 Only you can see this page. It is anonymous to other students, but not to the admins.</p>
+      <div className={styles.private}>
+        <Lock size={18} aria-hidden="true" />
+        <p>Only you can see this page. You are hidden from other students, but not from the admins.</p>
+      </div>
       <div className={styles.toggle} role="tablist" aria-label="Mine">
         {(['posts', 'comments', 'likes'] as const).map((s) => (
           <button key={s} type="button" role="tab" aria-selected={sub === s} className={sub === s ? styles.toggleOn : ''} onClick={() => setSub(s)}>
-            {s === 'posts' ? 'Posts' : s === 'comments' ? 'Comments' : 'Likes'}
+            {s === 'posts' ? 'Posts' : s === 'comments' ? 'Replies' : 'Likes'}
           </button>
         ))}
       </div>
       {(sub === 'comments' ? comments : posts) === null ? <AppLoading rows={2} /> : null}
-      {empty ? <AppEmpty>{sub === 'posts' ? "You haven't posted yet." : sub === 'comments' ? 'No comments yet.' : 'Posts you like show up here.'}</AppEmpty> : null}
+      {empty ? (
+        <div className={styles.empty}>
+          <span className={styles.emptyArt}>
+            <MaskGlyph size={56} />
+          </span>
+          <strong>{emptyText[0]}</strong>
+          <p>{emptyText[1]}</p>
+          {sub === 'posts' ? (
+            <button type="button" className={styles.primary} onClick={onCompose}>
+              Confess something
+            </button>
+          ) : null}
+        </div>
+      ) : null}
       <ul className={styles.list}>
         {sub !== 'comments'
           ? posts?.map((p) => (
@@ -345,8 +437,11 @@ function Mine({ flash }: { flash: (m: string) => void }) {
             ))
           : comments?.map((c) => (
               <li key={c.id} className={styles.myComment}>
-                <span className={styles.fine}>On “{c.postPreview}” · {timeAgo(c.createdAt)}</span>
-                <p>{c.status === 'ok' ? c.body : 'Hidden pending review'}</p>
+                <MaskAvatar id={c.id} size={28} />
+                <div>
+                  <span className={styles.fine}>On “{c.postPreview}” · {timeAgo(c.createdAt)}</span>
+                  <p>{c.status === 'ok' ? c.body : 'Hidden pending review'}</p>
+                </div>
               </li>
             ))}
       </ul>

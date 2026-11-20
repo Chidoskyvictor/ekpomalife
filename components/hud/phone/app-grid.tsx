@@ -28,6 +28,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { DOCK_MAX, loadLayout, moveApp, pinApp, saveLayout, unpinApp, type PhoneLayout } from '@/lib/game/phone-layout'
 import { PHONE_APPS, type PhoneAppId, type PhoneState } from '@/lib/game/phone'
+import { AnonymousTileArt } from './apps/anonymous-mask'
 import styles from './app-grid.module.css'
 
 /* Soft pastel tiles with a 3D icon on top (Fluent Emoji 3D, MIT, public/apps/icons); a line icon if the picture can't load. */
@@ -46,7 +47,7 @@ const ICONS: Partial<Record<PhoneAppId, { Icon: LucideIcon; from: string; to: st
   profile: { Icon: UserRound, from: '#e1f2ff', to: '#c4e4ff' },
   games: { Icon: Gamepad2, from: '#ece6ff', to: '#d9ceff' },
   spaces: { Icon: Podcast, from: '#f1e6ff', to: '#e2ccff' },
-  anonymous: { Icon: VenetianMask, from: '#e9e1ff', to: '#cbbcf5' },
+  anonymous: { Icon: VenetianMask, from: '#6d5cf6', to: '#1f2a6b' },
   family: { Icon: Heart, from: '#ffe0ee', to: '#ffc2dc' },
   forbes: { Icon: Crown, from: '#fff1b8', to: '#f5c542' },
   settings: { Icon: Settings, from: '#eef1f5', to: '#dce2ea' },
@@ -118,7 +119,7 @@ function AppIcon({
       }}
     >
       <span
-        className={`${styles.appIcon} ${app.image ? styles.appIconLogo : ''}`}
+        className={`${styles.appIcon} ${app.image ? (app.fullBleed ? styles.appIconFull : styles.appIconLogo) : ''}`}
         style={look && !app.image ? { background: `linear-gradient(160deg, ${look.from}, ${look.to})` } : undefined}
       >
         {app.image ? (
@@ -230,6 +231,7 @@ export function AppGrid({ phone, onOpen }: { phone: PhoneState; onOpen: (id: Pho
 /** The app's 3D icon (public/apps/icons/<id>.webp, rendered in Blender); the line icon if it can't load. */
 function TileArt({ id, Icon }: { id: string; Icon: LucideIcon }) {
   const [broken, setBroken] = useState(false)
+  if (id === 'anonymous') return <AnonymousTileArt size={54} />
   if (broken) return <Icon aria-hidden="true" size={28} strokeWidth={2.2} color="#374151" />
   return (
     // eslint-disable-next-line @next/next/no-img-element -- tiny static render

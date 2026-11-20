@@ -1,145 +1,114 @@
-/* ẹta — Ekpoma's own feed. Soft cards, violet accent, slim controls (not a Twitter clone). */
+/* ẹta — Ekpoma's own X-style feed. Our blue (--primary), hairline-divided posts, tokens only so dark mode just works. */
 
 .screen {
   position: relative;
   display: flex;
   min-height: 100%;
   flex-direction: column;
-  gap: 10px;
-  padding: 2px 2px 64px;
+  padding-bottom: 78px; /* room under the last post for the compose button */
   color: var(--ink);
+}
+
+/* —— Header: logo + For you / Following underline tabs —— */
+.top {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: var(--paper);
+  border-bottom: 1px solid var(--line);
 }
 
 .brand {
   display: flex;
-  align-items: baseline;
-  gap: 8px;
-  padding: 2px 4px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4px;
 }
 
-.wordmark {
-  background: linear-gradient(120deg, #5b3fd1, #db2777);
-  background-clip: text;
-  -webkit-background-clip: text;
-  color: transparent;
-  font-size: var(--fs-28);
-  font-weight: 800;
-  letter-spacing: -0.03em;
+.brandSide {
+  width: 44px;
 }
 
-.tagline {
-  color: var(--ink-3);
-  font-size: var(--fs-12);
+.logo {
+  color: var(--primary);
 }
 
 .tabs {
   display: flex;
-  gap: 6px;
-  overflow-x: auto;
-  scrollbar-width: none;
+  border-bottom: 1px solid var(--line);
 }
 
-.tabs::-webkit-scrollbar {
-  display: none;
+.top .tabs {
+  border-bottom: 0;
 }
 
 .tab {
-  flex: none;
-  min-height: 30px;
-  padding: 0 12px;
+  position: relative;
+  flex: 1;
+  min-height: 40px;
   border: 0;
-  border-radius: var(--r-pill);
-  background: var(--fill);
+  background: none;
   color: var(--ink-2);
   font: inherit;
   font-size: var(--fs-14);
-  font-weight: 650;
+  font-weight: 600;
   cursor: pointer;
+  transition: color var(--dur-press, 120ms) var(--ease-ui, ease);
+}
+
+.tab > span {
+  position: relative;
+  display: inline-block;
+  padding: 9px 2px;
 }
 
 .tabOn {
-  background: #5b3fd1;
-  color: #fff;
+  color: var(--ink);
+  font-weight: 800;
 }
 
+.tabOn > span::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 4px;
+  border-radius: var(--r-pill);
+  background: var(--primary);
+}
+
+/* —— Post cards —— */
 .list {
   display: flex;
   flex-direction: column;
-  gap: 0;
 }
 
 .hint,
-.error,
-.fine {
-  margin: 10px 4px;
-  color: var(--ink-3);
+.error {
+  margin: 14px 16px;
+  color: var(--ink-2);
   font-size: var(--fs-14);
   text-align: center;
 }
 
-.fine {
-  margin: 0 4px;
-  font-size: var(--fs-12);
-  text-align: left;
-}
-
 .error {
-  color: var(--bad-strong);
+  color: var(--bad);
 }
 
-/* —— Gist card —— */
-/* Flat feed: no tile per gist, a hairline between them */
 .gist {
-  position: relative;
   display: flex;
   gap: 10px;
-  padding: 12px 6px;
+  padding: 12px 14px 4px;
   border-bottom: 1px solid var(--line);
-  background: none;
 }
 
-.gist:last-child {
-  border-bottom: 0;
-}
-
-/* Giveaways stay a highlighted card */
 .gistGiveaway {
-  margin: 6px 0;
-  padding: 12px;
-  border-radius: var(--r-lg);
-  border-bottom: 0;
-  background: linear-gradient(140deg, #fff7db, #ffe9dc);
-  box-shadow: inset 0 0 0 1px #f5c56a;
+  background: color-mix(in srgb, var(--primary) 7%, transparent);
 }
 
-/* Replies: a line runs down from each avatar to the next reply */
-.gistReply::before {
-  position: absolute;
-  top: 56px;
-  bottom: -2px;
-  left: 24px;
-  width: 2px;
-  border-radius: 2px;
-  background: light-dark(#e4e2f0, color-mix(in oklab, #e4e2f0 16%, #1c1c1e));
-  content: '';
-}
-
-.gistReply:last-child::before {
-  display: none;
-}
-
-/* The more 🔥, the warmer the gist */
-.heatWarm {
-  box-shadow: inset 3px 0 0 rgba(249, 115, 22, 0.4);
-}
-
-.heatHot {
-  background: linear-gradient(90deg, rgba(249, 115, 22, 0.14), transparent 70%);
-  box-shadow: inset 3px 0 0 #f97316;
-}
-
-.avatarBtn {
-  align-self: flex-start;
+.gistReply {
+  padding-top: 10px;
 }
 
 .avatarBtn,
@@ -147,19 +116,20 @@
   padding: 0;
   border: 0;
   background: none;
+  color: inherit;
   font: inherit;
   text-align: left;
   cursor: pointer;
 }
 
-.avatar {
-  display: grid;
+.avatarBtn {
   flex: none;
-  place-items: center;
-  border-radius: var(--r-pill);
-  color: #fff;
-  font-weight: 700;
-  line-height: 1;
+  align-self: flex-start;
+  border-radius: 50%;
+}
+
+.avatar {
+  border-radius: 50%;
 }
 
 .gistMain {
@@ -167,15 +137,14 @@
   min-width: 0;
   flex: 1;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
 }
 
 .meta {
   display: flex;
   min-width: 0;
-  flex-wrap: wrap;
   align-items: baseline;
-  column-gap: 6px;
+  gap: 6px;
 }
 
 .nameRow {
@@ -187,35 +156,42 @@
 
 .name {
   overflow: hidden;
+  max-width: 130px;
   color: var(--ink);
+  font-size: var(--fs-14);
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gold {
+  flex: none;
+  color: var(--primary);
+}
+
+.npcTag {
+  flex: none;
+  padding: 1px 5px;
+  border-radius: var(--r-sm);
+  background: var(--fill);
+  color: var(--ink-2);
+  font-size: var(--fs-12);
+  font-weight: 700;
+}
+
+.handle {
+  overflow: hidden;
+  min-width: 0;
+  color: var(--ink-2);
   font-size: var(--fs-14);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* Gold verified check */
-.gold {
-  flex: none;
-  color: #fff;
-  fill: #e0a400;
-}
-
-.npcTag {
-  padding: 0 5px;
-  border-radius: var(--r-sm);
-  background: var(--fill-2);
-  color: var(--ink-2);
-  font-size: var(--fs-12);
-  font-weight: 800;
-  letter-spacing: 0.06em;
-}
-
-.handle {
-  color: var(--ink-3);
-  font-size: var(--fs-12);
-}
-
 .clickable {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   cursor: pointer;
 }
 
@@ -224,324 +200,521 @@
   color: var(--ink);
   font-size: var(--fs-14);
   line-height: 1.4;
-  white-space: pre-wrap;
   overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.bodyLarge {
+  font-size: var(--fs-16);
+  line-height: 1.45;
 }
 
 .ticker {
-  color: #5b3fd1;
+  color: var(--primary);
   font-weight: 700;
 }
 
+.photo {
+  width: 100%;
+  max-height: 340px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--fill);
+}
+
+.photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .giveaway {
-  display: inline-block;
-  margin-top: 6px;
-  padding: 4px 10px;
+  align-self: flex-start;
+  padding: 6px 12px;
   border-radius: var(--r-pill);
-  background: var(--paper);
-  color: #8a5a00;
+  background: color-mix(in srgb, var(--primary) 14%, transparent);
+  color: var(--primary);
   font-size: var(--fs-12);
   font-weight: 700;
 }
 
+/* —— Action row: reply · repost · like · views —— */
 .actions {
   display: flex;
-  gap: 18px;
-  margin-top: 4px;
+  justify-content: space-between;
+  margin: 0 -8px 0 -8px;
+  color: var(--ink-2);
+}
+
+.actionsSpread {
+  margin: 4px 0 0;
+  padding: 2px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
 }
 
 .action {
   display: inline-flex;
+  min-width: 52px;
+  min-height: 44px;
   align-items: center;
+  justify-content: flex-start;
   gap: 4px;
-  min-height: 36px;
-  padding: 0 4px;
+  padding: 0 8px;
   border: 0;
   background: none;
-  color: var(--ink-3);
+  color: inherit;
   font: inherit;
   font-size: var(--fs-12);
-  font-weight: 600;
   cursor: pointer;
+  transition: color var(--dur-press, 120ms) var(--ease-ui, ease), transform var(--dur-press, 120ms) var(--ease-ui, ease);
+}
+
+.actionsSpread .action {
+  flex: 1;
+  justify-content: center;
+}
+
+.action:active {
+  transform: scale(0.94);
+}
+
+span.action {
+  cursor: default;
+}
+
+span.action:active {
+  transform: none;
 }
 
 .action:disabled {
   cursor: default;
-  opacity: 0.6;
 }
 
-.fired {
-  color: #ea580c;
+.actReply:hover {
+  color: var(--primary);
 }
 
-.fired svg {
-  fill: #f97316;
+.actRepost.on,
+.actRepost:hover {
+  color: var(--ok);
 }
 
-.fireCount {
-  font-variant-numeric: tabular-nums;
+.actLike.on,
+.actLike:hover {
+  color: var(--bad);
 }
 
-/* —— Fire: the flame pops and throws a few embers —— */
-.flame {
-  position: relative;
-  display: inline-grid;
+.on {
+  font-weight: 700;
+}
+
+.pop {
+  animation: etaPop 380ms var(--ease-ui, ease);
+}
+
+@keyframes etaPop {
+  0% {
+    transform: scale(0.6);
+  }
+  55% {
+    transform: scale(1.35);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* —— Floating compose button —— */
+.fab {
+  position: sticky;
+  bottom: 14px;
+  z-index: 4;
+  display: grid;
+  width: 56px;
+  height: 56px;
   place-items: center;
+  align-self: flex-end;
+  margin: auto 14px -64px 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--primary);
+  box-shadow: var(--elev-3);
+  color: var(--primary-foreground);
+  cursor: pointer;
+  transition: transform var(--dur-press, 120ms) var(--ease-ui, ease);
 }
 
-.flamePop {
-  animation: flamePop 420ms cubic-bezier(0.34, 1.56, 0.64, 1);
+.fab:active {
+  transform: scale(0.94);
 }
 
-.ember {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 4px;
-  height: 4px;
-  margin: -2px 0 0 -2px;
-  border-radius: var(--r-pill);
-  background: #fb923c;
-  opacity: 0;
-  pointer-events: none;
-  animation: emberFly 560ms ease-out;
-}
-
-@keyframes flamePop {
-  0% {
-    transform: scale(1) rotate(0);
-  }
-  35% {
-    transform: scale(1.7) rotate(-14deg);
-  }
-  65% {
-    transform: scale(0.92) rotate(8deg);
-  }
-  100% {
-    transform: scale(1) rotate(0);
-  }
-}
-
-@keyframes emberFly {
-  0% {
-    opacity: 1;
-    transform: rotate(var(--a)) translateY(-6px) scale(1);
-  }
-  100% {
-    opacity: 0;
-    transform: rotate(var(--a)) translateY(-22px) scale(0.2);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .flamePop,
-  .ember {
-    animation: none;
-  }
-}
-
-/* —— Compose —— */
-.composer {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 10px;
-  border-radius: var(--r-lg);
-  background: light-dark(#f2f0fb, color-mix(in oklab, #f2f0fb 16%, #1c1c1e));
+/* —— Compose sheet —— */
+/* The shared sheet paints a fixed white; use our surface tokens so it follows dark mode (doubled class beats its rule). */
+.sheet.sheet {
+  background: var(--paper);
+  border-color: var(--line);
 }
 
 .input {
   width: 100%;
-  padding: 8px 10px;
-  border: 1px solid #ddd8f5;
-  border-radius: var(--r-md);
-  background: var(--paper);
-  color: var(--ink);
-  font: inherit;
-  font-size: var(--fs-14);
-  resize: none;
+  min-height: 120px;
+  padding: 4px 2px;
+  border: 0;
   outline: none;
-}
-
-.input:focus {
-  border-color: #5b3fd1;
-}
-
-.composerBar {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 6px;
-}
-
-.count,
-.countLow {
-  margin-right: auto;
-  color: var(--ink-3);
-  font-size: var(--fs-12);
-}
-
-.countLow {
-  color: #c2410c;
-}
-
-.primary,
-.ghost,
-.more,
-.report {
-  min-height: 30px;
-  padding: 0 14px;
-  border: 0;
-  border-radius: var(--r-pill);
-  font: inherit;
-  font-size: var(--fs-12);
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.primary {
-  background: #5b3fd1;
-  color: #fff;
-}
-
-.ghost,
-.more {
-  background: var(--fill-2);
-  color: var(--ink);
-}
-
-.primary:disabled,
-.ghost:disabled,
-.more:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-
-.more {
-  align-self: center;
-}
-
-.report {
-  align-self: flex-end;
-  min-height: 24px;
-  padding: 0 10px;
   background: none;
-  color: var(--bad-strong);
-  font-weight: 600;
-}
-
-.fab {
-  position: sticky;
-  bottom: 8px;
-  display: inline-flex;
-  align-self: flex-end;
-  align-items: center;
-  gap: 4px;
-  min-height: 36px;
-  margin-top: auto;
-  padding: 0 16px;
-  border: 0;
-  border-radius: var(--r-pill);
-  background: linear-gradient(120deg, #5b3fd1, #db2777);
-  box-shadow: 0 6px 16px rgba(91, 63, 209, 0.3);
-  color: #fff;
+  color: var(--ink);
   font: inherit;
-  font-size: var(--fs-14);
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.section {
-  margin: 6px 4px 0;
-  color: var(--ink-3);
-  font-size: var(--fs-12);
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-/* —— Back bar, profile, voices —— */
-.backBar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   font-size: var(--fs-16);
+  line-height: 1.4;
+  resize: none;
 }
 
-.back {
+.input::placeholder {
+  color: var(--ink-3);
+}
+
+.preview {
+  position: relative;
+  overflow: hidden;
+  max-height: 260px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+}
+
+.preview img {
+  display: block;
+  width: 100%;
+  max-height: 260px;
+  object-fit: cover;
+}
+
+.previewX {
+  position: absolute;
+  top: 8px;
+  right: 8px;
   display: grid;
   width: 32px;
   height: 32px;
   place-items: center;
   border: 0;
-  border-radius: var(--r-pill);
-  background: var(--fill);
-  color: var(--ink);
+  border-radius: 50%;
+  background: rgb(0 0 0 / 0.6);
+  color: #fff;
   cursor: pointer;
 }
 
-.backSpacer {
-  width: 32px;
+.composeFoot {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 10px;
 }
 
-.profileHead {
+.spacer {
+  flex: 1;
+}
+
+.tool {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--primary);
+  cursor: pointer;
+}
+
+.tool:disabled {
+  opacity: 0.4;
+}
+
+.ring {
+  flex: none;
+}
+
+.ring circle {
+  fill: none;
+  stroke-width: 2.5;
+}
+
+.ringTrack {
+  stroke: var(--line);
+}
+
+.ringFill {
+  stroke: var(--primary);
+}
+
+.ringLow {
+  stroke: var(--bad);
+}
+
+.countLow {
+  color: var(--bad);
+  font-size: var(--fs-14);
+  font-weight: 700;
+}
+
+.postBtn {
+  min-width: 84px;
+  min-height: 44px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font: inherit;
+  font-size: var(--fs-14);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.postBtn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* —— Back bar —— */
+.backBar {
+  position: sticky;
+  top: 0;
+  z-index: 3;
   display: flex;
-  flex-direction: column;
   align-items: center;
   gap: 4px;
-  padding: 14px;
-  border-radius: var(--r-lg);
-  background: linear-gradient(160deg, #f2f0fb, #fdeef6);
-  text-align: center;
+  padding: 2px 8px 2px 0;
+  background: var(--paper);
+  border-bottom: 1px solid var(--line);
 }
 
-.bio {
-  margin: 4px 0 0;
+.backTitle {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.backTitle strong {
+  overflow: hidden;
+  font-size: var(--fs-16);
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.backTitle span {
   color: var(--ink-2);
-  font-size: var(--fs-14);
-  line-height: 1.4;
+  font-size: var(--fs-12);
 }
 
-.counts,
-.npcNote {
-  margin: 2px 0 6px;
-  color: var(--ink-2);
-  font-size: var(--fs-14);
+/* —— Post page —— */
+.detail {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 14px 0;
+  border-bottom: 1px solid var(--line);
 }
 
-.counts strong {
-  color: var(--ink);
-}
-
-.voice {
+.detailHead {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 12px;
+}
+
+.detailWho {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  padding: 0;
   border: 0;
-  border-radius: var(--r-lg);
-  background: light-dark(#f7f6fb, color-mix(in oklab, #f7f6fb 16%, #1c1c1e));
+  background: none;
+  color: inherit;
   font: inherit;
   text-align: left;
   cursor: pointer;
 }
 
-.rank {
-  width: 18px;
-  color: #5b3fd1;
+.stamp {
+  margin: 0;
+  color: var(--ink-2);
   font-size: var(--fs-14);
+}
+
+.stamp strong,
+.stats strong,
+.counts strong {
+  color: var(--ink);
   font-weight: 800;
 }
 
-.voiceText {
+.stats {
   display: flex;
-  min-width: 0;
+  gap: 16px;
+  padding: 10px 0 8px;
+  border-top: 1px solid var(--line);
+  color: var(--ink-2);
+  font-size: var(--fs-14);
+}
+
+.replyRow {
+  display: flex;
+  min-height: 56px;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: none;
+  color: var(--primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.replyRow span {
   flex: 1;
+  color: var(--ink-3);
+  font-size: var(--fs-16);
+}
+
+.replyRow b {
+  padding: 8px 16px;
+  border-radius: var(--r-pill);
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-size: var(--fs-14);
+}
+
+/* —— Profile —— */
+.profileHead {
+  display: flex;
   flex-direction: column;
 }
 
-.voiceStats {
+.banner {
+  height: 96px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--c, var(--primary)) 55%, #fff), var(--c, var(--primary)));
+}
+
+.profileRow {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-top: -40px;
+  padding: 0 14px;
+}
+
+.profileAvatar {
+  display: grid;
+  border: 4px solid var(--paper);
+  border-radius: 50%;
+  background: var(--paper);
+}
+
+.followBtn,
+.followingBtn {
+  min-width: 96px;
+  min-height: 44px;
+  padding: 0 20px;
+  border-radius: var(--r-pill);
+  font: inherit;
+  font-size: var(--fs-14);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.followBtn {
+  border: 0;
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.followingBtn {
+  border: 1px solid var(--line);
+  background: none;
+  color: var(--ink);
+}
+
+.profileText {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 14px 12px;
+}
+
+.profileText .name {
+  max-width: 220px;
+  font-size: var(--fs-20);
+}
+
+.bio {
+  margin: 4px 0 0;
+  font-size: var(--fs-14);
+  line-height: 1.4;
+}
+
+.npcNote {
+  margin: 0;
   color: var(--ink-2);
   font-size: var(--fs-12);
-  white-space: nowrap;
+}
+
+.counts {
+  display: flex;
+  gap: 16px;
+  margin: 4px 0 0;
+  color: var(--ink-2);
+  font-size: var(--fs-14);
+}
+
+/* —— Misc —— */
+.more,
+.report {
+  min-height: 44px;
+  margin: 8px 14px;
+  border: 0;
+  background: none;
+  color: var(--primary);
+  font: inherit;
+  font-size: var(--fs-14);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.report {
+  color: var(--ink-3);
+  font-weight: 500;
+}
+
+.more:disabled,
+.report:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.linkBtn {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--primary);
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pop {
+    animation: none;
+  }
+  .action,
+  .fab,
+  .tab {
+    transition: none;
+  }
 }

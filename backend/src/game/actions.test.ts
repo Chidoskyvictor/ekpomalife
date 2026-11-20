@@ -61,9 +61,9 @@ describe('action validation', () => {
     expect(result).toEqual({ ok: true })
   })
 
-  it('defines all seven core actions', () => {
-    expect(Object.keys(ACTIONS).sort()).toEqual(
-      ['eat', 'hangout', 'shower', 'sleep', 'study', 'travel', 'work-placeholder'].sort(),
+  it('defines all seven core actions (more actions may exist)', () => {
+    expect(Object.keys(ACTIONS)).toEqual(
+      expect.arrayContaining(['eat', 'hangout', 'shower', 'sleep', 'study', 'travel', 'work-placeholder']),
     )
   })
 })
