@@ -240,7 +240,7 @@ export async function watchableMatch(matchId: string) {
 export async function hubSummary() {
   const [now, week, whot, ludo] = await Promise.all([
     pool.query<{ game: string; playing: number; tables: number }>(
-      `SELECT game, (COUNT(*) FILTER (WHERE status = 'active') * 2)::int AS playing,
+      `SELECT game, (COUNT(*) FILTER (WHERE status = 'active' AND accepted_at > NOW() - INTERVAL '3 hours') * 2)::int AS playing,
               COUNT(*) FILTER (WHERE kind = 'hosted' AND status = 'pending' AND expires_at > NOW())::int AS tables
        FROM game_matches WHERE status IN ('active', 'pending') GROUP BY game`,
     ),
@@ -249,11 +249,11 @@ export async function hubSummary() {
        WHERE played_at >= (date_trunc('week', NOW() AT TIME ZONE 'Africa/Lagos') AT TIME ZONE 'Africa/Lagos') GROUP BY game`,
     ),
     pool.query<{ playing: number; tables: number }>(
-      `SELECT (SELECT COUNT(*) FROM whot_table_players p JOIN whot_tables t ON t.id = p.table_id WHERE t.status = 'active' AND p.left_at IS NULL)::int AS playing,
+      `SELECT (SELECT COUNT(*) FROM whot_table_players p JOIN whot_tables t ON t.id = p.table_id WHERE t.status = 'active' AND p.left_at IS NULL AND t.started_at > NOW() - INTERVAL '3 hours')::int AS playing,
               (SELECT COUNT(*) FROM whot_tables WHERE status = 'lobby' AND expires_at > NOW())::int AS tables`,
     ),
     pool.query<{ playing: number; tables: number }>(
-      `SELECT (SELECT COUNT(*) FROM ludo_table_players p JOIN ludo_tables t ON t.id = p.table_id WHERE t.status = 'active' AND p.left_at IS NULL)::int AS playing,
+      `SELECT (SELECT COUNT(*) FROM ludo_table_players p JOIN ludo_tables t ON t.id = p.table_id WHERE t.status = 'active' AND p.left_at IS NULL AND t.started_at > NOW() - INTERVAL '3 hours')::int AS playing,
               (SELECT COUNT(*) FROM ludo_tables WHERE status = 'lobby' AND expires_at > NOW())::int AS tables`,
     ),
   ])
