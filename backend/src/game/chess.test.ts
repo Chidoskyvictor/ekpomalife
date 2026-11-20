@@ -140,3 +140,48 @@ describe('chess referee', () => {
     expect(last).toMatchObject({ ok: true, over: { winner: null, reason: 'draw' } })
   })
 })
+
+describe('chess special rules (through the referee)', () => {
+  const play = (s: ChessState, line: [0 | 1, string, string][]) => {
+    let t = T0
+    for (const [seat, a, b] of line) expect(mv(s, seat, a, b, (t += 1))).toMatchObject({ ok: true })
+    return t
+  }
+
+  it('castles king-side (rook jumps over)', () => {
+    const s = started()
+    play(s, [[0, 'e2', 'e4'], [1, 'e7', 'e5'], [0, 'g1', 'f3'], [1, 'b8', 'c6'], [0, 'f1', 'c4'], [1, 'g8', 'f6']])
+    expect(mv(s, 0, 'e1', 'g1', T0 + 50)).toMatchObject({ ok: true })
+    const p = positionOf(s)
+    expect(p.get('g1')).toMatchObject({ type: 'k', color: 'w' })
+    expect(p.get('f1')).toMatchObject({ type: 'r', color: 'w' })
+
+  })
+
+  it('refuses castling after the king has moved', () => {
+    const s = started()
+    play(s, [[0, 'e2', 'e4'], [1, 'e7', 'e5'], [0, 'g1', 'f3'], [1, 'b8', 'c6'], [0, 'f1', 'e2'], [1, 'g8', 'f6'], [0, 'e1', 'f1'], [1, 'f8', 'e7'], [0, 'f1', 'e1'], [1, 'e8', 'g8']])
+    expect(mv(s, 0, 'e1', 'g1', T0 + 90)).toMatchObject({ ok: false })
+  })
+
+  it('en passant is only available immediately, and removes the pawn', () => {
+    const s = started()
+    play(s, [[0, 'e2', 'e4'], [1, 'a7', 'a6'], [0, 'e4', 'e5'], [1, 'd7', 'd5']])
+    expect(mv(s, 0, 'e5', 'd6', T0 + 20)).toMatchObject({ ok: true })
+    const p = positionOf(s)
+    expect(p.get('d5')).toBeFalsy()
+    expect(p.get('d6')).toMatchObject({ type: 'p', color: 'w' })
+
+    const late = started()
+    play(late, [[0, 'e2', 'e4'], [1, 'a7', 'a6'], [0, 'e4', 'e5'], [1, 'd7', 'd5'], [0, 'h2', 'h3'], [1, 'h7', 'h6']])
+    expect(mv(late, 0, 'e5', 'd6', T0 + 30)).toMatchObject({ ok: false })
+  })
+
+  it('must answer a check, and a pinned piece cannot move', () => {
+    const s = started()
+    play(s, [[0, 'e2', 'e4'], [1, 'e7', 'e5'], [0, 'd1', 'h5'], [1, 'b8', 'c6'], [0, 'h5', 'f7']])
+    // white queen on f7 checks the king: a random pawn move is illegal, taking the queen is fine
+    expect(mv(s, 1, 'a7', 'a6', T0 + 40)).toMatchObject({ ok: false })
+    expect(mv(s, 1, 'e8', 'f7', T0 + 41)).toMatchObject({ ok: true })
+  })
+})

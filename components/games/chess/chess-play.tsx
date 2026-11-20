@@ -154,7 +154,7 @@ export function ChessPlayView({ setup, onExit, notify }: { setup: ChessPlaySetup
           <div className={styles.banner}>@{online.opponent} is away. Their clock keeps running.</div>
         ) : null}
         {result ? <div className={styles.banner}>{result}</div> : null}
-        <iframe ref={frame} className={styles.frame} src="/games/chess/index.html" title="Chess" onLoad={init} />
+        <iframe ref={frame} className={styles.frame} src={`/games/chess/index.html?theme=${typeof document !== 'undefined' && document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light'}`} title="Chess" onLoad={init} />
       </div>
     </BodyPortal>
   )
