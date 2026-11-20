@@ -328,7 +328,16 @@ function GamesScreens({ onHome, view, setView }: { onHome: () => void; view: Vie
     )
   }
 
-  if (view.name === 'watch') return <SpectateView matchId={view.matchId} onBack={() => setView({ name: 'home' })} />
+  if (view.name === 'watch') {
+    // Full screen, like playing: the board fills the whole display so it is easy to see
+    return (
+      <BodyPortal>
+        <div className={`${styles.playScreen} ${styles.fullScreen}`}>
+          <SpectateView matchId={view.matchId} onBack={() => setView({ name: 'home' })} />
+        </div>
+      </BodyPortal>
+    )
+  }
 
   const play = (id: string) =>
     setView(id === 'snooker' ? { name: 'snooker' } : id === 'whot' ? { name: 'whot' } : id === 'ttt' || id === 'tictactoe' ? { name: 'ttt' } : id === 'chess' ? { name: 'chess' } : { name: 'ludo' })
