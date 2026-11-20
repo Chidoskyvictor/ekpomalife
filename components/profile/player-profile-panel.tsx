@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { fetchMyProfile, fetchPlayerProfile } from '@/lib/game/profile-api'
 import type { PlayerProfile } from '@/lib/game/profile-types'
 import { formatNaira } from '@/lib/game/live'
+import { fetchHeadToHead } from '@/lib/game/games-hub-api'
 import { requestOpenGames } from '@/lib/game/open-games'
 import { ProfileEditSheet } from './profile-edit-sheet'
 import styles from './profile.module.css'
@@ -29,6 +30,16 @@ export function PlayerProfilePanel({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [editOpen, setEditOpen] = useState(false)
+  const [h2h, setH2h] = useState<{ wins: number; losses: number; draws: number } | null>(null)
+  const viewedUsername = profile && !profile.isOwner ? profile.username : null
+  useEffect(() => {
+    if (!viewedUsername) return
+    let alive = true
+    void fetchHeadToHead(viewedUsername).then((res) => alive && res.ok && setH2h(res))
+    return () => {
+      alive = false
+    }
+  }, [viewedUsername])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -125,6 +136,11 @@ export function PlayerProfilePanel({
         </div>
       ) : (
         <div className={styles.actions}>
+          {h2h && h2h.wins + h2h.losses + h2h.draws > 0 ? (
+            <p className={styles.hint} style={{ width: '100%', textAlign: 'center' }}>
+              Head to head: you {h2h.wins}W · {h2h.losses}L{h2h.draws ? ` · ${h2h.draws}D` : ''} vs @{profile.username}
+            </p>
+          ) : null}
           <button type="button" className={styles.editBtn} onClick={() => requestOpenGames({ username: profile.username })}>
             🎮 Challenge
           </button>

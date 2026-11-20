@@ -144,3 +144,9 @@ export async function resumeChessMatches() {
     else schedule(row.id, entry)
   }
 }
+
+/** The current board for a spectator who just sat down to watch. */
+export async function chessSnapshot(matchId: string) {
+  const entry = await load(matchId)
+  return entry ? snapshotOf(entry.state, Date.now()) : null
+}

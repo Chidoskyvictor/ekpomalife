@@ -1,6 +1,6 @@
 /** Phone → Games: static iframe mini-games (Snooker uses its own bridge). */
 
-export type EmbeddedGameId = 'tic-tac-toe' | 'chess' | 'ludo'
+export type EmbeddedGameId = 'tic-tac-toe' | 'chess'
 
 export type EmbeddedGame = {
   id: EmbeddedGameId
@@ -29,13 +29,5 @@ export const EMBEDDED_GAMES: EmbeddedGame[] = [
     subtitle: 'vs phone · pass & play · online',
     path: '/games/chess/index.html',
     bridgeSource: 'ekpoma-game',
-  },
-  {
-    id: 'ludo',
-    name: 'Ludo',
-    emoji: '🎲',
-    subtitle: 'vs phone · pass & play · online',
-    path: '/games/ludo/index.html',
-    bridgeSource: 'ekpoma-ludo',
   },
 ]

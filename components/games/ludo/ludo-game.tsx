@@ -24,10 +24,12 @@ import {
   type LudoTable,
 } from '@/lib/game/ludo-api'
 import styles from '@/components/hud/phone/apps/games.module.css'
+import { LudoLocalGame } from './ludo-local-game'
+import { LudoScreen, type LudoView } from './ludo-screen'
 
 /*
  * Phone → Games → Ludo. Setup (vs phone / pass & play / online) and the player that hosts
- * /games/ludo/index.html. Online matches are run by the server: it rolls the dice and checks
+ * the Ludo board. Online matches are run by the server: it rolls the dice and checks
  * every move, this component only passes "roll" / "move" to it and its board back to the page.
  */
 
@@ -324,52 +326,16 @@ export function LudoPlay({
   onExit: () => void
   notify: (text: string, ok?: boolean) => void
 }) {
-  const frame = useRef<HTMLIFrameElement>(null)
   const socket = useRef<WebSocket | null>(null)
-  const lastState = useRef<unknown>(null)
   const online = setup.mode === 'online' ? setup.match : null
   const tableId = setup.mode === 'table' ? setup.tableId : null
-  const tableInfo = useRef<{ seat: number; names: string[]; pot: number; stake: number } | null>(null)
+  const [view, setView] = useState<LudoView | null>(null)
+  const [tableInfo, setTableInfo] = useState<{ seat: number; names: string[]; pot: number; stake: number } | null>(null)
   const [opponentAway, setOpponentAway] = useState<number | null>(null)
   const [opponentSeen, setOpponentSeen] = useState(false)
   const [result, setResult] = useState<string | null>(null)
   const [now, setNow] = useState(Date.now())
-
-  const toGame = useCallback((msg: Record<string, unknown>) => {
-    frame.current?.contentWindow?.postMessage({ target: 'ekpoma-ludo', ...msg }, window.location.origin)
-  }, [])
-
-  const init = useCallback(() => {
-    if (setup.mode === 'table') {
-      const info = tableInfo.current
-      if (!info) return // sent when the server tells us who sits where
-      toGame({
-        type: 'init',
-        mode: 'online',
-        myIndex: info.seat,
-        names: info.names,
-        subtitle: `${info.names.length} players · ${info.stake ? `Pot ${naira(info.pot)}` : 'Friendly'}`,
-      })
-      if (lastState.current) toGame({ type: 'state', state: lastState.current })
-    } else if (setup.mode === 'online') {
-      const m = setup.match
-      toGame({
-        type: 'init',
-        mode: 'online',
-        myIndex: m.myIndex,
-        names: m.names,
-        subtitle: m.stake ? `Pot ${naira(m.stake * 2)} · Online` : 'Friendly · Online',
-      })
-      if (lastState.current) toGame({ type: 'state', state: lastState.current })
-    } else {
-      toGame({
-        type: 'init',
-        mode: setup.mode,
-        players: setup.players,
-        subtitle: setup.mode === 'cpu' ? `vs Phone · ${setup.players} players` : `Pass & play · ${setup.players} players`,
-      })
-    }
-  }, [setup, toGame])
+  const overSent = useRef(false)
 
   // Live match: the server sends the board, we send "roll" / "move"
   useEffect(() => {
@@ -395,12 +361,10 @@ export function LudoPlay({
           return
         }
         if (msg.t === 'table') {
-          tableInfo.current = { seat: Number(msg.seat), names: msg.names as string[], pot: Number(msg.pot), stake: Number(msg.stake) }
-          init()
+          setTableInfo({ seat: Number(msg.seat), names: msg.names as string[], pot: Number(msg.pot), stake: Number(msg.stake) })
         } else if (msg.t === 'ludo') {
-          lastState.current = msg
-          toGame({ type: 'state', state: msg })
-        } else if (msg.t === 'error') toGame({ type: 'error', error: msg.error })
+          setView(msg as unknown as LudoView)
+        } else if (msg.t === 'error' && typeof msg.error === 'string') notify(msg.error, false)
         else if (msg.t === 'presence' || msg.t === 'hello') {
           const here = Boolean(msg.t === 'hello' ? msg.opponentOnline : msg.online)
           if (here) setOpponentSeen(true)
@@ -418,9 +382,9 @@ export function LudoPlay({
       window.clearTimeout(timer)
       socket.current?.close()
     }
-  }, [online, tableId, toGame, init])
+  }, [online, tableId, notify])
 
-  // The server settles the match itself; look it up once the page says it's over
+  // The server settles the match itself; look it up once it is over
   const showOutcome = useCallback(async () => {
     if (!online) return
     for (let i = 0; i < 6; i++) {
@@ -433,32 +397,27 @@ export function LudoPlay({
     }
   }, [online])
 
-  useEffect(() => {
-    const onMessage = (event: MessageEvent) => {
-      if (event.source !== frame.current?.contentWindow) return
-      const m = event.data as Record<string, unknown>
-      if (!m || m.source !== 'ekpoma-ludo') return
-      if (m.type === 'ready') init()
-      else if (m.type === 'exit') onExit()
-      else if (m.type === 'roll') socket.current?.send(JSON.stringify({ t: 'roll' }))
-      else if (m.type === 'move') socket.current?.send(JSON.stringify({ t: 'move', token: Number(m.token) }))
-      else if (m.type === 'over') {
-        if (setup.mode === 'cpu' && Number(m.winner) === 0) {
-          void rewardCpuWin().then((res) => {
-            if (res.ok && res.rewarded) notify(`You beat the phone! +${res.fun} Fun 🎉`, true)
-            else notify('You beat the phone! 🎉', true)
-          })
-        } else if (online) void showOutcome()
-        else if (tableId && tableInfo.current) {
-          const info = tableInfo.current
-          const won = Number(m.winner) === info.seat
-          setResult(won ? `You won${info.stake ? ` ${naira(info.pot)}` : ''}! 🏆` : `${info.names[Number(m.winner)]} won this one.`)
-        }
+  const handleOver = useCallback(
+    (winner: number) => {
+      if (overSent.current) return
+      overSent.current = true
+      if (setup.mode === 'cpu' && winner === 0) {
+        void rewardCpuWin().then((res) => {
+          if (res.ok && res.rewarded) notify(`You beat the phone! +${res.fun} Fun 🎉`, true)
+          else notify('You beat the phone! 🎉', true)
+        })
+      } else if (online) void showOutcome()
+      else if (tableId && tableInfo) {
+        const won = winner === tableInfo.seat
+        setResult(won ? `You won${tableInfo.stake ? ` ${naira(tableInfo.pot)}` : ''}! 🏆` : `${tableInfo.names[winner]} won this one.`)
       }
-    }
-    window.addEventListener('message', onMessage)
-    return () => window.removeEventListener('message', onMessage)
-  }, [init, notify, onExit, online, tableId, setup.mode, showOutcome])
+    },
+    [setup.mode, online, tableId, tableInfo, notify, showOutcome],
+  )
+
+  useEffect(() => {
+    if (view?.winner != null) handleOver(view.winner)
+  }, [view?.winner, handleOver])
 
   useEffect(() => {
     if (opponentAway == null) return
@@ -475,6 +434,20 @@ export function LudoPlay({
     if (res.status === 'finished') setResult(`You won${online.stake ? ` ${naira(online.stake * 2)}` : ''}! 🏆`)
   }
 
+  const send = (payload: object) => {
+    if (socket.current?.readyState === WebSocket.OPEN) socket.current.send(JSON.stringify(payload))
+  }
+
+  const mySeat = online ? online.myIndex : (tableInfo?.seat ?? 0)
+  const names = online ? online.names : (tableInfo?.names ?? [])
+  const subtitle = online
+    ? online.stake
+      ? `Pot ${naira(online.stake * 2)} · Online`
+      : 'Friendly · Online'
+    : tableInfo
+      ? `${tableInfo.names.length} players · ${tableInfo.stake ? `Pot ${naira(tableInfo.pot)}` : 'Friendly'}`
+      : 'Online'
+
   return (
     <BodyPortal>
       <div className={`${styles.playScreen} ${styles.fullScreen}`}>
@@ -490,7 +463,19 @@ export function LudoPlay({
           </div>
         ) : null}
         {result ? <div className={styles.banner}>{result}</div> : null}
-        <iframe ref={frame} className={styles.frame} src="/games/ludo/index.html" title="Ludo" onLoad={init} />
+        {setup.mode === 'cpu' || setup.mode === 'local' ? (
+          <LudoLocalGame mode={setup.mode} players={setup.players} onExit={onExit} onOver={handleOver} />
+        ) : (
+          <LudoScreen
+            view={view}
+            names={names}
+            mySeat={mySeat}
+            subtitle={subtitle}
+            onRoll={() => send({ t: 'roll' })}
+            onMove={(m) => send({ t: 'move', token: m.token, die: m.die })}
+            onExit={onExit}
+          />
+        )}
       </div>
     </BodyPortal>
   )

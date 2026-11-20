@@ -353,6 +353,13 @@ async function finishLudoTable(tableId: string, winnerCharacterId: string) {
   }, 10 * 60_000).unref?.()
 }
 
+/** Players with an open socket on a live Ludo table right now. */
+export function ludoTableConnected() {
+  let n = 0
+  for (const entry of live.values()) for (const sock of entry.sockets.values()) if (sock.readyState === sock.OPEN) n++
+  return n
+}
+
 export function joinLudoTableSocket(socket: WebSocket, token: string | undefined) {
   const ticket = token ? tickets.get(token) : undefined
   if (!ticket || ticket.expires < Date.now()) {
