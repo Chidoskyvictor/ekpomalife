@@ -1,0 +1,410 @@
+/* Naija Ludo: warm wooden board, 3D dice, glowing seeds. The board keeps its own colours in
+   both themes (it's a physical object); chrome uses the shared tokens. */
+
+.root {
+  position: relative;
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  background: radial-gradient(ellipse at 50% 30%, #2a2146 0%, #151028 70%);
+  color: #f1edff;
+  overflow: hidden;
+  padding-bottom: env(safe-area-inset-bottom);
+  font-family: var(--font-ui);
+}
+
+.topBar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: calc(8px + env(safe-area-inset-top)) 12px 4px;
+  flex: none;
+}
+
+.topBar button {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: var(--r-md);
+  background: rgb(255 255 255 / 0.1);
+  color: #fff;
+}
+
+.title {
+  flex: 1;
+  min-width: 0;
+}
+
+.title strong {
+  display: block;
+  font-family: var(--font-game);
+  font-size: var(--fs-20);
+  line-height: 1.1;
+}
+
+.title span {
+  display: block;
+  font-size: var(--fs-12);
+  color: #b8b0d8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.timer {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid rgb(255 255 255 / 0.18);
+  font-weight: 800;
+  font-size: var(--fs-14);
+  color: #d4cdf0;
+}
+
+.timerMine {
+  border-color: #ffd23f;
+  color: #ffd23f;
+}
+
+.players {
+  display: flex;
+  gap: 6px;
+  padding: 4px 12px;
+  flex: none;
+}
+
+.chip {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 7px;
+  border-radius: var(--r-pill);
+  background: rgb(255 255 255 / 0.08);
+  border: 2px solid transparent;
+  font-size: var(--fs-12);
+  font-weight: 700;
+}
+
+.chipTurn {
+  border-color: #ffd23f;
+  box-shadow: 0 0 12px rgb(255 210 63 / 0.4);
+}
+
+.chipDot {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px rgb(255 255 255 / 0.5);
+}
+
+.chipName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chip b {
+  color: #ffd23f;
+}
+
+.boardWrap {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  padding: 6px 8px;
+}
+
+.board {
+  width: min(100%, 100cqh);
+  max-height: 100%;
+  aspect-ratio: 1;
+  border-radius: 14px;
+  border: 5px solid #6a4423;
+  box-shadow:
+    0 10px 24px rgb(0 0 0 / 0.5),
+    inset 0 0 0 2px rgb(255 255 255 / 0.15);
+  background: #f3e7c9;
+  touch-action: manipulation;
+}
+
+.boardWrap {
+  container-type: size;
+}
+
+.seed {
+  transition: transform 380ms var(--ease-ui);
+}
+
+.seedMovable {
+  cursor: pointer;
+}
+
+.halo {
+  animation: halo 1s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@keyframes halo {
+  50% {
+    opacity: 0.35;
+    transform: scale(1.18);
+  }
+}
+
+.seedSelected circle:first-of-type {
+  stroke: #ffd23f;
+}
+
+.ghost {
+  cursor: pointer;
+  animation: ghostIn 200ms var(--ease-ui);
+}
+
+@keyframes ghostIn {
+  from {
+    opacity: 0;
+  }
+}
+
+.toast {
+  position: absolute;
+  left: 50%;
+  top: 8px;
+  transform: translateX(-50%);
+  max-width: 90%;
+  padding: 7px 14px;
+  border-radius: var(--r-pill);
+  background: #ffd23f;
+  color: #2a1d00;
+  font-weight: 800;
+  font-size: var(--fs-14);
+  box-shadow: 0 6px 16px rgb(0 0 0 / 0.4);
+  animation: toastIn 220ms var(--ease-ui);
+  pointer-events: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-8px);
+  }
+}
+
+.status {
+  flex: none;
+  padding: 4px 12px;
+  text-align: center;
+  font-size: var(--fs-14);
+  font-weight: 700;
+  color: #c3bce0;
+}
+
+.statusMine {
+  color: #ffd23f;
+}
+
+.tray {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 14px 12px;
+}
+
+.dicePair {
+  display: flex;
+  gap: 14px;
+  padding: 6px 14px;
+  border-radius: var(--r-lg);
+  background: rgb(255 255 255 / 0.07);
+}
+
+.rollBtn {
+  flex: 1;
+  min-height: 56px;
+  border: 0;
+  border-radius: var(--r-md);
+  background: var(--primary);
+  color: #fff;
+  font-family: var(--font-game);
+  font-size: var(--fs-20);
+  transition: transform var(--dur-press) var(--ease-ui);
+}
+
+.rollBtn:not(:disabled) {
+  animation: pulse 1.1s ease-in-out infinite;
+}
+
+.rollBtn:disabled {
+  background: rgb(255 255 255 / 0.12);
+  color: rgb(255 255 255 / 0.45);
+}
+
+.rollBtn:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+@keyframes pulse {
+  50% {
+    box-shadow: 0 0 20px rgb(60 130 255 / 0.8);
+  }
+}
+
+/* ----- the dice: real 3D cubes ----- */
+
+.die {
+  --s: 46px;
+  width: var(--s);
+  height: var(--s);
+  perspective: 400px;
+  transition: opacity 200ms, filter 200ms;
+}
+
+.dieSpent {
+  opacity: 0.4;
+  filter: grayscale(0.6);
+}
+
+.cube {
+  position: relative;
+  width: var(--s);
+  height: var(--s);
+  transform-style: preserve-3d;
+  transition: transform 260ms var(--ease-ui);
+}
+
+.cubeRolling {
+  animation: tumble 650ms linear;
+}
+
+@keyframes tumble {
+  0% {
+    transform: rotateX(0) rotateY(0) rotateZ(0);
+  }
+  100% {
+    transform: rotateX(900deg) rotateY(720deg) rotateZ(360deg);
+  }
+}
+
+.face {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template: repeat(3, 1fr) / repeat(3, 1fr);
+  padding: 6px;
+  border-radius: 9px;
+  background: linear-gradient(145deg, #fff 0%, #ece6d4 100%);
+  border: 1px solid rgb(0 0 0 / 0.2);
+  backface-visibility: hidden;
+}
+
+.f1 {
+  transform: translateZ(calc(var(--s) / 2));
+}
+.f6 {
+  transform: rotateY(180deg) translateZ(calc(var(--s) / 2));
+}
+.f3 {
+  transform: rotateY(90deg) translateZ(calc(var(--s) / 2));
+}
+.f4 {
+  transform: rotateY(-90deg) translateZ(calc(var(--s) / 2));
+}
+.f2 {
+  transform: rotateX(90deg) translateZ(calc(var(--s) / 2));
+}
+.f5 {
+  transform: rotateX(-90deg) translateZ(calc(var(--s) / 2));
+}
+
+.pip {
+  place-self: center;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #1c1c1c;
+}
+
+.f1 .pip {
+  background: #d62f2a;
+  width: 11px;
+  height: 11px;
+}
+
+.nopip {
+  display: block;
+}
+
+.over {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  background: rgb(0 0 0 / 0.55);
+}
+
+.overCard {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  min-width: 240px;
+  padding: 22px;
+  border-radius: var(--r-lg);
+  background: #251c46;
+  border: 3px solid #ffd23f;
+  text-align: center;
+  animation: toastIn 260ms var(--ease-ui);
+}
+
+.overCard strong {
+  font-family: var(--font-game);
+  font-size: var(--fs-28);
+}
+
+.overDot {
+  align-self: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 4px #fff;
+}
+
+@media (max-height: 640px) {
+  .die {
+    --s: 38px;
+  }
+  .rollBtn {
+    min-height: 48px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .halo,
+  .rollBtn:not(:disabled),
+  .cubeRolling,
+  .toast,
+  .ghost,
+  .overCard {
+    animation: none;
+  }
+  .seed {
+    transition: none;
+  }
+}

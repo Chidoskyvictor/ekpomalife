@@ -1,143 +1,111 @@
 'use client'
 
-import { Game } from 'whot'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { rewardWhotCpuWin, type WhotClientState } from '@/lib/game/whot-api'
 import {
-  advancePastEliminated,
-  botShapeChoice,
-  buildPublicState,
-  checkWinner,
-  handForSeat,
-  pickCompatibleIndex,
-  seatIndexFromPlayerId,
-  tryPick,
-  tryPlay,
-  type WhotAlert,
-} from '@/lib/game/whot-cpu-engine'
-import { rewardWhotCpuWin } from '@/lib/game/whot-api'
-import { WhotBoard } from './whot-board'
-import type { WhotClientState } from '@/lib/game/whot-api'
+  autoMove,
+  callLastCard,
+  DEFAULT_RULES,
+  newWhot,
+  pick,
+  play,
+  viewFor,
+  type Shape,
+  type WhotEvent,
+  type WhotRules,
+  type WhotState,
+} from '@/lib/game/whot-rules'
 import { playSfx } from '@/lib/audio/sfx'
+import { WhotBoard } from './whot-board'
 
 type Props = {
   players: number
+  rules?: WhotRules
   onExit: () => void
   notify: (text: string, ok?: boolean) => void
 }
 
-export function WhotCpuGame({ players, onExit, notify }: Props) {
-  const gameRef = useRef<Game | null>(null)
-  const eliminatedRef = useRef(new Set<number>())
-  const [alerts, setAlerts] = useState<WhotAlert[]>([])
-  const [winnerSeat, setWinnerSeat] = useState<number | null>(null)
+const TURN_SECONDS = 30
+
+export function WhotCpuGame({ players, rules = DEFAULT_RULES, onExit, notify }: Props) {
+  const game = useRef<WhotState | null>(null)
+  if (!game.current) game.current = newWhot(players, rules)
   const [tick, setTick] = useState(0)
-  const [turnLeft, setTurnLeft] = useState(30)
+  const [events, setEvents] = useState<WhotEvent[]>([])
+  const [left, setLeft] = useState(TURN_SECONDS)
   const rewarded = useRef(false)
-
-  if (!gameRef.current) {
-    gameRef.current = new Game({ noOfDecks: 1, noOfPlayers: players })
-  }
-
-  const game = gameRef.current
+  const s = game.current
   const names = ['You', ...Array.from({ length: players - 1 }, (_, i) => `Bot ${i + 1}`)]
 
-  const rebuild = useCallback(() => {
+  const commit = useCallback((evs: WhotEvent[]) => {
+    setEvents(evs)
+    setLeft(TURN_SECONDS)
     setTick((t) => t + 1)
   }, [])
 
+  // The computer players take their turns
   useEffect(() => {
-    if (winnerSeat != null) return
-    const id = window.setInterval(() => setTurnLeft((s) => Math.max(0, s - 1)), 1000)
-    return () => window.clearInterval(id)
-  }, [winnerSeat, tick])
-
-  useEffect(() => {
-    if (winnerSeat != null) return
-    setTurnLeft(30)
-  }, [tick, winnerSeat])
-
-  useEffect(() => {
-    if (winnerSeat != null) return
-    const seat = seatIndexFromPlayerId(game.turn.next()?.id ?? 0)
-    if (seat === 0) return
-    if (eliminatedRef.current.has(seat)) return
+    const st = game.current!
+    if (st.winner != null || st.turn === 0) return
+    const seat = st.turn
     const t = window.setTimeout(() => {
-      const player = game.players[seat]
-      if (!player?.turn) return
-      if (player.toPick > 0 || !player.canPlay()) {
-        playSfx('cardDraw')
-        tryPick(game, seat)
+      const res = autoMove(st, seat)
+      if (res.ok) {
+        playSfx(res.events.some((e) => e.kind === 'play') ? 'cardPlay' : 'cardDraw')
+        commit(res.events)
       }
-      else {
-        const idx = pickCompatibleIndex(game, seat)
-        if (idx >= 0) {
-          const shape = player.hand()[idx]?.shape === 'Whot' ? botShapeChoice() : undefined
-          const res = tryPlay(game, seat, idx, shape)
-          if (res.ok) {
-            playSfx('cardPlay')
-            if (res.lastCard) setAlerts((a) => [...a, { kind: 'last-card', seat }])
-            if (res.checkup) setAlerts((a) => [...a, { kind: 'checkup', seat }])
-          }
-        } else {
-          playSfx('cardDraw')
-          tryPick(game, seat)
-        }
-      }
-      advancePastEliminated(game, eliminatedRef.current)
-      const w = checkWinner(game, eliminatedRef.current)
-      if (w != null) setWinnerSeat(w)
-      rebuild()
-    }, 700)
+    }, 900)
     return () => window.clearTimeout(t)
-  }, [tick, game, winnerSeat, rebuild])
+  }, [tick, commit])
+
+  // Your 30 seconds: out of time and the phone plays for you
+  useEffect(() => {
+    if (s.winner != null || s.turn !== 0) return
+    const id = window.setInterval(() => {
+      setLeft((v) => {
+        if (v > 1) return v - 1
+        const res = autoMove(game.current!, 0)
+        if (res.ok) commit(res.events)
+        return TURN_SECONDS
+      })
+    }, 1000)
+    return () => window.clearInterval(id)
+  }, [tick, s.winner, s.turn, commit])
 
   useEffect(() => {
-    if (winnerSeat != null) playSfx(winnerSeat === 0 ? 'win' : 'lose')
-  }, [winnerSeat])
-
-  useEffect(() => {
-    if (winnerSeat !== 0 || rewarded.current) return
+    if (s.winner == null) return
+    playSfx(s.winner === 0 ? 'win' : 'lose')
+    if (s.winner !== 0 || rewarded.current) return
     rewarded.current = true
     void rewardWhotCpuWin().then((res) => {
       if (res.ok && res.rewarded) notify(`You won! +${res.fun} Fun 🎉`, true)
       else if (res.ok) notify('You won! 🎉', true)
     })
-  }, [winnerSeat, notify])
+  }, [s.winner, notify])
 
-  const publicState = buildPublicState(game, names, eliminatedRef.current, alerts, winnerSeat)
-  const clientState: WhotClientState = {
-    ...publicState,
+  const client: WhotClientState = {
+    ...viewFor(s, 0),
+    names,
     pot: 0,
-    turnSecondsLeft: turnLeft,
-    hand: handForSeat(game, 0),
     mySeat: 0,
+    turnSecondsLeft: left,
+    events,
   }
 
-  const onPlay = (cardIndex: number, shape?: string) => {
-    const res = tryPlay(game, 0, cardIndex, shape as never)
+  const act = (res: ReturnType<typeof play>) => {
     if (!res.ok) return notify(res.error, false)
-    if (res.lastCard) setAlerts((a) => [...a, { kind: 'last-card', seat: 0 }])
-    if (res.checkup) setAlerts((a) => [...a, { kind: 'checkup', seat: 0 }])
-    advancePastEliminated(game, eliminatedRef.current)
-    const w = checkWinner(game, eliminatedRef.current)
-    if (w != null) setWinnerSeat(w)
-    rebuild()
-  }
-
-  const onPick = () => {
-    const res = tryPick(game, 0)
-    if (!res.ok) return notify(res.error, false)
-    advancePastEliminated(game, eliminatedRef.current)
-    rebuild()
+    commit(res.events)
   }
 
   return (
     <WhotBoard
-      state={clientState}
+      key={0}
+      state={client}
       subtitle={`vs computer · ${players} players`}
       onExit={onExit}
-      onPlay={onPlay}
-      onPick={onPick}
+      onPlay={(cardId: number, shape?: Shape) => act(play(s, 0, cardId, shape))}
+      onPick={() => act(pick(s, 0))}
+      onCall={() => act(callLastCard(s, 0))}
     />
   )
 }

@@ -16,37 +16,21 @@ export type WhotTable = {
   betMatchesLeft: number
 }
 
-export type WhotCardView = {
-  value: number
-  shape: string
-  move?: string
-  iNeed?: string
-}
+import type { WhotEvent, WhotRules, WhotView } from '@/lib/game/whot-rules'
 
-export type WhotClientState = {
-  phase: 'playing' | 'over'
-  pileTop: WhotCardView | null
-  marketCount: number
-  currentSeat: number | null
-  players: {
-    seat: number
-    name: string
-    cardCount: number
-    eliminated: boolean
-    isTurn: boolean
-  }[]
-  alerts: { kind: string; seat?: number; text?: string }[]
-  winnerSeat: number | null
-  mustPick: boolean
-  callShape: string | null
+export type { WhotRules } from '@/lib/game/whot-rules'
+
+/** What the table sends each phone (and what the computer game builds locally). */
+export type WhotClientState = WhotView & {
+  names: string[]
   pot: number
-  turnSecondsLeft: number
-  hand: WhotCardView[]
   mySeat: number
+  turnSecondsLeft: number
+  events: WhotEvent[]
 }
 
-export const createWhotTable = (maxPlayers: number, stake: number) =>
-  apiPost<{ ok: true; table: WhotTable }>('/whot/tables', { maxPlayers, stake })
+export const createWhotTable = (maxPlayers: number, stake: number, rules: WhotRules) =>
+  apiPost<{ ok: true; table: WhotTable }>('/whot/tables', { maxPlayers, stake, ...rules })
 
 export const joinWhotTable = (code: string) => apiPost<{ ok: true; table: WhotTable }>('/whot/tables/join', { code })
 
