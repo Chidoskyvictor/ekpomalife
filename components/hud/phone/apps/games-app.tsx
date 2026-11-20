@@ -79,7 +79,7 @@ type View =
 const naira = (n: number) => `₦${n.toLocaleString()}`
 const variantLabel = (v: string) => SNOOKER_VARIANTS.find((x) => x.id === v)?.label ?? (v === 'classic' ? 'Classic' : v)
 const GAME_META: Record<string, { emoji: string; name: string }> = {
-  snooker: { emoji: '🎱', name: 'Snooker' },
+  snooker: { emoji: '🎱', name: '8 Ball Pool' },
   chess: { emoji: '♟️', name: 'Chess' },
   tictactoe: { emoji: '⭕', name: 'Tic tac toe' },
   ludo: { emoji: '🎲', name: 'Ludo' },
@@ -404,7 +404,7 @@ function GamesScreens({ onHome, view, setView }: { onHome: () => void; view: Vie
         <button type="button" className={styles.game} onClick={() => setView({ name: 'snooker' })}>
           <span className={styles.gameArt}>🎱</span>
           <span className={styles.cardText}>
-            <strong>Snooker</strong>
+            <strong>8 Ball Pool</strong>
             <span>vs computer · pass & play · online</span>
           </span>
           <span className={styles.play}>Play</span>
@@ -632,7 +632,7 @@ function SnookerSetup({
   onWaiting: (match: GameMatch) => void
 }) {
   const [mode, setMode] = useState<Mode>(initialUsername ? 'online' : 'cpu')
-  const [variant, setVariant] = useState<SnookerVariant>('six')
+  const [variant, setVariant] = useState<SnookerVariant>('eight')
   const [difficulty, setDifficulty] = useState<Difficulty>('medium')
   const [username, setUsername] = useState(initialUsername ?? '')
   const [bet, setBet] = useState(false)
@@ -674,7 +674,7 @@ function SnookerSetup({
     <div className={styles.screen}>
       <div className={styles.backBar}>
         <BackButton onBack={onBack} label="Back" />
-        <strong>🎱 Snooker</strong>
+        <strong>🎱 8 Ball Pool</strong>
         <span className={styles.backSpacer} />
       </div>
 
@@ -858,6 +858,7 @@ function PlayView({ setup, onExit, notify }: { setup: PlaySetup; onExit: () => v
   // Latest settled table (ours or theirs), replayed into the game after it (re)loads
   const lastSnap = useRef<unknown>(null)
   const online = setup.opponent === 'online' ? setup.match : null
+  const gameVariant = setup.opponent === 'online' ? setup.match.variant : setup.variant
 
   const toGame = useCallback((msg: Record<string, unknown>) => {
     frame.current?.contentWindow?.postMessage({ target: 'ekpoma-snooker', ...msg }, window.location.origin)
@@ -879,6 +880,7 @@ function PlayView({ setup, onExit, notify }: { setup: PlaySetup; onExit: () => v
         names: m.names,
         shotSeconds: 30,
         subtitle: m.stake ? `Pot ${naira(m.stake * 2)} · Online` : 'Friendly · Online',
+        seed: m.id,
       })
       if (lastSnap.current) toGame({ type: 'sync', snap: lastSnap.current })
     }
@@ -1028,7 +1030,7 @@ function PlayView({ setup, onExit, notify }: { setup: PlaySetup; onExit: () => v
         </div>
       ) : null}
       {result ? <div className={styles.banner}>{result}</div> : null}
-      <iframe ref={frame} className={styles.frame} src="/games/snooker/index.html" title="Snooker" onLoad={init} />
+      <iframe ref={frame} className={styles.frame} src={gameVariant === 'eight' ? '/games/pool/index.html' : '/games/snooker/index.html'} title={gameVariant === 'eight' ? '8 Ball Pool' : 'Snooker'} onLoad={init} />
     </div>
     </BodyPortal>
   )
