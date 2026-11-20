@@ -6,6 +6,7 @@ import { forgetTtt, onTttDecided, opponentAwaySeconds, tttWinnerSeat } from './g
 import { applyCash, asMoney, parseNeeds } from './game-state.js'
 import { liveSpaceMoneyBlock, liveSpaceMoneyBlockForCharacters } from './spaces-money.js'
 import { applyNeedDelta } from './needs.js'
+import { recordGameResult } from './game-results.js'
 
 /*
  * Phone → Games: online matches between two players (snooker first; more games plug into
@@ -31,14 +32,14 @@ const QUICK_MINUTES = 2
 /** How long a player can be gone from a live match before the other can claim the win. */
 export const FORFEIT_SECONDS = 60
 
-type Fail = { ok: false; error: string; code: number }
-const fail = (code: number, error: string): Fail => ({ ok: false, error, code })
+export type Fail = { ok: false; error: string; code: number }
+export const fail = (code: number, error: string): Fail => ({ ok: false, error, code })
 
-type MatchRow = {
+export type MatchRow = {
   id: string
   game: string
   variant: string
-  kind: 'challenge' | 'quick'
+  kind: 'challenge' | 'quick' | 'hosted'
   host_id: string
   guest_id: string | null
   stake: string
@@ -52,13 +53,13 @@ type MatchRow = {
   guest_username: string | null
 }
 
-const MATCH_SELECT = `
+export const MATCH_SELECT = `
   SELECT m.*, m.stake::text AS stake, hu.username AS host_username, gu.username AS guest_username
   FROM game_matches m
   JOIN characters hc ON hc.id = m.host_id JOIN users hu ON hu.id = hc.user_id
   LEFT JOIN characters gc ON gc.id = m.guest_id LEFT JOIN users gu ON gu.id = gc.user_id`
 
-async function me(userId: string) {
+export async function me(userId: string) {
   const found = await pool.query<{ id: string; username: string }>(
     `SELECT c.id, u.username FROM characters c JOIN users u ON u.id = c.user_id
      JOIN game_state g ON g.character_id = c.id WHERE c.user_id = $1`,
@@ -68,7 +69,7 @@ async function me(userId: string) {
 }
 
 /** The match as one player sees it (player index 0 = host, 1 = guest). */
-function view(row: MatchRow, characterId: string) {
+export function view(row: MatchRow, characterId: string) {
   const isHost = row.host_id === characterId
   return {
     id: row.id,
@@ -87,7 +88,7 @@ function view(row: MatchRow, characterId: string) {
 }
 
 /** Bet matches today (Lagos day) this player is in, counting ones still waiting. */
-async function betMatchesToday(client: PoolClient | typeof pool, characterId: string) {
+export async function betMatchesToday(client: PoolClient | typeof pool, characterId: string) {
   const found = await client.query<{ n: number }>(
     `SELECT COUNT(*)::int AS n FROM game_matches
      WHERE stake > 0 AND (host_id = $1 OR guest_id = $1)
@@ -98,7 +99,7 @@ async function betMatchesToday(client: PoolClient | typeof pool, characterId: st
   return found.rows[0]?.n ?? 0
 }
 
-async function hold(client: PoolClient, characterId: string, stake: number, gameName: string) {
+export async function hold(client: PoolClient, characterId: string, stake: number, gameName: string) {
   if (stake <= 0) return true
   const paid = await applyCash(client, characterId, -stake, `${gameName} bet held`, 'bet_hold')
   return paid.ok
@@ -109,7 +110,7 @@ async function refund(client: PoolClient, characterId: string | null, stake: num
   await applyCash(client, characterId, stake, `${gameName} bet returned`, 'bet_refund')
 }
 
-async function inTx<T>(run: (client: PoolClient) => Promise<T>): Promise<T> {
+export async function inTx<T>(run: (client: PoolClient) => Promise<T>): Promise<T> {
   const client = await pool.connect()
   try {
     await client.query('BEGIN')
@@ -125,7 +126,7 @@ async function inTx<T>(run: (client: PoolClient) => Promise<T>): Promise<T> {
 }
 
 /** Waiting challenges / quick-match seats that ran out of time: close them, give stakes back. */
-async function sweepExpired() {
+export async function sweepExpired() {
   await inTx(async (client) => {
     const old = await client.query<{ id: string; host_id: string; stake: string; game: string }>(
       `SELECT id, host_id, stake::text AS stake, game FROM game_matches
@@ -138,7 +139,7 @@ async function sweepExpired() {
   })
 }
 
-function readStake(raw: unknown) {
+export function readStake(raw: unknown) {
   const stake = Math.floor(Number(raw) || 0)
   return stake > 0 ? stake : 0
 }
@@ -387,6 +388,7 @@ export async function reportResult(userId: string, matchId: string, input: { win
     ])
     if (stake > 0) await applyCash(client, winnerId, stake * 2, `${gameName} win`, 'bet_win')
     await rewardWin(client, winnerId)
+    await recordGameResult(client, { matchId, game: m.game, stake, players: [m.host_id, m.guest_id!], winnerId })
     if (m.game === 'tictactoe') forgetTtt(matchId)
     return { ok: true as const, status: 'finished', winnerId }
   })
@@ -412,9 +414,12 @@ export async function settleServerDecided(matchId: string, winnerSeat: 0 | 1 | n
     if (!winnerId || (stake > 0 && (await liveSpaceMoneyBlockForCharacters([m.host_id, m.guest_id], client)))) {
       await refund(client, m.host_id, stake, gameName)
       await refund(client, m.guest_id, stake, gameName)
+      // A draw, or stakes returned because a player is in a Space: no money changed hands
+      await recordGameResult(client, { matchId, game: m.game, stake: 0, players: [m.host_id, m.guest_id], winnerId })
       if (!winnerId) return
-    } else if (stake > 0) {
-      await applyCash(client, winnerId, stake * 2, `${gameName} win`, 'bet_win')
+    } else {
+      if (stake > 0) await applyCash(client, winnerId, stake * 2, `${gameName} win`, 'bet_win')
+      await recordGameResult(client, { matchId, game: m.game, stake, players: [m.host_id, m.guest_id], winnerId })
     }
     await rewardWin(client, winnerId)
   })

@@ -6,7 +6,7 @@ export type GameMatch = {
   id: string
   game: string
   variant: string
-  kind: 'challenge' | 'quick'
+  kind: 'challenge' | 'quick' | 'hosted'
   stake: number
   status: 'pending' | 'active' | 'finished' | 'declined' | 'expired' | 'cancelled' | 'disputed'
   /** 0 = host (challenged / queued first, breaks first), 1 = guest */

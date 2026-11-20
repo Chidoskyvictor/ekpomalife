@@ -43,6 +43,8 @@ import type { GameChatTarget } from '@/lib/game/game-chat-api'
 import { EMBEDDED_GAMES, type EmbeddedGameId } from '@/lib/game/embedded-games'
 import { LudoLobby, LudoPlay, LudoSetup, type LudoPlaySetup } from '@/components/games/ludo/ludo-game'
 import { BackButton } from '../app-header'
+import { GamesHub, type HubTabId } from './games-hub/games-hub'
+import { SpectateView } from './games-hub/spectate-view'
 import styles from './games.module.css'
 
 /*
@@ -77,6 +79,7 @@ type View =
   | { name: 'ludo' }
   | { name: 'ludo-play'; setup: LudoPlaySetup }
   | { name: 'ludo-lobby'; table: LudoTable }
+  | { name: 'watch'; matchId: string }
 
 const naira = (n: number) => `₦${n.toLocaleString()}`
 const variantLabel = (v: string) => SNOOKER_VARIANTS.find((x) => x.id === v)?.label ?? (v === 'classic' ? 'Classic' : v)
@@ -124,6 +127,7 @@ function GamesScreens({ onHome, view, setView }: { onHome: () => void; view: Vie
   const [matches, setMatches] = useState<GameMatch[]>([])
   const [betLeft, setBetLeft] = useState<number | null>(null)
   const [note, setNote] = useState<string | null>(null)
+  const [hubTab, setHubTab] = useState<HubTabId>('games')
   const { notifyToast, refreshServer } = useGame()
 
   const load = useCallback(async () => {
@@ -324,118 +328,33 @@ function GamesScreens({ onHome, view, setView }: { onHome: () => void; view: Vie
     )
   }
 
-  const incoming = matches.filter((m) => m.incoming)
-  const sent = matches.filter((m) => m.status === 'pending' && !m.incoming)
-  const live = matches.filter((m) => m.status === 'active')
+  if (view.name === 'watch') return <SpectateView matchId={view.matchId} onBack={() => setView({ name: 'home' })} />
+
+  const play = (id: string) =>
+    setView(id === 'snooker' ? { name: 'snooker' } : id === 'whot' ? { name: 'whot' } : id === 'ttt' || id === 'tictactoe' ? { name: 'ttt' } : id === 'chess' ? { name: 'chess' } : { name: 'ludo' })
 
   return (
-    <div className={styles.screen}>
-      <header className={styles.brand}>
-        <BackButton onBack={onHome} label="Back home" />
-        <span className={styles.wordmark}>Games</span>
-        <span className={styles.tagline}>Play in your phone</span>
-      </header>
-      {note ? <p className={styles.error}>{note}</p> : null}
-
-      {incoming.length || sent.length || live.length ? (
-        <section className={styles.group}>
-          <p className={styles.section}>Challenges</p>
-          {incoming.map((m) => (
-            <div key={m.id} className={styles.card}>
-              <span className={styles.cardIcon}>{metaOf(m.game).emoji}</span>
-              <span className={styles.cardText}>
-                <strong>{m.names[0]} challenged you</strong>
-                <span>
-                  {metaOf(m.game).name} · {m.game === 'snooker' ? `${variantLabel(m.variant)} · ` : ''}{m.stake ? `${naira(m.stake)} bet` : 'Friendly'}
-                </span>
-              </span>
-              <span className={styles.cardActions}>
-                <button
-                  type="button"
-                  className={styles.primary}
-                  onClick={async () => {
-                    const res = await acceptMatch(m.id)
-                    if (!res.ok) return setNote(res.error)
-                    setView(liveView(res.match))
-                  }}
-                >
-                  Accept
-                </button>
-                <button
-                  type="button"
-                  className={styles.ghost}
-                  onClick={async () => {
-                    await closeMatch(m.id)
-                    void load()
-                  }}
-                >
-                  Decline
-                </button>
-              </span>
-            </div>
-          ))}
-          {live.map((m) => (
-            <div key={m.id} className={styles.card}>
-              <span className={styles.cardIcon}>🟢</span>
-              <span className={styles.cardText}>
-                <strong>vs @{m.opponent}</strong>
-                <span>{metaOf(m.game).name} · {m.stake ? `${naira(m.stake * 2)} pot` : 'Friendly'} · live</span>
-              </span>
-              <button type="button" className={styles.primary} onClick={() => setView(liveView(m))}>
-                Resume
-              </button>
-            </div>
-          ))}
-          {sent.map((m) => (
-            <div key={m.id} className={styles.card}>
-              <span className={styles.cardIcon}>⏳</span>
-              <span className={styles.cardText}>
-                <strong>{m.opponent ? `Waiting for @${m.opponent}` : 'Finding a player…'}</strong>
-                <span>{metaOf(m.game).name} · {m.stake ? `${naira(m.stake)} bet` : 'Friendly'}</span>
-              </span>
-              <button type="button" className={styles.ghost} onClick={() => setView({ name: 'waiting', match: m })}>
-                Open
-              </button>
-            </div>
-          ))}
-        </section>
-      ) : null}
-
-      <section className={styles.group}>
-        <p className={styles.section}>All games</p>
-        <button type="button" className={styles.game} onClick={() => setView({ name: 'snooker' })}>
-          <span className={styles.gameArt}>🎱</span>
-          <span className={styles.cardText}>
-            <strong>8 Ball Pool</strong>
-            <span>vs computer · pass & play · online</span>
-          </span>
-          <span className={styles.play}>Play</span>
-        </button>
-        <button type="button" className={styles.game} onClick={() => setView({ name: 'whot' })}>
-          <span className={styles.gameArt}>🃏</span>
-          <span className={styles.cardText}>
-            <strong>Naija Whot!</strong>
-            <span>vs computer · friends · 2–4 players</span>
-          </span>
-          <span className={styles.play}>Play</span>
-        </button>
-        {EMBEDDED_GAMES.map((g) => (
-          <button
-            key={g.id}
-            type="button"
-            className={styles.game}
-            onClick={() => setView(g.id === 'tic-tac-toe' ? { name: 'ttt' } : g.id === 'chess' ? { name: 'chess' } : g.id === 'ludo' ? { name: 'ludo' } : { name: 'embed', gameId: g.id })}
-          >
-            <span className={styles.gameArt}>{g.emoji}</span>
-            <span className={styles.cardText}>
-              <strong>{g.name}</strong>
-              <span>{g.subtitle}</span>
-            </span>
-            <span className={styles.play}>Play</span>
-          </button>
-        ))}
-      </section>
-    </div>
+    <GamesHub
+      tab={hubTab}
+      setTab={setHubTab}
+      onBack={onHome}
+      note={note}
+      matches={matches}
+      onPlay={play}
+      onMatch={(id) => void openMatch(id)}
+      onWatch={(matchId) => setView({ name: 'watch', matchId })}
+      onChallenge={(username) => setView({ name: 'snooker', username })}
+      onAccept={async (m) => {
+        const res = await acceptMatch(m.id)
+        if (!res.ok) return setNote(res.error)
+        setView(liveView(res.match))
+      }}
+      onDecline={async (m) => {
+        await closeMatch(m.id)
+        void load()
+      }}
+      onOpenWaiting={(m) => setView({ name: 'waiting', match: m })}
+    />
   )
 }
 

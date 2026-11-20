@@ -1532,21 +1532,27 @@ function NoticePill({ message, onVisit }: { message: ChatMessage; onVisit: (user
 
 /** "@x challenged you to Snooker" — Open goes to the Games app's challenges list. */
 function GameNotice({ message }: { message: ChatMessage }) {
-  let info: { matchId?: string; game?: string; stake?: number } = {}
+  let info: { matchId?: string; game?: string; stake?: number; sat?: boolean } = {}
   try {
     info = JSON.parse(message.body) as typeof info
   } catch {}
-  const game = info.game === 'snooker' ? 'Snooker' : 'a game'
+  const game = info.game === 'snooker' ? '8 Ball Pool' : info.game === 'chess' ? 'Chess' : info.game === 'ludo' ? 'Ludo' : info.game === 'tictactoe' ? 'Tic tac toe' : 'a game'
   const stake = info.stake ? ` · ${naira(info.stake)}` : ''
   const name = message.sender?.username ? `@${message.sender.username}` : 'They'
-  const text = message.mine ? `🎮 You challenged them to ${game}${stake}` : `🎮 ${name} challenged you to ${game}${stake}`
+  const text = info.sat
+    ? message.mine
+      ? `🪑 You sat at their ${game} table${stake}`
+      : `🪑 ${name} sat at your ${game} table${stake}. Your match is live`
+    : message.mine
+      ? `🎮 You challenged them to ${game}${stake}`
+      : `🎮 ${name} challenged you to ${game}${stake}`
   return (
     <div className={styles.noticeRow}>
       <span className={`${styles.noticePill} ${styles.noticeGame}`}>
         {text} · {clockTime(message.createdAt)}
         {!message.mine ? (
-          <button type="button" className={styles.noticeLink} onClick={() => requestOpenGames({})}>
-            Open
+          <button type="button" className={styles.noticeLink} onClick={() => requestOpenGames(info.sat && info.matchId ? { matchId: info.matchId } : {})}>
+            {info.sat ? 'Play' : 'Open'}
           </button>
         ) : null}
       </span>
