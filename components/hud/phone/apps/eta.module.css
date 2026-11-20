@@ -3,7 +3,9 @@
 .screen {
   position: relative;
   display: flex;
-  min-height: 100%;
+  height: 100%; /* the phone body is overflow:hidden for this app, so Eta scrolls itself */
+  overflow-y: auto;
+  overscroll-behavior: contain;
   flex-direction: column;
   padding-bottom: 78px; /* room under the last post for the compose button */
   color: var(--ink);
@@ -354,7 +356,9 @@ span.action:active {
 /* —— Compose sheet —— */
 .compose {
   display: flex;
-  min-height: 100%;
+  height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   flex-direction: column;
   background: var(--paper);
   color: var(--ink);
