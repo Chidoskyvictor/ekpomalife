@@ -15,13 +15,13 @@ const NearbyMicRoom = dynamic(() => import('./nearby-mic-room'), { ssr: false })
 const hue = (name: string) => `hsl(${[...name].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 7)} 60% 46%)`
 
 /** A row of avatars: everyone on the voice. Shown whenever you're live or joined, never hidden. */
-export function VoiceFaces({ faces, talking, max = 5 }: { faces: VoiceFace[]; talking?: string | null; max?: number }) {
+export function VoiceFaces({ faces, max = 5 }: { faces: VoiceFace[]; max?: number }) {
   const shown = faces.slice(0, max)
   const extra = faces.length - shown.length
   return (
     <span className={styles.faces} aria-label={faces.map((f) => `@${f.name}`).join(', ')}>
       {shown.map((f) => (
-        <span key={f.id} className={`${styles.face} ${talking && talking === f.name ? styles.faceTalking : ''}`} style={{ background: f.color ?? hue(f.name) }} title={`@${f.name}`}>
+        <span key={f.id} className={`${styles.face}`} style={{ background: f.color ?? hue(f.name) }} title={`@${f.name}`}>
           {f.emoji || f.name.trim()[0]?.toUpperCase() || '?'}
         </span>
       ))}
@@ -166,9 +166,9 @@ export function NearbyMic({ tone = 'light', className, badgeClassName }: { tone?
           <span className={styles.dot} aria-hidden="true" />
           {inRoom ? 'You’re on' : live ? 'Live' : 'Voice'}
         </span>
-        {faces.length ? <VoiceFaces faces={faces} talking={v.talking} /> : null}
+        {faces.length ? <VoiceFaces faces={faces} /> : null}
         <span className={styles.text}>
-          {inRoom ? (v.talking ? `@${v.talking} is talking` : `${live} here`) : !v.allowed ? v.reason : live ? `${live} talking` : 'Nobody yet'}
+          {inRoom ? (v.talking ? `🔊 @${v.talking}${v.talkingMore ? ` +${v.talkingMore}` : ''}` : `${live} here`) : !v.allowed ? v.reason : live ? `${live} talking` : 'Nobody yet'}
         </span>
         <span className={styles.actions}>
           {v.isOwner && !inRoom ? (

@@ -13,13 +13,14 @@ function Reporter({ onError }: { onError: (text: string) => void }) {
   const people = useParticipants()
   const speakers = useSpeakingParticipants()
   const others = people.filter((p) => p.identity !== localParticipant.identity).length
-  const talker = speakers.find((p) => p.identity !== localParticipant.identity)
-  const talking = talker ? talker.name || talker.identity : null
+  const talkers = speakers.filter((p) => p.identity !== localParticipant.identity)
+  const talking = talkers[0] ? talkers[0].name || talkers[0].identity : null
+  const talkingMore = Math.max(0, talkers.length - 1)
 
   useEffect(() => {
     const members: VoiceFace[] = people.map((p) => ({ id: p.identity, name: p.name || p.identity }))
-    nearbyVoice.report({ micOn: isMicrophoneEnabled, others, talking, members })
-  }, [isMicrophoneEnabled, others, talking, people])
+    nearbyVoice.report({ micOn: isMicrophoneEnabled, others, talking, talkingMore, members })
+  }, [isMicrophoneEnabled, others, talking, talkingMore, people])
 
   useEffect(() => {
     nearbyVoice.setToggle(async () => {

@@ -54,10 +54,10 @@ function CallBar({ peer, onHangup }: { peer: string; onHangup: () => void }) {
   const waiting = people.length < 2
   return (
     <div className={`${styles.bar} ${styles.active}`} role="region" aria-label="Voice call">
-      <VoiceFaces faces={faces} talking={talker ? talker.name || talker.identity : null} />
+      <VoiceFaces faces={faces} />
       <span className={styles.who}>
         <b>@{peer}</b>
-        <small>{waiting ? 'Waiting for them to connect…' : `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}${talker ? ' · talking' : ''}`}</small>
+        <small>{talker ? <>🔊 @{talker.name || talker.identity}</> : waiting ? 'Waiting for them to connect…' : `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`}</small>
       </span>
       <button
         type="button"

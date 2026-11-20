@@ -29,6 +29,7 @@ type State = {
   /** Others in the room once you're in */
   others: number
   talking: string | null
+  talkingMore: number
   /** Place sheets showing the pill right now */
   shown: number
 }
@@ -47,6 +48,7 @@ let state: State = {
   micOn: false,
   others: 0,
   talking: null,
+  talkingMore: 0,
   shown: 0,
 }
 const listeners = new Set<() => void>()
@@ -64,9 +66,9 @@ export const nearbyVoice = {
     listeners.add(l)
     return () => listeners.delete(l)
   },
-  report(patch: Pick<Partial<State>, 'micOn' | 'others' | 'talking' | 'members'>) {
+  report(patch: Pick<Partial<State>, 'micOn' | 'others' | 'talking' | 'talkingMore' | 'members'>) {
     const sameMembers = !patch.members || (patch.members.length === state.members.length && patch.members.every((m, i) => m.id === state.members[i]?.id))
-    if (patch.micOn === state.micOn && patch.others === state.others && patch.talking === state.talking && sameMembers) return
+    if (patch.micOn === state.micOn && patch.others === state.others && patch.talking === state.talking && patch.talkingMore === state.talkingMore && sameMembers) return
     set(patch)
   },
   setToggle(fn: (() => Promise<void>) | null) {
@@ -110,7 +112,7 @@ export const nearbyVoice = {
     if (state.seat && toggleImpl) await toggleImpl()
   },
   leave() {
-    set({ seat: null, micOn: false, others: 0, talking: null, members: [] })
+    set({ seat: null, micOn: false, others: 0, talking: null, talkingMore: 0, members: [] })
   },
   /** A place sheet's pill appeared / went away; no sheet for a moment = you left the place. */
   shownChange(delta: 1 | -1) {
