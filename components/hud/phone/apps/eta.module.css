@@ -14,16 +14,19 @@
   position: sticky;
   top: 0;
   z-index: 3;
-  background: rgb(var(--glass-rgb) / 0.92);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: var(--paper);
   border-bottom: 1px solid var(--line);
 }
 
 .brand {
   display: flex;
-  justify-content: center;
-  padding: 8px 0 0;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4px;
+}
+
+.brandSide {
+  width: 44px;
 }
 
 .logo {
@@ -42,7 +45,7 @@
 .tab {
   position: relative;
   flex: 1;
-  min-height: 44px;
+  min-height: 40px;
   border: 0;
   background: none;
   color: var(--ink-2);
@@ -56,7 +59,7 @@
 .tab > span {
   position: relative;
   display: inline-block;
-  padding: 12px 2px;
+  padding: 9px 2px;
 }
 
 .tabOn {
@@ -485,9 +488,7 @@ span.action:active {
   align-items: center;
   gap: 4px;
   padding: 2px 8px 2px 0;
-  background: rgb(var(--glass-rgb) / 0.92);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: var(--paper);
   border-bottom: 1px solid var(--line);
 }
 

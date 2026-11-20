@@ -391,7 +391,7 @@ export function GistList({
   )
 }
 
-export function EtaApp() {
+export function EtaApp({ onHome }: { onHome?: () => void } = {}) {
   const [view, setView] = useState<View>({ name: 'feed' })
   const [tab, setTab] = useState<FeedTab>('foryou')
   const [composing, setComposing] = useState(false)
@@ -408,7 +408,9 @@ export function EtaApp() {
     <div className={styles.screen}>
       <header className={styles.top}>
         <div className={styles.brand}>
-          <EtaLogo size={30} className={styles.logo} title="ẹta" />
+          {onHome ? <BackButton onBack={onHome} label="Back home" /> : <span className={styles.brandSide} />}
+          <EtaLogo size={22} className={styles.logo} title="ẹta" />
+          <span className={styles.brandSide} />
         </div>
         <div className={styles.tabs} role="tablist">
           {TABS.map((t) => (
