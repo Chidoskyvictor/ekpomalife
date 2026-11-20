@@ -19,14 +19,10 @@ export type GameMatch = {
   expiresAt: string
 }
 
-export type SnookerVariant = 'eight' | 'six' | 'classic' | 'clearance' | 'black'
+export type SnookerVariant = 'eight'
 
 export const SNOOKER_VARIANTS: { id: SnookerVariant; label: string; note: string }[] = [
   { id: 'eight', label: '8 ball pool', note: 'Solids & stripes' },
-  { id: 'six', label: 'Six reds', note: 'Quick frame' },
-  { id: 'classic', label: '15 reds', note: 'Full frame' },
-  { id: 'clearance', label: 'Colours', note: 'Yellow to black' },
-  { id: 'black', label: 'Black ball', note: 'Sudden death' },
 ]
 
 type MatchOk = { ok: true; match: GameMatch }

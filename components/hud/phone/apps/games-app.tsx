@@ -632,7 +632,7 @@ function SnookerSetup({
   onWaiting: (match: GameMatch) => void
 }) {
   const [mode, setMode] = useState<Mode>(initialUsername ? 'online' : 'cpu')
-  const [variant, setVariant] = useState<SnookerVariant>('eight')
+  const variant: SnookerVariant = 'eight'
   const [difficulty, setDifficulty] = useState<Difficulty>('medium')
   const [username, setUsername] = useState(initialUsername ?? '')
   const [bet, setBet] = useState(false)
@@ -690,16 +690,6 @@ function SnookerSetup({
           <button key={id} type="button" className={`${styles.chip} ${mode === id ? styles.chipOn : ''}`} onClick={() => setMode(id)}>
             <span>{emoji}</span>
             {label}
-          </button>
-        ))}
-      </div>
-
-      <p className={styles.section}>Frame</p>
-      <div className={styles.chips}>
-        {SNOOKER_VARIANTS.map((v) => (
-          <button key={v.id} type="button" className={`${styles.chip} ${variant === v.id ? styles.chipOn : ''}`} onClick={() => setVariant(v.id)}>
-            {v.label}
-            <small>{v.note}</small>
           </button>
         ))}
       </div>
@@ -858,7 +848,6 @@ function PlayView({ setup, onExit, notify }: { setup: PlaySetup; onExit: () => v
   // Latest settled table (ours or theirs), replayed into the game after it (re)loads
   const lastSnap = useRef<unknown>(null)
   const online = setup.opponent === 'online' ? setup.match : null
-  const gameVariant = setup.opponent === 'online' ? setup.match.variant : setup.variant
 
   const toGame = useCallback((msg: Record<string, unknown>) => {
     frame.current?.contentWindow?.postMessage({ target: 'ekpoma-snooker', ...msg }, window.location.origin)
@@ -1030,7 +1019,7 @@ function PlayView({ setup, onExit, notify }: { setup: PlaySetup; onExit: () => v
         </div>
       ) : null}
       {result ? <div className={styles.banner}>{result}</div> : null}
-      <iframe ref={frame} className={styles.frame} src={gameVariant === 'eight' ? '/games/pool/index.html' : '/games/snooker/index.html'} title={gameVariant === 'eight' ? '8 Ball Pool' : 'Snooker'} onLoad={init} />
+      <iframe ref={frame} className={styles.frame} src="/games/pool/index.html" title="8 Ball Pool" onLoad={init} />
     </div>
     </BodyPortal>
   )
