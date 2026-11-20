@@ -19,6 +19,18 @@ type Ticket = { matchId: string; characterId: string; seat: number; expires: num
 
 const tickets = new Map<string, Ticket>()
 /** Read-only spectators per match (Games → Watch). They get every update the players get and can send nothing. */
+/** Game of each live match room, for counting who is playing what right now. */
+const roomGame = new Map<string, string>()
+/** Players with an open socket in a 1v1 match, per game, right now. */
+export function matchConnected() {
+  const out: Record<string, number> = {}
+  for (const [id, room] of rooms) {
+    const game = roomGame.get(id)
+    if (!game) continue
+    for (const seat of room.values()) if (seat.socket && seat.socket.readyState === seat.socket.OPEN) out[game] = (out[game] ?? 0) + 1
+  }
+  return out
+}
 const watchers = new Map<string, Set<WebSocket>>()
 export const watcherCount = (matchId: string) => watchers.get(matchId)?.size ?? 0
 function mirror(matchId: string, message: unknown) {
@@ -129,6 +141,7 @@ export async function joinGame(socket: WebSocket, token: string | undefined) {
   let room = rooms.get(ticket.matchId)
   if (!room) {
     rooms.set(ticket.matchId, (room = new Map()))
+    if (ticket.game) roomGame.set(ticket.matchId, ticket.game)
     openedAt.set(ticket.matchId, Date.now())
   }
   const old = room.get(ticket.seat)
@@ -204,6 +217,7 @@ export async function joinGame(socket: WebSocket, token: string | undefined) {
       const r = rooms.get(ticket.matchId)
       if (r && [...r.values()].every((s) => !s.socket)) {
         rooms.delete(ticket.matchId)
+        roomGame.delete(ticket.matchId)
         openedAt.delete(ticket.matchId)
         lastTable.delete(ticket.matchId)
         // A decided board stays so a late report can still settle; open ones go with the room

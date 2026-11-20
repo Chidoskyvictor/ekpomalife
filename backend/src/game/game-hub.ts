@@ -3,7 +3,9 @@ import { createId } from '../ids.js'
 import { postGameNotice } from './chat.js'
 import { applyCash, asMoney } from './game-state.js'
 import { liveSpaceMoneyBlock } from './spaces-money.js'
-import { watcherCount } from './game-live.js'
+import { matchConnected, watcherCount } from './game-live.js'
+import { whotConnected } from './whot-live.js'
+import { ludoTableConnected } from './ludo-tables.js'
 import {
   DAILY_BET_MATCHES,
   GAMES,
@@ -240,7 +242,7 @@ export async function watchableMatch(matchId: string) {
 export async function hubSummary() {
   const [now, week, whot, ludo] = await Promise.all([
     pool.query<{ game: string; playing: number; tables: number }>(
-      `SELECT game, (COUNT(*) FILTER (WHERE status = 'active' AND accepted_at > NOW() - INTERVAL '3 hours') * 2)::int AS playing,
+      `SELECT game, 0 AS playing,
               COUNT(*) FILTER (WHERE kind = 'hosted' AND status = 'pending' AND expires_at > NOW())::int AS tables
        FROM game_matches WHERE status IN ('active', 'pending') GROUP BY game`,
     ),
@@ -248,22 +250,23 @@ export async function hubSummary() {
       `SELECT game, COUNT(DISTINCT player_id)::int AS players FROM game_results
        WHERE played_at >= (date_trunc('week', NOW() AT TIME ZONE 'Africa/Lagos') AT TIME ZONE 'Africa/Lagos') GROUP BY game`,
     ),
-    pool.query<{ playing: number; tables: number }>(
-      `SELECT (SELECT COUNT(*) FROM whot_table_players p JOIN whot_tables t ON t.id = p.table_id WHERE t.status = 'active' AND p.left_at IS NULL AND t.started_at > NOW() - INTERVAL '3 hours')::int AS playing,
-              (SELECT COUNT(*) FROM whot_tables WHERE status = 'lobby' AND expires_at > NOW())::int AS tables`,
+    pool.query<{ tables: number }>(
+      `SELECT COUNT(*)::int AS tables FROM whot_tables WHERE status = 'lobby' AND expires_at > NOW()`,
     ),
-    pool.query<{ playing: number; tables: number }>(
-      `SELECT (SELECT COUNT(*) FROM ludo_table_players p JOIN ludo_tables t ON t.id = p.table_id WHERE t.status = 'active' AND p.left_at IS NULL AND t.started_at > NOW() - INTERVAL '3 hours')::int AS playing,
-              (SELECT COUNT(*) FROM ludo_tables WHERE status = 'lobby' AND expires_at > NOW())::int AS tables`,
+    pool.query<{ tables: number }>(
+      `SELECT COUNT(*)::int AS tables FROM ludo_tables WHERE status = 'lobby' AND expires_at > NOW()`,
     ),
   ])
   const out: Record<string, { playing: number; tables: number; players: number }> = {}
   for (const id of Object.keys(GAMES)) out[id] = { playing: 0, tables: 0, players: 0 }
-  for (const r of now.rows) if (out[r.game]) Object.assign(out[r.game]!, { playing: r.playing, tables: r.tables })
+  for (const r of now.rows) if (out[r.game]) out[r.game]!.tables = r.tables
   for (const r of week.rows) if (out[r.game]) out[r.game]!.players = r.players
-  out.whot!.playing += whot.rows[0]?.playing ?? 0
+  out.whot!.playing = whotConnected()
   out.whot!.tables += whot.rows[0]?.tables ?? 0
-  out.ludo!.playing += ludo.rows[0]?.playing ?? 0
+  // Players with an open socket right now: real people at a table, not rows left 'active' in the database
+  const conn = matchConnected()
+  for (const id of Object.keys(conn)) if (out[id]) out[id]!.playing += conn[id]!
+  out.ludo!.playing += ludoTableConnected()
   out.ludo!.tables += ludo.rows[0]?.tables ?? 0
   return { ok: true as const, games: out }
 }

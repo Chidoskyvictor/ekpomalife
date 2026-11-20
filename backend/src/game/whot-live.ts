@@ -81,6 +81,13 @@ export function startLiveTable(tableId: string, seats: SeatInfo[], pot: number) 
 /** table seat number → engine seat */
 const seatMap = new Map<string, Map<number, number>>()
 
+/** Players with an open socket on a live Whot table right now. */
+export function whotConnected() {
+  let n = 0
+  for (const room of rooms.values()) for (const sock of room.sockets.values()) if (sock.readyState === sock.OPEN) n++
+  return n
+}
+
 export function getLiveTable(tableId: string) {
   return rooms.get(tableId) ?? null
 }
