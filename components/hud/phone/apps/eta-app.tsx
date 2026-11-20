@@ -2,7 +2,6 @@
 
 import { hapticTap } from '@/components/hud/haptic'
 import { PlayerFace } from '@/components/look/player-face'
-import { BottomSheet } from '@/components/ui/bottom-sheet'
 import { playSfx } from '@/lib/audio/sfx'
 import { BadgeCheck, BarChart2, Heart, ImagePlus, MessageCircle, Plus, Repeat2, X } from 'lucide-react'
 import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
@@ -309,32 +308,14 @@ function ComposeSheet({
   const ring = Math.min(1, text.length / ETA_POST_MAX)
 
   return (
-    <BottomSheet
-      open={open}
-      onClose={onClose}
-      title={replyTo ? 'Reply' : 'New post'}
-      subtitle={replyingTo ? `Replying to @${replyingTo}` : undefined}
-      icon={<EtaLogo size={22} />}
-      startExpanded
-      className={styles.sheet}
-      footer={
-        <div className={styles.composeFoot}>
-          <button type="button" className={styles.tool} onClick={() => fileRef.current?.click()} aria-label="Add a photo" disabled={busy}>
-            <ImagePlus size={22} aria-hidden="true" />
-          </button>
-          <input ref={fileRef} type="file" accept="image/*" hidden onChange={(e) => void pick(e.target.files?.[0]).then(() => (e.target.value = ''))} />
-          <span className={styles.spacer} />
-          <svg className={styles.ring} viewBox="0 0 24 24" width={26} height={26} aria-hidden="true">
-            <circle cx="12" cy="12" r="9" className={styles.ringTrack} />
-            <circle cx="12" cy="12" r="9" className={left < 20 ? styles.ringLow : styles.ringFill} strokeDasharray={`${ring * 56.5} 56.5`} transform="rotate(-90 12 12)" />
-          </svg>
-          {left < 20 ? <span className={styles.countLow}>{left}</span> : null}
-          <button type="button" className={styles.postBtn} onClick={() => void submit()} disabled={(!text.trim() && !photo) || busy}>
-            {busy ? '…' : replyTo ? 'Reply' : 'Post'}
-          </button>
-        </div>
-      }
-    >
+    <div className={styles.compose}>
+      <div className={styles.composeTop}>
+        <button type="button" className={styles.composeClose} onClick={onClose} aria-label="Cancel" disabled={busy}>
+          <X size={22} aria-hidden="true" />
+        </button>
+        <span className={styles.composeTitle}>{replyingTo ? `Replying to @${replyingTo}` : 'New post'}</span>
+      </div>
+      <div className={styles.composeBody}>
       <textarea
         className={styles.input}
         value={text}
@@ -354,7 +335,23 @@ function ComposeSheet({
         </div>
       ) : null}
       {error ? <p className={styles.error}>{error}</p> : null}
-    </BottomSheet>
+      </div>
+      <div className={styles.composeFoot}>
+          <button type="button" className={styles.tool} onClick={() => fileRef.current?.click()} aria-label="Add a photo" disabled={busy}>
+            <ImagePlus size={22} aria-hidden="true" />
+          </button>
+          <input ref={fileRef} type="file" accept="image/*" hidden onChange={(e) => void pick(e.target.files?.[0]).then(() => (e.target.value = ''))} />
+          <span className={styles.spacer} />
+          <svg className={styles.ring} viewBox="0 0 24 24" width={26} height={26} aria-hidden="true">
+            <circle cx="12" cy="12" r="9" className={styles.ringTrack} />
+            <circle cx="12" cy="12" r="9" className={left < 20 ? styles.ringLow : styles.ringFill} strokeDasharray={`${ring * 56.5} 56.5`} transform="rotate(-90 12 12)" />
+          </svg>
+          {left < 20 ? <span className={styles.countLow}>{left}</span> : null}
+          <button type="button" className={styles.postBtn} onClick={() => void submit()} disabled={(!text.trim() && !photo) || busy}>
+            {busy ? '…' : replyTo ? 'Reply' : 'Post'}
+          </button>
+        </div>
+    </div>
   )
 }
 
@@ -404,6 +401,21 @@ export function EtaApp({ onHome }: { onHome?: () => void } = {}) {
     return <Profile kind={view.kind} id={view.id} onBack={() => setView({ name: 'feed' })} />
   }
 
+  if (composing) {
+    return (
+      <ComposeSheet
+        open
+        onClose={() => setComposing(false)}
+        onPosted={(post) => {
+          setComposing(false)
+          setTab('foryou')
+          setFeedKey((n) => n + 1)
+          setView({ name: 'thread', id: post.id })
+        }}
+      />
+    )
+  }
+
   return (
     <div className={styles.screen}>
       <header className={styles.top}>
@@ -424,16 +436,6 @@ export function EtaApp({ onHome }: { onHome?: () => void } = {}) {
       <button type="button" className={styles.fab} onClick={() => setComposing(true)} aria-label="New post">
         <Plus size={26} strokeWidth={2.4} aria-hidden="true" />
       </button>
-      <ComposeSheet
-        open={composing}
-        onClose={() => setComposing(false)}
-        onPosted={(post) => {
-          setComposing(false)
-          setTab('foryou')
-          setFeedKey((n) => n + 1)
-          setView({ name: 'thread', id: post.id })
-        }}
-      />
     </div>
   )
 }
@@ -548,6 +550,22 @@ function Thread({ id, onBack, onAuthor }: { id: string; onBack: () => void; onAu
     void load()
   }, [load])
 
+  if (replying && post) {
+    return (
+      <ComposeSheet
+        open
+        replyTo={post.id}
+        replyingTo={post.author.handle}
+        onClose={() => setReplying(false)}
+        onPosted={(reply) => {
+          setReplying(false)
+          setReplies((all) => [...all, reply])
+          setPost({ ...post, replies: post.replies + 1 })
+        }}
+      />
+    )
+  }
+
   return (
     <div className={styles.screen}>
       <BackBar title="Post" onBack={onBack} />
@@ -611,17 +629,6 @@ function Thread({ id, onBack, onAuthor }: { id: string; onBack: () => void; onAu
               {reported ? 'Reported. Thanks.' : 'Report this post'}
             </button>
           ) : null}
-          <ComposeSheet
-            open={replying}
-            replyTo={post.id}
-            replyingTo={post.author.handle}
-            onClose={() => setReplying(false)}
-            onPosted={(reply) => {
-              setReplying(false)
-              setReplies((all) => [...all, reply])
-              setPost({ ...post, replies: post.replies + 1 })
-            }}
-          />
         </>
       ) : !error ? (
         <AppLoading rows={4} />
