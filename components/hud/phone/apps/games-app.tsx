@@ -21,6 +21,8 @@ import { fetchChats, type ChatSummary } from '@/lib/game/hostels-api'
 import { OPEN_GAMES_EVENT, takePendingGames } from '@/lib/game/open-games'
 import { WhotCpuGame } from '@/components/games/whot/whot-cpu-game'
 import { WhotOnlineGame } from '@/components/games/whot/whot-online-game'
+import { WhotRulesChips } from '@/components/games/whot/whot-rules-chips'
+import { DEFAULT_RULES, type WhotRules } from '@/lib/game/whot-rules'
 import {
   createWhotTable,
   fetchWhotTable,
@@ -57,7 +59,7 @@ type PlaySetup =
   | { opponent: 'online'; match: GameMatch }
 
 type WhotPlay =
-  | { mode: 'cpu'; players: number }
+  | { mode: 'cpu'; players: number; rules: WhotRules }
   | { mode: 'online'; tableId: string; potLabel: string }
 
 type View =
@@ -261,7 +263,7 @@ function GamesScreens({ onHome, view, setView }: { onHome: () => void; view: Vie
       return (
         <BodyPortal>
           <div className={`${styles.playScreen} ${styles.fullScreen}`}>
-            <WhotCpuGame players={view.play.players} onExit={() => setView({ name: 'home' })} notify={notifyToast} />
+            <WhotCpuGame players={view.play.players} rules={view.play.rules} onExit={() => setView({ name: 'home' })} notify={notifyToast} />
           </div>
         </BodyPortal>
       )
@@ -294,7 +296,7 @@ function GamesScreens({ onHome, view, setView }: { onHome: () => void; view: Vie
       <WhotSetup
         betLeft={betLeft}
         onBack={() => setView({ name: 'home' })}
-        onCpu={(players) => setView({ name: 'whot-play', play: { mode: 'cpu', players } })}
+        onCpu={(players, rules) => setView({ name: 'whot-play', play: { mode: 'cpu', players, rules } })}
         onLobby={(table) => setView({ name: 'whot-lobby', table })}
       />
     )
@@ -445,12 +447,13 @@ function WhotSetup({
 }: {
   betLeft: number | null
   onBack: () => void
-  onCpu: (players: number) => void
+  onCpu: (players: number, rules: WhotRules) => void
   onLobby: (table: WhotTable) => void
 }) {
   const [mode, setMode] = useState<'cpu' | 'friends'>('cpu')
   const [players, setPlayers] = useState(4)
   const [maxPlayers, setMaxPlayers] = useState(4)
+  const [rules, setRules] = useState<WhotRules>(DEFAULT_RULES)
   const [bet, setBet] = useState(false)
   const [stake, setStake] = useState('')
   const [code, setCode] = useState('')
@@ -463,7 +466,7 @@ function WhotSetup({
     if (betInvalid) return
     setBusy(true)
     setError(null)
-    const res = await createWhotTable(maxPlayers, amount)
+    const res = await createWhotTable(maxPlayers, amount, rules)
     setBusy(false)
     if (!res.ok) return setError(res.error)
     onLobby(res.table)
@@ -504,7 +507,8 @@ function WhotSetup({
               </button>
             ))}
           </div>
-          <button type="button" className={styles.big} onClick={() => onCpu(players)}>Play vs computer</button>
+          <WhotRulesChips rules={rules} onChange={setRules} />
+          <button type="button" className={styles.big} onClick={() => onCpu(players, rules)}>Play vs computer</button>
         </>
       ) : (
         <>
@@ -530,6 +534,7 @@ function WhotSetup({
               </button>
             ))}
           </div>
+          <WhotRulesChips rules={rules} onChange={setRules} />
           <button type="button" className={styles.big} disabled={busy || betInvalid} onClick={() => void create()}>Create & get code</button>
           <p className={styles.section}>Join with code</p>
           <div className={styles.row}>

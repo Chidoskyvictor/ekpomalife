@@ -1,481 +1,719 @@
+/* Naija Whot table: felt, cream cards printed like the real pack. Cards and felt are physical
+   objects so they keep their own colours in both themes. */
+
 .root {
+  position: relative;
   display: flex;
   height: 100%;
   flex-direction: column;
-  background: #0f1a14;
-  color: #e8f0eb;
-  overflow-x: hidden;
-  overflow-y: auto;
+  background: #0b1d15;
+  color: #e9f3ec;
+  overflow: hidden;
+  padding-bottom: env(safe-area-inset-bottom);
+  font-family: var(--font-ui);
 }
 
 .topBar {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 10px 4px;
+  padding: calc(8px + env(safe-area-inset-top)) 12px 6px;
   flex: none;
 }
 
 .topBar button {
-  width: 36px;
-  height: 36px;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
   border: 0;
   border-radius: var(--r-md);
-  background: rgba(255, 255, 255, 0.1);
+  background: rgb(255 255 255 / 0.1);
   color: #fff;
+  transition: transform var(--dur-press) var(--ease-ui);
+}
+
+.topBar button:active {
+  transform: scale(0.96);
 }
 
 .title {
   flex: 1;
   min-width: 0;
-  font-size: var(--fs-14);
-  font-weight: 800;
+}
+
+.title strong {
+  display: block;
+  font-family: var(--font-game);
+  font-size: var(--fs-20);
+  letter-spacing: 0.02em;
+  line-height: 1.1;
 }
 
 .title span {
   display: block;
   font-size: var(--fs-12);
-  font-weight: 500;
-  color: #9fb8a8;
+  color: #9fc4ad;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.opponents {
-  display: flex;
-  gap: 6px;
-  padding: 4px 10px;
-  flex: none;
-  overflow-x: auto;
-}
-
-.opp {
-  flex: 1 0 64px;
-  min-width: 64px;
-  padding: 6px;
-  border-radius: var(--r-md);
-  background: rgba(255, 255, 255, 0.07);
-  text-align: center;
-  font-size: var(--fs-12);
-}
-
-.oppTurn {
-  background: rgba(46, 125, 80, 0.55);
-  box-shadow: inset 0 0 0 1.5px rgba(255, 217, 61, 0.85);
-}
-
-.oppOut {
-  opacity: 0.45;
-}
-
-.oppAvatar {
-  width: 28px;
-  height: 28px;
-  margin: 0 auto 3px;
-  border-radius: 50%;
+.timer {
   display: grid;
   place-items: center;
-  font-size: var(--fs-12);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid rgb(255 255 255 / 0.18);
   font-weight: 800;
-  color: #0f1a14;
-  background: #4dabf7;
-}
-
-.oppName {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-weight: 700;
-}
-
-.oppCount {
-  margin-top: 2px;
+  font-size: var(--fs-14);
   color: #cfe3d6;
 }
 
-.status {
-  margin: 4px 10px;
-  padding: 7px 12px;
-  border-radius: var(--r-pill);
-  background: rgba(255, 255, 255, 0.08);
-  color: #ffd93d;
-  font-size: var(--fs-12);
-  font-weight: 700;
-  text-align: center;
-  flex: none;
+.timerMine {
+  border-color: #ffcf33;
+  color: #ffcf33;
 }
+
+/* ---------- felt ---------- */
 
 .felt {
-  flex: 1;
-  min-height: 150px;
-  display: flex;
+  position: relative;
+  flex: 1 1 0;
+  min-height: 0;
   margin: 4px 10px;
-  border: 3px solid #6b4a2b;
-  border-radius: var(--r-lg);
-  background: radial-gradient(ellipse at center, #1f6b44 0%, #14502f 60%, #0e3a22 100%);
-  box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.45);
+  border-radius: 28px;
+  border: 5px solid #5a3a1e;
+  box-shadow:
+    inset 0 0 40px rgb(0 0 0 / 0.45),
+    0 6px 18px rgb(0 0 0 / 0.4);
+  background:
+    radial-gradient(ellipse at 50% 45%, #1f7a4d 0%, #14583a 55%, #0d3f2a 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 10px 8px 12px;
+  overflow: hidden;
 }
 
-.alert {
-  margin: 0 10px 4px;
-  padding: 6px 10px;
-  border-radius: var(--r-sm);
-  background: rgba(255, 217, 61, 0.15);
-  color: #ffd93d;
-  font-size: var(--fs-12);
-  font-weight: 700;
+.seats {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
   flex: none;
 }
 
-.table {
-  flex: 1;
-  min-height: 0;
+.seat {
+  flex: 1 1 0;
+  max-width: 112px;
+  min-width: 0;
+  padding: 6px 4px;
+  border-radius: var(--r-md);
+  background: rgb(0 0 0 / 0.28);
+  text-align: center;
+  border: 2px solid transparent;
+  transition: border-color var(--dur-pop) var(--ease-ui), transform var(--dur-pop) var(--ease-ui);
+}
+
+.seatTurn {
+  border-color: #ffcf33;
+  box-shadow: 0 0 14px rgb(255 207 51 / 0.45);
+  transform: translateY(2px);
+}
+
+.seatOut {
+  opacity: 0.4;
+}
+
+.avatar {
+  margin: 0 auto 2px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+  font-weight: 800;
+  font-size: var(--fs-14);
+}
+
+.seatName {
+  font-size: var(--fs-12);
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.seatCards {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 22px;
-  padding: 8px;
+  height: 22px;
+  padding-left: 8px;
 }
 
-.pile,
-.market {
+.seatCards b {
+  margin-left: 6px;
+  font-size: var(--fs-12);
+  color: #ffcf33;
+}
+
+.miniBack {
+  width: 12px;
+  height: 18px;
+  margin-left: -8px;
+  border-radius: 3px;
+  border: 1px solid #fff;
+  background: repeating-linear-gradient(45deg, #b3201c 0 3px, #8e1713 3px 6px);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.4);
+}
+
+.outTag {
+  font-size: var(--fs-12);
+  opacity: 0.8;
+}
+
+/* centre of the table */
+
+.table {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+}
+
+.market,
+.pile {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
-  font-size: var(--fs-12);
-  color: #d5e8dc;
+  gap: 8px;
+  border: 0;
+  background: none;
+  color: inherit;
+  padding: 0;
 }
 
-.marketTag {
-  padding: 2px 8px;
+.market:disabled {
+  opacity: 1;
+}
+
+.market:not(:disabled) {
+  cursor: pointer;
+}
+
+.market:not(:disabled) .marketStack {
+  animation: nudge 1.6s var(--ease-ui) infinite;
+}
+
+.marketStack {
+  position: relative;
+  display: block;
+  width: 70px;
+  height: 96px;
+}
+
+.marketStack > div {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+.m3 {
+  transform: translate(0, 0) rotate(-3deg);
+}
+.m2 {
+  transform: translate(2px, -3px) rotate(1deg);
+}
+.m1 {
+  transform: translate(4px, -6px) rotate(3deg);
+}
+
+.marketTag,
+.pileTag {
+  font-size: var(--fs-12);
+  font-weight: 700;
+  padding: 3px 10px;
   border-radius: var(--r-pill);
-  background: #c62828;
+  background: rgb(0 0 0 / 0.35);
+  color: #e9f3ec;
+}
+
+.pileTop {
+  transform: rotate(-4deg);
+  box-shadow: 0 6px 14px rgb(0 0 0 / 0.5);
+  animation: land 260ms var(--ease-ui);
+}
+
+@keyframes land {
+  from {
+    transform: translateY(-22px) rotate(8deg) scale(1.08);
+    opacity: 0.4;
+  }
+}
+
+@keyframes nudge {
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+.banner {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  transform: translate(-50%, -50%);
+  max-width: 88%;
+  padding: 8px 16px;
+  border-radius: var(--r-pill);
+  background: #ffcf33;
+  color: #2a1d00;
+  font-weight: 800;
+  font-size: var(--fs-14);
+  text-align: center;
+  box-shadow: 0 6px 18px rgb(0 0 0 / 0.45);
+  animation: pop 220ms var(--ease-ui);
+  pointer-events: none;
+}
+
+@keyframes pop {
+  from {
+    transform: translate(-50%, -50%) scale(0.7);
+    opacity: 0;
+  }
+}
+
+.pendingChip {
+  align-self: center;
+  padding: 4px 12px;
+  border-radius: var(--r-pill);
+  background: var(--bad);
   color: #fff;
   font-weight: 800;
   font-size: var(--fs-12);
 }
 
-.timer {
-  text-align: center;
-  font-size: var(--fs-20);
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-  color: #ff9f43;
+.status {
   flex: none;
+  min-height: 28px;
+  padding: 6px 12px 2px;
+  text-align: center;
+  font-size: var(--fs-14);
+  font-weight: 700;
+  color: #b9d3c3;
+}
+
+.statusMine {
+  color: #ffcf33;
+}
+
+/* ---------- hand ---------- */
+
+.handWrap {
+  flex: none;
+  padding: 4px 0 4px;
 }
 
 .hand {
   display: flex;
-  gap: 8px;
-  padding: 8px 10px max(10px, env(safe-area-inset-bottom));
+  align-items: flex-end;
+  justify-content: center;
+  gap: 0;
+  padding: 14px 16px 4px;
   overflow-x: auto;
-  flex: none;
-  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.hand::-webkit-scrollbar {
+  display: none;
+}
+
+.hand:has(button:nth-child(7)) {
+  justify-content: flex-start;
 }
 
 .cardBtn {
   flex: none;
-  border: 0;
+  margin-left: -14px;
   padding: 0;
-  background: transparent;
+  border: 0;
+  background: none;
+  transition: transform var(--dur-pop) var(--ease-ui);
 }
 
-.cardBtn:disabled {
-  opacity: 0.45;
+.handTight .cardBtn {
+  margin-left: -28px;
 }
 
-.cardBtn:active:not(:disabled) {
-  transform: translateY(2px);
+.cardBtn:first-child {
+  margin-left: 0;
 }
 
-/* —— Naija Whot playing card (physical-deck style) —— */
-.cardFace {
+.cardBtnOk {
+  transform: translateY(-12px);
+  z-index: 2;
+}
+
+.cardBtnOk:active {
+  transform: translateY(-16px) scale(0.97);
+}
+
+.cardBtnDim {
+  filter: brightness(0.62) saturate(0.7);
+}
+
+.actions {
+  flex: none;
+  display: flex;
+  gap: 8px;
+  padding: 4px 12px 10px;
+}
+
+.pickBtn,
+.lastBtn {
+  flex: 1;
+  min-height: 48px;
+  border: 0;
+  border-radius: var(--r-md);
+  font-family: var(--font-game);
+  font-size: var(--fs-16);
+  letter-spacing: 0.02em;
+  transition: transform var(--dur-press) var(--ease-ui);
+}
+
+.pickBtn {
+  background: var(--primary);
+  color: #fff;
+}
+
+.pickBtn:disabled {
+  background: rgb(255 255 255 / 0.12);
+  color: rgb(255 255 255 / 0.4);
+}
+
+.lastBtn {
+  background: rgb(255 255 255 / 0.1);
+  color: rgb(255 255 255 / 0.35);
+}
+
+.lastBtnOn {
+  background: #ffcf33;
+  color: #2a1d00;
+  animation: pulse 0.9s ease-in-out infinite;
+}
+
+.pickBtn:active:not(:disabled),
+.lastBtn:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+@keyframes pulse {
+  50% {
+    transform: scale(1.04);
+    box-shadow: 0 0 18px rgb(255 207 51 / 0.7);
+  }
+}
+
+/* ---------- the cards ---------- */
+
+.card {
   position: relative;
   flex: none;
-  border: 2px solid #1a1a1a;
-  border-radius: var(--r-sm);
-  background: linear-gradient(165deg, #fffef8 0%, #f5f0e6 48%, #ebe4d6 100%);
+  border-radius: 9px;
+  background: linear-gradient(160deg, #fffdf4 0%, #f6efd9 100%);
+  border: 2px solid #fffdf4;
   box-shadow:
-    0 1px 0 #fff inset,
-    0 2px 6px rgba(0, 0, 0, 0.28),
-    0 0 0 1px rgba(0, 0, 0, 0.06);
+    0 0 0 1px rgb(0 0 0 / 0.25),
+    0 3px 8px rgb(0 0 0 / 0.35);
   overflow: hidden;
+  user-select: none;
 }
 
-.cardSize_hand {
-  width: 58px;
-  height: 82px;
-}
-
-.cardSize_pile {
-  width: 64px;
+.size_hand {
+  width: 62px;
   height: 90px;
 }
 
-.cardSize_mini {
-  width: 48px;
-  height: 68px;
+.size_pile {
+  width: 82px;
+  height: 118px;
+  border-radius: 11px;
 }
 
-.cardFaceWhot {
-  padding: 0;
-  border-color: #1a1a1a;
+.size_mini {
+  width: 34px;
+  height: 48px;
+  border-radius: 6px;
 }
 
-.cardCorner {
+.cardPlayable {
+  box-shadow:
+    0 0 0 2px #ffcf33,
+    0 0 14px rgb(255 207 51 / 0.65),
+    0 3px 8px rgb(0 0 0 / 0.35);
+}
+
+.corner {
   position: absolute;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 1px;
   line-height: 1;
-  z-index: 2;
 }
 
 .cornerTl {
   top: 4px;
-  left: 4px;
+  left: 5px;
 }
 
 .cornerBr {
+  right: 5px;
   bottom: 4px;
-  right: 4px;
   transform: rotate(180deg);
 }
 
 .cornerNum {
-  font-size: var(--fs-12);
+  font-family: var(--font-game);
+  font-size: 16px;
   font-weight: 900;
-  font-family: var(--font-ui);
-  letter-spacing: -0.02em;
 }
 
-.cardCenter {
+.size_pile .cornerNum {
+  font-size: 20px;
+}
+
+.centre {
   position: absolute;
   inset: 0;
   display: grid;
   place-items: center;
-  padding: 14px 6px;
 }
 
-.centerGlyph {
-  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.5));
-}
-
-.cardSpecial {
+.badge {
   position: absolute;
-  bottom: 5px;
-  left: 50%;
-  transform: translateX(-50%);
-  max-width: 92%;
-  padding: 1px 4px;
-  border-radius: 3px;
-  background: rgba(26, 26, 26, 0.88);
-  color: #fffef8;
-  font-size: var(--fs-12);
-  font-weight: 800;
+  left: 0;
+  right: 0;
+  bottom: 22px;
+  text-align: center;
+  font-size: 8px;
+  font-weight: 900;
   letter-spacing: 0.04em;
-  text-transform: uppercase;
-  white-space: nowrap;
-  z-index: 2;
+  color: #fff;
+  background: rgb(26 26 26 / 0.82);
+  padding: 2px 0;
 }
 
-.calledShape {
-  position: absolute;
-  top: 50%;
-  right: 5px;
-  transform: translateY(-50%);
-  padding: 2px;
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.85);
-  border: 1px solid #1a1a1a;
-  z-index: 2;
+.size_pile .badge {
+  font-size: 9px;
+  bottom: 26px;
 }
 
-/* Whot 20 — striped classic back / face */
+.cardWhot {
+  background: linear-gradient(160deg, #cf2a24 0%, #8e1713 100%);
+  border-color: #fffdf4;
+}
+
 .whotFace {
-  position: relative;
+  position: absolute;
+  inset: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  height: 100%;
-  min-height: 100%;
-  overflow: hidden;
+  justify-content: space-between;
+  padding: 6px 2px;
+  color: #fff;
 }
 
-.whotStripe {
-  position: absolute;
-  inset: 0;
-  background: repeating-linear-gradient(
-    -52deg,
-    #1a1a1a 0 8px,
-    #c62828 8px 16px,
-    #1a1a1a 16px 24px,
-    #f5f0e6 24px 32px
-  );
-  opacity: 0.92;
+.whotWord {
+  font-family: var(--font-game);
+  font-size: 16px;
+  letter-spacing: 0.06em;
+  text-shadow: 0 2px 0 rgb(0 0 0 / 0.35);
 }
 
-.whotTitle {
-  position: relative;
-  z-index: 1;
-  margin-top: 2px;
-  padding: 2px 6px;
-  border: 2px solid #fffef8;
-  border-radius: 3px;
-  background: #1a1a1a;
-  color: #fffef8;
-  font-size: var(--fs-12);
-  font-weight: 900;
-  letter-spacing: 0.12em;
+.size_pile .whotWord {
+  font-size: 20px;
+}
+
+.size_mini .whotWord {
+  font-size: 9px;
 }
 
 .whotNum {
-  position: relative;
-  z-index: 1;
-  margin-top: 4px;
-  font-size: 26px;
-  font-weight: 900;
-  font-family: var(--font-ui);
-  color: #fffef8;
-  text-shadow: 0 2px 0 #1a1a1a;
+  font-family: var(--font-game);
+  font-size: 28px;
   line-height: 1;
 }
 
-.whotNeed {
-  position: relative;
-  z-index: 1;
+.size_mini .whotNum {
+  font-size: 14px;
+}
+
+.whotNumFlip {
+  display: none;
+}
+
+.whotShapes {
+  display: flex;
+  gap: 2px;
+  padding: 3px 4px;
+  border-radius: 6px;
+  background: #fffdf4;
+}
+
+.calledChip {
+  position: absolute;
+  right: -2px;
+  top: -2px;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #fffdf4;
+  border: 2px solid #ffcf33;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.4);
+}
+
+.size_mini .calledChip {
+  width: 16px;
+  height: 16px;
+  border-width: 1px;
+}
+
+.cardBack {
+  background: #fffdf4;
+}
+
+.backInner {
+  position: absolute;
+  inset: 4px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  background: repeating-linear-gradient(45deg, #b3201c 0 5px, #8e1713 5px 10px);
+  color: #fffdf4;
+  font-family: var(--font-game);
+  font-size: 14px;
+  letter-spacing: 0.08em;
+  text-shadow: 0 2px 0 rgb(0 0 0 / 0.4);
+}
+
+/* ---------- call-a-shape sheet and end screen ---------- */
+
+.sheetBackdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: flex-end;
+  background: rgb(0 0 0 / 0.5);
+}
+
+.sheet {
+  width: 100%;
+  padding: 14px 14px calc(18px + env(safe-area-inset-bottom));
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
+  background: #f6efd9;
+  color: #2a2a2a;
+  animation: rise var(--dur-sheet) var(--ease-ui);
+}
+
+@keyframes rise {
+  from {
+    transform: translateY(40px);
+    opacity: 0;
+  }
+}
+
+.sheetTitle {
+  margin: 0 0 10px;
+  text-align: center;
+  font-family: var(--font-game);
+  font-size: var(--fs-20);
+}
+
+.shapeGrid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+
+.shapeBtn {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
-  margin-top: 4px;
-  padding: 2px 4px;
-  border-radius: 4px;
-  background: rgba(255, 254, 248, 0.92);
-  border: 1px solid #1a1a1a;
-  font-size: var(--fs-12);
-  font-weight: 800;
-  color: var(--ink);
-  text-transform: uppercase;
-}
-
-/* Market deck back */
-.cardBack {
-  display: grid;
-  place-items: center;
-  background: #1b4332;
-  border-color: #0d2818;
-}
-
-.backPattern {
-  position: absolute;
-  inset: 4px;
-  border-radius: 3px;
-  border: 2px solid rgba(255, 217, 61, 0.45);
-  background: repeating-linear-gradient(
-    45deg,
-    transparent 0 6px,
-    rgba(255, 217, 61, 0.12) 6px 12px
-  );
-}
-
-.backLabel {
-  position: relative;
-  z-index: 1;
-  font-size: var(--fs-12);
-  font-weight: 900;
-  letter-spacing: 0.2em;
-  color: #ffd93d;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-}
-
-.shapePickBtn {
-  flex: none;
+  gap: 4px;
+  min-height: 64px;
+  padding: 8px 2px;
   border: 0;
-  padding: 0;
-  background: transparent;
-  border-radius: var(--r-sm);
+  border-radius: var(--r-md);
+  background: #fffdf4;
+  box-shadow: 0 1px 0 rgb(0 0 0 / 0.15);
+  font-size: var(--fs-12);
+  font-weight: 700;
+  color: #2a2a2a;
 }
 
-.shapePickBtn:active {
+.shapeBtn:active {
   transform: scale(0.96);
 }
 
-.shape {
-  width: 22px;
-  height: 22px;
-}
-
-/* Legacy empty pile placeholder */
-.card {
-  width: 58px;
-  height: 82px;
-}
-
-.actions {
-  display: flex;
-  gap: 8px;
-  padding: 0 10px 8px;
-  flex: none;
-}
-
-.pickBtn {
-  flex: 1;
-  min-height: 44px;
-  border: 0;
-  border-radius: var(--r-md);
-  background: rgba(255, 255, 255, 0.12);
-  color: #fff;
-  font-weight: 700;
-  font-size: var(--fs-14);
-}
-
-.shapeSheet {
-  display: flex;
-  align-items: flex-end;
-  gap: 8px;
-  padding: 8px 10px;
-  flex: none;
-  overflow-x: auto;
-}
-
-.shapeSheetLabel {
-  flex: none;
-  align-self: center;
-  margin: 0;
-  padding-right: 4px;
-  font-size: var(--fs-12);
-  font-weight: 700;
-  color: #9fb8a8;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.marketStack {
-  position: relative;
-}
-
-.marketCard {
-  transform: rotate(-4deg);
-}
-
-.marketCount {
+.over {
   position: absolute;
-  right: -4px;
-  bottom: -4px;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 5px;
-  border-radius: var(--r-sm);
-  border: 2px solid #0f1a14;
-  background: #ffd93d;
-  color: var(--ink);
-  font-size: var(--fs-12);
-  font-weight: 900;
-  line-height: 16px;
+  inset: 0;
+  z-index: 11;
+  display: grid;
+  place-items: center;
+  background: rgb(0 0 0 / 0.55);
+}
+
+.overCard {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  min-width: 240px;
+  padding: 22px;
+  border-radius: var(--r-lg);
+  background: #14583a;
+  border: 3px solid #ffcf33;
   text-align: center;
+  animation: pop 260ms var(--ease-ui);
+}
+
+.overCard strong {
+  font-family: var(--font-game);
+  font-size: var(--fs-28);
+}
+
+@media (max-height: 640px) {
+  .size_hand {
+    width: 54px;
+    height: 78px;
+  }
+  .marketStack {
+    width: 62px;
+    height: 84px;
+  }
+  .size_pile {
+    width: 70px;
+    height: 100px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pileTop,
+  .banner,
+  .overCard,
+  .sheet,
+  .lastBtnOn,
+  .market:not(:disabled) .marketStack {
+    animation: none;
+  }
 }
