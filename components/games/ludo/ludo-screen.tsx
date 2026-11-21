@@ -202,6 +202,27 @@ function Seed({
   )
 }
 
+/* Lagos backdrop: green hills, a cable-stayed bridge and the road home */
+function Scene() {
+  return (
+    <div className={styles.scene} aria-hidden>
+      <svg viewBox="0 0 360 240" preserveAspectRatio="xMidYMax slice">
+        <path d="M0 150 Q70 90 140 140 T290 120 T360 140 V240 H0Z" fill="#6aa52e" opacity="0.85" />
+        <g fill="#d5dccf" opacity="0.9">
+          <rect x="228" y="62" width="9" height="92" rx="2" />
+          <rect x="300" y="62" width="9" height="92" rx="2" />
+          <rect x="200" y="150" width="160" height="9" />
+        </g>
+        <g stroke="#d5dccf" strokeWidth="1.4" opacity="0.9">
+          <path d="M232 66L200 150M232 66L262 150M232 80L286 150M304 66L274 150M304 66L336 150M304 80L250 150" />
+        </g>
+        <path d="M0 215 Q120 165 360 190 V240 H0Z" fill="#454a45" />
+        <path d="M20 224 Q130 188 340 205" stroke="#fff" strokeWidth="2" strokeDasharray="14 12" fill="none" opacity="0.8" />
+      </svg>
+    </div>
+  )
+}
+
 /* ---------- screen ---------- */
 
 export function LudoScreen({ view, names, mySeat, subtitle, onRoll, onMove, onExit }: Props) {
@@ -324,12 +345,23 @@ export function LudoScreen({ view, names, mySeat, subtitle, onRoll, onMove, onEx
 
   return (
     <div className={styles.root}>
+      <Scene />
+      <div className={styles.flagBar} />
       <div className={styles.topBar}>
         <button type="button" onClick={onExit} aria-label="Exit">
           <X size={18} />
         </button>
         <div className={styles.title}>
-          <strong>Naija Ludo</strong>
+          <strong className={styles.logo}>
+            <span className={styles.naija}>NAIJA</span>
+            <span className={styles.ludo}>
+              {(['L', 'U', 'D', 'O'] as const).map((ch, i) => (
+                <i key={ch} style={{ color: COLOR_HEX[[0, 2, 1, 3][i]!], fontStyle: 'normal' }}>
+                  {ch}
+                </i>
+              ))}
+            </span>
+          </strong>
           <span>{subtitle}</span>
         </div>
         <div className={`${styles.timer} ${iAct ? styles.timerMine : ''}`}>{view && view.winner == null ? view.secondsLeft : '—'}</div>
