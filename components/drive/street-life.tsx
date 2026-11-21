@@ -6,7 +6,7 @@ import { BufferAttribute, BufferGeometry, DoubleSide, InstancedMesh, MeshBasicMa
 import { CarModel } from '@/components/cars/car-model'
 import { CharacterFigure } from '@/components/look/character-figure'
 import { driveTelemetry, useDrive } from '@/lib/game/drive'
-import { HALF, LANE, ROADS, locateOn, routeAhead, spotAt, type Road } from '@/lib/game/drive-road'
+import { HALF, LANE, ROADS, locateOn, roadsNear, routeAhead, spotAt, type Road } from '@/lib/game/drive-road'
 import { normalizeAppearance, type Appearance } from '@/lib/game/look'
 import { racesNow, useRaces } from '@/lib/game/races-api'
 
@@ -165,7 +165,7 @@ export function trafficBlocks(x: number, z: number) {
 /** Put a car on a road near you: the road you are on, or another close by. */
 function placeCar(car: NpcCar, first: boolean) {
   const { x, z } = driveTelemetry
-  const near = ROADS.map((road) => ({ road, at: locateOn(road, x, z) }))
+  const near = roadsNear(x, z, 400).map((road) => ({ road, at: locateOn(road, x, z) }))
     .filter((r) => r.at.gap < 380 && r.road.length > 200)
     .sort((a, b) => a.at.gap - b.at.gap)
   // Mostly the road you are on, so there is always something in sight
@@ -273,7 +273,7 @@ const SKINS = ['#8a5a3b', '#6b4226', '#a9744f', '#5C3317']
 
 function placeWalker(w: Walker, first: boolean) {
   const { x, z } = driveTelemetry
-  const near = ROADS.map((road) => ({ road, at: locateOn(road, x, z) }))
+  const near = roadsNear(x, z, 400).map((road) => ({ road, at: locateOn(road, x, z) }))
     .filter((r) => r.at.gap < 150)
     .sort((a, b) => a.at.gap - b.at.gap)
   const pick = near[Math.random() < 0.6 ? 0 : Math.floor(Math.random() * Math.min(3, near.length))] ?? { road: ROADS[0]!, at: { s: ROADS[0]!.length / 2 } }

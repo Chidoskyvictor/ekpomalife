@@ -4,7 +4,7 @@ import { useEffect, useMemo } from 'react'
 import { BoxGeometry, Color, ConeGeometry, CylinderGeometry, Float32BufferAttribute, IcosahedronGeometry, Matrix4, MeshBasicMaterial, MeshLambertMaterial, Object3D, type BufferGeometry } from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { CROWN_GREENS, Instances, shopGeometry } from '@/components/travel/drive-scene'
-import { HALF, ROADS, ROAD_PLACES, spotAt, type Road, type RoadKind } from '@/lib/game/drive-road'
+import { HALF, SCENE_ROADS as ROADS, ROAD_PLACES, roadsNear, spotAt, type Road, type RoadKind } from '@/lib/game/drive-road'
 import { mulberry32 } from '@/lib/game/world-layout'
 
 /*
@@ -246,7 +246,7 @@ function areaStyle(road: Road, index: number, area: number): Style {
 /** Distance from a point to the nearest road other than `skip`, less that road's half-width. */
 function clearOfRoads(x: number, z: number, skip: Road) {
   let best = Infinity
-  for (const road of ROADS) {
+  for (const road of roadsNear(x, z, 80)) {
     if (road === skip) continue
     for (let i = 0; i < road.pts.length; i++) {
       const d = Math.hypot(road.pts[i]![0] - x, road.pts[i]![1] - z) - HALF[road.kind]
