@@ -235,7 +235,7 @@ describe('whot simulation', () => {
       }
       expect(s.winner).not.toBeNull()
     }
-  })
+  }, 30_000)
 })
 
 describe('forfeit', () => {

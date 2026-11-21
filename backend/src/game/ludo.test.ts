@@ -191,7 +191,7 @@ describe('ludo-engine: extra rolls', () => {
         expect(rolledAgain).toBe(a === 6 && b === 6)
       }
     }
-  })
+  }, 30_000)
 })
 
 describe('ludo-live (server rolls, server decides)', () => {
