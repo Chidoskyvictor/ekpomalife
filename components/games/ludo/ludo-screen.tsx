@@ -244,7 +244,8 @@ export function LudoScreen({ view, names, mySeat, subtitle, onRoll, onMove, onEx
     lastN.current = last.n
     if (first) return
     let timer: number | undefined
-    if (last.roll) {
+    // Only a real roll tumbles the dice; a move event also carries the dice it used
+    if (last.roll && !last.move) {
       setRolling(true)
       playSfx('cardPlay')
       timer = window.setTimeout(() => setRolling(false), 650)
