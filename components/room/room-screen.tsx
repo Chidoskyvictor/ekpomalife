@@ -1,5 +1,7 @@
 'use client'
 
+import { TipSheet } from '@/components/home/tip-sheet'
+import { openTipSheet, useStreetBoy } from '@/lib/game/street-boy'
 import dynamic from 'next/dynamic'
 import { useParams, useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -230,6 +232,7 @@ export function RoomScreen() {
   const myCar = own ? (garage?.cars.find((c) => c.active) ?? null) : null
   const carAtHome = Boolean(myCar && carPlace(myCar, garage?.homePlaceId) === (garage?.homePlaceId ?? 'home'))
   const [nearCar, setNearCar] = useState(false)
+  const { near: boyNear } = useStreetBoy()
   /** Walk up to your car outside and drive off from your street. */
   const getIn = () => {
     if (!myCar || !state) return
@@ -372,6 +375,11 @@ export function RoomScreen() {
                     🚗 Get in
                   </button>
                 ) : null}
+                {boyNear ? (
+                  <button type="button" className={`${travelStyles.cornerBtn} ${travelStyles.go}`} onClick={openTipSheet}>
+                    🙏 Tip
+                  </button>
+                ) : null}
                 <button type="button" className={`${travelStyles.cornerBtn} ${scene.nearGate ? travelStyles.go : ''}`} onClick={() => scene.goTo(false)}>
                   🏠 Go inside
                 </button>
@@ -396,6 +404,7 @@ export function RoomScreen() {
         {owner ? <PersonSheet peer={people.target} homeOwner={owner} onClose={() => people.setTarget(null)} people={people} /> : null}
         <AskPrompt live={live} />
         {own ? <CarLotSheet /> : null}
+        {own && scene.outside ? <TipSheet word={state?.appearance?.body === 'woman' ? 'Sister' : 'Brother'} /> : null}
         {/* No "My room" bar: tap a piece of furniture to use it */}
         <FurnitureSheet
           furniture={furniture}

@@ -4,6 +4,8 @@ import { Html } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 import { useMemo, useRef, useState } from 'react'
 import type { Group } from 'three'
+import { readBoyReaction, setBoyNear } from '@/lib/game/street-boy'
+import type { FigurePose } from '@/components/look/character-figure'
 import { CarModel } from '@/components/cars/car-model'
 import { CharacterFigure } from '@/components/look/character-figure'
 import { normalizeAppearance, type Appearance } from '@/lib/game/look'
@@ -37,6 +39,10 @@ const BOY_SPEED = 1.3
 /** Within this many metres he comes over and asks; his tag shows while you are this close. */
 const ASK_REACH = 4.2
 const STOP_SHORT = 1.3
+/** After a big tip: he dances a moment, walks off the street, and is gone this long (ms). */
+const CELEBRATE_MS = 2200
+const AWAY_MS = 120_000
+const THANKS_MS = 3500
 
 /**
  * The street boy: strolls up and down the road, comes over when you are near and stops a step
@@ -65,6 +71,14 @@ export function StreetBoy({
   const [asking, setAsking] = useState(false)
   const askingRef = useRef(false)
   const look = useMemo(() => BOY, [])
+  const pose = useRef<FigurePose | null>(null)
+  const [line, setLine] = useState<string | null>(null)
+  const [gone, setGone] = useState(false)
+  const phase = useRef<'roam' | 'celebrate' | 'leave' | 'away'>('roam')
+  const phaseAt = useRef(0)
+  const seen = useRef(readBoyReaction()?.id ?? 0)
+  const lineUntil = useRef(0)
+  const exitX = useRef(maxX + 8)
 
   useFrame((_, delta) => {
     const g = group.current
@@ -72,10 +86,68 @@ export function StreetBoy({
     const dt = Math.min(delta, 0.05)
     const [px, pz] = player.current
     const [bx, bz] = pos.current
+    const now = performance.now()
+    // A tip just landed
+    const r = readBoyReaction()
+    if (r && r.id !== seen.current && phase.current === 'roam') {
+      seen.current = r.id
+      lineUntil.current = now + (r.big ? CELEBRATE_MS : THANKS_MS)
+      setLine(r.big ? 'Thank you! You don try! 🙏' : `God bless you, ${word} 🙏`)
+      if (r.big) {
+        phase.current = 'celebrate'
+        phaseAt.current = now
+        pose.current = 'dance'
+        // No more tips while he is leaving
+        askingRef.current = false
+        setBoyNear(false)
+        setAsking(false)
+        exitX.current = bx < (minX + maxX) / 2 ? minX - 8 : maxX + 8
+      }
+    }
+    if (phase.current === 'away') {
+      if (now - phaseAt.current > AWAY_MS) {
+        // Back on the street from the far end
+        phase.current = 'roam'
+        pos.current = [exitX.current, z]
+        goal.current = [exitX.current < 0 ? minX + 3 : maxX - 3, z]
+        g.position.set(exitX.current, 0, z)
+        setGone(false)
+      }
+      return
+    }
+    if (line && now > lineUntil.current && phase.current !== 'celebrate') setLine(null)
+    if (phase.current === 'celebrate') {
+      moving.current = false
+      if (now - phaseAt.current > CELEBRATE_MS) {
+        phase.current = 'leave'
+        pose.current = null
+        setLine(null)
+      }
+      return
+    }
+    if (phase.current === 'leave') {
+      const dxe = exitX.current - bx
+      if (Math.abs(dxe) < 0.4) {
+        phase.current = 'away'
+        phaseAt.current = now
+        moving.current = false
+        askingRef.current = false
+        setBoyNear(false)
+        setAsking(false)
+        setGone(true)
+        return
+      }
+      moving.current = true
+      pos.current = [bx + Math.sign(dxe) * Math.min(BOY_SPEED * 1.4 * dt, Math.abs(dxe)), bz]
+      g.rotation.y += (Math.atan2(Math.sign(dxe), 0) - g.rotation.y) * Math.min(1, dt * 8)
+      g.position.set(pos.current[0], 0, pos.current[1])
+      return
+    }
     const near = Math.hypot(px - bx, pz - bz) < ASK_REACH
     if (near !== askingRef.current) {
       askingRef.current = near
       setAsking(near)
+      setBoyNear(near)
     }
     // Near you: walk over and stop a step away. Otherwise stroll between the ends of the street.
     let [gx, gz] = goal.current
@@ -104,13 +176,13 @@ export function StreetBoy({
   })
 
   return (
-    <group ref={group} position={[pos.current[0], 0, pos.current[1]]}>
+    <group ref={group} position={[pos.current[0], 0, pos.current[1]]} visible={!gone}>
       <group scale={BOY_SCALE}>
-        <CharacterFigure appearance={look} moving={moving} />
+        <CharacterFigure appearance={look} moving={moving} pose={pose} />
       </group>
-      {asking ? (
+      {(line || asking) && !gone ? (
         <Html position={[0, 1.55, 0]} center zIndexRange={[12, 0]} style={{ pointerEvents: 'none' }}>
-          <span className={styles.boyTag}>{word}, any work?</span>
+          <span className={styles.boyTag}>{line ?? `${word}, any work?`}</span>
         </Html>
       ) : null}
     </group>
