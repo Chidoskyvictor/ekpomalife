@@ -1,11 +1,269 @@
-/* Nearby voice: the round place-sheet button turns green while your mic is on. */
-.on {
-  background: #16a34a !important;
-  color: #fff !important;
-  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.28);
+/* Voice pill on the place sheet: who's live, Join / mic / Leave. Faces always visible while live or joined. */
+.wrap {
+  position: relative;
+  padding: 0 10px 10px;
 }
 
-/* Someone else is talking: a soft green ring */
-.hearing {
-  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.45);
+.pill {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 6px 5px 10px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.05);
+  color: inherit;
+  font-size: 13px;
+}
+
+.night {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.joined {
+  border-color: rgba(22, 163, 74, 0.55);
+  background: linear-gradient(135deg, rgba(22, 163, 74, 0.2), rgba(16, 185, 129, 0.1));
+}
+
+.live {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 5px;
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #16a34a;
+  box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.6);
+  animation: ping 1.8s infinite;
+}
+
+@keyframes ping {
+  70% {
+    box-shadow: 0 0 0 7px rgba(22, 163, 74, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(22, 163, 74, 0);
+  }
+}
+
+.faces {
+  display: inline-flex;
+  flex: none;
+  padding-left: 6px;
+}
+
+.face {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  margin-left: -6px;
+  place-items: center;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.18);
+}
+
+.night .face {
+  border-color: #241a4a;
+}
+
+.faceTalking {
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.8);
+}
+
+.faceMore {
+  background: #475569;
+  font-size: 11px;
+}
+
+.text {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  opacity: 0.8;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.actions {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+}
+
+.join,
+.leave,
+.icon {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+}
+
+.join {
+  padding: 0 18px;
+  background: #16a34a;
+  color: #fff;
+  box-shadow: 0 3px 0 #0f7a37;
+}
+
+.join:disabled {
+  opacity: 0.6;
+}
+
+.leave {
+  padding: 0 12px;
+  background: rgba(220, 38, 38, 0.14);
+  color: #dc2626;
+}
+
+.icon {
+  width: 36px;
+  background: rgba(15, 23, 42, 0.08);
+  color: inherit;
+}
+
+.night .icon {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.micOn {
+  background: #16a34a !important;
+  color: #fff !important;
+}
+
+/* Owner's privacy panel */
+.privacy {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 12px;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 16px;
+  background: rgba(15, 23, 42, 0.04);
+}
+
+.privacyHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.link {
+  min-height: 36px;
+  padding: 0 8px;
+  border: 0;
+  background: none;
+  color: #2563eb;
+  font: inherit;
+  font-weight: 800;
+}
+
+.modes {
+  display: grid;
+  gap: 6px;
+}
+
+.mode {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  border: 2px solid transparent;
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.06);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.mode span {
+  display: grid;
+}
+
+.mode small {
+  opacity: 0.7;
+  font-size: 11px;
+}
+
+.modeOn {
+  border-color: #16a34a;
+  background: rgba(22, 163, 74, 0.14);
+}
+
+.invites {
+  display: grid;
+  gap: 6px;
+}
+
+.inviteForm {
+  display: flex;
+  gap: 6px;
+}
+
+.inviteForm input {
+  min-width: 0;
+  min-height: 40px;
+  flex: 1;
+  padding: 0 12px;
+  border: 1px solid rgba(15, 23, 42, 0.18);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.8);
+  color: #0f172a;
+  font-size: 16px;
+}
+
+.inviteForm button {
+  min-height: 40px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 12px;
+  background: #16a34a;
+  color: #fff;
+  font-weight: 800;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.1);
+  color: inherit;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.err {
+  margin: 0;
+  color: #dc2626;
+  font-size: 12px;
 }

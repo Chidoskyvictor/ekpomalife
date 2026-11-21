@@ -6,7 +6,7 @@ export type GameMatch = {
   id: string
   game: string
   variant: string
-  kind: 'challenge' | 'quick'
+  kind: 'challenge' | 'quick' | 'hosted'
   stake: number
   status: 'pending' | 'active' | 'finished' | 'declined' | 'expired' | 'cancelled' | 'disputed'
   /** 0 = host (challenged / queued first, breaks first), 1 = guest */
@@ -19,13 +19,10 @@ export type GameMatch = {
   expiresAt: string
 }
 
-export type SnookerVariant = 'six' | 'classic' | 'clearance' | 'black'
+export type SnookerVariant = 'eight'
 
 export const SNOOKER_VARIANTS: { id: SnookerVariant; label: string; note: string }[] = [
-  { id: 'six', label: 'Six reds', note: 'Quick frame' },
-  { id: 'classic', label: '15 reds', note: 'Full frame' },
-  { id: 'clearance', label: 'Colours', note: 'Yellow to black' },
-  { id: 'black', label: 'Black ball', note: 'Sudden death' },
+  { id: 'eight', label: '8 ball pool', note: 'Solids & stripes' },
 ]
 
 type MatchOk = { ok: true; match: GameMatch }

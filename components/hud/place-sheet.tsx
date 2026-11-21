@@ -78,8 +78,6 @@ export function PlaceSheet({
           {subtitle ? <span>{subtitle}</span> : null}
         </button>
         <div className={styles.buttons}>
-          {/* Talk to the people in this place (every place sheet has it) */}
-          <NearbyMic className={styles.round} badgeClassName={styles.badge} />
           {buttons.map((b) => (
             <button key={b.label} type="button" className={styles.round} onClick={b.onClick} disabled={b.disabled} aria-label={b.label} title={b.label}>
               {b.icon}
@@ -91,6 +89,7 @@ export function PlaceSheet({
           </button>
         </div>
       </div>
+      <NearbyMic tone={tone} />
       {expanded && children ? <div className={styles.body}>{children}</div> : null}
     </section>
   )

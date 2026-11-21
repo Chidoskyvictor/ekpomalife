@@ -108,6 +108,7 @@ export type PhoneAppMeta = {
 
 /** Home-screen order: apps with real content first (Messages, Jobs, Invest, Bank, Prodigy), then the rest. */
 export const PHONE_APPS: PhoneAppMeta[] = [
+  { id: 'games', label: 'Games', emoji: '🎮', status: 'live', tint: '#3563e9', image: '/apps/icons/games.svg', fullBleed: true },
   { id: 'gigs', label: 'Gigs', emoji: '🛠️', status: 'live', tint: '#ea580c' },
   { id: 'messages', label: 'Messages', emoji: '💬', status: 'live', tint: '#6366f1' },
   { id: 'jobs', label: 'Jobs', emoji: '💼', status: 'live', tint: '#3d9ad6' },
@@ -130,7 +131,6 @@ export const PHONE_APPS: PhoneAppMeta[] = [
   { id: 'map', label: 'Map', emoji: '🗺️', status: 'live', tint: '#0d9488' },
   { id: 'calendar', label: 'Calendar', emoji: '📅', status: 'live', tint: '#2563eb' },
   { id: 'profile', label: 'Profile', emoji: '👤', status: 'live', tint: '#0ea5e9' },
-  { id: 'games', label: 'Games', emoji: '🎮', status: 'live', tint: '#0891b2' },
   { id: 'spaces', label: 'Spaces', emoji: '🎙️', status: 'live', tint: '#7c3aed' },
   { id: 'anonymous', label: 'Anonymous', emoji: '🎭', status: 'live', tint: '#4c1d95' },
   { id: 'family', label: 'Family', emoji: '💘', status: 'live', tint: '#db2777' },

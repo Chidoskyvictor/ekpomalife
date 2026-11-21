@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation'
 import type { ReactNode } from 'react'
 import { AuthGate } from '@/components/auth/auth-gate'
 import { Hud } from '@/components/hud/hud'
+import { CallHost } from '@/components/hud/call-host'
 import { NearbyVoiceHost } from '@/components/hud/nearby-mic'
 import { WelcomeBack } from '@/components/hud/welcome-back'
 import { OfflineBanner } from '@/components/world/map-stage'
@@ -27,6 +28,7 @@ function PlayProviders({ children }: { children: ReactNode }) {
           {children}
           <Hud />
           <NearbyVoiceHost />
+          <CallHost />
           <WelcomeBack />
           <OfflineBanner />
         </main>

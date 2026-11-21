@@ -1,12 +1,13 @@
 'use client'
 
 import { PlayerFace } from '@/components/look/player-face'
-import { Bell, Check, CheckCheck, DoorOpen, Heart, Home, MoreHorizontal, Reply, Search, Send, Smile, SquarePen, User, Users, X, Lock, Mic, ChevronUp, Trash2 } from 'lucide-react'
+import { Bell, Check, CheckCheck, DoorOpen, Heart, Home, MoreHorizontal, Phone, Reply, Search, Send, Smile, SquarePen, User, Users, X, Lock, Mic, ChevronUp, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import { PlayerProfilePanel } from '@/components/profile/player-profile-panel'
 import { tickFor, useChat, type Tick } from '@/hooks/use-chat'
 import { useGameOptional } from '@/hooks/use-game'
+import { calls } from '@/components/hud/call-host'
 import { announceFamilyChange, sendFamilyRequest } from '@/lib/game/family-api'
 import { useChatUnread } from '@/hooks/use-chat-unread'
 import { useMyHostel } from '@/hooks/use-hostel'
@@ -789,6 +790,11 @@ function ChatView({
     setMoreOpen(false)
     if (await sendExtra('', 'invite')) setNotice(`Invite sent to ${chat.peer!.displayName}`)
   }
+  const callThem = async () => {
+    setMoreOpen(false)
+    const err = await calls.start(chat.peer!.username)
+    if (err) setNotice(err)
+  }
   // Same request as the 💘 button on their card; the server says if you aren't close enough yet
   const askBae = async () => {
     setMoreOpen(false)
@@ -858,6 +864,9 @@ function ChatView({
                         }}
                       >
                         <DoorOpen size={16} aria-hidden="true" /> Visit their place
+                      </button>
+                      <button type="button" role="menuitem" onClick={() => void callThem()}>
+                        <Phone size={16} aria-hidden="true" /> Voice call
                       </button>
                       <button type="button" role="menuitem" onClick={() => void askBae()}>
                         <Heart size={16} aria-hidden="true" /> Ask to be my bae
@@ -1532,21 +1541,27 @@ function NoticePill({ message, onVisit }: { message: ChatMessage; onVisit: (user
 
 /** "@x challenged you to Snooker" — Open goes to the Games app's challenges list. */
 function GameNotice({ message }: { message: ChatMessage }) {
-  let info: { matchId?: string; game?: string; stake?: number } = {}
+  let info: { matchId?: string; game?: string; stake?: number; sat?: boolean } = {}
   try {
     info = JSON.parse(message.body) as typeof info
   } catch {}
-  const game = info.game === 'snooker' ? 'Snooker' : 'a game'
+  const game = info.game === 'snooker' ? '8 Ball Pool' : info.game === 'chess' ? 'Chess' : info.game === 'ludo' ? 'Ludo' : info.game === 'tictactoe' ? 'Tic tac toe' : 'a game'
   const stake = info.stake ? ` · ${naira(info.stake)}` : ''
   const name = message.sender?.username ? `@${message.sender.username}` : 'They'
-  const text = message.mine ? `🎮 You challenged them to ${game}${stake}` : `🎮 ${name} challenged you to ${game}${stake}`
+  const text = info.sat
+    ? message.mine
+      ? `🪑 You sat at their ${game} table${stake}`
+      : `🪑 ${name} sat at your ${game} table${stake}. Your match is live`
+    : message.mine
+      ? `🎮 You challenged them to ${game}${stake}`
+      : `🎮 ${name} challenged you to ${game}${stake}`
   return (
     <div className={styles.noticeRow}>
       <span className={`${styles.noticePill} ${styles.noticeGame}`}>
         {text} · {clockTime(message.createdAt)}
         {!message.mine ? (
-          <button type="button" className={styles.noticeLink} onClick={() => requestOpenGames({})}>
-            Open
+          <button type="button" className={styles.noticeLink} onClick={() => requestOpenGames(info.sat && info.matchId ? { matchId: info.matchId } : {})}>
+            {info.sat ? 'Play' : 'Open'}
           </button>
         ) : null}
       </span>

@@ -2,7 +2,7 @@
 
 import { LiveKitRoom, RoomAudioRenderer, useLocalParticipant, useParticipants, useSpeakingParticipants } from '@livekit/components-react'
 import { useEffect } from 'react'
-import { nearbyVoice } from './nearby-voice-store'
+import { nearbyVoice, type VoiceFace } from './nearby-voice-store'
 
 /* Loaded only once you join the voice where you are, so LiveKit stays out of the main bundle.
    Joining means you want to talk, so the mic goes on as soon as the room connects. Draws nothing:
@@ -13,12 +13,14 @@ function Reporter({ onError }: { onError: (text: string) => void }) {
   const people = useParticipants()
   const speakers = useSpeakingParticipants()
   const others = people.filter((p) => p.identity !== localParticipant.identity).length
-  const talker = speakers.find((p) => p.identity !== localParticipant.identity)
-  const talking = talker ? talker.name || talker.identity : null
+  const talkers = speakers.filter((p) => p.identity !== localParticipant.identity)
+  const talking = talkers[0] ? talkers[0].name || talkers[0].identity : null
+  const talkingMore = Math.max(0, talkers.length - 1)
 
   useEffect(() => {
-    nearbyVoice.report({ micOn: isMicrophoneEnabled, others, talking })
-  }, [isMicrophoneEnabled, others, talking])
+    const members: VoiceFace[] = people.map((p) => ({ id: p.identity, name: p.name || p.identity }))
+    nearbyVoice.report({ micOn: isMicrophoneEnabled, others, talking, talkingMore, members })
+  }, [isMicrophoneEnabled, others, talking, talkingMore, people])
 
   useEffect(() => {
     nearbyVoice.setToggle(async () => {
@@ -41,7 +43,7 @@ export default function NearbyMicRoom({ url, token, onError, onLeave }: { url: s
       serverUrl={url}
       token={token}
       connect
-      audio
+      audio={false}
       video={false}
       onMediaDeviceFailure={() => onError('Allow the microphone to talk.')}
       onDisconnected={onLeave}

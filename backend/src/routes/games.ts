@@ -1,7 +1,9 @@
 import type { FastifyInstance, FastifyReply } from 'fastify'
 import { z } from 'zod'
 import { getSessionUser } from '../auth/current-user.js'
-import { createGameTicket, joinGame } from '../game/game-live.js'
+import { createGameTicket, createWatchTicket, joinGame } from '../game/game-live.js'
+import { HOSTABLE_GAMES, hostTable, listTables, hubSummary, liveMatches, sitAtTable, watchableMatch } from '../game/game-hub.js'
+import { headToHead, topChart } from '../game/game-results.js'
 import { CHAT_KINDS, chatTicket, gameVoiceAccess, joinGameChat } from '../game/game-chat.js'
 import { liveKitConfig } from '../game/livekit.js'
 import {
@@ -109,6 +111,77 @@ export async function gamesRoutes(app: FastifyInstance) {
     if (!seat) return reply.code(404).send({ ok: false, error: 'Match not found.' })
     if (seat.status !== 'active') return reply.code(409).send({ ok: false, error: 'This match is not live.' })
     return reply.send({ ok: true, ticket: createGameTicket(id, seat.character_id, seat.seat, seat.game), seat: seat.seat })
+  })
+
+  // ── Games hub: hosted tables, watch, top charts ──
+  app.get('/games/tables', async (request, reply) => {
+    const user = await getSessionUser(request)
+    if (!user) return notLoggedIn(reply)
+    const q = z.object({ game: z.string().max(30).optional() }).safeParse(request.query)
+    return send(reply, await listTables(user.id, q.success ? q.data.game : undefined))
+  })
+
+  app.post('/games/tables', rate, async (request, reply) => {
+    const user = await getSessionUser(request)
+    if (!user) return notLoggedIn(reply)
+    const parsed = z
+      .object({
+        game: z.enum(HOSTABLE_GAMES),
+        variant: z.string().max(30).optional(),
+        stake: z.number().int().min(0).max(1_000_000_000_000).default(0),
+        note: z.string().max(80).optional(),
+      })
+      .safeParse(request.body)
+    if (!parsed.success) return reply.code(400).send({ ok: false, error: 'Pick a game and a stake.' })
+    return send(reply, await hostTable(user.id, parsed.data))
+  })
+
+  app.post('/games/tables/:id/sit', rate, async (request, reply) => {
+    const user = await getSessionUser(request)
+    if (!user) return notLoggedIn(reply)
+    return send(reply, await sitAtTable(user.id, idParams.parse(request.params).id))
+  })
+
+  // The host takes the table down (stake refunded); same rules as taking back a challenge
+  app.post('/games/tables/:id/cancel', rate, async (request, reply) => {
+    const user = await getSessionUser(request)
+    if (!user) return notLoggedIn(reply)
+    return send(reply, await closeChallenge(user.id, idParams.parse(request.params).id))
+  })
+
+  app.get('/games/summary', async (request, reply) => {
+    const user = await getSessionUser(request)
+    if (!user) return notLoggedIn(reply)
+    return reply.send(await hubSummary())
+  })
+
+  app.get('/games/live', async (request, reply) => {
+    const user = await getSessionUser(request)
+    if (!user) return notLoggedIn(reply)
+    return reply.send(await liveMatches())
+  })
+
+  app.post('/games/matches/:id/watch', rate, async (request, reply) => {
+    const user = await getSessionUser(request)
+    if (!user) return notLoggedIn(reply)
+    const m = await watchableMatch(idParams.parse(request.params).id)
+    if (!m) return reply.code(404).send({ ok: false, error: 'That match has finished.' })
+    return reply.send({ ok: true, match: m, ticket: createWatchTicket(m.id, user.id, m.game) })
+  })
+
+  app.get('/games/charts', async (request, reply) => {
+    const user = await getSessionUser(request)
+    if (!user) return notLoggedIn(reply)
+    const q = z.object({ game: z.string().min(1).max(30), period: z.enum(['week', 'all']).default('week') }).safeParse(request.query)
+    if (!q.success) return reply.code(400).send({ ok: false, error: 'Pick a game.' })
+    return reply.send(await topChart(user.id, q.data.game, q.data.period))
+  })
+
+  app.get('/games/h2h/:username', async (request, reply) => {
+    const user = await getSessionUser(request)
+    if (!user) return notLoggedIn(reply)
+    const { username } = z.object({ username: z.string().min(1).max(40) }).parse(request.params)
+    return reply.send(await headToHead(user.id, username))
   })
 
   // Ludo tables: 2–4 players, join by code (same flow as Whot tables)

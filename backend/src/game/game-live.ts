@@ -2,7 +2,7 @@ import { randomBytes } from 'node:crypto'
 import type { WebSocket } from 'ws'
 import { pool } from '../db.js'
 import { applyMove, replayTtt, type TttState } from './tictactoe-rules.js'
-import { CHESS_MESSAGES, chessJoin, chessMessage, type ChessEmit } from './chess-match.js'
+import { CHESS_MESSAGES, chessJoin, chessMessage, chessSnapshot, type ChessEmit } from './chess-match.js'
 import { act as ludoAct, dropLudoRoom, ludoRoom, ludoView, setLudoHooks } from './ludo-live.js'
 
 /*
@@ -15,9 +15,27 @@ import { act as ludoAct, dropLudoRoom, ludoRoom, ludoView, setLudoHooks } from '
 type Seat = { socket: WebSocket | null; characterId: string; lastSeen: number }
 /** Last settled table per match, so a phone that rejoins picks up where the frame is. */
 const lastTable = new Map<string, unknown>()
-type Ticket = { matchId: string; characterId: string; seat: number; expires: number; game?: string }
+type Ticket = { matchId: string; characterId: string; seat: number; expires: number; game?: string; watch?: boolean }
 
 const tickets = new Map<string, Ticket>()
+/** Read-only spectators per match (Games → Watch). They get every update the players get and can send nothing. */
+/** Game of each live match room, for counting who is playing what right now. */
+const roomGame = new Map<string, string>()
+/** Players with an open socket in a 1v1 match, per game, right now. */
+export function matchConnected() {
+  const out: Record<string, number> = {}
+  for (const [id, room] of rooms) {
+    const game = roomGame.get(id)
+    if (!game) continue
+    for (const seat of room.values()) if (seat.socket && seat.socket.readyState === seat.socket.OPEN) out[game] = (out[game] ?? 0) + 1
+  }
+  return out
+}
+const watchers = new Map<string, Set<WebSocket>>()
+export const watcherCount = (matchId: string) => watchers.get(matchId)?.size ?? 0
+function mirror(matchId: string, message: unknown) {
+  for (const w of watchers.get(matchId) ?? []) send(w, message)
+}
 const rooms = new Map<string, Map<number, Seat>>()
 /** When the first player sat down; an opponent who never shows up is "away" from then. */
 const openedAt = new Map<string, number>()
@@ -45,6 +63,7 @@ const LUDO_ACTIONS = new Set(['roll', 'move'])
 setLudoHooks({
   broadcast: (matchId, msg) => {
     for (const seat of rooms.get(matchId)?.values() ?? []) send(seat.socket, msg)
+    mirror(matchId, msg)
   },
   finish: (matchId, winnerSeat) => {
     // Loaded here, not at the top: games.ts imports this file (a top-level import would be a cycle)
@@ -53,6 +72,15 @@ setLudoHooks({
       .catch((error) => console.error('ludo settle failed', error))
   },
 })
+
+/** A spectator ticket: any signed-in player may watch a live match, but only watch. */
+export function createWatchTicket(matchId: string, characterId: string, game: string) {
+  const token = randomBytes(24).toString('base64url')
+  const now = Date.now()
+  for (const [key, t] of tickets) if (t.expires < now) tickets.delete(key)
+  tickets.set(token, { matchId, characterId, seat: 2, expires: now + 60_000, game, watch: true })
+  return token
+}
 
 export function createGameTicket(matchId: string, characterId: string, seat: number, game?: string) {
   const token = randomBytes(24).toString('base64url')
@@ -100,6 +128,7 @@ export async function joinGame(socket: WebSocket, token: string | undefined) {
     return
   }
   tickets.delete(token!)
+  if (ticket.watch) return void joinWatch(socket, ticket)
   if (ticket.game === 'tictactoe') {
     try {
       await loadTtt(ticket.matchId)
@@ -112,6 +141,7 @@ export async function joinGame(socket: WebSocket, token: string | undefined) {
   let room = rooms.get(ticket.matchId)
   if (!room) {
     rooms.set(ticket.matchId, (room = new Map()))
+    if (ticket.game) roomGame.set(ticket.matchId, ticket.game)
     openedAt.set(ticket.matchId, Date.now())
   }
   const old = room.get(ticket.seat)
@@ -133,6 +163,7 @@ export async function joinGame(socket: WebSocket, token: string | undefined) {
   // Chess is refereed by the server (chess-match.ts); other games just relay
   const emitChess: ChessEmit = (to, message) => {
     for (const n of to === 'both' ? [0, 1] : [to]) send(room!.get(n)?.socket ?? null, message)
+    if (to === 'both') mirror(ticket.matchId, message)
   }
   if (ticket.game === 'chess') void chessJoin(ticket.matchId, ticket.seat as 0 | 1, emitChess).catch(() => {})
 
@@ -154,6 +185,7 @@ export async function joinGame(socket: WebSocket, token: string | undefined) {
       const out = { t: 'ttt', ...tttView(state) }
       send(socket, out)
       send(room!.get(1 - ticket.seat)?.socket ?? null, out)
+      mirror(ticket.matchId, out)
       if (state.winnerSeat !== null) void saved.then(() => tttSettler?.(ticket.matchId)).catch(() => {}) // phones' reports retry it
       return
     }
@@ -172,6 +204,7 @@ export async function joinGame(socket: WebSocket, token: string | undefined) {
     seat.lastSeen = Date.now()
     if (msg.t === 'settled' && String(data).length < 16_000) lastTable.set(ticket.matchId, msg.snap)
     send(room!.get(1 - ticket.seat)?.socket ?? null, msg)
+    mirror(ticket.matchId, msg)
   })
 
   socket.on('close', () => {
@@ -184,6 +217,7 @@ export async function joinGame(socket: WebSocket, token: string | undefined) {
       const r = rooms.get(ticket.matchId)
       if (r && [...r.values()].every((s) => !s.socket)) {
         rooms.delete(ticket.matchId)
+        roomGame.delete(ticket.matchId)
         openedAt.delete(ticket.matchId)
         lastTable.delete(ticket.matchId)
         // A decided board stays so a late report can still settle; open ones go with the room
@@ -192,4 +226,30 @@ export async function joinGame(socket: WebSocket, token: string | undefined) {
       }
     }, 15 * 60_000)
   })
+}
+
+/** A spectator's socket: send the current position, then mirror the live updates. Nothing they send is read. */
+async function joinWatch(socket: WebSocket, ticket: Ticket) {
+  let set = watchers.get(ticket.matchId)
+  if (!set) watchers.set(ticket.matchId, (set = new Set()))
+  set.add(socket)
+  socket.on('close', () => {
+    set!.delete(socket)
+    if (!set!.size) watchers.delete(ticket.matchId)
+  })
+  send(socket, { t: 'hello', watch: true, game: ticket.game })
+  try {
+    if (ticket.game === 'tictactoe') {
+      await loadTtt(ticket.matchId)
+      send(socket, { t: 'ttt', ...tttView(tttMatches.get(ticket.matchId)!) })
+    } else if (ticket.game === 'ludo') {
+      send(socket, ludoView(ticket.matchId))
+    } else if (ticket.game === 'chess') {
+      const snap = await chessSnapshot(ticket.matchId)
+      if (snap) send(socket, { t: 'chess', ...snap })
+    }
+  } catch {
+    send(socket, { t: 'error', error: 'Couldn’t load the board.' })
+  }
+  if (lastTable.has(ticket.matchId)) send(socket, { t: 'settled', snap: lastTable.get(ticket.matchId) })
 }
