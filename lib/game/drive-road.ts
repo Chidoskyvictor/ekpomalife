@@ -175,6 +175,28 @@ export function drivable(x: number, z: number): boolean {
 
 export const blockedOnRoad = (x: number, z: number) => !drivable(x, z)
 
+/** How far past a road's tarmac edge the verge stays drivable before the building line (a wall) starts. */
+export const VERGE = 2.8
+
+/**
+ * What is under a car's wheel: the tarmac, the grass and dirt beside it (slow and bumpy, still
+ * drivable), or a wall: the highway's divider, the end of a road, or the building line past the verge.
+ */
+export function surfaceAt(x: number, z: number): 'road' | 'grass' | 'wall' {
+  let grass = false
+  for (const road of roadsNear(x, z)) {
+    const p = locateOn(road, x, z)
+    const half = HALF[road.kind]
+    if (p.gap > half + VERGE) continue
+    const ends = (p.s <= 0.01 || p.s >= road.length - 0.01) && p.gap > 0.5
+    if (road.kind === 'highway' && Math.abs(p.off) < MEDIAN && !dividerOpen(road, p.s) && p.gap <= half) return 'wall'
+    if (ends) continue
+    if (p.gap <= half) return 'road'
+    grass = true
+  }
+  return grass ? 'grass' : 'wall'
+}
+
 /** The road you are on (the nearest one), with where you are along it. */
 export function roadUnder(x: number, z: number): { road: Road; s: number; off: number } | null {
   let best: { road: Road; s: number; off: number; gap: number } | null = null

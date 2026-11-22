@@ -3,24 +3,26 @@
 import { useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useMemo, useRef, type MutableRefObject } from 'react'
 import { CanvasTexture, MathUtils, SRGBColorSpace, Vector3, type Group } from 'three'
-import { CarModel } from '@/components/cars/car-model'
+import { CarModel, type CarRig } from '@/components/cars/car-model'
 import { CarDriver } from '@/components/drive/car-driver'
 import { useLowPerf } from '@/hooks/use-low-perf'
 import type { Peer, PeerState } from '@/lib/game/club-live'
 import { CARS } from '@/lib/game/cars-rules'
+import { bodyFor, bumpHeight, drive, moveBox, newBody, suspend, crashStrength, type Surface, type Tune } from '@/lib/game/car-physics'
+import { playCrash } from '@/lib/game/crash-sound'
 import { playHorn } from '@/lib/game/horn'
 import { seatFor } from '@/lib/game/car-seats'
 import { GET_IN_MS, driveAudio, driveCommand, driveInput, driveTelemetry, driveView, reducedMotion, type DriveStart } from '@/lib/game/drive'
 
 /* Feel of the car, in map units (a car is about 1.9 long there). Multiplied by the world's `unit`.
-   Each car has its own top speed (km/h on the dial = units × 9) and pull; these are for an unknown model. */
+   Each car has its own top speed (km/h on the dial = units × 9) and pull; these are for an unknown model.
+   The maths itself is in lib/game/car-physics.ts. */
 const TOP = 9
 const TOP_OFF_ROAD = 4.6
 const REVERSE = 3
 const GAS = 5.5
 const BRAKE = 13
 const DRAG = 2.4
-const TURN = 1.25
 /** A hit faster than this leaves a dent. */
 const DENT_SPEED = 4.6
 
@@ -29,9 +31,10 @@ export type DriveWorld = {
   unit: number
   /** How big to draw the car model (it is modelled in metres). */
   carScale: number
+  /** Something solid here? (the divider, the building line, the ends of roads, other cars) */
   blocked: (x: number, z: number) => boolean
-  /** Full speed here? (off the tarmac is slower) */
-  fast: (x: number, z: number) => boolean
+  /** What is under the wheel: tarmac, grass (slow and bumpy) or a wall. */
+  surface: (x: number, z: number) => Surface
 }
 
 /**
@@ -58,7 +61,9 @@ export function DriveCar({
   const spec = CARS.find((c) => c.id === car.model)
   const carTop = spec ? spec.topKmh / 9 : TOP
   const carGas = spec?.accel ?? GAS
-  const body = useRef({ x: start.x, z: start.z, h: start.h, v: 0, shake: 0, steer: 0 })
+  const body = useRef({ ...newBody(start.x, start.z, start.h), shake: 0, hitAt: 0, bumpY: 0 })
+  const rig = useRef<CarRig>({ steer: 0, spin: 0, braking: false, reversing: false })
+  const shape = bodyFor(car.model)
   const look = useMemo(() => new Vector3(), [])
   const want = useMemo(() => new Vector3(), [])
   const placed = useRef(false)
@@ -98,9 +103,8 @@ export function DriveCar({
     climb.current = reducedMotion() ? target : MathUtils.clamp(climb.current + Math.sign(target - climb.current) * (delta * 1000) / GET_IN_MS, 0, 1)
     // Hands off the pedals until you are in
     const seated = climb.current >= 1 && !driveCommand.exiting
-    const top = (world.fast(b.x, b.z) ? carTop : TOP_OFF_ROAD) * u
     if (driveCommand.warp) {
-      Object.assign(b, { x: driveCommand.warp.x, z: driveCommand.warp.z, h: driveCommand.warp.h, v: 0, steer: 0 })
+      Object.assign(b, newBody(driveCommand.warp.x, driveCommand.warp.z, driveCommand.warp.h))
       driveCommand.warp = null
       placed.current = false
     }
@@ -109,39 +113,39 @@ export function DriveCar({
       driveInput.gas = false
       driveInput.brake = false
     }
-    if (driveInput.gas) b.v += carGas * u * dt * Math.max(0.35, 1 - Math.abs(b.v) / (carTop * u * 1.15)) // pulls hard, eases near the top
-    else if (driveInput.brake) b.v -= (b.v > 0.3 * u ? BRAKE : GAS * 0.7) * u * dt // brake, then roll backwards
-    else b.v -= Math.sign(b.v) * Math.min(Math.abs(b.v), DRAG * u * dt)
-    if (b.v > top) b.v = Math.max(top, b.v - BRAKE * u * dt)
-    if (b.v < -REVERSE * u) b.v = -REVERSE * u
-    if (driveCommand.hold || !seated) b.v = !seated ? Math.sign(b.v) * Math.max(0, Math.abs(b.v) - BRAKE * u * dt) : 0
+    const under = world.surface(b.x, b.z)
+    const surface: Surface = under === 'wall' ? 'road' : under
+    const tune: Tune = { top: carTop * u, topGrass: TOP_OFF_ROAD * u * (shape.drive === 'awd' ? 1.25 : 1), gas: carGas * u, reverse: REVERSE * u, brake: BRAKE * u, drag: DRAG * u }
+    const held = driveCommand.hold || !seated
+    const step = drive(b, driveInput, shape, tune, surface, dt, held)
+    if (driveCommand.hold) b.v = 0
 
-    // The wheel eases toward your thumb, bites as the car gets moving, and firms up at speed
-    // (reversed when backing up)
-    b.steer += (driveInput.steer - b.steer) * Math.min(1, dt * 5)
-    const pace = Math.abs(b.v) / (TOP * u) // steering firms up the same way for every car
-    b.h += b.steer * TURN * dt * Math.min(1, Math.abs(b.v) / (2.5 * u)) * (1 - 0.5 * Math.min(1, pace)) * Math.sign(b.v)
-
-    const nx = b.x + Math.sin(b.h) * b.v * dt
-    const nz = b.z + Math.cos(b.h) * b.v * dt
-    // Already inside something (parked tight against a kerb)? Let it drive out
-    if (!world.blocked(nx, nz) || world.blocked(b.x, b.z)) {
-      b.x = nx
-      b.z = nz
-    } else {
-      const hit = Math.abs(b.v) / u
-      if (hit > 0.8) {
-        driveTelemetry.bumps += 1
-        b.shake = Math.min(0.5, hit * 0.06) * u
-        if (hit > DENT_SPEED) driveTelemetry.dents += 1
-      }
-      b.v = -b.v * 0.3
+    // Into the world: it deflects along walls and cars, never sticks
+    const hit = moveBox(b, step.x, step.z, step.h, shape, world.blocked)
+    const now = performance.now()
+    if (hit > 1.2 && now - b.hitAt > 350) {
+      b.hitAt = now
+      const bumpUnits = hit / u
+      if (bumpUnits > 0.8) driveTelemetry.bumps += 1
+      b.shake = Math.min(0.5, bumpUnits * 0.06) * u
+      if (bumpUnits > DENT_SPEED) driveTelemetry.dents += 1
+      playCrash(crashStrength(hit), driveAudio.muted)
+      b.pitchV += hit * 0.05
     }
+
+    // Springs: the body dives, squats and rolls; rough ground bounces it
+    const rough = surface === 'grass' ? bumpHeight(b.x, b.z) * Math.min(1, Math.abs(b.v) / 6 + 0.15) : 0
+    suspend(b, step.aLong, step.aLat, rough, dt)
+    rig.current.steer = b.wheelAngle
+    rig.current.spin = b.spin
+    rig.current.braking = driveInput.brake && b.v > 0.3 * u || (driveCommand.hold && Math.abs(b.v) < 0.5)
+    rig.current.reversing = b.v < -0.2 || (driveInput.brake && b.v <= 0.3 * u && seated)
 
     const g = group.current
     if (g) {
-      g.position.set(b.x, 0.05, b.z)
-      g.rotation.y = b.h
+      g.position.set(b.x, 0.05 + b.bob, b.z)
+      g.rotation.order = 'YXZ'
+      g.rotation.set(b.pitch, b.h, b.roll)
     }
 
     // Street level: low and close behind the boot, so roads feel wide and buildings tall
@@ -194,7 +198,7 @@ export function DriveCar({
 
   return (
     <group ref={group} position={[start.x, 0.05, start.z]} rotation={[0, start.h, 0]} scale={world.carScale}>
-      <CarModel id={car.model} color={car.color} seeThrough />
+      <CarModel id={car.model} color={car.color} seeThrough rig={rig} />
       <CarDriver model={car.model} appearance={driverLook} color={car.color} progress={climb} doors={!lowPerf} />
     </group>
   )

@@ -158,7 +158,7 @@ const cars: NpcCar[] = []
 
 /** Is there another car right here? (so yours bumps into it) */
 export function trafficBlocks(x: number, z: number) {
-  for (const c of cars) if (Math.abs(c.x - x) < 2.6 && Math.abs(c.z - z) < 2.6 && Math.hypot(c.x - x, c.z - z) < 2.5) return true
+  for (const c of cars) if (Math.abs(c.x - x) < 2.4 && Math.abs(c.z - z) < 2.4 && Math.hypot(c.x - x, c.z - z) < 2.15) return true
   return false
 }
 

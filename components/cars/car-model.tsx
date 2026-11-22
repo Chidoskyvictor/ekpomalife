@@ -1,7 +1,8 @@
 'use client'
 
 import { useGLTF } from '@react-three/drei'
-import { createContext, Suspense, useContext, useMemo } from 'react'
+import { useFrame } from '@react-three/fiber'
+import { createContext, Suspense, useContext, useMemo, useRef, type MutableRefObject } from 'react'
 import {
   AdditiveBlending,
   BoxGeometry,
@@ -14,6 +15,7 @@ import {
   MeshStandardMaterial,
   PlaneGeometry,
   Shape,
+  type Group,
   type Material,
   type Mesh,
   type Object3D,
@@ -29,6 +31,16 @@ import { seatFor } from '@/lib/game/car-seats'
  */
 
 type Pt = [number, number]
+
+/** What the car you drive tells its model every frame: the front wheels' angle, how far the wheels have turned, and the lamps. */
+export type CarRig = { steer: number; spin: number; braking: boolean; reversing: boolean }
+
+/** The wheel nodes of a real (GLB) car, by name; null when the model has none. */
+function wheelNodes(root: Object3D) {
+  const get = (n: string) => root.getObjectByName(n) ?? null
+  const w = { fl: get('Wheel_FL'), fr: get('Wheel_FR'), rl: get('Wheel_RL'), rr: get('Wheel_RR') }
+  return w.fl && w.fr && w.rl && w.rr ? w : null
+}
 
 type Spec = {
   width: number
@@ -166,8 +178,8 @@ function glassGeometry(id: string) {
 }
 
 /** A drawn car's body (opaque) as one vertex-coloured geometry: sills and bonnet, roof, pillars, seats and wheel. */
-function procGeometry(id: string, color: string) {
-  const key = `${id}|${color}`
+function procGeometry(id: string, color: string, wheels = true) {
+  const key = `${id}|${color}|${wheels ? 1 : 0}`
   const hit = procCache.get(key)
   if (hit) return hit
   const s = SPECS[id]!
@@ -212,9 +224,11 @@ function procGeometry(id: string, color: string) {
   wheelRing.translate(seat.wheel[0], seat.wheel[1], seat.wheel[2])
   parts.push(tinted(wheelRing, '#15161a'))
   for (const side of [-1, 1]) {
-    for (const z of s.wheels) {
-      parts.push(wheel(s.wheelR, 0.24, [side * (half - 0.08), s.wheelR, z], '#111214'))
-      parts.push(wheel(s.wheelR * 0.55, 0.26, [side * (half - 0.08), s.wheelR, z], '#b9bec6'))
+    if (wheels) {
+      for (const z of s.wheels) {
+        parts.push(wheel(s.wheelR, 0.24, [side * (half - 0.08), s.wheelR, z], '#111214'))
+        parts.push(wheel(s.wheelR * 0.55, 0.26, [side * (half - 0.08), s.wheelR, z], '#b9bec6'))
+      }
     }
     parts.push(box([half * 0.42, lh, 0.16], [side * half * 0.72, ly, front - 0.2], '#fff8d8'))
     parts.push(box([half * 0.46, lh, 0.12], [side * half * 0.7, ly + 0.06, rear + 0.1], '#d01818'))
@@ -235,13 +249,46 @@ const glassPaint = new MeshStandardMaterial({ vertexColors: true, roughness: 0.1
 /** Other cars (and the showroom) keep the dark, opaque tint: only your own car is see-through, so you can see yourself in it. */
 const tintedGlass = new MeshStandardMaterial({ color: '#141c24', roughness: 0.3, metalness: 0.4 })
 
-function ProcCar({ id, color, seeThrough }: { id: string; color: string; seeThrough: boolean }) {
-  const geometry = useMemo(() => procGeometry(id, color), [id, color])
+const wheelCache = new Map<string, BufferGeometry>()
+/** One wheel on its own, centred on its axle (tyre, rim and a spoke bar so the spin shows). */
+function wheelGeometry(id: string) {
+  const hit = wheelCache.get(id)
+  if (hit) return hit
+  const r = SPECS[id]!.wheelR
+  const parts = [wheel(r, 0.24, [0, 0, 0], '#111214'), wheel(r * 0.55, 0.26, [0, 0, 0], '#b9bec6'), box([0.27, r * 0.9, 0.07], [0, 0, 0], '#6b7079'), box([0.27, 0.07, r * 0.9], [0, 0, 0], '#6b7079')]
+  const merged = mergeGeometries(parts)!
+  parts.forEach((g) => g.dispose())
+  wheelCache.set(id, merged)
+  return merged
+}
+
+function ProcCar({ id, color, seeThrough, rig }: { id: string; color: string; seeThrough: boolean; rig?: MutableRefObject<CarRig> }) {
+  const geometry = useMemo(() => procGeometry(id, color, !rig), [id, color, rig])
   const glass = useMemo(() => glassGeometry(id), [id])
+  const wheels = useRef<(Group | null)[]>([])
+  const spec = SPECS[id]!
+  const half = spec.width / 2
+  useFrame(() => {
+    const r = rig?.current
+    if (!r) return
+    wheels.current.forEach((g, i) => {
+      if (!g) return
+      g.rotation.y = i < 2 ? r.steer : 0
+      g.rotation.x = r.spin
+    })
+  })
   return (
     <>
       <mesh geometry={geometry} material={vertexPaint} castShadow />
       <mesh geometry={glass} material={seeThrough ? glassPaint : tintedGlass} renderOrder={seeThrough ? 2 : 0} />
+      {rig
+        ? // 0, 1: the front pair (they steer); 2, 3: the rear pair
+          [spec.wheels[1], spec.wheels[1], spec.wheels[0], spec.wheels[0]].map((z, i) => (
+            <group key={i} ref={(g) => void (wheels.current[i] = g)} position={[(i % 2 ? -1 : 1) * (half - 0.08), spec.wheelR, z]} rotation-order="YXZ">
+              <mesh geometry={wheelGeometry(id)} material={vertexPaint} castShadow />
+            </group>
+          ))
+        : null}
     </>
   )
 }
@@ -361,7 +408,7 @@ function GlbCar({ id, color, seeThrough }: { id: string; color: string; seeThrou
 }
 
 const realCache = new Map<string, Object3D>()
-function RealCar({ id, color, seeThrough }: { id: string; color: string; seeThrough: boolean }) {
+function RealCar({ id, color, seeThrough, rig }: { id: string; color: string; seeThrough: boolean; rig?: MutableRefObject<CarRig> }) {
   const spec = REAL[id]!
   const { scene } = useGLTF(spec.url)
   const car = useMemo(() => {
@@ -404,6 +451,19 @@ function RealCar({ id, color, seeThrough }: { id: string; color: string; seeThro
     realCache.set(key, root)
     return root.clone(true)
   }, [id, scene, color, seeThrough, spec])
+  const wheels = useMemo(() => {
+    const w = wheelNodes(car)
+    if (w) for (const n of Object.values(w)) n!.rotation.order = 'YXZ'
+    return w
+  }, [car])
+  useFrame(() => {
+    const r = rig?.current
+    if (!r || !wheels) return
+    wheels.fl!.rotation.set(r.spin, r.steer, 0)
+    wheels.fr!.rotation.set(r.spin, r.steer, 0)
+    wheels.rl!.rotation.x = r.spin
+    wheels.rr!.rotation.x = r.spin
+  })
   return <primitive object={car} />
 }
 
@@ -424,6 +484,7 @@ const dentMaterial = new MeshStandardMaterial({ color: '#2b2b2e', roughness: 1 }
 /** Tail lamps: lit red, unaffected by the scene's light, so they glow at dusk and at night. */
 const tailMaterial = new MeshBasicMaterial({ color: '#ff2a1f', toneMapped: false })
 const tailBox = new BoxGeometry(1, 1, 1)
+const reverseMaterial = new MeshBasicMaterial({ color: '#ffffff', toneMapped: false })
 
 /** Where a car's tail lamps are: [half the gap between them, height, the rear's z, lamp width, lamp height]. */
 function tailLamps(id: string): [number, number, number, number, number] {
@@ -457,19 +518,28 @@ function headLamps(id: string): [number, number, number] {
 }
 
 /** One car by catalogue id, painted `color`, with `dents` crumpled patches. Unknown ids draw nothing. */
-export function CarModel({ id, color, dents = 0, seeThrough = false }: { id: string; color: string; dents?: number; /** Clear windows, for the car you are sitting in */ seeThrough?: boolean }) {
+export function CarModel({ id, color, dents = 0, seeThrough = false, rig }: { id: string; color: string; dents?: number; /** Clear windows, for the car you are sitting in */ seeThrough?: boolean; /** Your own car: steering and spinning wheels, brake and reverse lights */ rig?: MutableRefObject<CarRig> }) {
   const body =
     id in SPECS ? (
-      <ProcCar id={id} color={color} seeThrough={seeThrough} />
+      <ProcCar id={id} color={color} seeThrough={seeThrough} rig={rig} />
     ) : id in GLB ? (
       <Suspense fallback={null}>
         <GlbCar id={id} color={color} seeThrough={seeThrough} />
       </Suspense>
     ) : id in REAL ? (
       <Suspense fallback={null}>
-        <RealCar id={id} color={color} seeThrough={seeThrough} />
+        <RealCar id={id} color={color} seeThrough={seeThrough} rig={rig} />
       </Suspense>
     ) : null
+  const tail = useMemo(() => (rig ? new MeshBasicMaterial({ color: '#5a0f0a', toneMapped: false }) : tailMaterial), [rig])
+  const backup = useRef<Mesh[]>([])
+  useFrame(() => {
+    const r = rig?.current
+    if (!r) return
+    // Dim red running lamps; flaring bright red under the brake
+    tail.color.set(r.braking ? '#ff1208' : '#5a0f0a').multiplyScalar(r.braking ? 1.8 : 1)
+    for (const m of backup.current) if (m) m.visible = r.reversing
+  })
   if (!body) return null
   const [gap, y, z, w, h] = tailLamps(id)
   const lit = useContext(CarLightsContext)
@@ -484,8 +554,14 @@ export function CarModel({ id, color, dents = 0, seeThrough = false }: { id: str
           <mesh geometry={beamPlane} material={beamMaterial} position={[0, 0.06, hz + 3.6]} />
         </>
       ) : null}
-      <mesh geometry={tailBox} material={tailMaterial} position={[-gap, y, z]} scale={[w, h, 0.08]} />
-      <mesh geometry={tailBox} material={tailMaterial} position={[gap, y, z]} scale={[w, h, 0.08]} />
+      <mesh geometry={tailBox} material={tail} position={[-gap, y, z]} scale={[w, h, 0.08]} />
+      <mesh geometry={tailBox} material={tail} position={[gap, y, z]} scale={[w, h, 0.08]} />
+      {rig
+        ? [-1, 1].map((side, i) => (
+            // White reversing lamps, low and inboard of the tail lamps
+            <mesh key={side} ref={(m) => void (backup.current[i] = m as Mesh)} geometry={tailBox} material={reverseMaterial} position={[side * gap * 0.55, y - h * 0.9, z - 0.02]} scale={[w * 0.5, h * 0.8, 0.08]} visible={false} />
+          ))
+        : null}
       {DENT_SPOTS.slice(0, dents).map(([x, y, z, turn], i) => (
         <mesh key={i} geometry={dentBox} material={dentMaterial} position={[x, y, z]} rotation={[0.2, turn, 0.15]} />
       ))}

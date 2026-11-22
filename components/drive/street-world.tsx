@@ -44,9 +44,8 @@ import {
   ROAD_SIGNS,
   TILE,
   TILE_STEP,
-  blockedOnRoad,
   dividerOpen,
-  drivable,
+  surfaceAt,
   pointAt,
   roadById,
   spotAt,
@@ -70,7 +69,7 @@ import { FinishBeam, RouteArrows, Traffic, Walkers, trafficBlocks } from './stre
  */
 
 // Kerbs, the divider and the ends of the roads stop the car; so do the other cars
-const STREET_WORLD: DriveWorld = { unit: 2.5, carScale: 1, blocked: (x, z) => blockedOnRoad(x, z) || trafficBlocks(x, z), fast: drivable }
+const STREET_WORLD: DriveWorld = { unit: 2.5, carScale: 1, blocked: (x, z) => surfaceAt(x, z) === 'wall' || trafficBlocks(x, z), surface: surfaceAt }
 
 const highways = SCENE_ROADS.filter((r) => r.kind === 'highway')
 const asphalt = SCENE_ROADS.filter((r) => r.kind !== 'highway')
