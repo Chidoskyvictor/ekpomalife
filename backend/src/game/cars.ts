@@ -111,7 +111,7 @@ const naira = (n: number) => `₦${n.toLocaleString('en-NG')}`
 export function buyCar(userId: string, modelId: string, withParking: boolean, idemKey: string) {
   return writeGarage(userId, idemKey, 'POST /cars/buy', { modelId, withParking }, true, async ({ client, characterId, lodgingId }) => {
     const car = carById(modelId)
-    if (!car) return bad('That car is not sold here.', 404, 'UNKNOWN_CAR')
+    if (!car || car.retired) return bad('That car is not sold here.', 404, 'UNKNOWN_CAR')
     const mustPark = needsParking(lodgingId, await hasSpace(client, characterId))
     if (mustPark && !withParking) return bad('You need a parking space first.', 400, 'NEEDS_PARKING')
     const total = car.price + (mustPark ? PARKING_PRICE : 0)

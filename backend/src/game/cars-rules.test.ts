@@ -3,8 +3,8 @@ import { CARS, PARKING_PRICE, carSellBack, dentFixPrice, isPaint, needsParking }
 
 describe('cars rules', () => {
   it('sells seven cars cheapest first at the agreed prices', () => {
-    expect(CARS.map((c) => c.price)).toEqual([4_500_000, 5_000_000, 15_000_000, 20_000_000, 60_000_000, 150_000_000, 1_500_000_000])
-    expect(new Set(CARS.map((c) => c.id)).size).toBe(7)
+    expect(CARS.map((c) => c.price)).toEqual([4_500_000, 5_000_000, 15_000_000, 20_000_000, 30_000_000, 45_000_000, 60_000_000, 150_000_000, 1_500_000_000])
+    expect(new Set(CARS.map((c) => c.id)).size).toBe(9)
   })
   it('buys back at 60% and fixes dents for 2%', () => {
     expect(carSellBack(5_000_000)).toBe(3_000_000)

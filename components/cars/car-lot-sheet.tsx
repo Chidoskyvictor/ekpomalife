@@ -20,7 +20,7 @@ import {
   type CarFail,
   type OwnedCar,
 } from '@/lib/game/cars-api'
-import { CARS, PAINTS, PARKING_PRICE, carById, carSellBack, dentFixPrice } from '@/lib/game/cars-rules'
+import { CARS_ON_SALE, PAINTS, PARKING_PRICE, carById, carSellBack, dentFixPrice } from '@/lib/game/cars-rules'
 import type { ServerGameState } from '@/lib/game/game-api'
 import { BottomSheet } from '@/components/ui/bottom-sheet'
 import { CarModel } from './car-model'
@@ -66,7 +66,7 @@ export function CarLotSheet({ hidden = false }: { hidden?: boolean }) {
   const signedIn = !isGuest && Boolean(state)
   const tab = useCarLot()
   const garage = useGarage(signedIn && tab !== null)
-  const [modelId, setModelId] = useState(CARS[0]!.id)
+  const [modelId, setModelId] = useState(CARS_ON_SALE[0]!.id)
   const [carId, setCarId] = useState<string | null>(null)
   const [step, setStep] = useState<Step>('idle')
   const [busy, setBusy] = useState(false)
@@ -94,7 +94,7 @@ export function CarLotSheet({ hidden = false }: { hidden?: boolean }) {
   const inShowroom = atMechanic && tab === 'showroom'
   const cars = garage?.cars ?? []
   const needsParking = garage?.needsParking ?? false
-  const model = carById(modelId) ?? CARS[0]!
+  const model = carById(modelId) ?? CARS_ON_SALE[0]!
   const owned: OwnedCar | null = cars.find((c) => c.id === carId) ?? cars.find((c) => c.active) ?? cars[0] ?? null
   const ownedModel = owned ? carById(owned.model) : null
   const total = model.price + (needsParking ? PARKING_PRICE : 0)
@@ -199,9 +199,9 @@ export function CarLotSheet({ hidden = false }: { hidden?: boolean }) {
             ) : (
               <>
                 <div className={styles.chips} role="listbox" aria-label="Cars for sale">
-                  {CARS.map((car) => (
+                  {CARS_ON_SALE.map((car) => (
                     <button key={car.id} type="button" role="option" aria-selected={car.id === model.id} className={`${styles.chip} ${car.id === model.id ? styles.chipOn : ''}`} onClick={() => setModelId(car.id)}>
-                      <strong>{car.name.replace(/^(Toyota|Lexus|Mercedes) /, '')}</strong>
+                      <strong>{car.name.replace(/^(Toyota|Lexus|Mercedes-Benz|Mercedes) /, '')}</strong>
                       <small>{short(car.price)}</small>
                     </button>
                   ))}

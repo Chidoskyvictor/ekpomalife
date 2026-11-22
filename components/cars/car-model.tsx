@@ -14,7 +14,9 @@ import {
   MeshStandardMaterial,
   PlaneGeometry,
   Shape,
+  type Material,
   type Mesh,
+  type Object3D,
 } from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { seatFor } from '@/lib/game/car-seats'
@@ -102,7 +104,18 @@ const GLB: Record<string, { url: string; length: number; paint: Rgb[]; glass: Rg
   gt3: { url: '/models/cars/gt3.glb?v=1', length: 4.6, paint: [[0.8, 0.8, 0.75]], glass: [] }, // GT3 keeps its tinted (opaque) glass
 }
 
-export const isCarModel = (id: string) => id in SPECS || id in GLB
+/**
+ * Real, textured car models (public/models/cars, see brand/cars/CREDITS.md). Drawn with their own
+ * materials; only the `paint` materials take the chosen colour. Built in metres, front at +z,
+ * wheels on the ground, wheels as their own nodes (Wheel_FL/FR/RL/RR).
+ */
+const REAL: Record<string, { url: string; length: number; paint: string[]; glass: string[]; tail: [number, number, number, number] }> = {
+  rx350: { url: '/models/cars/lexus-rx.glb?v=1', length: 4.89, paint: ['Material_1.003', 'Material_3.003'], glass: ['Material_5.003', 'Material_20'], tail: [0.68, 1.02, 0.3, 0.1] },
+  gla: { url: '/models/cars/benz-gla.glb?v=1', length: 4.4, paint: ['Carro_Pintura'], glass: ['Carro_Vidros', 'Carro_Vidros_1'], tail: [0.7, 0.98, 0.26, 0.1] },
+}
+for (const r of Object.values(REAL)) useGLTF.preload(r.url)
+
+export const isCarModel = (id: string) => id in SPECS || id in GLB || id in REAL
 
 /** A geometry with every vertex painted one colour (so a whole car merges into one draw). */
 function tinted(g: BufferGeometry, color: string, k = 1) {
@@ -347,6 +360,53 @@ function GlbCar({ id, color, seeThrough }: { id: string; color: string; seeThrou
   )
 }
 
+const realCache = new Map<string, Object3D>()
+function RealCar({ id, color, seeThrough }: { id: string; color: string; seeThrough: boolean }) {
+  const spec = REAL[id]!
+  const { scene } = useGLTF(spec.url)
+  const car = useMemo(() => {
+    const key = `${id}|${color}|${seeThrough ? 1 : 0}`
+    const hit = realCache.get(key)
+    if (hit) return hit.clone(true)
+    const root = scene.clone(true)
+    const swapped = new Map<Material, Material>()
+    root.traverse((object) => {
+      const mesh = object as Mesh
+      if (!mesh.isMesh) return
+      mesh.castShadow = true
+      const swap = (m: Material) => {
+        const done = swapped.get(m)
+        if (done) return done
+        let out = m
+        if (spec.paint.includes(m.name)) {
+          const p = (m as MeshStandardMaterial).clone()
+          p.map = null
+          p.color = new Color(color)
+          p.metalness = 0.45
+          p.roughness = 0.28
+          out = p
+        } else if (spec.glass.includes(m.name)) {
+          const g = (m as MeshStandardMaterial).clone()
+          g.map = null
+          g.color = new Color(seeThrough ? '#9fb4c8' : '#10161d')
+          g.transparent = seeThrough
+          g.opacity = seeThrough ? 0.25 : 1
+          g.depthWrite = !seeThrough
+          g.metalness = 0.4
+          g.roughness = 0.12
+          out = g
+        }
+        swapped.set(m, out)
+        return out
+      }
+      mesh.material = Array.isArray(mesh.material) ? mesh.material.map(swap) : swap(mesh.material)
+    })
+    realCache.set(key, root)
+    return root.clone(true)
+  }, [id, scene, color, seeThrough, spec])
+  return <primitive object={car} />
+}
+
 /** Where dents show, in order: [x, y, z, turn]. Dark crumpled patches on the corners and doors. */
 const DENT_SPOTS: [number, number, number, number][] = [
   [0.62, 0.62, 2.05, 0.5],
@@ -372,6 +432,8 @@ function tailLamps(id: string): [number, number, number, number, number] {
     const rear = Math.min(...s.body.map((p) => p[0]))
     return [(s.width / 2) * 0.7, s.lights[0] + 0.06, rear + 0.03, (s.width / 2) * 0.46, s.lights[1]]
   }
+  const real = REAL[id]
+  if (real) return [real.tail[0], real.tail[1], -real.length / 2 + 0.06, real.tail[2], real.tail[3]]
   const length = GLB[id]?.length ?? 4.4
   return [0.62, id === 'gt3' ? 0.72 : 0.95, -length / 2 - 0.02, 0.36, 0.12]
 }
@@ -388,6 +450,8 @@ const beamPlane = new PlaneGeometry(2.6, 7).rotateX(-Math.PI / 2)
 function headLamps(id: string): [number, number, number] {
   const s = SPECS[id]
   if (s) return [(s.width / 2) * 0.68, s.lights[0] + 0.02, Math.max(...s.body.map((p) => p[0])) - 0.02]
+  const real = REAL[id]
+  if (real) return [0.62, real.tail[1] - 0.2, real.length / 2 - 0.04]
   const length = GLB[id]?.length ?? 4.4
   return [0.62, id === 'gt3' ? 0.66 : 0.9, length / 2 + 0.02]
 }
@@ -400,6 +464,10 @@ export function CarModel({ id, color, dents = 0, seeThrough = false }: { id: str
     ) : id in GLB ? (
       <Suspense fallback={null}>
         <GlbCar id={id} color={color} seeThrough={seeThrough} />
+      </Suspense>
+    ) : id in REAL ? (
+      <Suspense fallback={null}>
+        <RealCar id={id} color={color} seeThrough={seeThrough} />
       </Suspense>
     ) : null
   if (!body) return null

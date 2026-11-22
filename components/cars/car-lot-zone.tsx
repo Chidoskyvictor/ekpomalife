@@ -4,7 +4,7 @@ import { useEffect, useMemo } from 'react'
 import { CanvasTexture, Group, Mesh, SRGBColorSpace } from 'three'
 import { bakeStaticGroup, disposeBaked } from '@/components/world/bake-static'
 import { paint, unitBox } from '@/components/world/materials'
-import { CARS } from '@/lib/game/cars-rules'
+import { CARS_ON_SALE } from '@/lib/game/cars-rules'
 import { CarModel } from './car-model'
 
 /** Cars are modelled in metres; this shrinks them to the map's scale. */
@@ -92,8 +92,8 @@ export function CarLot({ w, d }: { w: number; d: number }) {
   useEffect(() => () => disposeBaked(baked), [baked])
   const shadeX = w * 0.13
   const shadeW = w * 0.6
-  const shaded = CARS.slice(3)
-  const front = CARS.slice(0, 3)
+  const shaded = CARS_ON_SALE.slice(3)
+  const front = CARS_ON_SALE.slice(0, 3)
   return (
     <group>
       <primitive object={baked} />

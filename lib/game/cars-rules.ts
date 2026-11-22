@@ -15,14 +15,18 @@ export type CarModel = {
   topKmh: number
   /** How hard it pulls away (game units per second squared). */
   accel: number
+  /** No longer sold at Magmus Autos; people who bought one keep and drive it. */
+  retired?: boolean
 }
 
 export const CARS: CarModel[] = [
   { id: 'corolla', name: 'Toyota Corolla', nickname: 'Sharp Sharp', blurb: 'Never breaks down, never complains. Runs on vibes and small fuel.', price: 4_500_000, color: '#c9ccd1', topKmh: 180, accel: 5.0 },
   { id: 'camry', name: 'Toyota Camry', nickname: 'Muscle', blurb: 'The big boy saloon every final-year student dreams of.', price: 5_000_000, color: '#1f2a44', topKmh: 200, accel: 5.4 },
-  { id: 'es350', name: 'Lexus ES350', nickname: 'Odogwu Saloon', blurb: 'Quiet engine, cold AC, soft seats. Pure enjoyment.', price: 15_000_000, color: '#f2f2ef', topKmh: 210, accel: 5.8 },
+  { id: 'es350', name: 'Lexus ES350', nickname: 'Odogwu Saloon', blurb: 'Quiet engine, cold AC, soft seats. Pure enjoyment.', price: 15_000_000, color: '#f2f2ef', topKmh: 210, accel: 5.8, retired: true },
   { id: 'scout', name: 'Scout Jeep', nickname: 'Bush Master', blurb: 'Potholes on Ihumudumu road? This one laughs at them.', price: 20_000_000, color: '#5a6b3a', topKmh: 215, accel: 6.0 },
-  { id: 'gle43', name: 'Mercedes GLE 43 AMG', nickname: 'Big Benz', blurb: 'When you pull up at G1, everybody turns to look.', price: 60_000_000, color: '#111317', topKmh: 250, accel: 7.6 },
+  { id: 'rx350', name: 'Lexus RX 350', nickname: 'Odogwu Jeep', blurb: 'The Ekpoma big-man ride. High seat, cold AC, everybody knows you have arrived.', price: 30_000_000, color: '#f2f2ef', topKmh: 200, accel: 6.2 },
+  { id: 'gla', name: 'Mercedes-Benz GLA 200', nickname: 'Baby Benz', blurb: 'Small body, big respect. Shines at night outside Sazza.', price: 45_000_000, color: '#f2f2ef', topKmh: 230, accel: 7.0 },
+  { id: 'gle43', name: 'Mercedes GLE 43 AMG', nickname: 'Big Benz', blurb: 'When you pull up at G1, everybody turns to look.', price: 60_000_000, color: '#111317', topKmh: 250, accel: 7.6, retired: true },
   { id: 'suv', name: 'Family SUV', nickname: 'Chairman', blurb: 'Seven seats, full tank of respect. Oga at the top.', price: 150_000_000, color: '#7a1c22', topKmh: 260, accel: 8.0 },
   { id: 'gt3', name: 'GT3 Racer', nickname: 'Shege Speed', blurb: 'Too fast for Ekpoma roads. Buy it anyway.', price: 1_500_000_000, color: '#f2b705', topKmh: 318, accel: 11.0 },
 ]
@@ -36,6 +40,8 @@ export const HOMES_WITH_PARKING = new Set(['onebed-ojo'])
 export const CARPORT_SLOTS = 2
 
 export const carById = (id: string) => CARS.find((c) => c.id === id) ?? null
+/** What Magmus Autos still sells (retired models stay drivable for their owners). */
+export const CARS_ON_SALE = CARS.filter((c) => !c.retired)
 /** The dealer buys back at 60% of what you paid. */
 export const carSellBack = (paid: number) => Math.floor(paid * 0.6)
 /** The mechanic charges 2% of the car's price to fix dents (stage 2). */
