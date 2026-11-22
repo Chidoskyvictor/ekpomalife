@@ -97,12 +97,24 @@ export const SCENE_ROADS: Road[] = (() => {
   return ROADS.filter((r) => keep.has(r.id))
 })()
 
-/** Highway: the divider (wall + verge) reaches this far each side of the centre line. */
-export const MEDIAN = 2.9
-/** How far from the centre line a car may go: onto the highway's sidewalk edge, or an asphalt road's shoulder. */
-export const HALF: Record<RoadKind, number> = { highway: 12.3, road: 5.4, street: 4.1 }
-/** Lane centres, right of the centre line: where cars spawn and park. */
-export const LANE: Record<RoadKind, number> = { highway: 8.7, road: 2.3, street: 1.8 }
+/** Highway: the median (raised kerb, grass, divider) reaches this far each side of the centre line. */
+export const MEDIAN = 2.0
+/**
+ * How the roads are laid out, in metres right of the centre line. Highway: median, then three lanes
+ * each way (white dashes between the first two, a solid yellow line before the outer one). Road: two
+ * lanes each way, a double yellow centre. Street: one lane each way.
+ */
+export const ROAD_DIMS: Record<RoadKind, { lane: number; lanes: number; inner: number; kerb: number; pave: number }> = {
+  highway: { lane: 3.5, lanes: 3, inner: MEDIAN, kerb: 0.25, pave: 2.0 },
+  road: { lane: 3.3, lanes: 2, inner: 0.35, kerb: 0.25, pave: 1.6 },
+  street: { lane: 3.2, lanes: 1, inner: 0, kerb: 0.2, pave: 1.2 },
+}
+/** How far from the centre line a car may go: the carriageway's edge, where the kerb starts. */
+export const HALF: Record<RoadKind, number> = { highway: 12.5, road: 6.95, street: 3.2 }
+/** Lane centres, right of the centre line: where cars spawn and park (the outer lane, by the kerb). */
+export const LANE: Record<RoadKind, number> = { highway: 10.75, road: 5.3, street: 1.6 }
+/** The lane traffic drives in: the middle of the highway's three, the inner one on a two-lane road. */
+export const MID_LANE: Record<RoadKind, number> = { highway: 7.25, road: 2.0, street: 1.6 }
 /** One piece of highway.glb is 60 long; pieces are laid a little closer so bends leave no gaps. */
 export const TILE = 60
 export const TILE_STEP = 58
@@ -165,12 +177,23 @@ export function drivable(x: number, z: number): boolean {
   for (const road of roadsNear(x, z)) {
     const p = locateOn(road, x, z)
     if (p.gap > HALF[road.kind]) continue
-    // Past the last point of a road is off the map
+    // Past the last point of a road is off the map; an unbuilt end is closed by a barrier
     if ((p.s <= 0.01 || p.s >= road.length - 0.01) && p.gap > 0.5) continue
+    if (closedEnd(road, p.s)) continue
     if (road.kind === 'highway' && Math.abs(p.off) < MEDIAN && !dividerOpen(road, p.s)) continue
     return true
   }
   return false
+}
+
+/** An unbuilt end is closed by a barrier this far from the end; the car stops just before it. */
+export const BARRIER_AT = 6
+const WALL_AT = 9
+let DEAD_KEYS: Set<string> | null = null
+/** Is this spot on the closed-off last stretch of a dead-end road? */
+function closedEnd(road: Road, s: number) {
+  DEAD_KEYS ??= new Set(DEAD_ENDS.map((d) => `${d.road}:${d.end}`))
+  return (s < WALL_AT && DEAD_KEYS.has(`${road.id}:start`)) || (s > road.length - WALL_AT && DEAD_KEYS.has(`${road.id}:end`))
 }
 
 export const blockedOnRoad = (x: number, z: number) => !drivable(x, z)
@@ -189,6 +212,7 @@ export function surfaceAt(x: number, z: number): 'road' | 'grass' | 'wall' {
     const half = HALF[road.kind]
     if (p.gap > half + VERGE) continue
     const ends = (p.s <= 0.01 || p.s >= road.length - 0.01) && p.gap > 0.5
+    if (closedEnd(road, p.s)) continue
     if (road.kind === 'highway' && Math.abs(p.off) < MEDIAN && !dividerOpen(road, p.s) && p.gap <= half) return 'wall'
     if (ends) continue
     if (p.gap <= half) return 'road'
@@ -309,6 +333,27 @@ const ON_ROAD: Map<string, { id: number; s: number }[]> = (() => {
   }
   for (const list of m.values()) list.sort((a, b) => a.s - b.s)
   return m
+})()
+
+/** An unbuilt end of a road: nothing joins it. `at` is the end point, `dir` points along the road away from the end. */
+export type DeadEnd = { road: string; x: number; z: number; dx: number; dz: number; kind: RoadKind; end: 'start' | 'end' }
+export const DEAD_ENDS: DeadEnd[] = (() => {
+  const out: DeadEnd[] = []
+  for (const road of ROADS) {
+    const on = ON_ROAD.get(road.id) ?? []
+    for (const end of ['start', 'end'] as const) {
+      const s = end === 'start' ? 0 : road.length
+      const hit = on.find((n) => Math.abs(n.s - s) < 3)
+      const node = hit ? GRAPH[hit.id]! : null
+      if (node && (node.on.size > 1 || node.links.length > 1)) continue
+      const p = pointAt(road, s)
+      // Ending on another road's tarmac or kerb is a joint, not a dead end
+      if (roadsNear(p.x, p.z, 20).some((o) => o !== road && locateOn(o, p.x, p.z).gap < HALF[o.kind] + 3)) continue
+      const sign = end === 'start' ? 1 : -1
+      out.push({ road: road.id, x: p.x, z: p.z, dx: p.dx * sign, dz: p.dz * sign, kind: road.kind, end })
+    }
+  }
+  return out
 })()
 
 /** The graph nodes you can reach from a point on a road without leaving it, with the distance to each. */

@@ -229,11 +229,10 @@ export function DriveHud() {
             </span>
           ) : null}
           <div className={styles.guideText}>
-            <strong>{g ? far(g.in) : 'No road'}</strong>
-            <small>{g ? headline : 'Not on these roads yet'}</small>
+            <strong>{g ? `${g.turn === 'uturn' ? 'Turn around' : g.onto} in ${far(g.in)}` : 'No road'}</strong>
+            <small>{g ? `${g.turn === 'arrive' ? headline : g.turn === 'uturn' ? 'Turn around' : g.turn === 'straight' ? 'Straight on' : g.turn === 'left' ? 'Turn left' : 'Turn right'} · ${far(g.left)} to go` : 'Not on these roads yet'}</small>
           </div>
           <div className={styles.guideEnd}>
-            {g && g.turn !== 'arrive' ? <small>{far(g.left)} left</small> : <span />}
             <button type="button" className={styles.skip} disabled={busy} onClick={skip}>
               Skip ▸
             </button>

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { drivePeers, driveTelemetry } from '@/lib/game/drive'
-import { placeSpot, roadsNear } from '@/lib/game/drive-road'
+import { placeSpot, roadsNear, routeAhead } from '@/lib/game/drive-road'
 import { racesNow } from '@/lib/game/races-api'
 import styles from './mini-map.module.css'
 
@@ -72,6 +72,23 @@ export function MiniMap({ destId }: { destId: string | null }) {
           on = true
         }
         ctx.stroke()
+      }
+
+      // The way to go: a blue line along the route
+      if (destId) {
+        const way = routeAhead(x, z, h, destId, 14, reach * 1.8)
+        if (way.length > 1) {
+          ctx.lineWidth = big ? 4 : 3
+          ctx.strokeStyle = '#2f8cff'
+          ctx.beginPath()
+          ctx.moveTo(half, half)
+          for (const [wx, wz] of way) {
+            const [mx, my] = at(wx, wz)
+            ctx.lineTo(mx, my)
+          }
+          ctx.stroke()
+          ctx.strokeStyle = '#ffffff'
+        }
       }
 
       // Where you are heading: a chequered flag (clamped to the rim when it is far)

@@ -2,11 +2,11 @@
 
 import { useFrame } from '@react-three/fiber'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { BufferAttribute, BufferGeometry, DoubleSide, InstancedMesh, MeshBasicMaterial, Object3D, Shape, ShapeGeometry, type Group, type Mesh } from 'three'
+import { BufferAttribute, BufferGeometry, Color, DoubleSide, InstancedMesh, MeshBasicMaterial, Object3D, Shape, ShapeGeometry, type Group, type Mesh } from 'three'
 import { CarModel } from '@/components/cars/car-model'
 import { CharacterFigure } from '@/components/look/character-figure'
 import { driveTelemetry, useDrive } from '@/lib/game/drive'
-import { HALF, LANE, ROADS, locateOn, roadsNear, routeAhead, spotAt, type Road } from '@/lib/game/drive-road'
+import { HALF, MID_LANE, ROADS, locateOn, placeSpot, roadsNear, routeAhead, spotAt, type Road } from '@/lib/game/drive-road'
 import { normalizeAppearance, type Appearance } from '@/lib/game/look'
 import { racesNow, useRaces } from '@/lib/game/races-api'
 
@@ -21,37 +21,45 @@ import { racesNow, useRaces } from '@/lib/game/races-api'
 
 const STEPS = 48
 const STEP = 7
-const LANE_HALF = 1.45
+const LANE_HALF = 1.5
+const BLUE = new Color('#2f8cff')
+const WHITE = new Color('#ffffff')
 
-/** A bright blue strip down your lane with white chevrons on it, along the way to your destination. */
+/**
+ * The way to go: a translucent blue ribbon painted on the road along your lane, white chevrons
+ * inside it, fading out toward where you are (so it never smears under the car) and a glowing ring
+ * at the destination's kerb.
+ */
 export function RouteArrows() {
   const drive = useDrive()
   const destId = drive?.dest?.id ?? null
   const chevrons = useRef<InstancedMesh>(null)
   const band = useRef<Mesh>(null)
+  const ring = useRef<Group>(null)
   const kit = useMemo(() => {
     // A chevron lying flat, pointing along +z
     const shape = new Shape()
-    shape.moveTo(0, 1.1)
-    shape.lineTo(1.0, -0.15)
-    shape.lineTo(1.0, -0.8)
-    shape.lineTo(0, 0.45)
-    shape.lineTo(-1.0, -0.8)
-    shape.lineTo(-1.0, -0.15)
+    shape.moveTo(0, 1.0)
+    shape.lineTo(0.95, -0.1)
+    shape.lineTo(0.95, -0.7)
+    shape.lineTo(0, 0.4)
+    shape.lineTo(-0.95, -0.7)
+    shape.lineTo(-0.95, -0.1)
     shape.closePath()
     const chevron = new ShapeGeometry(shape)
     chevron.rotateX(Math.PI / 2) // shape y → world z
-    // The strip: two vertices a step, joined into quads; positions are rewritten as you drive
+    // The ribbon: two vertices a step (colour with alpha), joined into quads; rewritten as you drive
     const strip = new BufferGeometry()
     strip.setAttribute('position', new BufferAttribute(new Float32Array(STEPS * 2 * 3), 3))
+    strip.setAttribute('color', new BufferAttribute(new Float32Array(STEPS * 2 * 4), 4))
     const index: number[] = []
     for (let i = 0; i < STEPS - 1; i++) index.push(i * 2, i * 2 + 1, i * 2 + 2, i * 2 + 1, i * 2 + 3, i * 2 + 2)
     strip.setIndex(index)
     return {
       chevron,
       strip,
-      chevronMat: new MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.95, side: DoubleSide, depthWrite: false, toneMapped: false }),
-      stripMat: new MeshBasicMaterial({ color: '#1f8fff', transparent: true, opacity: 0.72, side: DoubleSide, depthWrite: false, toneMapped: false }),
+      chevronMat: new MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.92, side: DoubleSide, depthWrite: false, toneMapped: false }),
+      stripMat: new MeshBasicMaterial({ color: '#ffffff', vertexColors: true, transparent: true, side: DoubleSide, depthWrite: false, toneMapped: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 }),
     }
   }, [])
   useEffect(
@@ -64,13 +72,20 @@ export function RouteArrows() {
     [kit],
   )
   const dummy = useMemo(() => new Object3D(), [])
+  const tint = useMemo(() => new Color(), [])
   const clock = useRef(1)
   // What is on the road now, and since when a reversed way has been asked for
   const shown = useRef<[number, number, number][]>([])
   const flipSince = useRef<number | null>(null)
-  useFrame((_, delta) => {
+  const spot = useMemo(() => (destId ? placeSpot(destId) : null), [destId])
+  useFrame((state, delta) => {
     const m = chevrons.current
     const b = band.current
+    if (ring.current) {
+      const t = state.clock.elapsedTime
+      ring.current.visible = Boolean(spot)
+      ring.current.scale.setScalar(1 + Math.sin(t * 3) * 0.08)
+    }
     if (!m || !b) return
     clock.current += delta
     if (clock.current < 0.25) return
@@ -94,21 +109,29 @@ export function RouteArrows() {
     shown.current = points
     const n = Math.min(STEPS, points.length)
     const pos = kit.strip.getAttribute('position') as BufferAttribute
+    const col = kit.strip.getAttribute('color') as BufferAttribute
     for (let i = 0; i < n; i++) {
       const [x, z, h] = points[i]!
-      dummy.position.set(x, 0.13, z)
+      // Faint right at the car, full a few arrows on, thinning out far ahead
+      const fade = Math.min(1, i / 3) * Math.min(1, (n - i) / 8)
+      dummy.position.set(x, 0.16, z)
       dummy.rotation.set(0, h, 0)
       dummy.updateMatrix()
       m.setMatrixAt(i, dummy.matrix)
-      // Either edge of the strip: across the direction of travel
+      tint.copy(BLUE).lerp(WHITE, Math.min(1, i / 3) * fade)
+      m.setColorAt(i, tint)
+      // Either edge of the ribbon: across the direction of travel
       const ax = Math.cos(h) * LANE_HALF
       const az = -Math.sin(h) * LANE_HALF
-      pos.setXYZ(i * 2, x - ax, 0.115, z - az)
-      pos.setXYZ(i * 2 + 1, x + ax, 0.115, z + az)
+      pos.setXYZ(i * 2, x - ax, 0.145, z - az)
+      pos.setXYZ(i * 2 + 1, x + ax, 0.145, z + az)
+      for (const k of [0, 1]) col.setXYZW(i * 2 + k, BLUE.r, BLUE.g, BLUE.b, 0.55 * fade)
     }
     m.count = n
     m.instanceMatrix.needsUpdate = true
+    if (m.instanceColor) m.instanceColor.needsUpdate = true
     pos.needsUpdate = true
+    col.needsUpdate = true
     kit.strip.setDrawRange(0, Math.max(0, n - 1) * 6)
     b.visible = n > 1
   })
@@ -116,6 +139,22 @@ export function RouteArrows() {
     <>
       <mesh ref={band} geometry={kit.strip} material={kit.stripMat} frustumCulled={false} renderOrder={2} visible={false} />
       <instancedMesh ref={chevrons} args={[kit.chevron, kit.chevronMat, STEPS]} frustumCulled={false} renderOrder={3} />
+      {spot ? (
+        <group ref={ring} position={[spot.x, 0.19, spot.z]}>
+          <mesh rotation={[-Math.PI / 2, 0, 0]} renderOrder={4}>
+            <ringGeometry args={[2.3, 2.9, 40]} />
+            <meshBasicMaterial color="#47a1ff" transparent opacity={0.95} side={DoubleSide} depthWrite={false} toneMapped={false} />
+          </mesh>
+          <mesh rotation={[-Math.PI / 2, 0, 0]} renderOrder={4}>
+            <ringGeometry args={[1.2, 2.3, 40]} />
+            <meshBasicMaterial color="#2f8cff" transparent opacity={0.28} side={DoubleSide} depthWrite={false} toneMapped={false} />
+          </mesh>
+          <mesh position={[0, 6, 0]}>
+            <cylinderGeometry args={[2.7, 2.7, 12, 24, 1, true]} />
+            <meshBasicMaterial color="#47a1ff" transparent opacity={0.16} side={DoubleSide} depthWrite={false} toneMapped={false} />
+          </mesh>
+        </group>
+      ) : null}
     </>
   )
 }
@@ -148,9 +187,9 @@ const endGap = (road: Road) => (road.kind === 'street' ? 24 : 6)
 /** Every model the dealer sells drives these roads; the cheap ones are the common ones. */
 const CAR_MODELS = ['corolla', 'corolla', 'camry', 'camry', 'es350', 'scout', 'scout', 'gle43', 'suv', 'gt3']
 const CAR_PAINTS = ['#c9ccd1', '#f2f2ef', '#111317', '#7a1c22', '#1f2a44', '#5a6b3a', '#8a8f96', '#3d4a66', '#c8b560']
-const CARS = 12
+const CARS = 5
 /** Cars left on the road while you are in a race. */
-const RACE_CARS = 3
+const RACE_CARS = 2
 /** A car this far from you is taken off the road and put back somewhere ahead or behind. */
 const CAR_FAR = 280
 
@@ -177,8 +216,8 @@ function placeCar(car: NpcCar, first: boolean) {
   car.s = Math.max(gap, Math.min(road.length - gap, pick.at.s + off))
   car.stuck = 0
   car.dir = Math.random() < 0.5 ? 1 : -1
-  // The highway has two lanes each way
-  car.lane = road.kind === 'highway' ? (Math.random() < 0.5 ? LANE.highway : 4.9) : LANE[road.kind]
+  // Traffic keeps to the middle lane; the others stay free for players
+  car.lane = MID_LANE[road.kind]
   car.cruise = road.kind === 'highway' ? 13 + Math.random() * 6 : road.kind === 'road' ? 8 + Math.random() * 4 : 5 + Math.random() * 2
   car.v = car.cruise
   car.model = CAR_MODELS[Math.floor(Math.random() * CAR_MODELS.length)]!
@@ -313,11 +352,11 @@ export function Walkers() {
     people.forEach(({ walker: w }, i) => {
       w.s += w.dir * w.v * dt
       // On the highway's sidewalk, or the kerb of an asphalt road
-      const off = w.road.kind === 'highway' ? 11.5 : HALF[w.road.kind] + 0.8
+      const off = HALF[w.road.kind] + 1.3
       const p = spotAt(w.road.id, w.s, w.side * off)
       const g = groups.current[i]
       if (g) {
-        g.position.set(p.x, w.road.kind === 'highway' ? 0.16 : 0.03, p.z)
+        g.position.set(p.x, 0.2, p.z)
         g.rotation.y = Math.atan2(p.dx * w.dir, p.dz * w.dir)
       }
       // A cross street's ends lie in the middle of the roads it meets: turn back before stepping into traffic
