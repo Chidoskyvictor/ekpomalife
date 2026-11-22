@@ -14,7 +14,9 @@ import {
   PlaneGeometry,
   RepeatWrapping,
   SRGBColorSpace,
+  Vector2,
   Vector3,
+  MeshStandardMaterial,
   type Texture,
 } from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
@@ -73,6 +75,108 @@ function slabTexture() {
   return tex
 }
 
+
+type SlabMaps = { color: CanvasTexture; normal: CanvasTexture; rough: CanvasTexture }
+
+const loadImage = (src: string) =>
+  new Promise<HTMLImageElement>((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => resolve(img)
+    img.onerror = reject
+    img.src = src
+  })
+
+/**
+ * Real scanned concrete (ambientCG Concrete034, CC0: public/textures/CREDITS.md), cut into slabs:
+ * every slab takes its own random patch of the photo and its own dark tint, joints are drawn between
+ * them, and the lanes get oil stains and darker tyre lines. Colour, normal and roughness are cut the
+ * same way. Null (the code-drawn slabs are used) if the photos do not load.
+ */
+async function loadSlabMaps(): Promise<SlabMaps | null> {
+  try {
+    const [c, n, r] = await Promise.all(['color', 'normal', 'rough'].map((k) => loadImage(`/textures/road/concrete-${k}.webp`)))
+    const W = 512
+    const H = 2048
+    const cols = 2
+    const rows = 4
+    const cw = W / cols
+    const rh = H / rows
+    const make = () => {
+      const canvas = document.createElement('canvas')
+      canvas.width = W
+      canvas.height = H
+      return canvas
+    }
+    const [cc, nc, rc] = [make(), make(), make()]
+    const [cx, nx, rx] = [cc.getContext('2d')!, nc.getContext('2d')!, rc.getContext('2d')!]
+    const rand = mulberry32(11)
+    for (let row = 0; row < rows; row++) {
+      for (let col = 0; col < cols; col++) {
+        // The same random patch (and flip) of the photo for all three maps
+        const size = 512
+        const sx = Math.floor(rand() * (1024 - size))
+        const sy = Math.floor(rand() * (1024 - size))
+        for (const [ctx, img] of [[cx, c], [nx, n], [rx, r]] as const) ctx.drawImage(img, sx, sy, size, size, col * cw, row * rh, cw, rh)
+        // Each slab its own very dark grey
+        // Flatten the photo's big blotches toward one mid-grey, so slabs differ only a little
+        cx.fillStyle = 'rgba(96,96,98,0.86)'
+        cx.fillRect(col * cw, row * rh, cw, rh)
+        const v = 116 + Math.round(rand() * 14)
+        cx.globalCompositeOperation = 'multiply'
+        cx.fillStyle = `rgb(${v},${v + 1},${v + 3})`
+        cx.fillRect(col * cw, row * rh, cw, rh)
+        cx.globalCompositeOperation = 'source-over'
+      }
+    }
+    // Each patch of the scan leans a little: level the normals so slabs do not light differently
+    nx.fillStyle = 'rgba(128,128,255,0.6)'
+    nx.fillRect(0, 0, W, H)
+    // Dry concrete is rough: pull every slab's roughness toward one high value so none shines
+    rx.fillStyle = 'rgba(225,225,225,0.7)'
+    rx.fillRect(0, 0, W, H)
+    // Wear on the colour map: a darker tyre line each side of every lane's centre, and oil stains
+    const lane = W / 2
+    for (let l = 0; l < 2; l++) {
+      for (const t of [-0.24, 0.24]) {
+        const g = cx.createLinearGradient((l + 0.5 + t - 0.05) * lane, 0, (l + 0.5 + t + 0.05) * lane, 0)
+        g.addColorStop(0, 'rgba(0,0,0,0)')
+        g.addColorStop(0.5, 'rgba(0,0,0,0.30)')
+        g.addColorStop(1, 'rgba(0,0,0,0)')
+        cx.fillStyle = g
+        cx.fillRect((l + 0.5 + t - 0.05) * lane, 0, 0.1 * lane, H)
+      }
+    }
+    for (let i = 0; i < 14; i++) {
+      const x = (Math.floor(rand() * 2) + 0.5 + (rand() - 0.5) * 0.3) * lane
+      const y = rand() * H
+      const rad = 14 + rand() * 26
+      const g = cx.createRadialGradient(x, y, 0, x, y, rad)
+      g.addColorStop(0, 'rgba(0,0,0,0.5)')
+      g.addColorStop(1, 'rgba(0,0,0,0)')
+      cx.fillStyle = g
+      cx.beginPath()
+      cx.ellipse(x, y, rad * 0.8, rad * 1.5, 0, 0, Math.PI * 2)
+      cx.fill()
+    }
+    // Joints (colour darker; the roughness map keeps them rough)
+    cx.fillStyle = '#060606'
+    for (let row = 0; row < rows; row++) cx.fillRect(0, row * rh, W, 5)
+    for (let col = 0; col < cols; col++) cx.fillRect(col * cw, 0, 4, H)
+    cx.fillStyle = 'rgba(255,255,255,0.12)'
+    for (let row = 0; row < rows; row++) cx.fillRect(0, row * rh + 5, W, 2)
+    const tex = (canvas: HTMLCanvasElement, srgb: boolean) => {
+      const t = new CanvasTexture(canvas)
+      t.wrapS = t.wrapT = RepeatWrapping
+      t.anisotropy = 4
+      if (srgb) t.colorSpace = SRGBColorSpace
+      return t
+    }
+    return { color: tex(cc, true), normal: tex(nc, false), rough: tex(rc, false) }
+  } catch {
+    return null
+  }
+}
+
 function geometryOf(b: Buf, withUv: boolean) {
   const g = new BufferGeometry()
   g.setAttribute('position', new Float32BufferAttribute(b.pos, 3))
@@ -89,8 +193,13 @@ export function Roads({ level }: { level: 'day' | 'dusk' | 'night' }) {
   const [kit, setKit] = useState<ReturnType<typeof makeRoads> | null>(null)
   // Built a moment after the scene appears, so the drive does not freeze while the roads are laid
   useEffect(() => {
-    const id = window.setTimeout(() => setKit(makeRoads()), 40)
-    return () => window.clearTimeout(id)
+    let dead = false
+    void loadSlabMaps().then((maps) => {
+      if (!dead) window.setTimeout(() => !dead && setKit(makeRoads(maps)), 40)
+    })
+    return () => {
+      dead = true
+    }
   }, [])
   useEffect(() => {
     kit?.lineMat.emissive.set(level === 'night' ? '#5a584a' : level === 'dusk' ? '#3a3930' : '#2a2a22')
@@ -104,6 +213,8 @@ export function Roads({ level }: { level: 'day' | 'dusk' | 'night' }) {
         p.line.dispose()
       }
       kit.slabTex.dispose()
+      kit.maps?.normal.dispose()
+      kit.maps?.rough.dispose()
       kit.slabMat.dispose()
       kit.solidMat.dispose()
       kit.lineMat.dispose()
@@ -124,8 +235,8 @@ export function Roads({ level }: { level: 'day' | 'dusk' | 'night' }) {
   )
 }
 
-function makeRoads() {
-  const slabTex = slabTexture()
+function makeRoads(maps: SlabMaps | null) {
+  const slabTex = maps?.color ?? slabTexture()
   const parts = [...buildRoadChunks(SCENE_ROADS).values()].map((c) => ({
     slab: geometryOf(c.slab, true),
     solid: geometryOf(c.solid, false),
@@ -134,7 +245,8 @@ function makeRoads() {
   return {
     parts,
     slabTex,
-    slabMat: new MeshLambertMaterial({ map: slabTex, side: DoubleSide }),
+    maps,
+    slabMat: new MeshStandardMaterial({ map: slabTex, normalMap: maps?.normal, normalScale: new Vector2(0.7, 0.7), roughnessMap: maps?.rough, roughness: 1, metalness: 0, side: DoubleSide }),
     solidMat: new MeshLambertMaterial({ vertexColors: true, side: DoubleSide }),
     lineMat: new MeshLambertMaterial({ vertexColors: true, side: DoubleSide, emissive: '#2a2a22', polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }),
   }
