@@ -1,11 +1,13 @@
 'use client'
 
 import { useEffect, useMemo } from 'react'
-import { BoxGeometry, Color, ConeGeometry, CylinderGeometry, Float32BufferAttribute, IcosahedronGeometry, Matrix4, MeshBasicMaterial, MeshLambertMaterial, Object3D, type BufferGeometry } from 'three'
+import { BoxGeometry, Color, ConeGeometry, Float32BufferAttribute, Matrix4, MeshBasicMaterial, MeshLambertMaterial, Object3D, type BufferGeometry } from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
-import { CROWN_GREENS, Instances, shopGeometry } from '@/components/travel/drive-scene'
+import { Instances, shopGeometry } from '@/components/travel/drive-scene'
 import { HALF, SCENE_ROADS as ROADS, ROAD_PLACES, roadsNear, spotAt, type Road, type RoadKind } from '@/lib/game/drive-road'
 import { mulberry32 } from '@/lib/game/world-layout'
+import { LEAFY, PALMS, Trees, TREE_VARIANTS } from './street-trees'
+import { Suspense } from 'react'
 
 /*
  * What stands along the driving roads. Each kind of road has its own mix, and every stretch of
@@ -264,15 +266,15 @@ export function Roadside({ night }: { night: boolean }) {
     const rand = mulberry32(2718)
     const dummy = new Object3D()
     const put: Record<Kind, { m: Matrix4[]; c: Color[] }> = Object.fromEntries(KINDS.map((k) => [k, { m: [] as Matrix4[], c: [] as Color[] }])) as unknown as Record<Kind, { m: Matrix4[]; c: Color[] }>
-    const crowns: Matrix4[] = []
-    const crownColors: Color[] = []
-    const trunks: Matrix4[] = []
+    const trees: Matrix4[][] = TREE_VARIANTS.map(() => [])
     const poles: Matrix4[] = []
     ROADS.forEach((road, index) => {
       const edge = HALF[road.kind] + (road.kind === 'highway' ? 2.4 : 3.2)
       for (const side of [-1, 1]) {
         const reserved = ROAD_PLACES.filter((p) => p.road === road.id && p.side === side).map((p) => p.s)
         let s = 4
+        // Trees are few: at least this far apart along a side
+        let lastTree = -1e9
         while (s < road.length - 6) {
           const style = areaStyle(road, index, Math.floor(s / AREA))
           const kind = style.pick(rand())
@@ -289,20 +291,19 @@ export function Roadside({ night }: { night: boolean }) {
             put[kind].m.push(dummy.matrix.clone())
             put[kind].c.push(style.walls[Math.floor(rand() * style.walls.length)]!)
           }
-          // A tree on the verge, as often as this area likes
-          if (rand() < style.trees) {
+          // A tree on the verge now and then (about a third as many as before, never close together)
+          if (rand() < style.trees * 0.3 && s - lastTree > 30) {
             const t = spotAt(road.id, s - 1.5, side * (edge - 0.4 + rand() * 0.8))
             if (clearOfRoads(t.x, t.z, road) > 3 && !reserved.some((r) => Math.abs(r - s) < 14)) {
-              const k = 0.8 + rand() * 0.6
+              const pool = rand() < (road.kind === 'street' ? 0.3 : 0.55) ? PALMS : LEAFY
+              const v = pool[Math.floor(rand() * pool.length)]!
+              const k = 0.85 + rand() * 0.35
               dummy.rotation.set(0, rand() * 6, 0)
               dummy.scale.set(k, k, k)
-              dummy.position.set(t.x, 3.3 * k, t.z)
+              dummy.position.set(t.x, 0, t.z)
               dummy.updateMatrix()
-              crowns.push(dummy.matrix.clone())
-              crownColors.push(CROWN_GREENS[Math.floor(rand() * CROWN_GREENS.length)]!)
-              dummy.position.set(t.x, 1.1 * k, t.z)
-              dummy.updateMatrix()
-              trunks.push(dummy.matrix.clone())
+              trees[v]!.push(dummy.matrix.clone())
+              lastTree = s
             }
           }
           s += along * jitter + style.gap * (0.5 + rand())
@@ -323,9 +324,7 @@ export function Roadside({ night }: { night: boolean }) {
     })
     return {
       put,
-      crowns,
-      crownColors,
-      trunks,
+      trees,
       poles,
       painted: new MeshLambertMaterial({ vertexColors: true }),
       // Fluorescent tubes behind the glass
@@ -345,10 +344,6 @@ export function Roadside({ night }: { night: boolean }) {
         shopB: { geo: shopGeometry('#5d6b78'), glow: shopGlow() },
       } as Record<Kind, Built>,
       poleGeo: pole(),
-      crownGeo: new IcosahedronGeometry(2, 0),
-      trunkGeo: new CylinderGeometry(0.22, 0.3, 2.2, 5),
-      crownMat: new MeshLambertMaterial({ flatShading: true }),
-      trunkMat: new MeshLambertMaterial({ color: '#5b4330' }),
     }
   }, [])
   useEffect(
@@ -360,10 +355,6 @@ export function Roadside({ night }: { night: boolean }) {
         b.glow?.dispose()
       })
       kit.poleGeo.dispose()
-      kit.crownGeo.dispose()
-      kit.trunkGeo.dispose()
-      kit.crownMat.dispose()
-      kit.trunkMat.dispose()
     },
     [kit],
   )
@@ -374,8 +365,9 @@ export function Roadside({ night }: { night: boolean }) {
       ))}
       {night ? KINDS.map((kind) => (kit.built[kind].glow ? <Instances key={`${kind}-lit`} geometry={kit.built[kind].glow!} material={kit.glowMat} matrices={kit.put[kind].m} /> : null)) : null}
       <Instances geometry={kit.poleGeo} material={kit.painted} matrices={kit.poles} />
-      <Instances geometry={kit.crownGeo} material={kit.crownMat} matrices={kit.crowns} colors={kit.crownColors} />
-      <Instances geometry={kit.trunkGeo} material={kit.trunkMat} matrices={kit.trunks} />
+      <Suspense fallback={null}>
+        <Trees byVariant={kit.trees} />
+      </Suspense>
     </>
   )
 }
