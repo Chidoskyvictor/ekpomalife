@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { drivePeers, driveTelemetry } from '@/lib/game/drive'
-import { ROADS, placeSpot } from '@/lib/game/drive-road'
+import { placeSpot, roadsNear } from '@/lib/game/drive-road'
 import { racesNow } from '@/lib/game/races-api'
 import styles from './mini-map.module.css'
 
@@ -56,7 +56,7 @@ export function MiniMap({ destId }: { destId: string | null }) {
       ctx.lineCap = 'round'
       ctx.lineJoin = 'round'
       ctx.strokeStyle = '#ffffff'
-      for (const road of ROADS) {
+      for (const road of roadsNear(x, z, reach * 1.6)) {
         ctx.lineWidth = ROAD_WIDTH[road.kind] * (big ? 1.2 : 1)
         ctx.beginPath()
         let on = false

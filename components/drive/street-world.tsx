@@ -39,7 +39,7 @@ import type { DriveStart } from '@/lib/game/drive'
 import {
   HALF,
   JUNCTIONS,
-  ROADS,
+  SCENE_ROADS,
   ROAD_PLACES,
   ROAD_SIGNS,
   TILE,
@@ -72,8 +72,8 @@ import { FinishBeam, RouteArrows, Traffic, Walkers, trafficBlocks } from './stre
 // Kerbs, the divider and the ends of the roads stop the car; so do the other cars
 const STREET_WORLD: DriveWorld = { unit: 2.5, carScale: 1, blocked: (x, z) => blockedOnRoad(x, z) || trafficBlocks(x, z), fast: drivable }
 
-const highways = ROADS.filter((r) => r.kind === 'highway')
-const asphalt = ROADS.filter((r) => r.kind !== 'highway')
+const highways = SCENE_ROADS.filter((r) => r.kind === 'highway')
+const asphalt = SCENE_ROADS.filter((r) => r.kind !== 'highway')
 
 /** The highway keeps the model's cement slabs and joints (as on the ride); pale kerbs, grass down the middle. */
 const HIGHWAY_PAINT: Record<string, string> = {
@@ -379,7 +379,7 @@ function Scene({ car, look: driverLook, start, send, peers, roster }: StreetProp
   const tier = useGfxTier()
   // Light for the hour on the game clock, fixed for the drive
   const look = useMemo(() => rideLookAt(rideMinute()), [])
-  const mid = useMemo(() => pointAt(ROADS[0]!, ROADS[0]!.length / 2), [])
+  const mid = useMemo(() => pointAt(roadById("expressway"), roadById("expressway").length / 2), [])
   return (
     <CarLightsContext.Provider value={look.level !== 'day'}>
       <RideSky look={look} tier={tier} />

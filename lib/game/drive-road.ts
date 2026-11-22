@@ -3,9 +3,9 @@ import data from './drive-roads.json'
 /*
  * The street-level driving world: real Ekpoma road lines from OpenStreetMap, baked into
  * drive-roads.json by scripts/osm/build-drive-roads.py (nothing is fetched at run time).
- * Metres, x east, z south. It is a ladder: the Benin-Auchi expressway ("highway": dual
- * carriageway with a divider) and the Ihumudumu road ("road": black asphalt, one lane each way)
- * side by side, joined by cross streets ("street": narrower asphalt). We drive on the right:
+ * Real metres, x east, z south, all of Ekpoma: the Benin-Auchi expressway ("highway"), primary/
+ * tertiary roads ("road") and residential streets ("street"), with a road graph (nodes at every
+ * intersection) for directions. Building footprints are in public/drive/buildings/ tiles. We drive on the right:
  * `off` is how far right of a road's centre line a point is, so travelling along +s you keep off > 0.
  */
 
@@ -23,9 +23,11 @@ export type Road = {
 }
 
 /** Where a cross street meets a long road. */
-export type Junction = { name: string; road: string; s: number; side: number; street: string; end: 'start' | 'end' }
+export type Junction = { name: string; road: string; s: number; side: number; street: string; end: 'start' | 'end' | 'mid' }
 /** `inside`: no kerb of its own; you park at that place (the school gate, say) and walk in. */
-export type RoadPlace = { id: string; label: string; road: string; s: number; side: number; inside?: string }
+export type RoadPlace = { id: string; label: string; road: string; s: number; side: number; inside?: string; building?: [number, number] }
+/** An overhead area sign (green, white capitals) facing traffic driving along `dir` (+1 = up s). */
+export type Gantry = { text: string; road: string; s: number; dir: number }
 export type RoadSign = { text: string; road: string; s: number; side: number }
 
 export const ROADS: Road[] = (data.roads as RawRoad[]).map((r) => {
@@ -37,12 +39,63 @@ export const ROADS: Road[] = (data.roads as RawRoad[]).map((r) => {
 export const JUNCTIONS = data.junctions as Junction[]
 export const ROAD_PLACES = data.places as RoadPlace[]
 export const ROAD_SIGNS = data.signs as RoadSign[]
+export const GANTRIES = data.gantries as Gantry[]
+/** Where the building footprint tiles are served from, and their size in metres. */
+export const BUILDING_TILES = data.buildings as { tiles: string; size: number }
 export const OSM_CREDIT = data.attribution as string
-/** Game metres per real metre (drives are shortened). */
+/** Game metres per real metre (1: real scale). */
 export const ROAD_SCALE = data.scale as number
 
 const BY_ID = new Map(ROADS.map((r) => [r.id, r]))
 export const roadById = (id: string) => BY_ID.get(id) ?? ROADS[0]!
+
+/* Spatial index: which roads have a segment in each 40 m cell (the map is far too big to scan). */
+const CELL = 40
+const cellKey = (cx: number, cz: number) => cx * 100003 + cz
+const GRID: Map<number, Road[]> = (() => {
+  const grid = new Map<number, Set<Road>>()
+  for (const road of ROADS) {
+    for (let i = 1; i < road.pts.length; i++) {
+      const a = road.pts[i - 1]!
+      const b = road.pts[i]!
+      const n = Math.max(1, Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / (CELL / 2)))
+      for (let k = 0; k <= n; k++) {
+        const key = cellKey(Math.floor((a[0] + ((b[0] - a[0]) * k) / n) / CELL), Math.floor((a[1] + ((b[1] - a[1]) * k) / n) / CELL))
+        let set = grid.get(key)
+        if (!set) grid.set(key, (set = new Set()))
+        set.add(road)
+      }
+    }
+  }
+  return new Map([...grid].map(([k, v]) => [k, [...v]]))
+})()
+
+/** Roads passing within about `reach` metres (at least one cell) of a point. */
+export function roadsNear(x: number, z: number, reach = CELL): Road[] {
+  const r = Math.max(1, Math.ceil(reach / CELL))
+  const cx = Math.floor(x / CELL)
+  const cz = Math.floor(z / CELL)
+  const out = new Set<Road>()
+  for (let i = -r; i <= r; i++) for (let j = -r; j <= r; j++) for (const road of GRID.get(cellKey(cx + i, cz + j)) ?? []) out.add(road)
+  return [...out]
+}
+
+/**
+ * The roads the 3D street scene draws for now (the renderers are not streamed yet): the expressway,
+ * the Ihumudumu road, the streets that meet them on the campus side, and every road one of our
+ * places is on. Every road in ROADS is drivable and routable; streaming the whole town in is a later step.
+ */
+export const SCENE_ROADS: Road[] = (() => {
+  const keep = new Set<string>(['expressway', 'ihumudumu-road'])
+  for (const j of data.junctions as Junction[]) {
+    if ((j.road === 'expressway' || j.road === 'ihumudumu-road') && j.end !== 'mid') {
+      const p = pointAt(roadById(j.road), j.s)
+      if (p.x > -2400 && p.x < 2400) keep.add(j.street)
+    }
+  }
+  for (const p of data.places as RoadPlace[]) keep.add(p.road)
+  return ROADS.filter((r) => keep.has(r.id))
+})()
 
 /** Highway: the divider (wall + verge) reaches this far each side of the centre line. */
 export const MEDIAN = 2.9
@@ -109,7 +162,7 @@ export function dividerOpen(road: Road, s: number) {
 
 /** Can a car's centre be here? On a road's tarmac, and not in a highway's divider. */
 export function drivable(x: number, z: number): boolean {
-  for (const road of ROADS) {
+  for (const road of roadsNear(x, z)) {
     const p = locateOn(road, x, z)
     if (p.gap > HALF[road.kind]) continue
     // Past the last point of a road is off the map
@@ -125,7 +178,7 @@ export const blockedOnRoad = (x: number, z: number) => !drivable(x, z)
 /** The road you are on (the nearest one), with where you are along it. */
 export function roadUnder(x: number, z: number): { road: Road; s: number; off: number } | null {
   let best: { road: Road; s: number; off: number; gap: number } | null = null
-  for (const road of ROADS) {
+  for (const road of roadsNear(x, z)) {
     const p = locateOn(road, x, z)
     // Inside a road's own width it wins outright; a street beats the long road it meets
     // (so the end of a side street, which lies on the long road's centre line, does not claim the long road's lanes)
@@ -144,7 +197,7 @@ function roadAlong(x: number, z: number, h: number): { road: Road; s: number; of
   const base = roadUnder(x, z)
   if (!base) return null
   let best: { road: Road; s: number; off: number; fit: number } | null = null
-  for (const road of ROADS) {
+  for (const road of roadsNear(x, z)) {
     const p = locateOn(road, x, z)
     if (p.gap > HALF[road.kind]) continue
     const t = pointAt(road, p.s)
@@ -205,43 +258,43 @@ export function driveStartFrom(placeId: string, destId?: string | null): { x: nu
 
 /* —— Directions —— */
 
-type Node = { id: string; x: number; z: number; links: { to: string; d: number; road: string }[] }
+type GNode = { id: number; x: number; z: number; links: { to: number; d: number; road: string }[]; on: Map<string, number> }
 
-/** The ladder as a graph: one node per junction (a cross street's end on a long road). */
-const GRAPH: Map<string, Node> = (() => {
-  const nodes = new Map<string, Node>()
-  const link = (a: string, b: string, d: number, road: string) => {
-    nodes.get(a)!.links.push({ to: b, d, road })
-    nodes.get(b)!.links.push({ to: a, d, road })
-  }
-  for (const j of JUNCTIONS) {
-    const p = pointAt(roadById(j.road), j.s)
-    nodes.set(`${j.street}:${j.end}`, { id: `${j.street}:${j.end}`, x: p.x, z: p.z, links: [] })
-  }
-  // Along each cross street, end to end
-  for (const road of ROADS) {
-    if (nodes.has(`${road.id}:start`) && nodes.has(`${road.id}:end`)) link(`${road.id}:start`, `${road.id}:end`, road.length, road.id)
-  }
-  // Along each long road, junction to junction
-  for (const road of ROADS) {
-    const on = JUNCTIONS.filter((j) => j.road === road.id).sort((a, b) => a.s - b.s)
-    for (let i = 1; i < on.length; i++) link(`${on[i - 1]!.street}:${on[i - 1]!.end}`, `${on[i]!.street}:${on[i]!.end}`, on[i]!.s - on[i - 1]!.s, road.id)
+/** The road graph: a node at every intersection; links run along a road between consecutive nodes. */
+const GRAPH: GNode[] = (() => {
+  const raw = data.graph as { nodes: (number | string)[][]; edges: (number | string)[][] }
+  // A node is [x, z, road, s, road, s, ...]: every road through it and how far along that road it is
+  const nodes: GNode[] = raw.nodes.map((p, id) => {
+    const on = new Map<string, number>()
+    for (let i = 2; i + 1 < p.length; i += 2) on.set(p[i] as string, p[i + 1] as number)
+    return { id, x: p[0] as number, z: p[1] as number, links: [], on }
+  })
+  for (const e of raw.edges) {
+    const [a, b, road, s0, s1] = e as [number, number, string, number, number]
+    nodes[a]!.links.push({ to: b, d: s1 - s0, road })
+    nodes[b]!.links.push({ to: a, d: s1 - s0, road })
   }
   return nodes
 })()
-
-/** The junction nodes you can reach from a point on a road without leaving it, with the distance to each. */
-function exits(road: Road, s: number): { id: string; d: number; s: number }[] {
-  if (road.kind === 'street') {
-    return [
-      { id: `${road.id}:start`, d: s, s: 0 },
-      { id: `${road.id}:end`, d: road.length - s, s: road.length },
-    ].filter((e) => GRAPH.has(e.id))
+/** Each road's nodes, in order along it. */
+const ON_ROAD: Map<string, { id: number; s: number }[]> = (() => {
+  const m = new Map<string, { id: number; s: number }[]>()
+  for (const n of GRAPH) {
+    for (const [road, s] of n.on) {
+      if (!m.has(road)) m.set(road, [])
+      m.get(road)!.push({ id: n.id, s })
+    }
   }
-  const on = JUNCTIONS.filter((j) => j.road === road.id).sort((a, b) => a.s - b.s)
-  const before = [...on].reverse().find((j) => j.s <= s)
-  const after = on.find((j) => j.s > s)
-  return [before, after].filter((j): j is Junction => Boolean(j)).map((j) => ({ id: `${j.street}:${j.end}`, d: Math.abs(j.s - s), s: j.s }))
+  for (const list of m.values()) list.sort((a, b) => a.s - b.s)
+  return m
+})()
+
+/** The graph nodes you can reach from a point on a road without leaving it, with the distance to each. */
+function exits(road: Road, s: number): { id: number; d: number; s: number }[] {
+  const on = ON_ROAD.get(road.id) ?? []
+  const before = [...on].reverse().find((n) => n.s <= s)
+  const after = on.find((n) => n.s > s)
+  return [before, after].filter((n): n is { id: number; s: number } => Boolean(n)).map((n) => ({ id: n.id, d: Math.abs(n.s - s), s: n.s }))
 }
 
 export type Guidance = {
@@ -285,60 +338,92 @@ function plan(x: number, z: number, placeId: string, h?: number): { legs: Leg[];
   const backCost = (towardS: number) => (fwd !== 0 && Math.sign(towardS - here.s) === -fwd ? BACK_COST : 0)
   const direct = here.road.id === goalRoad.id ? Math.abs(place.s - here.s) + backCost(place.s) : Infinity
 
-  const dist = new Map<string, number>()
-  const prev = new Map<string, { from: string; road: string }>()
-  const open = new Set<string>()
+  const dist = new Map<number, number>()
+  const prev = new Map<number, { from: number; road: string }>()
+  const heap: [number, number][] = []
+  const push = (d: number, id: number) => {
+    heap.push([d, id])
+    let i = heap.length - 1
+    while (i > 0) {
+      const up = (i - 1) >> 1
+      if (heap[up]![0] <= heap[i]![0]) break
+      const t = heap[up]!
+      heap[up] = heap[i]!
+      heap[i] = t
+      i = up
+    }
+  }
+  const pop = () => {
+    const top = heap[0]!
+    const end = heap.pop()!
+    if (heap.length) {
+      heap[0] = end
+      let i = 0
+      for (;;) {
+        const l = i * 2 + 1
+        const r = l + 1
+        let m = i
+        if (l < heap.length && heap[l]![0] < heap[m]![0]) m = l
+        if (r < heap.length && heap[r]![0] < heap[m]![0]) m = r
+        if (m === i) break
+        const t = heap[m]!
+        heap[m] = heap[i]!
+        heap[i] = t
+        i = m
+      }
+    }
+    return top
+  }
   for (const e of exits(here.road, here.s)) {
     const d = e.d + backCost(e.s)
-    dist.set(e.id, d)
-    open.add(e.id)
+    if (d < (dist.get(e.id) ?? Infinity)) {
+      dist.set(e.id, d)
+      push(d, e.id)
+    }
   }
   const ends = new Map(exits(goalRoad, place.s).map((e) => [e.id, e.d]))
   let best = direct
-  let last: string | null = null
-  while (open.size) {
-    let cur = ''
-    for (const id of open) if (!cur || dist.get(id)! < dist.get(cur)!) cur = id
-    open.delete(cur)
-    const d = dist.get(cur)!
+  let last: number | null = null
+  while (heap.length) {
+    const [d, cur] = pop()
+    if (d > dist.get(cur)!) continue
     if (d >= best) break
     if (ends.has(cur) && d + ends.get(cur)! < best) {
       best = d + ends.get(cur)!
       last = cur
     }
-    for (const link of GRAPH.get(cur)!.links) {
+    for (const link of GRAPH[cur]!.links) {
       const nd = d + link.d
       if (nd < (dist.get(link.to) ?? Infinity)) {
         dist.set(link.to, nd)
         prev.set(link.to, { from: cur, road: link.road })
-        open.add(link.to)
+        push(nd, link.to)
       }
     }
   }
   if (!Number.isFinite(best)) return null
   if (last === null) return { legs: [{ road: here.road, from: here.s, to: place.s }], total: Math.abs(place.s - here.s), place }
 
-  // The junctions passed, first to last, with the road driven into each
-  const nodes: { id: string; roadIn: string }[] = []
-  let node: string = last
+  // The nodes passed, first to last, with the road driven into each
+  const path: { id: number; roadIn: string }[] = []
+  let node: number = last
   for (;;) {
     const p = prev.get(node)
-    nodes.unshift({ id: node, roadIn: p ? p.road : here.road.id })
+    path.unshift({ id: node, roadIn: p ? p.road : here.road.id })
     if (!p) break
     node = p.from
   }
   const legs: Leg[] = []
   let at = { road: here.road, s: here.s }
-  for (const n of nodes) {
-    const spot = GRAPH.get(n.id)!
+  path.forEach((n, k) => {
+    const g = GRAPH[n.id]!
     const road = roadById(n.roadIn)
-    legs.push({ road, from: at.road.id === road.id ? at.s : locateOn(road, spot.x, spot.z).s, to: locateOn(road, spot.x, spot.z).s })
-    // Carry on from this junction along whichever road comes next
-    at = { road, s: locateOn(road, spot.x, spot.z).s }
-    const next = nodes[nodes.indexOf(n) + 1]
+    const sIn = g.on.get(road.id) ?? locateOn(road, g.x, g.z).s
+    legs.push({ road, from: at.road.id === road.id ? at.s : sIn, to: sIn })
+    const next = path[k + 1]
     const nextRoad = roadById(next ? next.roadIn : goalRoad.id)
-    at = { road: nextRoad, s: locateOn(nextRoad, spot.x, spot.z).s }
-  }
+    at = { road: nextRoad, s: g.on.get(nextRoad.id) ?? locateOn(nextRoad, g.x, g.z).s }
+  })
   legs.push({ road: goalRoad, from: at.s, to: place.s })
   // Drop stretches of no length, and join stretches that stay on one road
   const tidy: Leg[] = []
