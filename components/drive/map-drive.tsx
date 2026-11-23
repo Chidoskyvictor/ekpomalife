@@ -136,7 +136,8 @@ export function DriveCar({
       if (bumpUnits > 0.8) driveTelemetry.bumps += 1
       b.shake = Math.min(0.5, bumpUnits * 0.06) * u
       if (bumpUnits > DENT_SPEED) driveTelemetry.dents += 1
-      playCrash(crashStrength(hit), driveAudio.muted)
+      // Owner's call: no crash sound, just the phone buzz (muted = skip the sound)
+      playCrash(crashStrength(hit), true)
       b.pitchV += hit * 0.05
     }
 
