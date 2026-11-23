@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react'
 import { hapticTap } from '@/components/hud/haptic'
 import { useDrive } from '@/lib/game/drive'
 import { formatGap, formatRaceTime, kmLabel, ordinal } from '@/lib/game/race-courses'
-import { again, endRun, finishRun, pressStart, runLive, toStartBox, useRun } from '@/lib/game/race-run'
+import { again, arriveAtGrid, endRun, finishRun, pressStart, runLive, toStartBox, useRun } from '@/lib/game/race-run'
 import { checkpointSound, finishSound, goSound, lightBeep, revBlip } from '@/lib/game/race-sound'
 import styles from './race-run.module.css'
 
@@ -63,6 +63,16 @@ export function RaceRunTop() {
             Start line · {kmLabel(runLive.toStart || toStartBox(course))}. Follow the arrows and stop in the glowing box.
           </small>
         </div>
+        <button
+          type="button"
+          className={styles.bannerGo}
+          onClick={() => {
+            hapticTap()
+            arriveAtGrid()
+          }}
+        >
+          Take me there
+        </button>
         <button type="button" className={styles.bannerX} aria-label="Cancel the race" onClick={endRun}>
           <X size={16} aria-hidden="true" />
         </button>
