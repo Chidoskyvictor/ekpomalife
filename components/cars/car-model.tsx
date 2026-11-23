@@ -123,9 +123,11 @@ const GLB: Record<string, { url: string; length: number; paint: Rgb[]; glass: Rg
  * materials; only the `paint` materials take the chosen colour. Built in metres, front at +z,
  * wheels on the ground, wheels as their own nodes (Wheel_FL/FR/RL/RR).
  */
-const REAL: Record<string, { url: string; length: number; paint: string[]; glass: string[]; tail: [number, number, number, number] }> = {
-  rx350: { url: '/models/cars/lexus-rx.glb?v=1', length: 4.89, paint: ['Material_1.003', 'Material_3.003'], glass: ['Material_5.003', 'Material_20'], tail: [0.68, 1.02, 0.3, 0.1] },
-  gla: { url: '/models/cars/benz-gla.glb?v=1', length: 4.4, paint: ['Carro_Pintura'], glass: ['Carro_Vidros', 'Carro_Vidros_1'], tail: [0.7, 0.98, 0.26, 0.1] },
+/** Hazard flasher spots measured on the model's own lamp lenses: [x, height, z, width, height] for the rear and the front (right side; mirrored). */
+type Flash = { rear: [number, number, number, number, number]; front: [number, number, number, number, number] }
+const REAL: Record<string, { url: string; length: number; paint: string[]; glass: string[]; tail: [number, number, number, number]; flash: Flash }> = {
+  rx350: { url: '/models/cars/lexus-rx.glb?v=1', length: 4.89, paint: ['Material_1.003', 'Material_3.003'], glass: ['Material_5.003', 'Material_20'], tail: [0.68, 1.02, 0.3, 0.1], flash: { rear: [0.74, 1.03, -2.24, 0.17, 0.1], front: [0.54, 0.87, 2.14, 0.16, 0.08] } },
+  gla: { url: '/models/cars/benz-gla.glb?v=1', length: 4.4, paint: ['Carro_Pintura'], glass: ['Carro_Vidros', 'Carro_Vidros_1'], tail: [0.7, 0.98, 0.26, 0.1], flash: { rear: [0.77, 0.99, -1.95, 0.15, 0.15], front: [0.77, 0.78, 2.0, 0.12, 0.08] } },
 }
 for (const r of Object.values(REAL)) useGLTF.preload(r.url)
 
@@ -570,13 +572,15 @@ export function CarModel({ id, color, dents = 0, seeThrough = false, rig, hazard
       ) : null}
       <mesh geometry={tailBox} material={tail} position={[-gap, y, z]} scale={[w, h, 0.08]} />
       <mesh geometry={tailBox} material={tail} position={[gap, y, z]} scale={[w, h, 0.08]} />
-      {/* Amber flashers at the four corners: rear just outboard of the tail lamps, front beside the headlamps */}
-      {[
-        [-(gap + w * 0.5 + 0.05), y, z - 0.01, 0.12, h],
-        [gap + w * 0.5 + 0.05, y, z - 0.01, 0.12, h],
-        [-(hx + 0.14), hy, hz + 0.01, 0.12, 0.08],
-        [hx + 0.14, hy, hz + 0.01, 0.12, 0.08],
-      ].map(([fx, fy, fz, fw, fh], i) => (
+      {/* Amber flashers on the lamp lenses: the real models' own indicator spots, else the outer half of each tail lamp and the outer edge of each headlamp */}
+      {(REAL[id]
+        ? [-1, 1].flatMap((sx) => [REAL[id]!.flash.rear, REAL[id]!.flash.front].map(([fx, fy, fz, fw, fh]) => [sx * fx, fy, fz, fw, fh]))
+        : [
+            [-(gap + w * 0.25), y, z - 0.015, w * 0.5, h],
+            [gap + w * 0.25, y, z - 0.015, w * 0.5, h],
+            [-(hx + 0.06), hy, hz + 0.015, 0.1, 0.09],
+            [hx + 0.06, hy, hz + 0.015, 0.1, 0.09],
+          ]).map(([fx, fy, fz, fw, fh], i) => (
         <mesh key={`hz${i}`} ref={(m) => void (flashers.current[i] = m as Mesh)} geometry={tailBox} material={hazardMaterial} position={[fx!, fy!, fz!]} scale={[fw!, fh!, 0.09]} visible={false} />
       ))}
       {rig
