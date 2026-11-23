@@ -3,6 +3,9 @@ import { z } from 'zod'
 import { getSessionUser } from '../auth/current-user.js'
 import { buyCar, buyParking, driveCar, fixCar, getGarage, paintCar, parkCar, sellCar } from '../game/cars.js'
 import { finishTrial, leaderboard, startTrial } from '../game/race-trials.js'
+import { racerCard } from '../game/racer.js'
+import { upgradeCar } from '../game/cars.js'
+import { pool } from '../db.js'
 import { createRace, finishRace, inviteToRace, raceVoiceAccess, joinRace, leaveRace, listRaces, startRace } from '../game/car-races.js'
 import { createMapTicket } from '../game/club-live.js'
 import { joinToken, liveKitConfig, raceRoom } from '../game/livekit.js'
@@ -63,6 +66,7 @@ export async function carRoutes(app: FastifyInstance) {
   write('/cars/parking', z.object({}), 'Try again.', (u, _b, k) => buyParking(u, k))
   write('/cars/drive', z.object({ carId }), 'Pick a car.', (u, b, k) => driveCar(u, b.carId, k))
   write('/cars/paint', z.object({ carId, color: z.string().regex(/^#[0-9a-fA-F]{6}$/) }), 'Pick a colour.', (u, b, k) => paintCar(u, b.carId, b.color, k))
+  write('/cars/upgrade', z.object({ carId, part: z.enum(['engine', 'tyres', 'brakes']) }), 'Pick a part.', (u, b, k) => upgradeCar(u, b.carId, b.part, k))
   write('/cars/fix', z.object({ carId }), 'Pick a car.', (u, b, k) => fixCar(u, b.carId, k))
   write('/cars/sell', z.object({ carId }), 'Pick a car.', (u, b, k) => sellCar(u, b.carId, k))
 
@@ -139,7 +143,43 @@ export async function carRoutes(app: FastifyInstance) {
     }
   })
   raceStep('/cars/trials/start', z.object({ courseId: z.string().min(1).max(60) }), (u, b) => startTrial(u, b.courseId))
-  raceStep('/cars/trials/finish', z.object({ trialId: z.string().min(1).max(64), ms: z.number().int().min(1).max(1_200_000), splits: z.array(z.number().int().min(1).max(1_200_000)).min(1).max(12) }), (u, b) => finishTrial(u, b.trialId, b.ms, b.splits))
+  raceStep(
+    '/cars/trials/finish',
+    z.object({
+      trialId: z.string().min(1).max(64),
+      ms: z.number().int().min(1).max(1_200_000),
+      splits: z.array(z.number().int().min(1).max(1_200_000)).min(1).max(12),
+      // Facts only the phone can see; they unlock cosmetic badges, never XP
+      meta: z
+        .object({
+          mode: z.enum(['trial', 'ai']),
+          place: z.number().int().min(1).max(4),
+          of: z.number().int().min(1).max(4),
+          beatFaster: z.number().int().min(0).max(3),
+          beatAiSkill: z.number().min(0).max(1).nullable(),
+          crashed: z.boolean(),
+          night: z.boolean(),
+          comeback: z.boolean(),
+        })
+        .optional(),
+    }),
+    (u, b) => finishTrial(u, b.trialId, b.ms, b.splits, b.meta),
+  )
+  // A player's racing card: rank, record and badges (yours, or another player's by user id)
+  app.get('/cars/racer', { config: { rateLimit: { max: 60, timeWindow: '1 minute' } } }, async (request, reply) => {
+    const user = await getSessionUser(request)
+    if (!user) return reply.code(401).send({ ok: false, error: 'Log in to play.' })
+    const parsed = z.object({ userId: z.string().min(1).max(64).optional() }).safeParse(request.query)
+    if (!parsed.success) return reply.code(400).send({ ok: false, error: 'Pick a player.' })
+    try {
+      const who = await pool.query<{ id: string }>(`SELECT id FROM characters WHERE user_id = $1 LIMIT 1`, [parsed.data.userId ?? user.id])
+      if (!who.rows[0]) return reply.code(404).send({ ok: false, error: 'That player was not found.' })
+      return reply.send({ ok: true, ...(await racerCard(pool, who.rows[0].id)) })
+    } catch (error) {
+      request.log.error(error)
+      return reply.code(500).send({ ok: false, error: 'Could not load the racing card.' })
+    }
+  })
 
   // Parking moves you and the car; no money moves, so no idempotency key
   app.post('/cars/park', limit, async (request, reply) => {

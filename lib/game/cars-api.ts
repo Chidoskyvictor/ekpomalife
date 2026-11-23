@@ -5,14 +5,15 @@ import { apiGet, apiPost } from '@/lib/api/client'
 import type { ApiFail } from '@/lib/api/errors'
 import type { CarModel } from './cars-rules'
 import type { ServerGameState } from './game-api'
+import type { Part, Upgrades } from './race-rewards'
 import { newIdempotencyKey } from './room-api'
 
 /** `place`: where it was left (null = at home); `x`/`z`: the exact spot on the map. */
-export type OwnedCar = { id: string; model: string; color: string; paid: number; active: boolean; dents: number; place?: string | null; x?: number | null; z?: number | null }
+export type OwnedCar = { id: string; model: string; color: string; paid: number; active: boolean; dents: number; place?: string | null; x?: number | null; z?: number | null; /** Engine, tyre and brake levels fitted. */ up?: Upgrades }
 
-type Garage = { catalog: CarModel[]; cars: OwnedCar[]; parkingPrice: number; needsParking: boolean; homePlaceId?: string }
+type Garage = { catalog: CarModel[]; cars: OwnedCar[]; parkingPrice: number; needsParking: boolean; homePlaceId?: string; /** Racer XP (unlocks upgrade levels). */ xp: number }
 type OkGarage = { ok: true } & Garage
-type OkWrite = { ok: true; cars: OwnedCar[]; needsParking: boolean; state: ServerGameState; message: string; refunded?: number }
+type OkWrite = { ok: true; cars: OwnedCar[]; needsParking: boolean; state: ServerGameState; message: string; refunded?: number; xp?: number }
 export type CarFail = ApiFail & { reason?: string }
 
 /*
@@ -36,7 +37,7 @@ export async function loadGarage(force = false) {
   const res = await apiGet<OkGarage>('/cars')
   loading = false
   if (res.ok) {
-    garage = { catalog: res.catalog, cars: res.cars, parkingPrice: res.parkingPrice, needsParking: res.needsParking, homePlaceId: res.homePlaceId }
+    garage = { catalog: res.catalog, cars: res.cars, parkingPrice: res.parkingPrice, needsParking: res.needsParking, homePlaceId: res.homePlaceId, xp: res.xp ?? 0 }
     emit()
   }
 }
@@ -73,7 +74,7 @@ export function closeCarLot() {
 async function write(path: string, body: Record<string, unknown>, key: string): Promise<OkWrite | CarFail> {
   const res = await apiPost<OkWrite>(path, body, { 'Idempotency-Key': key })
   if (res.ok && garage) {
-    garage = { ...garage, cars: res.cars, needsParking: res.needsParking }
+    garage = { ...garage, cars: res.cars, needsParking: res.needsParking, xp: res.xp ?? garage.xp }
     emit()
   }
   return res
@@ -87,6 +88,8 @@ export const driveCar = (carId: string, key: string) => write('/cars/drive', { c
 export const paintCar = (carId: string, color: string, key: string) => write('/cars/paint', { carId, color }, key)
 export const sellCar = (carId: string, key: string) => write('/cars/sell', { carId }, key)
 export const fixCar = (carId: string, key: string) => write('/cars/fix', { carId }, key)
+/** Fit the next level of a part: money and racer rank decide. */
+export const upgradeCarPart = (carId: string, part: Part, key: string) => write('/cars/upgrade', { carId, part }, key)
 
 /** Park the car you drive at a place (you get out there). `dents`: hard hits on this drive. */
 export async function parkCar(placeId: string, x: number, z: number, dents: number): Promise<OkWrite | CarFail> {

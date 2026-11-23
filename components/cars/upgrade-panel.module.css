@@ -1,0 +1,219 @@
+/* Car upgrades: rank card, then engine / tyres / brakes with three pips each. Tokens only, so dark mode works. */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.head strong {
+  display: block;
+  font-family: var(--font-game);
+  font-size: var(--fs-20);
+  font-weight: 400;
+}
+
+.head small {
+  color: var(--ink-2);
+  font-size: var(--fs-12);
+  font-weight: 700;
+}
+
+.back {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: var(--fill);
+  color: var(--ink);
+}
+
+.rank {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--r-lg);
+  background: color-mix(in oklab, var(--primary) 12%, var(--paper));
+}
+
+.rank > span {
+  font-size: 30px;
+  line-height: 1;
+}
+
+.rank > div {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rank b {
+  font-size: var(--fs-16);
+  font-weight: 800;
+}
+
+.rank small {
+  color: var(--ink-2);
+  font-size: var(--fs-12);
+  font-weight: 700;
+}
+
+.bar {
+  display: block;
+  height: 6px;
+  margin-top: 2px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--fill-2);
+}
+
+.bar u {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--primary);
+  text-decoration: none;
+}
+
+.parts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.part {
+  display: flex;
+  min-height: 72px;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--r-lg);
+  background: var(--fill);
+}
+
+.icon {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  place-items: center;
+  border-radius: var(--r-md);
+  background: var(--paper);
+  box-shadow: var(--elev-1);
+  font-size: 22px;
+}
+
+.info {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.info strong {
+  font-size: var(--fs-16);
+  font-weight: 800;
+}
+
+.info small {
+  color: var(--ink-2);
+  font-size: var(--fs-12);
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.pips {
+  display: flex;
+  gap: 5px;
+  margin-top: 3px;
+}
+
+.pips i {
+  width: 22px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--fill-2);
+}
+
+.pips i.on {
+  background: var(--primary);
+}
+
+.pips i.next {
+  background: color-mix(in oklab, var(--primary) 35%, var(--fill-2));
+}
+
+.buy,
+.locked,
+.maxed {
+  display: flex;
+  min-width: 84px;
+  min-height: 48px;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--r-pill);
+  font-size: var(--fs-14);
+  font-weight: 800;
+}
+
+.buy {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  transition: transform var(--dur-press) var(--ease-ui);
+}
+
+.buy:active {
+  transform: scale(0.96);
+}
+
+.buy:disabled {
+  opacity: 0.45;
+}
+
+.buy small {
+  color: inherit;
+  opacity: 0.9;
+}
+
+.locked {
+  flex-direction: row;
+  gap: 5px;
+  background: var(--fill-2);
+  color: var(--ink-2);
+  font-size: var(--fs-12);
+  text-align: left;
+}
+
+.maxed {
+  background: color-mix(in oklab, var(--ok) 18%, var(--paper));
+  color: var(--ok-strong);
+}
+
+.note {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--fs-12);
+  font-weight: 600;
+  line-height: 1.4;
+}

@@ -8,7 +8,9 @@ import { CarDriver } from '@/components/drive/car-driver'
 import { useLowPerf } from '@/hooks/use-low-perf'
 import type { Peer, PeerState } from '@/lib/game/club-live'
 import { CARS } from '@/lib/game/cars-rules'
-import { bodyFor, bumpHeight, drive, moveBox, newBody, suspend, crashStrength, type Surface, type Tune } from '@/lib/game/car-physics'
+import { bodyFor, bumpHeight, drive, moveBox, newBody, suspend, crashStrength, upgradedTune, type Surface, type Tune } from '@/lib/game/car-physics'
+import { useGarage } from '@/lib/game/cars-api'
+import { NO_UPGRADES, upgradeEffects } from '@/lib/game/race-rewards'
 import { playCrash } from '@/lib/game/crash-sound'
 import { playHorn } from '@/lib/game/horn'
 import { seatFor } from '@/lib/game/car-seats'
@@ -59,6 +61,11 @@ export function DriveCar({
   const group = useRef<Group>(null)
   const camera = useThree((s) => s.camera)
   const spec = CARS.find((c) => c.id === car.model)
+  // Engine, tyre and brake upgrades fitted to the car you are driving really change its tune
+  const garage = useGarage(false)
+  const fitted = garage?.cars.find((c) => c.active && c.model === car.model)?.up ?? NO_UPGRADES
+  const fx = useRef(upgradeEffects(fitted))
+  fx.current = upgradeEffects(fitted)
   const carTop = spec ? spec.topKmh / 9 : TOP
   const carGas = spec?.accel ?? GAS
   const body = useRef({ ...newBody(start.x, start.z, start.h), shake: 0, hitAt: 0, bumpY: 0 })
@@ -115,7 +122,7 @@ export function DriveCar({
     }
     const under = world.surface(b.x, b.z)
     const surface: Surface = under === 'wall' ? 'road' : under
-    const tune: Tune = { top: carTop * u, topGrass: TOP_OFF_ROAD * u * (shape.drive === 'awd' ? 1.25 : 1), gas: carGas * u, reverse: REVERSE * u, brake: BRAKE * u, drag: DRAG * u }
+    const tune: Tune = upgradedTune({ top: carTop * u, topGrass: TOP_OFF_ROAD * u * (shape.drive === 'awd' ? 1.25 : 1), gas: carGas * u, reverse: REVERSE * u, brake: BRAKE * u, drag: DRAG * u }, fx.current)
     const held = driveCommand.hold || !seated
     const step = drive(b, driveInput, shape, tune, surface, dt, held)
     if (driveCommand.hold) b.v = 0

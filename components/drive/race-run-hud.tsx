@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react'
 import { hapticTap } from '@/components/hud/haptic'
 import { useDrive } from '@/lib/game/drive'
 import { formatGap, formatRaceTime, kmLabel, ordinal } from '@/lib/game/race-courses'
+import { badgeById, rankFor, upgradeNote } from '@/lib/game/race-rewards'
 import { again, endRun, finishRun, pressStart, runLive, toStartBox, useRun } from '@/lib/game/race-run'
 import { checkpointSound, finishSound, goSound, lightBeep, revBlip } from '@/lib/game/race-sound'
 import styles from './race-run.module.css'
@@ -186,6 +187,16 @@ export function RaceRunOverlay() {
             {run.course.laps > 1 ? ` · ${run.course.laps} laps` : ''} · {rivals > 0 ? `${rivals} AI ${rivals === 1 ? 'driver' : 'drivers'}` : 'solo'}
           </small>
         </div>
+        <ul className={styles.entries} aria-label="The field">
+          {[{ key: 'you', name: 'You', xp: run.playerXp, up: run.playerUp, you: true }, ...run.ai.map((a) => ({ key: a.id, name: a.name, xp: a.xp, up: a.up, you: false }))].map((e) => (
+            <li key={e.key} className={e.you ? styles.meRow : ''}>
+              <span aria-hidden="true">{rankFor(e.xp).emoji}</span>
+              <em>{e.name}</em>
+              <small>{rankFor(e.xp).name}</small>
+              <b className={upgradeNote(e.up) ? styles.fitted : ''}>{upgradeNote(e.up) ?? 'Stock'}</b>
+            </li>
+          ))}
+        </ul>
         <div className={styles.gridButtons}>
           <button type="button" className={styles.ghost} onClick={endRun}>
             Cancel
@@ -233,6 +244,28 @@ export function RaceRunOverlay() {
               </li>
             ))}
           </ol>
+        ) : null}
+
+        {r.reward ? (
+          <div className={styles.reward} aria-label="Racing rewards">
+            <p className={styles.xp}>
+              <b>+{r.reward.xp} XP</b> <span>{r.reward.rank.emoji} {r.reward.rank.name}</span>
+            </p>
+            {r.reward.rankedUp ? <p className={`${styles.chip} ${styles.good}`}>Rank up! You are now {r.reward.rank.emoji} {r.reward.rank.name}</p> : null}
+            {r.reward.badges.length > 0 ? (
+              <ul className={styles.badges}>
+                {r.reward.badges.map((id) => (
+                  <li key={id}>
+                    <i aria-hidden="true">{badgeById(id)?.emoji}</i>
+                    <span>
+                      <b>{badgeById(id)?.name}</b>
+                      <small>New badge</small>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
         ) : null}
 
         {board.state === 'sending' ? <p className={styles.chip}>Sending your time to the board…</p> : null}

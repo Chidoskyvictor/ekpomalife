@@ -1,5 +1,6 @@
-import { GRIP, bodyFor, drive, newBody, suspend, type Body, type Tune } from './car-physics'
+import { GRIP, bodyFor, drive, newBody, suspend, upgradedTune, type Body, type Tune } from './car-physics'
 import { carById } from './cars-rules'
+import { NO_UPGRADES, aiRankXp, aiUpgrades, upgradeEffects, type Upgrades } from './race-rewards'
 import { advance, newTracker, pointOnCourse, type Course, type Tracker } from './race-courses'
 
 /*
@@ -23,6 +24,10 @@ const PERSONALITIES: Record<Personality, { lane: [number, number]; skill: [numbe
 }
 
 export type AiRacer = {
+  /** Engine, tyre and brake levels: a sharper driver has a better-fitted car. */
+  up: Upgrades
+  /** Racer XP, shown as a rank on the name tag. */
+  xp: number
   personality: Personality
   /** Preferred offset from the racing line (m, left positive) and a phase for its wandering. */
   lane: number
@@ -67,22 +72,24 @@ function bendsOf(course: Course) {
   return hit
 }
 
-export function tuneFor(model: string, skill: number): Tune {
+export function tuneFor(model: string, skill: number, up: Upgrades = NO_UPGRADES): Tune {
   const spec = carById(model)
   const top = ((spec?.topKmh ?? 180) / 3.6) * (0.88 + 0.1 * skill)
-  return { top, topGrass: 4.6 * UNIT, gas: (spec?.accel ?? 5) * UNIT * (0.9 + 0.1 * skill), reverse: 3 * UNIT, brake: 13 * UNIT, drag: 2.4 * UNIT }
+  const stock: Tune = { top, topGrass: 4.6 * UNIT, gas: (spec?.accel ?? 5) * UNIT * (0.9 + 0.1 * skill), reverse: 3 * UNIT, brake: 13 * UNIT, drag: 2.4 * UNIT }
+  return upgradedTune(stock, upgradeEffects(up))
 }
 
-export function makeAi(course: Course, slot: { x: number; z: number; h: number }, info: { id: string; name: string; model: string; color: string; skill: number; personality?: Personality; lane?: number; phase?: number }): AiRacer {
-  return { personality: 'smooth', lane: 0, phase: 0, ...info, body: newBody(slot.x, slot.z, slot.h), tracker: newTracker(), finishedAt: null, braking: false }
+export function makeAi(course: Course, slot: { x: number; z: number; h: number }, info: { id: string; name: string; model: string; color: string; skill: number; personality?: Personality; lane?: number; phase?: number; up?: Upgrades; xp?: number }): AiRacer {
+  return { personality: 'smooth', lane: 0, phase: 0, up: NO_UPGRADES, xp: 0, ...info, body: newBody(slot.x, slot.z, slot.h), tracker: newTracker(), finishedAt: null, braking: false }
 }
 
 /** The speed (m/s) this car should be doing now: fast on straights, slow enough for each bend it can see. */
 export function targetSpeed(course: Course, ai: AiRacer, top: number) {
   const bend = bendsOf(course)
   const body = bodyFor(ai.model)
-  const grip = GRIP[body.drive].limit * (0.72 + 0.2 * ai.skill)
-  const brakeDecel = 10 * (0.7 + 0.3 * ai.skill) * PERSONALITIES[ai.personality].brake
+  const fx = upgradeEffects(ai.up)
+  const grip = GRIP[body.drive].limit * (0.72 + 0.2 * ai.skill) * fx.grip
+  const brakeDecel = 10 * (0.7 + 0.3 * ai.skill) * PERSONALITIES[ai.personality].brake * fx.brake
   let best = top
   const i0 = ai.tracker.idx
   // Look 0..220 m ahead, a point every ~12 m
@@ -108,7 +115,7 @@ const wrap = (a: number) => {
 export function stepAi(course: Course, ai: AiRacer, dt: number, go: boolean, tMs: number, others: { x: number; z: number }[] = []) {
   const b = ai.body
   const shape = bodyFor(ai.model)
-  const tune = tuneFor(ai.model, ai.skill)
+  const tune = tuneFor(ai.model, ai.skill, ai.up)
   if (ai.finishedAt !== null) {
     // Cooled off after the line: roll to a stop
     const step = drive(b, { gas: false, brake: true, steer: 0 }, shape, tune, 'road', dt, true)
@@ -189,12 +196,15 @@ export function aiField(playerModel: string, count: number, seed: number) {
     const personality = kinds[i % kinds.length]!
     const p = PERSONALITIES[personality]
     const between = ([lo, hi]: [number, number]) => lo + rnd() * (hi - lo)
+    const skill = between(p.skill)
     return {
       id: `ai-${i}`,
       name: names[i % names.length]!,
       model: pool[Math.floor(rnd() * pool.length)]!,
       color: PAINTS[Math.floor(rnd() * PAINTS.length)]!,
-      skill: between(p.skill),
+      skill,
+      up: aiUpgrades(skill),
+      xp: aiRankXp(skill),
       personality,
       lane: between(p.lane),
       phase: rnd() * 6.28,

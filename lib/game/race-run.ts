@@ -4,7 +4,8 @@ import { useSyncExternalStore } from 'react'
 import { driveCommand, driveTelemetry, setDriveDest } from './drive'
 import { aiField, makeAi, type AiRacer } from './race-ai'
 import { courseById, newTracker, startPlaceId, type Course, type Tracker } from './race-courses'
-import { closeTrial, openTrial, type BoardRow } from './race-trials-api'
+import { NO_UPGRADES, type Upgrades } from './race-rewards'
+import { closeTrial, openTrial, type BoardRow, type Reward, type RunMeta } from './race-trials-api'
 
 /*
  * The race you are running now (a time trial, alone or against AI drivers, on a named route or a
@@ -31,6 +32,8 @@ export type Result = {
   board: { state: 'sending' | 'counted' | 'refused' | 'none'; message?: string; personalBest?: boolean; previousBest?: number | null; rows?: BoardRow[]; mine?: { ms: number; rank: number } | null }
   /** AI finishers in order, for the table. */
   field: { name: string; ms: number | null; you: boolean }[]
+  /** Racer XP, rank-up and badges the server paid for this run (named routes only). */
+  reward: Reward | null
 }
 
 export type Run = {
@@ -43,6 +46,11 @@ export type Run = {
   trialId: string | null
   /** Does this run count for the board? Named routes only. */
   counts: boolean
+  /** Your car's fitted upgrades and your racer XP, shown on the grid and used for "beat a faster player". */
+  playerUp: Upgrades
+  playerXp: number
+  /** Was the game clock past dusk when you set off (for the night racer badge)? */
+  night: boolean
   result: Result | null
 }
 
@@ -60,6 +68,10 @@ export const runLive = {
   racers: [] as LiveRacer[],
   /** Metres from the start box (toGrid). */
   toStart: 0,
+  /** Hard knocks (bumps) when the lights went green: a race with none added is a clean race. */
+  crashStart: 0,
+  /** Your place when you cleared the halfway checkpoint (null until then): last there and first at the end is a comeback. */
+  halfPlace: null as number | null,
   /** Splits of your best run on this route, for gap-to-best. */
   best: null as number[] | null,
 }
@@ -93,6 +105,8 @@ function reset(next: Run | null) {
   runLive.place = 1
   runLive.racers = []
   runLive.toStart = 0
+  runLive.crashStart = 0
+  runLive.halfPlace = null
   driveCommand.hold = false
   emit()
 }
@@ -101,11 +115,11 @@ function reset(next: Run | null) {
  * Begin a run on a course. `named` routes start at their start box (the GPS leads you there);
  * a sprint from where you stand starts where you are. `rivals` is how many AI drivers line up (0 = solo).
  */
-export function beginRun(course: Course, opts: { rivals: number; model: string; seed?: number; named: boolean }) {
+export function beginRun(course: Course, opts: { rivals: number; model: string; seed?: number; named: boolean; up?: Upgrades; xp?: number; night?: boolean }) {
   const field = aiField(opts.model, opts.rivals, opts.seed ?? Date.now())
   // You take the pole; the AI line up behind and beside
   const ai = field.map((f, i) => makeAi(course, gridSlot(course.start, i + 1), f))
-  reset({ id: nextId++, course, ai, phase: opts.named ? 'toGrid' : 'grid', trialId: null, counts: opts.named, result: null })
+  reset({ id: nextId++, course, ai, phase: opts.named ? 'toGrid' : 'grid', trialId: null, counts: opts.named, playerUp: opts.up ?? NO_UPGRADES, playerXp: opts.xp ?? 0, night: opts.night ?? false, result: null })
   if (opts.named) {
     const id = startPlaceId(course)
     setDriveDest({ id, label: 'Start line' })
@@ -143,6 +157,8 @@ export function pressStart() {
 /** The green light: the scene calls this. */
 export function lightsOut() {
   if (!run || run.phase !== 'countdown') return
+  runLive.crashStart = driveTelemetry.bumps
+  runLive.halfPlace = null
   run = { ...run, phase: 'racing' }
   driveCommand.hold = false
   emit()
@@ -166,6 +182,7 @@ export function finishRun(ms: number | null, splits: number[]) {
     splits,
     board: { state: ms !== null && run.counts && run.trialId ? 'sending' : 'none' },
     field: sorted.map((r) => ({ name: r.name, ms: r.finishedAt, you: r.you })),
+    reward: null,
   }
   const id = run.id
   const trialId = run.trialId
@@ -173,12 +190,24 @@ export function finishRun(ms: number | null, splits: number[]) {
   driveCommand.hold = false
   emit()
   if (ms !== null && run.counts && trialId) {
-    void closeTrial(trialId, ms, splits).then((res) => {
+    // Facts for badges: how you did against the field (beating a car with a better engine or a higher rank counts double)
+    const beaten = run.ai.filter((a) => sorted.findIndex((r) => r.id === a.id) > place - 1)
+    const meta: RunMeta = {
+      mode: run.ai.length > 0 ? 'ai' : 'trial',
+      place: Math.min(4, place),
+      of: Math.min(4, racers.length || 1),
+      beatFaster: beaten.filter((a) => a.up.engine > run!.playerUp.engine || a.xp > run!.playerXp).length,
+      beatAiSkill: beaten.length ? Math.max(...beaten.map((a) => a.skill)) : null,
+      crashed: driveTelemetry.bumps > runLive.crashStart,
+      night: run.night,
+      comeback: place === 1 && racers.length > 1 && runLive.halfPlace === racers.length,
+    }
+    void closeTrial(trialId, ms, splits, meta).then((res) => {
       if (!run || run.id !== id || !run.result) return
       const board: Result['board'] = res.ok
         ? { state: 'counted', personalBest: res.personalBest, previousBest: res.previousBest, rows: res.board, mine: res.mine }
         : { state: 'refused', message: res.error ?? 'The server did not count that time.' }
-      run = { ...run, result: { ...run.result, board } }
+      run = { ...run, result: { ...run.result, board, reward: res.ok ? res.reward : null } }
       emit()
     })
   }
@@ -205,10 +234,10 @@ export function endRun() {
 /** Run the same course again from the grid. */
 export function again(model: string) {
   if (!run) return
-  const { course, ai } = run
+  const { course, ai, playerUp, playerXp, night } = run
   const named = run.counts
   const named2 = courseById(course.id)
-  beginRun(course, { rivals: ai.length, model, named: named && Boolean(named2) })
+  beginRun(course, { rivals: ai.length, model, named: named && Boolean(named2), up: playerUp, xp: playerXp, night })
   if (named) {
     // Already at the start: stay on the grid rather than driving back to it
     arriveAtGrid()

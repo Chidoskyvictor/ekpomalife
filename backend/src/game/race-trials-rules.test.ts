@@ -70,6 +70,19 @@ describe('checkTrial', () => {
     expect(checkTrial({ ...run, ms: 99_999_999 })).toMatchObject({ ok: false, reason: 'BAD_TIME' })
   })
 
+  it('an engine upgrade raises the limit: the same run is honest with it and impossible without', () => {
+    const run = honest('camry', 1.0)
+    const quick = (() => {
+      const v = topSpeed('camry', 3) * 0.99
+      const splits = course.checkpointsM.map((m) => Math.round((m / v) * 1000))
+      return { courseId: ID, model: 'camry', ms: splits[3]!, splits, elapsedMs: splits[3]! + 4000 }
+    })()
+    expect(topSpeed('camry', 3)).toBeGreaterThan(topSpeed('camry', 0) * 1.08)
+    expect(checkTrial({ ...quick, engine: 3 })).toEqual({ ok: true })
+    expect(checkTrial({ ...quick, engine: 0 })).toMatchObject({ ok: false, reason: 'TOO_FAST' })
+    expect(checkTrial({ ...run })).toEqual({ ok: true })
+  })
+
   it('knows every route has rising checkpoints ending at the length', () => {
     for (const c of Object.values(COURSES)) {
       expect([...c.checkpointsM].sort((a, b) => a - b)).toEqual(c.checkpointsM)

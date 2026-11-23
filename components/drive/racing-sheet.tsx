@@ -4,7 +4,10 @@ import { Bot, ChevronDown, Flag, MapPin, Search, Timer, Users, X } from 'lucide-
 import { useEffect, useMemo, useState } from 'react'
 import { AppEmpty, AppLoading } from '@/components/hud/phone/app-state'
 import { hapticTap } from '@/components/hud/haptic'
+import { rideLookAt, rideMinute } from '@/components/travel/ride-environment'
 import { useGame } from '@/hooks/use-game'
+import { useGarage } from '@/lib/game/cars-api'
+import { NO_UPGRADES } from '@/lib/game/race-rewards'
 import { RACE_FEE } from '@/lib/game/cars-rules'
 import { driveTelemetry, useDrive } from '@/lib/game/drive'
 import { ROAD_PLACES, placeSpot } from '@/lib/game/drive-road'
@@ -42,6 +45,7 @@ function RouteArt({ course }: { course: Course }) {
 export function RacingSheet({ open, onClose, onPlayers }: { open: boolean; onClose: () => void; onPlayers: () => void }) {
   const { notifyToast } = useGame()
   const drive = useDrive()
+  const garage = useGarage(open)
   const [picked, setPicked] = useState<Pick>('expressway-flat-out')
   const [boards, setBoards] = useState<Record<string, Board | 'error'>>({})
   const [hosting, setHosting] = useState(false)
@@ -87,15 +91,17 @@ export function RacingSheet({ open, onClose, onPlayers }: { open: boolean; onClo
   const go = (opponents: number) => {
     hapticTap()
     const model = drive?.car.model ?? 'corolla'
+    // Your fitted upgrades and rank go on the grid; the clock says whether it is a night race
+    const mine0 = { up: garage?.cars.find((c) => c.active)?.up ?? NO_UPGRADES, xp: garage?.xp ?? 0, night: rideLookAt(rideMinute()).level === 'night' }
     if (picked === 'anywhere') {
       const sprint = sprintFrom(driveTelemetry.x, driveTelemetry.z, driveTelemetry.h, dest)
       if (!sprint) {
         notifyToast("The roads don't lead there from here. Pick another finish.", false)
         return
       }
-      beginRun(sprint, { rivals: opponents, model, named: false })
+      beginRun(sprint, { rivals: opponents, model, named: false, ...mine0 })
     } else if (course) {
-      beginRun(course, { rivals: opponents, model, named: true })
+      beginRun(course, { rivals: opponents, model, named: true, ...mine0 })
     }
     onClose()
   }
@@ -232,8 +238,13 @@ export function RacingSheet({ open, onClose, onPlayers }: { open: boolean; onClo
                 {rows.map((r) => (
                   <li key={r.rank} className={r.you ? styles.me : ''}>
                     <span>{r.rank <= 3 ? ['🥇', '🥈', '🥉'][r.rank - 1] : r.rank}</span>
-                    <em>@{r.handle}</em>
-                    <small>{r.car}</small>
+                    <em>
+                      <i aria-hidden="true">{r.racerRank.emoji}</i> @{r.handle}
+                    </em>
+                    <small>
+                      {r.car}
+                      {r.upgrades ? <b className={styles.fitted}> {r.upgrades}</b> : null}
+                    </small>
                     <b>{formatRaceTime(r.ms)}</b>
                   </li>
                 ))}

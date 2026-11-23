@@ -1,4 +1,5 @@
 import { carById } from './cars-rules.js'
+import { EFFECT } from './race-rewards-rules.js'
 
 /*
  * The rules a time trial must pass (pure: no database, so the phone's tests can import this file).
@@ -22,8 +23,8 @@ export const COURSES: Record<string, { name: string; lengthM: number; laps: numb
 
 export type TrialCheck = { ok: true } | { ok: false; reason: string; error: string }
 
-/** The fastest a car can go, m/s (its top speed, with 3% for rounding). */
-export const topSpeed = (model: string) => ((carById(model)?.topKmh ?? 180) / 3.6) * 1.03
+/** The fastest a car can go, m/s (its top speed with its engine upgrades, and 3% for rounding). */
+export const topSpeed = (model: string, engineLevel = 0) => ((carById(model)?.topKmh ?? 180) / 3.6) * (1 + EFFECT.engineTop * Math.max(0, Math.min(3, engineLevel))) * 1.03
 
 const MAX_MS = 20 * 60 * 1000
 /** A phone's clock may run this far past the server's wall clock before we call it a lie (network and frame jitter). */
@@ -35,14 +36,14 @@ const FLOOR = 0.97
  * Is this a possible run? `ms` is the finish time and `splits` the time each checkpoint was cleared
  * (the last is the finish). `elapsedMs` is how long the server saw the trial open.
  */
-export function checkTrial(input: { courseId: string; model: string; ms: number; splits: number[]; elapsedMs: number }): TrialCheck {
+export function checkTrial(input: { courseId: string; model: string; engine?: number; ms: number; splits: number[]; elapsedMs: number }): TrialCheck {
   const course = COURSES[input.courseId]
   const reject = (reason: string, error: string): TrialCheck => ({ ok: false, reason, error })
   if (!course) return reject('NO_COURSE', 'That route does not exist.')
   const { ms, splits, elapsedMs } = input
   if (!Number.isInteger(ms) || ms <= 0 || ms > MAX_MS) return reject('BAD_TIME', 'That time is not valid.')
   if (splits.length !== course.checkpointsM.length) return reject('CHECKPOINTS', 'You missed a checkpoint.')
-  const top = topSpeed(input.model)
+  const top = topSpeed(input.model, input.engine ?? 0)
   let prev = 0
   let prevM = 0
   for (let i = 0; i < splits.length; i++) {

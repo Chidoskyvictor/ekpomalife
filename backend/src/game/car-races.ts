@@ -9,6 +9,7 @@ import { RACE_COUNTDOWN_MS, RACE_MAX_RACERS, RACE_MAX_STAKE, racePrize } from '.
 import { getPlace } from './places.js'
 import { openDirectChat, sendMessage } from './chat.js'
 import { COURSES, checkTrial } from './race-trials-rules.js'
+import { activeCarUpgrades, awardPvpWin } from './racer.js'
 
 /*
  * Drag races, point to point. The host picks a finish (a place on the driving roads) and a stake.
@@ -131,6 +132,8 @@ async function payWinner(client: PoolClient, race: RaceRow, winnerId: string) {
   const prize = racePrize(asMoney(race.stake), race.paid_in)
   if (prize > 0) await applyCash(client, winnerId, prize, `Race won: ${race.dest_label}`, 'car_race')
   await client.query(`UPDATE car_races SET status = 'done', finished_at = NOW(), winner_character_id = $2, prize = $3 WHERE id = $1`, [race.id, winnerId, prize])
+  // The win earns racer XP and win badges (a convoy never reaches here)
+  if (race.kind !== 'convoy') await awardPvpWin(client, winnerId, race.paid_in)
   return prize
 }
 
@@ -377,8 +380,8 @@ export function finishRace(userId: string, raceId: string, x: number, z: number,
       // A named route: the time and checkpoints you hand in must be a possible run in your own car, and
       // no longer than the race has been running
       if (!run) return { error: 'Hand in your checkpoint times.', reason: 'NO_SPLITS' }
-      const car = await client.query<{ model: string }>(`SELECT model FROM car_holdings WHERE character_id = $1 AND active LIMIT 1`, [me])
-      const verdict = checkTrial({ courseId: race.course_id, model: car.rows[0]?.model ?? 'corolla', ms: run.ms, splits: run.splits, elapsedMs: Date.now() - race.starts_at.getTime() })
+      const car = await activeCarUpgrades(client, me)
+      const verdict = checkTrial({ courseId: race.course_id, model: car.model ?? 'corolla', engine: car.up.engine, ms: run.ms, splits: run.splits, elapsedMs: Date.now() - race.starts_at.getTime() })
       if (!verdict.ok) return { error: verdict.error, reason: verdict.reason }
       const prize = await payWinner(client, race, me)
       return { message: prize > 0 ? `You won ${naira(prize)}!` : 'You won!' }

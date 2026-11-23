@@ -7,6 +7,7 @@ import { BufferAttribute, BufferGeometry, CanvasTexture, Color, DoubleSide, Mesh
 import { CarModel, type CarRig } from '@/components/cars/car-model'
 import { driveCommand, driveTelemetry } from '@/lib/game/drive'
 import { stepAi, type AiRacer } from '@/lib/game/race-ai'
+import { rankFor, upgradeNote } from '@/lib/game/race-rewards'
 import { advance, pointOnCourse, rankRacers, type Course } from '@/lib/game/race-courses'
 import { IN_BOX, arriveAtGrid, currentRun, finishRun, lightsOut, runLive, toStartBox, updateField, useRun } from '@/lib/game/race-run'
 
@@ -217,21 +218,26 @@ function AiCar({ ai }: { ai: AiRacer }) {
       <Html position={[0, 2.5, 0]} center zIndexRange={[5, 0]} style={{ pointerEvents: 'none' }}>
         <span
           style={{
-            display: 'inline-block',
-            maxWidth: 140,
-            overflow: 'hidden',
-            padding: '3px 9px',
-            borderRadius: 999,
-            background: 'rgba(17,24,39,0.82)',
+            display: 'inline-flex',
+            maxWidth: 170,
+            flexDirection: 'column',
+            alignItems: 'center',
+            padding: '3px 10px 4px',
+            borderRadius: 14,
+            background: 'rgba(17,24,39,0.84)',
             color: '#fff',
-            fontSize: 12,
-            fontWeight: 700,
-            textOverflow: 'ellipsis',
+            lineHeight: 1.2,
             whiteSpace: 'nowrap',
             boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
           }}
         >
-          {ai.name}
+          <b style={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', fontSize: 12, fontWeight: 800 }}>
+            {rankFor(ai.xp).emoji} {ai.name}
+          </b>
+          <small style={{ fontSize: 12, fontWeight: 600, opacity: 0.8 }}>
+            {rankFor(ai.xp).name}
+            {upgradeNote(ai.up) ? ` · ${upgradeNote(ai.up)}` : ''}
+          </small>
         </span>
       </Html>
     </group>
@@ -295,6 +301,7 @@ export function RaceWorld() {
     runLive.racers = buildRacers(r.ai, finishedAt, runLive.tracker.progress, speed)
     const order = rankRacers(runLive.racers)
     runLive.place = order.indexOf(0) + 1
+    if (r.phase === 'racing' && runLive.halfPlace === null && runLive.tracker.passed >= Math.ceil(course.checkpoints.length / 2)) runLive.halfPlace = runLive.place
 
     // After you finish, keep the table up to date until the last car is home
     tick.current += delta

@@ -561,3 +561,13 @@
     border-radius: var(--r-lg) 0 0 var(--r-lg);
   }
 }
+
+.table em i {
+  font-style: normal;
+}
+
+.table small .fitted {
+  color: var(--primary);
+  font-size: var(--fs-12);
+  font-weight: 800;
+}

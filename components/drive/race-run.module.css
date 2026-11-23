@@ -471,3 +471,126 @@
     font-size: 56px;
   }
 }
+
+/* —— the field on the grid: rank and upgrades of every car —— */
+
+.entries {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.entries li {
+  display: grid;
+  min-height: 34px;
+  grid-template-columns: 22px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  border-radius: var(--r-sm);
+  background: var(--fill);
+  font-size: var(--fs-14);
+}
+
+.entries .meRow {
+  background: color-mix(in oklab, var(--primary) 14%, var(--paper));
+  font-weight: 800;
+}
+
+.entries em {
+  overflow: hidden;
+  font-style: normal;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.entries small {
+  color: var(--ink-2);
+  font-size: var(--fs-12);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.entries b {
+  color: var(--ink-3);
+  font-size: var(--fs-12);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+}
+
+.entries b.fitted {
+  color: var(--primary);
+}
+
+/* —— rewards on the result card —— */
+
+.reward {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.xp {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: var(--r-md);
+  background: color-mix(in oklab, var(--primary) 14%, var(--paper));
+  font-size: var(--fs-14);
+  font-weight: 700;
+}
+
+.xp b {
+  color: var(--primary);
+  font-size: var(--fs-16);
+  font-weight: 800;
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.badges li {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px 4px 8px;
+  border-radius: var(--r-pill);
+  background: color-mix(in oklab, #f59e0b 22%, var(--paper));
+  animation: pop var(--dur-pop) var(--ease-ui);
+}
+
+.badges i {
+  font-size: 22px;
+  font-style: normal;
+  line-height: 1;
+}
+
+.badges span {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.badges b {
+  font-size: var(--fs-14);
+  font-weight: 800;
+}
+
+.badges small {
+  color: var(--ink-2);
+  font-size: var(--fs-12);
+  font-weight: 700;
+}
