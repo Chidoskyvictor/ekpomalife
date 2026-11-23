@@ -27,7 +27,24 @@ const QUARTERS: [match: RegExp, text: string][] = [
   [/^Ikhido/i, 'IKHIDO'],
   [/^Egbede/i, 'EGBEDE'],
   [/^Aloja/i, 'ALOJA'],
-]
+  // Well-known roads a viewer will recognise, shown by their own name
+  [/^G1 Road/i, 'G1 ROAD'],
+  [/^G2 Road/i, 'G2 ROAD'],
+  [/^GT Road/i, 'GT ROAD'],
+  [/^Poultry Road/i, 'POULTRY ROAD'],
+  [/^University Road/i, 'UNIVERSITY ROAD'],
+  [/^Market Road/i, 'MARKET ROAD'],
+  [/^Oriafor Road/i, 'ORIAFOR ROAD'],
+  [/^Efe Block Road/i, 'EFE BLOCK ROAD'],
+  [/^Edeoghon Street/i, 'EDEOGHON STREET'],
+  [/^Saint Nicolas Street/i, 'SAINT NICOLAS STREET'],
+  [/^Debow Road/i, 'DEBOW ROAD'],
+  [/^King Jesus Road/i, 'KING JESUS ROAD'],
+  [/^Mamaland Road/i, 'MAMALAND ROAD'],
+  [/^Faith Baptist Road/i, 'FAITH BAPTIST ROAD'],
+  [/^Grail Center Road/i, 'GRAIL CENTER ROAD'],
+  [/^Beverly Hills Road/i, 'BEVERLY HILLS ROAD'],
+  [/^Palmwell Street/i, 'PALMWELL STREET'],]
 
 const ahead = (roadId: string, dir: number) => (roadId === 'expressway' ? (dir > 0 ? '↑ AUCHI' : '↑ BENIN') : dir > 0 ? '↑ IRUEKPEN' : '↑ EKPOMA')
 const MAX_GAP = 600
@@ -96,8 +113,8 @@ function nearest(roadId: string, s: number): string {
   let gap = Infinity
   for (const g of GANTRIES) {
     if (g.road !== roadId || g.text === 'AAU MAIN GATE') continue
-    if (Math.abs(g.s - s) < gap) {
-      gap = Math.abs(g.s - s)
+    if (Math.abs(g.s - s) + 500 < gap) {
+      gap = Math.abs(g.s - s) + 500
       best = g.text
     }
   }
