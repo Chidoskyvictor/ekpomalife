@@ -129,8 +129,8 @@ type Flash = { rear: [number, number, number, number, number]; front: [number, n
 /** The model's own red tail-lamp lens (right side; mirrored): [x, height, z, width, height]. */
 type Lens = [number, number, number, number, number]
 const REAL: Record<string, { url: string; length: number; paint: string[]; glass: string[]; tail: [number, number, number, number]; flash: Flash; lens: Lens }> = {
-  rx350: { url: '/models/cars/lexus-rx.glb?v=1', length: 4.89, paint: ['Material_1.003', 'Material_3.003'], glass: ['Material_5.003', 'Material_20'], tail: [0.68, 1.02, 0.3, 0.1], flash: { rear: [0.74, 1.03, -2.28, 0.17, 0.1], front: [0.54, 0.87, 2.15, 0.16, 0.08] }, lens: [0.575, 1.095, -2.36, 0.43, 0.23] },
-  gla: { url: '/models/cars/benz-gla.glb?v=1', length: 4.4, paint: ['Carro_Pintura'], glass: ['Carro_Vidros', 'Carro_Vidros_1'], tail: [0.7, 0.98, 0.26, 0.1], flash: { rear: [0.77, 0.99, -2.0, 0.15, 0.15], front: [0.77, 0.78, 2.04, 0.12, 0.08] }, lens: [0.645, 0.985, -2.04, 0.41, 0.21] },
+  rx350: { url: '/models/cars/lexus-rx.glb?v=1', length: 4.89, paint: ['Material_1.003', 'Material_3.003'], glass: ['Material_5.003', 'Material_20'], tail: [0.68, 1.02, 0.3, 0.1], flash: { rear: [0.66, 1.09, -2.3, 0.15, 0.09], front: [0.54, 0.87, 2.15, 0.16, 0.08] }, lens: [0.575, 1.095, -2.36, 0.43, 0.23] },
+  gla: { url: '/models/cars/benz-gla.glb?v=1', length: 4.4, paint: ['Carro_Pintura'], glass: ['Carro_Vidros', 'Carro_Vidros_1'], tail: [0.7, 0.98, 0.26, 0.1], flash: { rear: [0.69, 1.03, -2.02, 0.14, 0.12], front: [0.77, 0.78, 2.04, 0.12, 0.08] }, lens: [0.645, 0.985, -2.04, 0.41, 0.21] },
 }
 for (const r of Object.values(REAL)) useGLTF.preload(r.url)
 
@@ -611,7 +611,7 @@ export function CarModel({ id, color, dents = 0, seeThrough = false, rig, hazard
             [-(hx + 0.06), hy, hz + 0.015, 0.1, 0.09],
             [hx + 0.06, hy, hz + 0.015, 0.1, 0.09],
           ]).map(([fx, fy, fz, fw, fh], i) => (
-        <mesh key={`hz${i}`} ref={(m) => void (flashers.current[i] = m as Mesh)} geometry={fz! < 0 ? glowBack : glowFront} material={hazardMaterial} position={[fx!, fy!, fz! + (fz! < 0 ? -0.02 : 0.02)]} scale={[fw! * 2.4, fh! * 3.2, 1]} visible={false} />
+        <mesh key={`hz${i}`} ref={(m) => void (flashers.current[i] = m as Mesh)} geometry={fz! < 0 ? glowBack : glowFront} material={hazardMaterial} position={[fx!, fy!, fz! + (fz! < 0 ? -0.02 : 0.02)]} scale={[fw! * 1.8, fh! * 2.4, 1]} visible={false} />
       ))}
       {rig
         ? [-1, 1].map((side, i) => (
