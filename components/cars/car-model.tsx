@@ -6,6 +6,7 @@ import { createContext, Suspense, useContext, useMemo, useRef, type MutableRefOb
 import {
   AdditiveBlending,
   CanvasTexture,
+  SphereGeometry,
   BoxGeometry,
   BufferGeometry,
   Color,
@@ -522,6 +523,7 @@ function beamTexture() {
   ctx.fillRect(-64, -100, 128, 128)
   return new CanvasTexture(c)
 }
+const headBulb = new SphereGeometry(1, 12, 8)
 const beamMaterial = new MeshBasicMaterial({ map: beamTexture(), color: '#ffe9a8', transparent: true, opacity: 0.85, depthWrite: false, blending: AdditiveBlending, toneMapped: false })
 const beamPlane = new PlaneGeometry(6, 14).rotateX(-Math.PI / 2)
 
@@ -567,8 +569,8 @@ export function CarModel({ id, color, dents = 0, seeThrough = false, rig }: { id
       {body}
       {lit ? (
         <>
-          <mesh geometry={tailBox} material={headMaterial} position={[-hx, hy, hz]} scale={[0.34, 0.14, 0.06]} />
-          <mesh geometry={tailBox} material={headMaterial} position={[hx, hy, hz]} scale={[0.34, 0.14, 0.06]} />
+          <mesh geometry={headBulb} material={headMaterial} position={[-hx, hy, hz]} scale={[0.15, 0.1, 0.07]} />
+          <mesh geometry={headBulb} material={headMaterial} position={[hx, hy, hz]} scale={[0.15, 0.1, 0.07]} />
           <mesh geometry={beamPlane} material={beamMaterial} position={[0, 0.06, hz + 3.6]} />
         </>
       ) : null}
