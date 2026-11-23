@@ -172,7 +172,8 @@ function Scene({ car, look: driverLook, start, send, peers, roster, film }: Stre
       <RouteArrows />
       <FinishBeam />
       <RaceWorld />
-      <Traffic />
+      {/* Film mode scripts all its own vehicles, so random traffic can't drive through them */}
+      {film ? null : <Traffic />}
       <Suspense fallback={null}>
         <Walkers />
       </Suspense>

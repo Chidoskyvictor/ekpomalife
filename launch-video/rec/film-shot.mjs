@@ -10,8 +10,9 @@ const [outDir, plan, fpsArg, extra] = process.argv.slice(2)
 const FPS = Number(fpsArg ?? 30)
 const SUB = 3
 const shots = plan.split(',').map((p) => {
-  const [shot, from, to] = p.split(':')
-  return { shot, from: Number(from), to: Number(to) }
+  // optional 4th field: playback speed (0.35 = slow motion: more frames over the same film time)
+  const [shot, from, to, rate] = p.split(':')
+  return { shot, from: Number(from), to: Number(to), rate: Number(rate ?? 1) }
 })
 fs.mkdirSync(path.join(outDir, 'sub'), { recursive: true })
 
@@ -54,12 +55,12 @@ console.log('page:', JSON.stringify(state))
 await page.screenshot({ path: path.join(outDir, 'check.png') })
 
 let n = 0
-for (const { shot, from, to } of shots) {
+for (const { shot, from, to, rate } of shots) {
   await page.evaluate((s) => (window.__filmShot = s), shot)
-  const frames = Math.round((to - from) * FPS)
+  const frames = Math.round(((to - from) * FPS) / rate)
   for (let i = 0; i < frames; i++) {
     for (let k = 0; k < SUB; k++) {
-      const t = from + i / FPS + (k / SUB) * (0.5 / FPS)
+      const t = from + (i / FPS + (k / SUB) * (0.5 / FPS)) * rate
       await page.evaluate((v) => (window.__filmT = v), t)
       await frame()
       await frame()
