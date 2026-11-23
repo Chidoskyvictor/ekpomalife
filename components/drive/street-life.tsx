@@ -179,7 +179,7 @@ export function FinishBeam() {
 
 /* —— other cars —— */
 
-type NpcCar = { road: Road; s: number; dir: number; lane: number; v: number; cruise: number; model: string; color: string; x: number; z: number; stuck: number }
+type NpcCar = { road: Road; s: number; dir: number; lane: number; v: number; cruise: number; model: string; color: string; x: number; z: number; /** Which way it faces (unit vector) */ fx: number; fz: number; stuck: number }
 
 /** A cross street's two ends lie in the middle of the long roads it joins: its cars stop short of them. */
 const endGap = (road: Road) => (road.kind === 'street' ? 24 : 6)
@@ -196,8 +196,20 @@ const CAR_FAR = 280
 const cars: NpcCar[] = []
 
 /** Is there another car right here? (so yours bumps into it) */
+/** NPC car body, half width and half length (m): the size of a saloon, so you can squeeze right past its side. */
+const NPC_HALF_W = 0.95
+const NPC_HALF_L = 2.3
+
+/** Is this point inside an NPC car's body? (its real shape, turned the way it faces, not a wide circle) */
 export function trafficBlocks(x: number, z: number) {
-  for (const c of cars) if (Math.abs(c.x - x) < 2.4 && Math.abs(c.z - z) < 2.4 && Math.hypot(c.x - x, c.z - z) < 2.15) return true
+  for (const c of cars) {
+    const dx = x - c.x
+    const dz = z - c.z
+    if (Math.abs(dx) > 3 || Math.abs(dz) > 3) continue
+    const along = dx * c.fx + dz * c.fz
+    const across = dx * c.fz - dz * c.fx
+    if (Math.abs(along) < NPC_HALF_L && Math.abs(across) < NPC_HALF_W) return true
+  }
   return false
 }
 
@@ -231,7 +243,7 @@ export function Traffic() {
   useEffect(() => {
     cars.length = 0
     for (let i = 0; i < CARS; i++) {
-      const car = { road: ROADS[0]!, s: 0, dir: 1, lane: 0, v: 0, cruise: 0, model: 'corolla', color: '#fff', x: 0, z: 0, stuck: 0 }
+      const car = { road: ROADS[0]!, s: 0, dir: 1, lane: 0, v: 0, cruise: 0, model: 'corolla', color: '#fff', x: 0, z: 0, fx: 0, fz: 1, stuck: 0 }
       placeCar(car, true)
       cars.push(car)
     }
@@ -269,6 +281,8 @@ export function Traffic() {
       car.stuck = car.v < 0.6 ? car.stuck + dt : 0
       car.x = p.x
       car.z = p.z
+      car.fx = fx
+      car.fz = fz
       const g = groups.current[i]
       if (g) {
         g.position.set(p.x, 0.05, p.z)
