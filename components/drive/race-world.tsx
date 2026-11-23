@@ -219,22 +219,22 @@ function AiCar({ ai }: { ai: AiRacer }) {
         <span
           style={{
             display: 'inline-flex',
-            maxWidth: 170,
+            maxWidth: 124,
             flexDirection: 'column',
             alignItems: 'center',
-            padding: '3px 10px 4px',
-            borderRadius: 14,
-            background: 'rgba(17,24,39,0.84)',
+            padding: '2px 7px 3px',
+            borderRadius: 10,
+            background: 'rgba(17,24,39,0.78)',
             color: '#fff',
-            lineHeight: 1.2,
+            lineHeight: 1.15,
             whiteSpace: 'nowrap',
             boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
           }}
         >
-          <b style={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', fontSize: 12, fontWeight: 800 }}>
+          <b style={{ maxWidth: 110, overflow: 'hidden', textOverflow: 'ellipsis', fontSize: 10, fontWeight: 800 }}>
             {rankFor(ai.xp).emoji} {ai.name}
           </b>
-          <small style={{ fontSize: 12, fontWeight: 600, opacity: 0.8 }}>
+          <small style={{ maxWidth: 110, overflow: 'hidden', textOverflow: 'ellipsis', fontSize: 8.5, fontWeight: 600, opacity: 0.8 }}>
             {rankFor(ai.xp).name}
             {upgradeNote(ai.up) ? ` · ${upgradeNote(ai.up)}` : ''}
           </small>

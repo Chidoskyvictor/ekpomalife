@@ -300,7 +300,7 @@ function PeerCar({ peer, scale }: { peer: Peer; scale: number }) {
       <group scale={scale}>
         <CarModel id={model} color={color ?? '#c9ccd1'} />
       </group>
-      <sprite position={[0, 2.0 * scale + 0.45, 0]} scale={[2.6 * scale, 0.65 * scale, 1]}>
+      <sprite position={[0, 2.0 * scale + 0.35, 0]} scale={[1.8 * scale, 0.45 * scale, 1]}>
         <spriteMaterial map={nameTexture(peer.username)} depthTest={false} />
       </sprite>
     </group>
