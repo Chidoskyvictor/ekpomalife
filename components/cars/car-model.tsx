@@ -530,7 +530,7 @@ function RealCar({ id, color, seeThrough, rig, hazard }: { id: string; color: st
     return hit
   }, [id, scene])
   const brakeLit = useMemo(() => lampMaterial('#ff2a14', 0), [])
-  const amber = useMemo(() => lampMaterial('#ffa21a', 0), [])
+  const amber = useMemo(() => lampMaterial('#ffc861', 0), [])
   const wheels = useMemo(() => {
     const w = wheelNodes(car)
     if (w) for (const n of Object.values(w)) n!.rotation.order = 'YXZ'
@@ -541,7 +541,7 @@ function RealCar({ id, color, seeThrough, rig, hazard }: { id: string; color: st
     // Hazards: the outer part of each lamp blinks amber in its own shape, softly in and out
     const on = Boolean(r?.hazard || hazard?.current)
     const phase = (clock.elapsedTime % 0.72) / 0.72
-    amber.opacity = on ? Math.max(0, Math.sin(Math.min(1, phase / 0.56) * Math.PI)) * 0.95 : 0
+    amber.opacity = on ? Math.max(0, Math.sin(Math.min(1, phase / 0.56) * Math.PI)) * 0.5 : 0
     brakeLit.opacity = r?.braking ? 0.85 : 0
     if (!r || !wheels) return
     wheels.fl!.rotation.set(r.spin, r.steer, 0)
