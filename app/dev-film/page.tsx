@@ -56,7 +56,9 @@ function Inner() {
 }
 
 export default function DevFilm() {
-  if (process.env.NODE_ENV === 'production') notFound()
+  // Dev only, or a production build made for recording the trailer (NEXT_PUBLIC_FILM=1): a fixed build
+  // doesn't rebuild mid-recording the way the dev server does
+  if (process.env.NODE_ENV === 'production' && process.env.NEXT_PUBLIC_FILM !== '1') notFound()
   return (
     <Suspense fallback={null}>
       <Inner />

@@ -30,6 +30,8 @@ export type FilmShot =
   | 'gantry' // a roadside cameraman under the G1 ROAD gantry, swinging round as they fly past
   | 'behind' // behind both cars, the truck ahead in the Lexus's lane
   | 'top' // drone straight down over the Lexus and the truck
+  | 'overlexus' // over the Lexus's rear, the Benz pulling out, the truck coming head-on
+  | 'squeeze' // slow-motion close-up, the Lexus sliding sideways right up to the truck's nose
   | 'truckwheel' // low beside the truck's back wheels, the Lexus sliding up behind it
   | 'spin' // roadside, following the Lexus as it spins out
   | 'front' // ahead of the Benz, low, as it rushes at the camera
@@ -108,7 +110,12 @@ function simulate(speed: number): Frame[] {
     const laneT = Math.min(1, Math.max(0, (t - 2.3) / 1.3))
     const ease = laneT * laneT * (3 - 2 * laneT)
     let benzTarget = MID + (OUTSIDE - MID) * ease
-    if (t > 5.2 && t < 8.6) benzTarget -= Math.max(0, Math.sin((t - 5.2) * 2.3)) * 0.45
+    // The reference's bumper-to-bumper moment: the Benz leans right up to the Lexus (0.38 m apart at the closest)
+    // around t = 6, then backs off to its lane before the truck arrives
+    if (t > 4.9 && t < 7.3) {
+      const k = (t - 4.9) / 2.4
+      benzTarget -= Math.sin(Math.PI * k) ** 2 * (OUTSIDE - MID - 2.3)
+    }
     const benzWant = t < 9 ? lexus - gap : benz + speed
     benzV = Math.max(0, benzV + Math.max(-9, Math.min(4, (speed + (benzWant - benz) * 1.6 - benzV) * 3)) * dt)
     if (t >= 9) benzV += (speed - benzV) * dt * 2
@@ -138,18 +145,36 @@ function simulate(speed: number): Frame[] {
 
 /** Other traffic, all on the opposite carriageway, so nothing can cross the race. [start, lane offset, speed, model, colour] */
 const ONCOMING: [number, number, number, string, string][] = [
+  [90, -OUTSIDE, 17, 'scout', '#5a6b3a'],
   [140, -MID, 22, 'corolla', '#c9ccd1'],
-  [260, -INSIDE, 26, 'camry', '#1f2a44'],
-  [420, -OUTSIDE, 18, 'scout', '#5a6b3a'],
+  [210, -INSIDE, 26, 'camry', '#1f2a44'],
+  [290, -OUTSIDE, 18, 'corolla', '#7a1c22'],
+  [330, -MID, 21, 'suv', '#f2f2ef'],
+  [420, -INSIDE, 25, 'camry', '#c8b560'],
+  [480, -OUTSIDE, 16, 'scout', '#3d4a66'],
   [560, -MID, 24, 'suv', '#7a1c22'],
-  [700, -INSIDE, 20, 'corolla', '#f2f2ef'],
+  [620, -INSIDE, 27, 'corolla', '#111317'],
+  [700, -MID, 20, 'corolla', '#f2f2ef'],
+  [760, -OUTSIDE, 18, 'camry', '#8a8f96'],
+  [860, -INSIDE, 24, 'suv', '#5a6b3a'],
 ]
+
+/** Cars parked along the kerb on the race's side, by the shops, never in a lane. [along, model, colour] */
+const PARKED: [number, string, string][] = [
+  [-20, 'corolla', '#c9ccd1'], [24, 'camry', '#1f2a44'], [70, 'scout', '#5a6b3a'], [118, 'corolla', '#7a1c22'],
+  [165, 'suv', '#f2f2ef'], [214, 'camry', '#8a8f96'], [262, 'corolla', '#c8b560'], [300, 'scout', '#3d4a66'],
+  [350, 'camry', '#111317'], [395, 'corolla', '#f2f2ef'], [440, 'suv', '#7a1c22'], [490, 'corolla', '#1f2a44'],
+  [540, 'camry', '#c9ccd1'],
+]
+/** Parking line: just outside the outside lane's edge line, on the shoulder by the kerb. */
+const PARK_OFF = 13.6
 
 export function FilmRig({ road, s0, dir, shot, speed = 30 }: Props) {
   const lead = useRef<Group>(null)
   const chaser = useRef<Group>(null)
   const truck = useRef<Group>(null)
   const others = useRef<(Group | null)[]>([])
+  const parked = useRef<(Group | null)[]>([])
   const leadRig = useRef<CarRig>({ steer: 0, spin: 0, braking: false, reversing: false, hazard: true })
   const chaseRig = useRef<CarRig>({ steer: 0, spin: 0, braking: false, reversing: false, hazard: true })
   const camera = useThree((s) => s.camera) as PerspectiveCamera
@@ -188,6 +213,13 @@ export function FilmRig({ road, s0, dir, shot, speed = 30 }: Props) {
       const p = at(p0 - v * t, off)
       g.position.set(p.x, 0.05, p.z)
       g.rotation.set(0, heading(p) + Math.PI, 0)
+    })
+    PARKED.forEach(([p0], i) => {
+      const g = parked.current[i]
+      if (!g) return
+      const p = at(p0, PARK_OFF)
+      g.position.set(p.x, 0.05, p.z)
+      g.rotation.set(0, heading(p), 0)
     })
     // Wheels on film turn ~1.15 a second at race speed (a 30 fps camera freezes or reverses real-speed wheels)
     const turn = Math.PI * 2 * 1.15 * (1 / 30)
@@ -250,13 +282,24 @@ export function FilmRig({ road, s0, dir, shot, speed = 30 }: Props) {
       camera.up.set(up.x - c.x, 0, up.z - c.z)
       camera.lookAt(c.x, 0, c.z)
       camera.fov = 45
+    } else if (shotNow === 'overlexus') {
+      // Over the Lexus's rear: the Benz pulls out beside it and the truck comes at them head-on
+      cam(f.lead - 5.4, f.leadOff, 2.7 + shake)
+      look(f.lead + 28, (f.leadOff + f.lexOff) / 2, 1.3)
+      camera.fov = 52
+    } else if (shotNow === 'squeeze') {
+      // Slow-motion close-up: low between the truck's nose and the Lexus as it slides sideways right up to it
+      cam(f.truck - TRUCK_FRONT - 0.6, f.truckOff + 2.3, 0.45 + shake * 0.3)
+      look(f.lead, f.leadOff, 0.6)
+      camera.fov = 58
     } else if (shotNow === 'truckwheel') {
       // Low by the truck's front wheel on the free (outside) side, looking at the Lexus sliding up to the cab
       cam(f.truck + 1.2, f.truckOff + 2.1, 0.5 + shake * 0.3)
       look(f.lead, f.leadOff, 0.7)
       camera.fov = 52
     } else if (shotNow === 'spin') {
-      cam(f.lead - 7, OUTSIDE + 3.5, 1.5)
+      // ahead of the Lexus and off to the side, so the slide shows its side and front swinging round
+      cam(f.lead + 9, OUTSIDE + 2.5, 1.4)
       look(f.lead, f.leadOff, 0.8)
       camera.fov = 40
     } else if (shotNow === 'wheel' || shotNow === 'wheel-benz') {
@@ -265,11 +308,12 @@ export function FilmRig({ road, s0, dir, shot, speed = 30 }: Props) {
       look(f.lex + 1.3, f.lexOff + 0.85, 0.38)
     } else {
       // front: ahead of the Benz, low, as it rushes at the camera, the winner
-      cam(f.lex + 16, f.lexOff - 1.4, 0.6 + shake)
+      cam(f.lex + 10, f.lexOff - 1.4, 0.6 + shake)
       look(f.lex - 2, f.lexOff, 0.7)
       camera.fov = 46
     }
     camera.updateProjectionMatrix()
+    if (typeof window !== 'undefined') (window as unknown as { __filmDebug?: unknown }).__filmDebug = { t, shot: shotNow, lexus: [f.lead, f.leadOff, f.leadYaw], benz: [f.lex, f.lexOff], truck: [f.truck, f.truckOff, f.truckYaw], cam: camera.position.toArray(), a: [a.x, a.z], b: [b.x, b.z], k: [k.x, k.z] }
   })
 
   return (
@@ -289,6 +333,13 @@ export function FilmRig({ road, s0, dir, shot, speed = 30 }: Props) {
           <CarModel id={CHASER.model} color={CHASER.color} rig={chaseRig} plate={CHASER.plate} />
         </Suspense>
       </group>
+      {PARKED.map(([, model, color], i) => (
+        <group key={`p${i}`} ref={(g) => void (parked.current[i] = g)}>
+          <Suspense fallback={null}>
+            <CarModel id={model} color={color} />
+          </Suspense>
+        </group>
+      ))}
       {ONCOMING.map(([, , , model, color], i) => (
         <group key={i} ref={(g) => void (others.current[i] = g)}>
           <Suspense fallback={null}>

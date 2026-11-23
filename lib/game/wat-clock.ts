@@ -16,7 +16,8 @@ export function watMinuteOfDay(ms = Date.now()) {
 
 /** Dev only: `?time=21:30` (or the older `?roomTime=`) pins the clock. Minute of day, or null. */
 export function devPinnedMinute(search: string): number | null {
-  if (process.env.NODE_ENV !== 'development') return null
+  // Dev, or a production build made for recording the trailer (NEXT_PUBLIC_FILM=1, never the live site)
+  if (process.env.NODE_ENV !== 'development' && process.env.NEXT_PUBLIC_FILM !== '1') return null
   const params = new URLSearchParams(search)
   const raw = params.get('time') ?? params.get('roomTime')
   const match = raw?.match(/^(\d{1,2}):(\d{2})$/)

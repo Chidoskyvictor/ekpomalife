@@ -60,11 +60,24 @@ for (const { shot, from, to, rate } of shots) {
   const frames = Math.round(((to - from) * FPS) / rate)
   for (let i = 0; i < frames; i++) {
     for (let k = 0; k < SUB; k++) {
+      const file = path.join(outDir, 'sub', `${String(n).padStart(5, '0')}_${k}.png`)
+      // Resume: a re-run skips what an earlier run already captured
+      if (fs.existsSync(file)) continue
       const t = from + (i / FPS + (k / SUB) * (0.5 / FPS)) * rate
-      await page.evaluate((v) => (window.__filmT = v), t)
-      await frame()
-      await frame()
-      await page.screenshot({ path: path.join(outDir, 'sub', `${String(n).padStart(5, '0')}_${k}.png`) })
+      // The dev server sometimes stalls a moment: retry a slow screenshot rather than lose the run
+      for (let attempt = 0; ; attempt++) {
+        try {
+          await page.evaluate((v) => (window.__filmT = v), t)
+          await frame()
+          await frame()
+          await page.screenshot({ path: file, timeout: 120000 })
+          break
+        } catch (error) {
+          if (attempt >= 4) throw error
+          console.log(`retry frame ${n}.${k}:`, String(error).slice(0, 80))
+          await page.waitForTimeout(5000)
+        }
+      }
     }
     n++
     if (n % 15 === 0) console.log(`frame ${n}`)
