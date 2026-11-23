@@ -11,7 +11,7 @@
   /* The pedals and steering pad are pinned to the bottom (.pad); everything else flows in the room above them, so
      nothing, however tall (a race panel, directions, a banner), can push the controls off the screen. */
   /* Where the radio pill sits: above the pedals (landscape: between the thumbs, see below) */
-  --radio-bottom: calc(76px + 34px + env(safe-area-inset-bottom));
+  --radio-bottom: calc(76px + 28px + env(safe-area-inset-bottom));
   --panel: #0f1623;
   --panel-edge: #4b5668;
   padding: calc(106px + env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) calc(76px + 16px + env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
@@ -240,7 +240,7 @@
 
 /* With the radio pill open, Park steps up so they never overlap */
 .parkUp {
-  margin-bottom: 74px;
+  margin-bottom: 56px;
 }
 
 /* —— speed and road name: top left, under the first row —— */

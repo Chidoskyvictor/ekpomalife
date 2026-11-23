@@ -84,23 +84,23 @@ export function RadioPill({ source, onClose, bottom = 12 }: { source: RadioSourc
   return (
     <div className={styles.pill} style={{ bottom }} role="group" aria-label="Radio">
       <span className={styles.logo} aria-hidden="true">
-        {base?.logo ? <img src={base.logo} alt="" width={40} height={40} loading="lazy" /> : <Radio size={20} />}
+        {base?.logo ? <img src={base.logo} alt="" width={30} height={30} loading="lazy" /> : <Radio size={16} />}
       </span>
       <div className={styles.text} aria-live="polite">
         <strong>{base ? base.name : loaded ? 'Radio' : 'Loading…'}</strong>
         <small className={error || noList ? styles.warn : playing ? styles.air : ''}>{status}</small>
       </div>
       <button type="button" className={styles.step} aria-label="Previous station" disabled={!stations.length} onClick={() => step(-1)}>
-        <SkipBack size={16} aria-hidden="true" />
+        <SkipBack size={14} aria-hidden="true" />
       </button>
       <button type="button" className={styles.play} aria-label={playing || buffering ? 'Stop the radio' : 'Play the radio'} disabled={!base} onClick={toggle}>
-        {buffering ? <Loader2 size={20} className={styles.spin} aria-hidden="true" /> : playing ? <Pause size={20} aria-hidden="true" /> : <Play size={20} aria-hidden="true" />}
+        {buffering ? <Loader2 size={17} className={styles.spin} aria-hidden="true" /> : playing ? <Pause size={17} aria-hidden="true" /> : <Play size={17} aria-hidden="true" />}
       </button>
       <button type="button" className={styles.step} aria-label="Next station" disabled={!stations.length} onClick={() => step(1)}>
-        <SkipForward size={16} aria-hidden="true" />
+        <SkipForward size={14} aria-hidden="true" />
       </button>
       <button type="button" className={styles.close} aria-label="Close the radio" onClick={onClose}>
-        <X size={16} aria-hidden="true" />
+        <X size={14} aria-hidden="true" />
       </button>
     </div>
   )

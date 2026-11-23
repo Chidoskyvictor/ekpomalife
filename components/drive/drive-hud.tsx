@@ -275,6 +275,21 @@ export function DriveHud() {
         <RadioButton className={styles.tool} open={radioOpen} onClick={() => setRadioOpen((o) => !o)} />
         <button
           type="button"
+          className={styles.tool}
+          aria-label="Honk the horn"
+          onClick={() => {
+            // A short pause between honks so it can't be spammed
+            const now = performance.now()
+            if (now - hornAt.current < 700) return
+            hornAt.current = now
+            driveAudio.horn += 1
+            if (!driveAudio.muted) playHorn(1)
+          }}
+        >
+          <Megaphone size={18} aria-hidden="true" />
+        </button>
+        <button
+          type="button"
           className={`${styles.tool} ${raceTag.hot ? styles.hot : ''}`}
           aria-label="More: races, camera, horn and sound"
           aria-expanded={moreOpen}
@@ -310,22 +325,6 @@ export function DriveHud() {
           >
             <Camera size={18} aria-hidden="true" />
             <span>{['Chase view', "Driver's seat", 'Bumper view'][view]}</span>
-          </button>
-          <button
-            type="button"
-            role="menuitem"
-            className={styles.item}
-            onClick={() => {
-              // A short pause between honks so it can't be spammed
-              const now = performance.now()
-              if (now - hornAt.current < 700) return
-              hornAt.current = now
-              driveAudio.horn += 1
-              if (!driveAudio.muted) playHorn(1)
-            }}
-          >
-            <Megaphone size={18} aria-hidden="true" />
-            <span>Horn</span>
           </button>
           <button type="button" role="menuitem" className={styles.item} onClick={() => Object.assign(driveView, { yaw: 0, tilt: 0, zoom: 1, held: false })}>
             <LocateFixed size={18} aria-hidden="true" />
