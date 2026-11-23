@@ -7,6 +7,7 @@ import { apiGet, apiPost } from '@/lib/api/client'
 import { hapticTap } from './haptic'
 import styles from './call-host.module.css'
 import { VoiceFaces } from './nearby-mic'
+import { VoiceWatchdog } from './voice-watchdog'
 import type { VoiceFace } from './nearby-voice-store'
 
 /**
@@ -35,6 +36,8 @@ function CallRoom({ seat, peer, onEnd }: { seat: Seat; peer: string; onEnd: () =
   return (
     <LiveKitRoom serverUrl={seat.url} token={seat.token} connect audio video={false} onDisconnected={onEnd} style={{ display: 'contents' }}>
       <RoomAudioRenderer />
+      {/* A call keeps going in the background like a phone call; it only ends itself when the other side is gone or it's gone silent */}
+      <VoiceWatchdog onLeave={onEnd} hiddenMs={null} />
       <CallBar peer={peer} onHangup={onEnd} />
     </LiveKitRoom>
   )

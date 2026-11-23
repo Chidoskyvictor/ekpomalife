@@ -3,9 +3,10 @@
 import { LiveKitRoom, RoomAudioRenderer, useLocalParticipant, useSpeakingParticipants } from '@livekit/components-react'
 import { Mic, MicOff } from 'lucide-react'
 import { useState } from 'react'
+import { VOICE_LEFT_TEXT, VoiceWatchdog } from '@/components/hud/voice-watchdog'
 import styles from './race-voice.module.css'
 
-/* Loaded only while you are in a race, so LiveKit stays out of the main bundle. */
+/* Loaded only once you tap Join voice in a race, so LiveKit stays out of the main bundle. */
 
 function Controls({ onError }: { onError: (text: string) => void }) {
   const { localParticipant, isMicrophoneEnabled } = useLocalParticipant()
@@ -47,10 +48,11 @@ function Controls({ onError }: { onError: (text: string) => void }) {
   )
 }
 
-export default function RaceVoiceRoom({ url, token, onError, onDisconnected }: { url: string; token: string; onError: (text: string) => void; onDisconnected: () => void }) {
+export default function RaceVoiceRoom({ url, token, onError, onLeave }: { url: string; token: string; onError: (text: string) => void; onLeave: (text?: string) => void }) {
   return (
-    <LiveKitRoom serverUrl={url} token={token} connect audio={false} video={false} onDisconnected={onDisconnected} style={{ display: 'contents' }}>
+    <LiveKitRoom serverUrl={url} token={token} connect audio={false} video={false} onDisconnected={() => onLeave()} style={{ display: 'contents' }}>
       <RoomAudioRenderer />
+      <VoiceWatchdog onLeave={(reason) => onLeave(VOICE_LEFT_TEXT[reason])} />
       <Controls onError={onError} />
     </LiveKitRoom>
   )

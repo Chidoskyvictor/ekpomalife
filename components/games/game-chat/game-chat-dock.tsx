@@ -1,7 +1,7 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { Flag, MessageCircle, Send, VolumeX, Volume2, X } from 'lucide-react'
+import { Flag, MessageCircle, Mic, Send, VolumeX, Volume2, X } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { BodyPortal } from '@/components/ui/body-portal'
 import { apiSocketUrl } from '@/lib/game/games-api'
@@ -28,6 +28,8 @@ export function GameChatDock({ target }: { target: GameChatTarget }) {
   const [note, setNote] = useState<string | null>(null)
   const [mySeat, setMySeat] = useState(-1)
   const [voiceSeat, setVoiceSeat] = useState<{ url: string; token: string } | null>(null)
+  const [voiceOn, setVoiceOn] = useState(false)
+  const [voiceBusy, setVoiceBusy] = useState(false)
   const socket = useRef<WebSocket | null>(null)
   const openRef = useRef(false)
   const mutedRef = useRef(muted)
@@ -39,7 +41,6 @@ export function GameChatDock({ target }: { target: GameChatTarget }) {
   useEffect(() => {
     let closed = false
     let retry: ReturnType<typeof setTimeout> | undefined
-    let wantVoice = false
     const connect = async () => {
       const res = await gameChatTicket({ kind, id })
       if (closed) return
@@ -48,12 +49,8 @@ export function GameChatDock({ target }: { target: GameChatTarget }) {
         return
       }
       setMySeat(res.seat)
-      if (res.voice && !wantVoice) {
-        wantVoice = true
-        void gameChatVoice({ kind, id }).then((v) => {
-          if (!closed && v.ok) setVoiceSeat({ url: v.url, token: v.token })
-        })
-      }
+      // Voice only on tap (LiveKit bills every connected minute): just remember it's available here
+      setVoiceOn(Boolean(res.voice))
       const ws = new WebSocket(apiSocketUrl(`/ws/game-chat?ticket=${encodeURIComponent(res.ticket)}`))
       socket.current = ws
       ws.onmessage = (event) => {
@@ -123,7 +120,33 @@ export function GameChatDock({ target }: { target: GameChatTarget }) {
   return (
     <BodyPortal>
       <div className={styles.dock}>
-        {voiceSeat ? <GameChatVoice url={voiceSeat.url} token={voiceSeat.token} onError={setNote} onDisconnected={() => setVoiceSeat(null)} /> : null}
+        {voiceSeat ? (
+          <GameChatVoice
+            url={voiceSeat.url}
+            token={voiceSeat.token}
+            onError={setNote}
+            onLeave={(text) => {
+              setVoiceSeat(null)
+              if (text) setNote(text)
+            }}
+          />
+        ) : voiceOn ? (
+          <button
+            type="button"
+            className={styles.fab}
+            aria-label="Join voice"
+            disabled={voiceBusy}
+            onClick={async () => {
+              setVoiceBusy(true)
+              const v = await gameChatVoice({ kind, id })
+              setVoiceBusy(false)
+              if (v.ok) setVoiceSeat({ url: v.url, token: v.token })
+              else setNote(v.error ?? 'Couldn’t join the voice.')
+            }}
+          >
+            <Mic size={20} aria-hidden="true" />
+          </button>
+        ) : null}
         <button type="button" className={styles.fab} aria-label={open ? 'Close chat' : 'Open chat'} onClick={() => setOpen((o) => !o)}>
           <MessageCircle size={20} aria-hidden="true" />
           {unread > 0 && !open ? <span className={styles.badge}>{unread > 9 ? '9+' : unread}</span> : null}
