@@ -5,6 +5,7 @@ import { useFrame } from '@react-three/fiber'
 import { createContext, Suspense, useContext, useMemo, useRef, type MutableRefObject } from 'react'
 import {
   AdditiveBlending,
+  CanvasTexture,
   BoxGeometry,
   BufferGeometry,
   Color,
@@ -504,8 +505,25 @@ const dentBox = new BoxGeometry(0.62, 0.3, 0.08)
 export const CarLightsContext = createContext(false)
 const headMaterial = new MeshBasicMaterial({ color: '#fff7d6', toneMapped: false })
 /** The soft pool of light each car throws on the road ahead. */
-const beamMaterial = new MeshBasicMaterial({ color: '#ffe9a8', transparent: true, opacity: 0.32, depthWrite: false, blending: AdditiveBlending, toneMapped: false })
-const beamPlane = new PlaneGeometry(2.6, 7).rotateX(-Math.PI / 2)
+/** A soft oval of light: bright near the bumper, fading to nothing in every direction (no hard edges). */
+function beamTexture() {
+  if (typeof document === 'undefined') return null
+  const c = document.createElement('canvas')
+  c.width = 64
+  c.height = 128
+  const ctx = c.getContext('2d')!
+  ctx.translate(32, 100)
+  ctx.scale(0.5, 1)
+  const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 62)
+  g.addColorStop(0, 'rgba(255,255,255,1)')
+  g.addColorStop(0.5, 'rgba(255,255,255,0.4)')
+  g.addColorStop(1, 'rgba(255,255,255,0)')
+  ctx.fillStyle = g
+  ctx.fillRect(-64, -100, 128, 128)
+  return new CanvasTexture(c)
+}
+const beamMaterial = new MeshBasicMaterial({ map: beamTexture(), color: '#ffe9a8', transparent: true, opacity: 0.85, depthWrite: false, blending: AdditiveBlending, toneMapped: false })
+const beamPlane = new PlaneGeometry(6, 14).rotateX(-Math.PI / 2)
 
 /** Where the headlights sit: the front of the body, as wide and high as the tail lamps. */
 function headLamps(id: string): [number, number, number] {

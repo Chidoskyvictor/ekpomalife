@@ -98,6 +98,7 @@ else diffuseColor.rgb = vColor.rgb * texture2D(uPlaster, vUv2).rgb;`,
 {
   vec3 glowCol = (vMat > 1.5 && vMat < 2.5) ? diffuseColor.rgb * 1.15 : vec3(1.0, 0.78, 0.42);
   totalEmissiveRadiance += glowCol * vGlow * uNight;
+  if (vMat < 0.5 || vMat > 3.5) totalEmissiveRadiance += diffuseColor.rgb * 0.16 * uNight;
 }`,
       )
   }
