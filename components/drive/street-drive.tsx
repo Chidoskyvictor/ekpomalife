@@ -17,16 +17,17 @@ export function StreetDrive() {
   const drive = useDrive()
   const { state } = useGame()
   const live = useClubLive('map-drive', Boolean(drive && state), state?.username, '/cars/live-ticket')
-  // Setting off: the same start sound as a keke or okada ride, then the road's hum under the drive
+  // Setting off: the same start sound as a keke or okada ride, then a gentle breeze under the drive
   const driving = Boolean(drive)
   useEffect(() => {
     if (!driving) return
     const start = new Audio('/audio/ride/start.mp3')
     start.volume = 0.7
     void start.play().catch(() => {})
-    const road = new Audio('/audio/ride/traffic.mp3')
+    // A soft breeze under the drive (kept quiet so the engine, radio and voice sit on top)
+    const road = new Audio('/audio/ride/breeze.mp3')
     road.loop = true
-    road.volume = 0.25
+    road.volume = 0.12
     void road.play().catch(() => {})
     // The sound button in the driving controls mutes these too
     start.muted = driveAudio.muted
