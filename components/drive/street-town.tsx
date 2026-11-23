@@ -240,7 +240,7 @@ export function Town({ level }: { level: Level }) {
   useEffect(() => {
     sys.uniforms.uNight.value = level === 'night' ? 1 : level === 'dusk' ? 0.55 : 0
     sys.halo.visible = sys.pools.visible = level !== 'day'
-    sys.poolMat.opacity = level === 'night' ? 0.22 : 0.12
+    sys.poolMat.opacity = level === 'night' ? 0.36 : 0.18
   }, [level, sys])
 
   const st = useRef({

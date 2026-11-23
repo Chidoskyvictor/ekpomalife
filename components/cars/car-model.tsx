@@ -511,7 +511,7 @@ function beamTexture() {
   return typeof document === 'undefined' ? null : new TextureLoader().load('/lights/lamp-pool.png')
 }
 const headBulb = new SphereGeometry(1, 12, 8)
-const beamMaterial = new MeshBasicMaterial({ map: beamTexture(), color: '#f4f8ff', transparent: true, opacity: 0.3, depthWrite: false, blending: AdditiveBlending, toneMapped: false })
+const beamMaterial = new MeshBasicMaterial({ map: beamTexture(), color: '#f4f8ff', transparent: true, opacity: 0.42, depthWrite: false, blending: AdditiveBlending, toneMapped: false })
 const beamPlane = new PlaneGeometry(8, 15).rotateX(-Math.PI / 2)
 
 /** Where the headlights sit: the front of the body, as wide and high as the tail lamps. */
