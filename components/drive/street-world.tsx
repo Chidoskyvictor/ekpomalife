@@ -6,7 +6,7 @@ import { Suspense, useMemo, type MutableRefObject } from 'react'
 import { ACESFilmicToneMapping, CanvasTexture, SRGBColorSpace } from 'three'
 import { ContextRestore } from '@/components/three/context-restore'
 import { GATE_URL } from '@/components/travel/drive-scene'
-import { RideSky, rideLookAt, rideMinute } from '@/components/travel/ride-environment'
+import { rideLookAt, rideMinute } from '@/components/travel/ride-environment'
 import type { Peer, PeerState } from '@/lib/game/club-live'
 import type { DriveStart } from '@/lib/game/drive'
 import { HALF, SCENE_ROADS, ROAD_PLACES, ROAD_SIGNS, surfaceAt, pointAt, roadById, spotAt } from '@/lib/game/drive-road'
@@ -14,6 +14,8 @@ import { GFX, useGfxTier } from '@/lib/game/gfx-quality'
 import { CarLightsContext } from '@/components/cars/car-model'
 import { DriveCar, PeerCars, type DriveWorld } from './map-drive'
 import { Roadside } from './street-buildings'
+import { EntranceCrowd } from './street-crowd'
+import { StreetSky } from './street-sky'
 import { Barriers, Gantries, Roads } from './street-roads'
 import { FinishBeam, RouteArrows, Traffic, Walkers, trafficBlocks } from './street-life'
 
@@ -142,17 +144,16 @@ export type StreetProps = {
 }
 
 function Scene({ car, look: driverLook, start, send, peers, roster }: StreetProps) {
-  const tier = useGfxTier()
   // Light for the hour on the game clock, fixed for the drive
   const look = useMemo(() => rideLookAt(rideMinute()), [])
   const mid = useMemo(() => pointAt(roadById("expressway"), roadById("expressway").length / 2), [])
   return (
     <CarLightsContext.Provider value={look.level !== 'day'}>
-      <RideSky look={look} tier={tier} />
+      <StreetSky look={look} />
       <hemisphereLight args={[look.hemiSky, look.hemiGround, look.hemiInt]} />
       <ambientLight intensity={look.ambient} />
       <directionalLight position={[look.lightDir.x * 120, look.lightDir.y * 120, look.lightDir.z * 120]} color={look.sunColor} intensity={look.sunInt} />
-      <fog attach="fog" args={[look.horizon, 110, 420]} />
+      <fog attach="fog" args={[look.horizon, look.level === 'day' ? 130 : look.level === 'dusk' ? 90 : 70, look.level === 'day' ? 440 : look.level === 'dusk' ? 400 : 360]} />
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[mid.x, -0.05, mid.z]}>
         <planeGeometry args={[4200, 3000]} />
         <meshLambertMaterial color="#8f9a66" />
@@ -160,8 +161,11 @@ function Scene({ car, look: driverLook, start, send, peers, roster }: StreetProp
       <Roads level={look.level} />
       <Gantries />
       <Barriers />
-      <Roadside night={look.level !== 'day'} />
+      <Roadside level={look.level} />
       <Places />
+      <Suspense fallback={null}>
+        <EntranceCrowd />
+      </Suspense>
       <RouteArrows />
       <FinishBeam />
       <Traffic />
