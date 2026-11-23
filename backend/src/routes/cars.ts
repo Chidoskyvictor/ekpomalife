@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { z } from 'zod'
 import { getSessionUser } from '../auth/current-user.js'
 import { buyCar, buyParking, driveCar, fixCar, getGarage, paintCar, parkCar, sellCar } from '../game/cars.js'
+import { finishTrial, leaderboard, startTrial } from '../game/race-trials.js'
 import { createRace, finishRace, inviteToRace, raceVoiceAccess, joinRace, leaveRace, listRaces, startRace } from '../game/car-races.js'
 import { createMapTicket } from '../game/club-live.js'
 import { joinToken, liveKitConfig, raceRoom } from '../game/livekit.js'
@@ -81,7 +82,7 @@ export async function carRoutes(app: FastifyInstance) {
   })
   write(
     '/cars/races',
-    z.object({ destId: z.string().min(1).max(80), stake: z.number().int().min(0), x: spot, z: spot, h: z.number().min(-100).max(100), destX: spot, destZ: spot, kind: z.enum(['race', 'convoy']).optional() }),
+    z.object({ destId: z.string().min(1).max(80), stake: z.number().int().min(0), x: spot, z: spot, h: z.number().min(-100).max(100), destX: spot, destZ: spot, kind: z.enum(['race', 'convoy']).optional(), courseId: z.string().min(1).max(60).optional() }),
     'Pick where the race ends.',
     (u, b, k) => createRace(u, b, k),
   )
@@ -103,7 +104,11 @@ export async function carRoutes(app: FastifyInstance) {
     })
   }
   raceStep('/cars/races/start', z.object({ raceId }), (u, b) => startRace(u, b.raceId))
-  raceStep('/cars/races/finish', z.object({ raceId, x: spot, z: spot }), (u, b) => finishRace(u, b.raceId, b.x, b.z))
+  raceStep(
+    '/cars/races/finish',
+    z.object({ raceId, x: spot, z: spot, ms: z.number().int().min(1).max(1_200_000).optional(), splits: z.array(z.number().int().min(1).max(1_200_000)).min(1).max(12).optional() }),
+    (u, b) => finishRace(u, b.raceId, b.x, b.z, b.ms !== undefined && b.splits ? { ms: b.ms, splits: b.splits } : undefined),
+  )
   raceStep('/cars/races/invite', z.object({ raceId, userId: z.string().min(1).max(64) }), (u, b) => inviteToRace(u, b.raceId, b.userId))
   // Live voice for a race's racers (LiveKit, never recorded). Mic starts off; each racer turns their own on.
   app.post('/cars/races/voice', limit, async (request, reply) => {
@@ -119,6 +124,22 @@ export async function carRoutes(app: FastifyInstance) {
     return reply.send({ ok: true, url: cfg.url, token })
   })
   raceStep('/cars/races/leave', z.object({ raceId }), (u, b) => leaveRace(u, b.raceId))
+
+  // Time trials: the server opens the run, the phone times it, the server checks the time before it counts
+  app.get('/cars/trials/:courseId', { config: { rateLimit: { max: 60, timeWindow: '1 minute' } } }, async (request, reply) => {
+    const user = await getSessionUser(request)
+    if (!user) return reply.code(401).send({ ok: false, error: 'Log in to play.' })
+    const parsed = z.object({ courseId: z.string().min(1).max(60) }).safeParse(request.params)
+    if (!parsed.success) return reply.code(400).send({ ok: false, error: 'Pick a route.' })
+    try {
+      return send(reply, await leaderboard(user.id, parsed.data.courseId))
+    } catch (error) {
+      request.log.error(error)
+      return reply.code(500).send({ ok: false, error: 'Could not load the board.' })
+    }
+  })
+  raceStep('/cars/trials/start', z.object({ courseId: z.string().min(1).max(60) }), (u, b) => startTrial(u, b.courseId))
+  raceStep('/cars/trials/finish', z.object({ trialId: z.string().min(1).max(64), ms: z.number().int().min(1).max(1_200_000), splits: z.array(z.number().int().min(1).max(1_200_000)).min(1).max(12) }), (u, b) => finishTrial(u, b.trialId, b.ms, b.splits))
 
   // Parking moves you and the car; no money moves, so no idempotency key
   app.post('/cars/park', limit, async (request, reply) => {

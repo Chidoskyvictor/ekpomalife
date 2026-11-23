@@ -11,10 +11,13 @@ import { driveInput, driveAudio, driveTelemetry, driveView, kmh, leaveDrive, set
 import { OSM_CREDIT, ROAD_PLACES, ROAD_SCALE, guide, placeSpot, roadById, roadPlaceNear, roadUnder, type Guidance } from '@/lib/game/drive-road'
 import { hasInterior } from '@/lib/game/home-place'
 import { pushNavigation } from '@/lib/navigation/safe-nav'
-import { leaveRace, racesNow } from '@/lib/game/races-api'
+import { leaveRace, racesNow, useRaces } from '@/lib/game/races-api'
+import { currentRun, endRun } from '@/lib/game/race-run'
 import { MiniMap } from './mini-map'
 import { RaceButton, RaceHud } from './race-hud'
 import { RaceVoice } from './race-voice'
+import { RaceRunOverlay, RaceRunTop } from './race-run-hud'
+import { RacingSheet } from './racing-sheet'
 import styles from './drive-hud.module.css'
 
 /** Game metres as the distance a driver reads: "300 m", "1.2 km". */
@@ -116,7 +119,10 @@ export function DriveHud() {
   const [muted, setMuted] = useState(driveAudio.muted)
   const hornAt = useRef(0)
   const [picking, setPicking] = useState(false)
-  const [racing, setRacing] = useState(false)
+  // 'sheet': the racing sheet; 'players': hosting or joining a race against players (and your race while it runs)
+  const [racing, setRacing] = useState<'sheet' | 'players' | null>(null)
+  const { mine: pvp } = useRaces()
+  const inPvp = Boolean(pvp && (pvp.status === 'open' || pvp.status === 'running'))
   const [query, setQuery] = useState('')
   const [way, setWay] = useState<{ g: Guidance; bearing: number } | null>(null)
   const destId = drive?.dest?.id ?? null
@@ -183,6 +189,7 @@ export function DriveHud() {
 
   /** Give up the drive: the car goes back to where it started (any new dents stay on it). */
   const cancel = () => {
+    endRun()
     const race = racesNow().mine
     if (race && (race.status === 'open' || race.status === 'running')) void leaveRace(race.id)
     if (driveTelemetry.dents > 0) void park(drive.fromPlace, drive.start.x, drive.start.z)
@@ -191,7 +198,7 @@ export function DriveHud() {
 
   const g = way?.g ?? null
   const wanted = query.trim().toLowerCase()
-  const list = ROAD_PLACES.filter((p) => !wanted || p.label.toLowerCase().includes(wanted))
+  const list = ROAD_PLACES.filter((p) => !p.id.startsWith('race-start-') && (!wanted || p.label.toLowerCase().includes(wanted)))
   const headline = !g
     ? ''
     : g.turn === 'uturn'
@@ -212,8 +219,9 @@ export function DriveHud() {
           {drive.dest ? <Navigation size={15} aria-hidden="true" /> : <MapPin size={15} aria-hidden="true" />}
           <span>{drive.dest ? drive.dest.label : 'Where to?'}</span>
         </button>
-        <RaceButton onClick={() => setRacing(true)} />
+        <RaceButton onClick={() => (currentRun() ? undefined : setRacing(inPvp ? 'players' : 'sheet'))} />
       </div>
+      <RaceRunTop />
       <small className={styles.viewName} aria-live="polite">{['Chase view', "Driver's seat", 'Bumper view'][view]}</small>
       <div className={styles.sideAnchor}>
         <div className={styles.side}>
@@ -259,8 +267,8 @@ export function DriveHud() {
         >
           <Camera size={18} aria-hidden="true" />
         </button>
-        <NearbyMic className={styles.tool} badgeClassName={styles.toolBadge} />
-        <RaceVoice />
+        {/* One mic: in a race it is the race's voice room, otherwise the nearby voice */}
+        {inPvp ? <RaceVoice /> : <NearbyMic className={styles.tool} badgeClassName={styles.toolBadge} />}
         <button
           type="button"
           className={styles.tool}
@@ -297,7 +305,7 @@ export function DriveHud() {
           {muted ? <VolumeX size={18} aria-hidden="true" /> : <Volume2 size={18} aria-hidden="true" />}
         </button>
       </div>
-      {near ? (
+      {near && !currentRun() ? (
         <button type="button" className={styles.park} disabled={busy} onClick={() => void park(near.id, driveTelemetry.x, driveTelemetry.z)}>
           🅿️ {busy ? 'Parking…' : `Park at ${near.label}`}
         </button>
@@ -322,7 +330,9 @@ export function DriveHud() {
       </div>
       <p className={styles.credit}>{OSM_CREDIT}</p>
 
-      <RaceHud open={racing && !picking} onClose={() => setRacing(false)} />
+      <RaceHud open={racing === 'players' && !picking} onClose={() => setRacing(null)} />
+      <RacingSheet open={racing === 'sheet' && !picking} onClose={() => setRacing(null)} onPlayers={() => setRacing('players')} />
+      <RaceRunOverlay />
 
       {picking ? (
         <div className={styles.sheet} role="dialog" aria-label="Where are you going?">

@@ -17,6 +17,7 @@ import { Roadside } from './street-buildings'
 import { EntranceCrowd } from './street-crowd'
 import { StreetSky } from './street-sky'
 import { Barriers, Gantries, Roads } from './street-roads'
+import { RaceWorld } from './race-world'
 import { FinishBeam, RouteArrows, Traffic, Walkers, trafficBlocks } from './street-life'
 
 /*
@@ -168,6 +169,7 @@ function Scene({ car, look: driverLook, start, send, peers, roster }: StreetProp
       </Suspense>
       <RouteArrows />
       <FinishBeam />
+      <RaceWorld />
       <Traffic />
       <Suspense fallback={null}>
         <Walkers />
