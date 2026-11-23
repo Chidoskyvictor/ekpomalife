@@ -1,5 +1,5 @@
 import { Color } from 'three'
-import { HALF, ROADS, dividerOpen, ROAD_DIMS, ROAD_PLACES, SCENE_ROADS, locateOn, pointAt, roadsNear, spotAt, type Road, type RoadKind } from '@/lib/game/drive-road'
+import { HALF, ROADS, dividerOpen, drivable, ROAD_DIMS, ROAD_PLACES, SCENE_ROADS, locateOn, pointAt, roadsNear, spotAt, type Road, type RoadKind } from '@/lib/game/drive-road'
 import { mulberry32 } from '@/lib/game/world-layout'
 
 /*
@@ -68,8 +68,19 @@ export const LANDMARKS: Landmark[] = (() => {
     if (!road) continue
     const dims = ROAD_DIMS[road.kind]
     const off = p.side * (HALF[road.kind] + dims.kerb + dims.pave + 0.6 + d / 2)
-    const s = Math.max(w / 2 + 4, Math.min(road.length - w / 2 - 4, p.s))
-    const spot = spotAt(road.id, s, off)
+    const s0 = Math.max(w / 2 + 4, Math.min(road.length - w / 2 - 4, p.s))
+    // Near a junction the plot can land on the cross road: step back from the kerb, then along the road, until it's clear
+    let spot = spotAt(road.id, s0, off)
+    search: for (const back of [0, 4, 8, 14, 20, 28]) {
+      for (const along of [0, 10, -10, 20, -20, 32, -32]) {
+        const s = Math.max(w / 2 + 4, Math.min(road.length - w / 2 - 4, s0 + along))
+        const at = spotAt(road.id, s, off + p.side * back)
+        if (!rectOnRoad(at.x, at.z, Math.atan2(at.dz * p.side, -at.dx * p.side), w, d)) {
+          spot = at
+          break search
+        }
+      }
+    }
     out.push({ id: p.id, label: p.label, kind, v: `lm:${p.id}`, x: spot.x, z: spot.z, yaw: Math.atan2(spot.dz * p.side, -spot.dx * p.side), depth: d, width: w })
   }
   return out
@@ -149,6 +160,64 @@ function hash(a: number, b: number) {
 
 const SHOP_VARIANTS = 12
 const makeLot = (v: string, x: number, z: number, yaw: number, sx: number, sy: number, sz: number, tint: number, far: [number, number, number], near = 140, plain = false): Lot => ({ v, x, z, yaw, sx, sy, sz, tint, far, born: -1, near, plain })
+
+/* —— keeping buildings off the roads —— */
+
+/** Width and depth (m) of each kit building before scaling (town-kit.ts). */
+const KIT_SIZE: Record<string, [number, number]> = { shop: [9, 8], block: [12, 9], bungalow: [14, 14], kiosk: [4, 4], church: [14, 18], mosque: [14, 14], station: [14, 15] }
+
+/** True when any part of this ground rectangle (grown by `grow` m all round) lies on a road's carriageway. */
+function rectOnRoad(x: number, z: number, yaw: number, w: number, d: number, grow = 1): boolean {
+  const fx = Math.sin(yaw)
+  const fz = Math.cos(yaw)
+  const hw = w / 2 + grow
+  const hd = d / 2 + grow
+  // A grid over the footprint, edges included, points at most ~4 m apart (narrowest street is 6.4 m)
+  const ni = Math.max(4, Math.ceil((2 * hw) / 4))
+  const nj = Math.max(4, Math.ceil((2 * hd) / 4))
+  for (let i = 0; i <= ni; i++) {
+    for (let j = 0; j <= nj; j++) {
+      const a = -hw + (2 * hw * i) / ni
+      const b = -hd + (2 * hd * j) / nj
+      if (drivable(x + fz * a + fx * b, z - fx * a + fz * b)) return true
+    }
+  }
+  return false
+}
+
+/** The ground a lot really covers: its drawn kit size or its block size, whichever is bigger. */
+function lotOnRoad(l: Lot): boolean {
+  if (l.v.startsWith('lamp')) return false
+  const kit = KIT_SIZE[l.v.split(':')[0]!]
+  const w = kit ? Math.max(kit[0] * l.sx, l.far[0]) : l.far[0]
+  const d = kit ? Math.max(kit[1] * l.sz, l.far[2]) : l.far[2]
+  return rectOnRoad(l.x, l.z, l.yaw, w, d)
+}
+
+/**
+ * Keep a lot off the roads: if it pokes onto one (often just its front over the kerb, because the
+ * kit building is deeper than the map outline), slide it straight back a few metres; if it still
+ * touches a road (it really stands on one, e.g. at a junction), leave it out.
+ */
+function offRoads(lots: Lot[]): Lot[] {
+  const out: Lot[] = []
+  for (const l of lots) {
+    if (!lotOnRoad(l)) {
+      out.push(l)
+      continue
+    }
+    const fx = Math.sin(l.yaw)
+    const fz = Math.cos(l.yaw)
+    for (const back of [1.5, 3, 4.5, 6]) {
+      const moved = { ...l, x: l.x - fx * back, z: l.z - fz * back }
+      if (!lotOnRoad(moved)) {
+        out.push(moved)
+        break
+      }
+    }
+  }
+  return out
+}
 
 /**
  * Lots from one tile's real footprints. Each building turns to face the nearest road and slides
@@ -273,7 +342,7 @@ export function lotsFromFootprints(rings: number[][], tx: number, tz: number): L
       out.push(makeLot('far', cx, cz, yaw, width, h / 10, rest, tint, [width, h * 0.9, rest], 0, true))
     }
   })
-  return out.filter((l) => l.x >= tx * TILE_SIZE - 30 && l.x < (tx + 1) * TILE_SIZE + 30)
+  return offRoads(out.filter((l) => l.x >= tx * TILE_SIZE - 30 && l.x < (tx + 1) * TILE_SIZE + 30))
 }
 
 /* —— filler where the map has no footprints —— */
@@ -356,7 +425,7 @@ export function fillerLots(tx: number, tz: number, covered: (x: number, z: numbe
       }
     }
   }
-  return out
+  return offRoads(out)
 }
 
 /**
