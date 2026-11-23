@@ -8,6 +8,8 @@ import { liveSpaceMoneyBlock } from './spaces-money.js'
 import { RACE_COUNTDOWN_MS, RACE_MAX_RACERS, RACE_MAX_STAKE, racePrize } from './cars-rules.js'
 import { getPlace } from './places.js'
 import { openDirectChat, sendMessage } from './chat.js'
+import { COURSES, checkTrial } from './race-trials-rules.js'
+import { activeCarUpgrades, awardPvpWin } from './racer.js'
 
 /*
  * Drag races, point to point. The host picks a finish (a place on the driving roads) and a stake.
@@ -37,10 +39,14 @@ type RaceRow = {
   created_at: Date
   /** 'race', or 'convoy': a drive together with no stake and no winner. */
   kind: 'race' | 'convoy'
+  /** A named route (see race-trials-rules.ts), or null for a free-form drag race. */
+  course_id: string | null
 }
 
 export type RaceView = {
   kind: 'race' | 'convoy'
+  /** The named route this race runs, if any: sprint or circuit. */
+  courseId: string | null
   id: string
   dest: { id: string; label: string; x: number; z: number }
   stake: number
@@ -92,6 +98,7 @@ async function view(db: Db, rows: RaceRow[], characterId: string): Promise<RaceV
     return {
       id: r.id,
       kind: r.kind ?? 'race',
+      courseId: r.course_id ?? null,
       dest: { id: r.dest_place, label: r.dest_label, x: r.dest_x, z: r.dest_z },
       stake: asMoney(r.stake),
       status: r.status,
@@ -125,6 +132,8 @@ async function payWinner(client: PoolClient, race: RaceRow, winnerId: string) {
   const prize = racePrize(asMoney(race.stake), race.paid_in)
   if (prize > 0) await applyCash(client, winnerId, prize, `Race won: ${race.dest_label}`, 'car_race')
   await client.query(`UPDATE car_races SET status = 'done', finished_at = NOW(), winner_character_id = $2, prize = $3 WHERE id = $1`, [race.id, winnerId, prize])
+  // The win earns racer XP and win badges (a convoy never reaches here)
+  if (race.kind !== 'convoy') await awardPvpWin(client, winnerId, race.paid_in)
   return prize
 }
 
@@ -233,17 +242,21 @@ async function hasCar(db: Db, characterId: string) {
   return rows.length > 0
 }
 
-export type NewRace = { destId: string; stake: number; x: number; z: number; h: number; destX: number; destZ: number; kind?: 'race' | 'convoy' }
+export type NewRace = { destId: string; stake: number; x: number; z: number; h: number; destX: number; destZ: number; kind?: 'race' | 'convoy'; courseId?: string }
 
 /** Host a race from where you are to a place. You pay your own stake now. */
 export function createRace(userId: string, input: NewRace, idemKey: string) {
   return writeRace(userId, idemKey, 'POST /cars/races', input, async ({ client, characterId }) => {
-    const place = getPlace(input.destId)
+    // A named route has its own name and finish; a free-form race ends at a place on the roads
+    const route = input.courseId ? COURSES[input.courseId] : undefined
+    const place = route ? { id: `course:${input.courseId}`, label: route.name } : getPlace(input.destId)
     if (!place) return bad('Pick where the race ends.')
     const convoy = input.kind === 'convoy'
     if (convoy && input.stake !== 0) return bad('A convoy has no stake.')
     if (!Number.isInteger(input.stake) || input.stake < 0 || input.stake > RACE_MAX_STAKE) return bad('That stake is too big.')
-    if (Math.hypot(input.destX - input.x, input.destZ - input.z) < 150) return bad('Pick a finish further away.')
+    if (input.courseId && (convoy || !COURSES[input.courseId])) return bad('Pick a route to race on.')
+    // A circuit finishes where it starts, so only a free-form race needs the finish to be far away
+    if (!input.courseId && Math.hypot(input.destX - input.x, input.destZ - input.z) < 150) return bad('Pick a finish further away.')
     if (!(await hasCar(client, characterId))) return bad('You need a car to race.', 400, 'NO_CAR')
     if (await inARace(client, characterId)) return bad('You are already in a race.', 400, 'IN_RACE')
     if (input.stake > 0) {
@@ -252,9 +265,9 @@ export function createRace(userId: string, input: NewRace, idemKey: string) {
     }
     const id = createId()
     await client.query(
-      `INSERT INTO car_races (id, host_character_id, dest_place, dest_label, stake, start_x, start_z, start_h, dest_x, dest_z, kind)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
-      [id, characterId, place.id, place.label, input.stake, input.x, input.z, input.h, input.destX, input.destZ, convoy ? 'convoy' : 'race'],
+      `INSERT INTO car_races (id, host_character_id, dest_place, dest_label, stake, start_x, start_z, start_h, dest_x, dest_z, kind, course_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+      [id, characterId, place.id, place.label, input.stake, input.x, input.z, input.h, input.destX, input.destZ, convoy ? 'convoy' : 'race', input.courseId ?? null],
     )
     await client.query(`INSERT INTO car_race_entries (race_id, character_id, slot) VALUES ($1, $2, 0)`, [id, characterId])
     return { status: 200, body: { ok: true, message: convoy ? `Convoy to ${place.label} is open.` : `Race to ${place.label} is open.` } }
@@ -351,7 +364,7 @@ export function startRace(userId: string, raceId: string) {
 }
 
 /** "I am at the finish": the first racer the server hears this from, and believes, takes the pot. */
-export function finishRace(userId: string, raceId: string, x: number, z: number) {
+export function finishRace(userId: string, raceId: string, x: number, z: number, run?: { ms: number; splits: number[] }) {
   return step(userId, raceId, async (client, race, me) => {
     if (race.status === 'done') return { message: 'Race over.' }
     if (race.status !== 'running' || !race.starts_at) return { error: 'That race is not running.', reason: 'GONE' }
@@ -362,6 +375,16 @@ export function finishRace(userId: string, raceId: string, x: number, z: number)
       if (race.host_character_id !== me) return { message: `You reached ${race.dest_label}.` }
       await client.query(`UPDATE car_races SET status = 'done', finished_at = NOW(), winner_character_id = $2, prize = 0 WHERE id = $1`, [race.id, me])
       return { message: `Convoy arrived at ${race.dest_label}.` }
+    }
+    if (race.course_id) {
+      // A named route: the time and checkpoints you hand in must be a possible run in your own car, and
+      // no longer than the race has been running
+      if (!run) return { error: 'Hand in your checkpoint times.', reason: 'NO_SPLITS' }
+      const car = await activeCarUpgrades(client, me)
+      const verdict = checkTrial({ courseId: race.course_id, model: car.model ?? 'corolla', engine: car.up.engine, ms: run.ms, splits: run.splits, elapsedMs: Date.now() - race.starts_at.getTime() })
+      if (!verdict.ok) return { error: verdict.error, reason: verdict.reason }
+      const prize = await payWinner(client, race, me)
+      return { message: prize > 0 ? `You won ${naira(prize)}!` : 'You won!' }
     }
     // Nobody covers the distance faster than a car at full speed in a straight line
     const least = (Math.hypot(race.dest_x - race.start_x, race.dest_z - race.start_z) / TOP_SPEED) * 1000 * 0.9

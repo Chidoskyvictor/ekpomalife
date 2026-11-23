@@ -50,8 +50,8 @@ const FINISH_REACH = 24;
 const live = (race: Race | null): race is Race =>
   Boolean(race && (race.status === "open" || race.status === "running"));
 
-/** The pill in the top row: opens the race sheet, and shows how full your race is. */
-export function RaceButton({ onClick }: { onClick: () => void }) {
+/** The race entry's label ("Race", "Race · 2", "Invited!", "Racing"…) and whether it needs attention. */
+export function useRaceLabel() {
   const { mine, open } = useRaces();
   const label = live(mine)
     ? mine.kind === "convoy"
@@ -66,10 +66,16 @@ export function RaceButton({ onClick }: { onClick: () => void }) {
       : open.length > 0
         ? `Race · ${open.length}`
         : "Race";
+  return { label, hot: live(mine) || open.length > 0 };
+}
+
+/** The pill in the top row: opens the race sheet, and shows how full your race is. */
+export function RaceButton({ onClick }: { onClick: () => void }) {
+  const { label, hot } = useRaceLabel();
   return (
     <button
       type="button"
-      className={`${styles.pill} ${live(mine) || open.length > 0 ? styles.hot : ""}`}
+      className={`${styles.pill} ${hot ? styles.hot : ""}`}
       onClick={onClick}
     >
       <Flag size={15} aria-hidden="true" />

@@ -7,6 +7,8 @@ import { requireEconomySetup } from './economy.js'
 import { liveSpaceMoneyBlock } from './spaces-money.js'
 import { CARS, MAX_DENTS, PARKING_PRICE, carById, carSellBack, dentFixPrice, isPaint, needsParking } from './cars-rules.js'
 import { placeLock } from './place-locks.js'
+import { PART_DEFS, PARTS, upgradeBlock, upgradeNote, upgradePrice, type Part, type Upgrades } from './race-rewards-rules.js'
+import { loadUpgrades, statsOf } from './racer.js'
 import { getPlace, PLACE_UV, startPlaceForLodging } from './places.js'
 
 /*
@@ -15,16 +17,17 @@ import { getPlace, PLACE_UV, startPlaceForLodging } from './places.js'
  */
 
 /** `place`: where it was left (null = at home); `x`/`z`: the exact spot on the map. */
-export type OwnedCar = { id: string; model: string; color: string; paid: number; active: boolean; dents: number; place: string | null; x: number | null; z: number | null }
+export type OwnedCar = { id: string; model: string; color: string; paid: number; active: boolean; dents: number; place: string | null; x: number | null; z: number | null; up: Upgrades }
 
-type CarRow = { id: string; model: string; color: string; bought_price: string | number; active: boolean; dents: number; parked_place?: string | null; parked_x?: number | null; parked_z?: number | null }
+type CarRow = { id: string; model: string; color: string; bought_price: string | number; active: boolean; dents: number; parked_place?: string | null; parked_x?: number | null; parked_z?: number | null; engine?: number | null; tyres?: number | null; brakes?: number | null }
 
 async function loadCars(db: Pick<PoolClient, 'query'>, characterId: string): Promise<OwnedCar[]> {
   const { rows } = await db.query<CarRow>(
-    `SELECT id, model, color, bought_price, active, dents, parked_place, parked_x, parked_z FROM car_holdings WHERE character_id = $1 ORDER BY created_at`,
+    `SELECT h.id, h.model, h.color, h.bought_price, h.active, h.dents, h.parked_place, h.parked_x, h.parked_z, u.engine, u.tyres, u.brakes
+     FROM car_holdings h LEFT JOIN car_upgrades u ON u.car_id = h.id WHERE h.character_id = $1 ORDER BY h.created_at`,
     [characterId],
   )
-  return rows.map((r) => ({ id: r.id, model: r.model, color: r.color, paid: asMoney(r.bought_price), active: r.active, dents: r.dents, place: r.parked_place ?? null, x: r.parked_x ?? null, z: r.parked_z ?? null }))
+  return rows.map((r) => ({ id: r.id, model: r.model, color: r.color, paid: asMoney(r.bought_price), active: r.active, dents: r.dents, place: r.parked_place ?? null, x: r.parked_x ?? null, z: r.parked_z ?? null, up: { engine: r.engine ?? 0, tyres: r.tyres ?? 0, brakes: r.brakes ?? 0 } }))
 }
 
 async function hasSpace(db: Pick<PoolClient, 'query'>, characterId: string) {
@@ -37,9 +40,10 @@ const fail = (error: string, code = 400, reason?: string) => ({ ok: false as con
 export async function getGarage(userId: string) {
   const gate = await requireEconomySetup(userId)
   if (!gate.ok) return gate
-  const [cars, space] = await Promise.all([loadCars(pool, gate.character.id), hasSpace(pool, gate.character.id)])
+  const [cars, space, stats] = await Promise.all([loadCars(pool, gate.character.id), hasSpace(pool, gate.character.id), statsOf(pool, gate.character.id)])
   return {
     ok: true as const,
+    xp: stats.xp,
     catalog: CARS,
     cars,
     parkingPrice: PARKING_PRICE,
@@ -94,6 +98,7 @@ async function writeGarage(
       ok: true as const,
       ...out,
       cars: await loadCars(pool, gate.character.id),
+      xp: (await statsOf(pool, gate.character.id)).xp,
       needsParking: needsParking(gate.character.lodging_id, space),
       state: { ok: true as const, ...pub.state },
     }
@@ -245,4 +250,32 @@ export async function parkCar(userId: string, placeId: string, x: number, z: num
     needsParking: needsParking(gate.character.lodging_id, await hasSpace(pool, gate.character.id)),
     state: { ok: true as const, ...pub.state },
   }
+}
+
+/** Fit a part (engine, tyres or brakes) one level at a time: paid in game money, unlocked by racer rank. */
+export function upgradeCar(userId: string, carId: string, part: Part, idemKey: string) {
+  return writeGarage(userId, idemKey, 'POST /cars/upgrade', { carId, part }, true, async ({ client, characterId }) => {
+    if (!PARTS.includes(part)) return bad('That part is not sold.', 400, 'UNKNOWN_PART')
+    const { rows } = await client.query<CarRow>(`SELECT id, model, color, bought_price, active, dents FROM car_holdings WHERE id = $1 AND character_id = $2 FOR UPDATE`, [carId, characterId])
+    const car = rows[0]
+    if (!car) return bad('That car is not yours.', 404)
+    const have = (await loadUpgrades(client, carId))[part]
+    const level = have + 1
+    const block = upgradeBlock(have, level, (await statsOf(client, characterId)).xp)
+    if (block === 'max') return bad('That part is already maxed out.', 400, 'MAX')
+    if (block === 'rank') return bad('Race more to unlock this level: your racer rank is too low.', 400, 'RANK')
+    if (block !== 'ok') return bad('Fit the levels in order.', 400, 'ORDER')
+    const model = carById(car.model)
+    const price = upgradePrice(part, level, model?.price ?? asMoney(car.bought_price))
+    const def = PART_DEFS.find((p) => p.id === part)!
+    const wrote = await applyCash(client, characterId, -price, `${def.name} upgrade (level ${level}) for your ${model?.name ?? 'car'}`, 'purchase')
+    if (!wrote.ok) return bad(`You need ${naira(price)} for that.`, 400, 'INSUFFICIENT_FUNDS')
+    await client.query(
+      `INSERT INTO car_upgrades (car_id, ${part}) VALUES ($1, $2)
+       ON CONFLICT (car_id) DO UPDATE SET ${part} = $2, updated_at = NOW()`,
+      [carId, level],
+    )
+    const now = await loadUpgrades(client, carId)
+    return { status: 200, body: { ok: true, price, message: `${def.name} level ${level} fitted (${upgradeNote(now)}).` } }
+  })
 }

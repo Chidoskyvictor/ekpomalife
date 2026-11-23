@@ -14,6 +14,7 @@ import { EventDialog } from '@/components/hud/event-dialog'
 import { MapPlaceSheet } from '@/components/hud/map-place-sheet'
 import { HouseSheet } from '@/components/hud/house-sheet'
 import { DriveHud } from '@/components/drive/drive-hud'
+import { RadioDock } from '@/components/radio/radio-dock'
 import { StreetDrive } from '@/components/drive/street-drive'
 import { useDrive } from '@/lib/game/drive'
 import { SchoolCard } from '@/components/school/school-card'
@@ -102,6 +103,8 @@ export function Hud() {
   const placeSheet = usePlaceSheetActive()
   // At the wheel: the driving buttons take the bottom of the screen
   const driving = Boolean(useDrive()) && pathname === '/'
+  // /room is your house and every building's inside; /club/<id> is a club's inside
+  const inBuilding = pathname === '/room' || pathname.startsWith('/room/') || pathname.startsWith('/club/')
   // Tapped a place on the map: its sheet (about, ways to get there, Go) is up
   const mapSheetHidden = pathname !== '/' || phoneOpen || buyOpen
   const mapSheetOpen = !mapSheetHidden && (Boolean(placeFor(selectedId)) || isComingSoon(selectedId))
@@ -359,6 +362,9 @@ export function Hud() {
         </div>
       ) : null}
       {STREET_AND_TRAVEL && state ? <TravelControl /> : null}
+
+      {/* Inside a building or your house: a radio button (the phone has no radio) */}
+      {inBuilding && !phoneOpen && !buyOpen && !homeBuy.active && !driving ? <RadioDock /> : null}
 
       {homeBuy.active || driving ? null : <div className={styles.bottomDock}>
         <div className={styles.bottomRow}>

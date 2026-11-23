@@ -1,9 +1,10 @@
 'use client'
 
-import { ArrowUp, Camera, LocateFixed, MapPin, Megaphone, Navigation, Search, Volume2, VolumeX, X } from 'lucide-react'
+import { ArrowUp, Camera, Flag, Home, LocateFixed, MapPin, Megaphone, MoreHorizontal, Navigation, Search, Volume2, VolumeX, X } from 'lucide-react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { NearbyMic } from '@/components/hud/nearby-mic'
+import { RadioButton, RadioPill } from '@/components/radio/radio-pill'
 import { playHorn } from '@/lib/game/horn'
 import { useGame } from '@/hooks/use-game'
 import { parkCar } from '@/lib/game/cars-api'
@@ -11,10 +12,13 @@ import { driveInput, driveAudio, driveTelemetry, driveView, kmh, leaveDrive, set
 import { OSM_CREDIT, ROAD_PLACES, ROAD_SCALE, guide, placeSpot, roadById, roadPlaceNear, roadUnder, type Guidance } from '@/lib/game/drive-road'
 import { hasInterior } from '@/lib/game/home-place'
 import { pushNavigation } from '@/lib/navigation/safe-nav'
-import { leaveRace, racesNow } from '@/lib/game/races-api'
+import { leaveRace, racesNow, useRaces } from '@/lib/game/races-api'
+import { currentRun, endRun } from '@/lib/game/race-run'
 import { MiniMap } from './mini-map'
-import { RaceButton, RaceHud } from './race-hud'
+import { RaceHud, useRaceLabel } from './race-hud'
 import { RaceVoice } from './race-voice'
+import { RaceRunOverlay, RaceRunTop } from './race-run-hud'
+import { RacingSheet } from './racing-sheet'
 import styles from './drive-hud.module.css'
 
 /** Game metres as the distance a driver reads: "300 m", "1.2 km". */
@@ -116,7 +120,13 @@ export function DriveHud() {
   const [muted, setMuted] = useState(driveAudio.muted)
   const hornAt = useRef(0)
   const [picking, setPicking] = useState(false)
-  const [racing, setRacing] = useState(false)
+  const [radioOpen, setRadioOpen] = useState(false)
+  const [moreOpen, setMoreOpen] = useState(false)
+  const raceTag = useRaceLabel()
+  // 'sheet': the racing sheet; 'players': hosting or joining a race against players (and your race while it runs)
+  const [racing, setRacing] = useState<'sheet' | 'players' | null>(null)
+  const { mine: pvp } = useRaces()
+  const inPvp = Boolean(pvp && (pvp.status === 'open' || pvp.status === 'running'))
   const [query, setQuery] = useState('')
   const [way, setWay] = useState<{ g: Guidance; bearing: number } | null>(null)
   const destId = drive?.dest?.id ?? null
@@ -183,15 +193,24 @@ export function DriveHud() {
 
   /** Give up the drive: the car goes back to where it started (any new dents stay on it). */
   const cancel = () => {
+    endRun()
     const race = racesNow().mine
     if (race && (race.status === 'open' || race.status === 'running')) void leaveRace(race.id)
     if (driveTelemetry.dents > 0) void park(drive.fromPlace, drive.start.x, drive.start.z)
     else void leaveDrive()
   }
 
+  /** Leave the car and go to your own house (the car goes back where it started, as with Stop). */
+  const goHome = () => {
+    const dented = driveTelemetry.dents > 0
+    cancel()
+    // With new dents the car is parked first and that flow takes you inside; otherwise go straight home
+    if (!dented && pathname !== '/room') pushNavigation(router, '/room', pathname)
+  }
+
   const g = way?.g ?? null
   const wanted = query.trim().toLowerCase()
-  const list = ROAD_PLACES.filter((p) => !wanted || p.label.toLowerCase().includes(wanted))
+  const list = ROAD_PLACES.filter((p) => !p.id.startsWith('race-start-') && (!wanted || p.label.toLowerCase().includes(wanted)))
   const headline = !g
     ? ''
     : g.turn === 'uturn'
@@ -212,13 +231,16 @@ export function DriveHud() {
           {drive.dest ? <Navigation size={15} aria-hidden="true" /> : <MapPin size={15} aria-hidden="true" />}
           <span>{drive.dest ? drive.dest.label : 'Where to?'}</span>
         </button>
-        <RaceButton onClick={() => setRacing(true)} />
       </div>
-      <small className={styles.viewName} aria-live="polite">{['Chase view', "Driver's seat", 'Bumper view'][view]}</small>
-      <div className={styles.sideAnchor}>
-        <div className={styles.side}>
-          <MiniMap destId={destId} />
-        </div>
+      <div className={styles.dial} aria-live="off">
+        <span>
+          <strong>{speed}</strong> km/h
+        </span>
+        {roadName ? <small>{roadName}</small> : null}
+      </div>
+      <RaceRunTop />
+      <div className={styles.mapAnchor}>
+        <MiniMap destId={destId} />
       </div>
 
       {drive.dest ? (
@@ -244,23 +266,13 @@ export function DriveHud() {
       ) : null}
       {dents > 0 ? <p className={styles.dents}>🔧 {dents} new {dents === 1 ? 'dent' : 'dents'}</p> : null}
 
-      <div className={styles.fill} />
-      <div className={styles.tools} role="group" aria-label="Driving tools">
-        <button
-          type="button"
-          className={styles.tool}
-          aria-label="Change camera view"
-          onClick={() => {
-            driveView.mode = (driveView.mode + 1) % 3
-            driveView.yaw = 0
-            driveView.tilt = 0
-            setView(driveView.mode)
-          }}
-        >
-          <Camera size={18} aria-hidden="true" />
+      <div className={styles.side} role="group" aria-label="Driving tools">
+        <button type="button" className={styles.tool} aria-label="Go home" disabled={busy} onClick={goHome}>
+          <Home size={18} aria-hidden="true" />
         </button>
-        <NearbyMic className={styles.tool} badgeClassName={styles.toolBadge} />
-        <RaceVoice />
+        {/* One mic: in a race it is the race's voice room, otherwise the nearby voice */}
+        {inPvp ? <RaceVoice /> : <NearbyMic className={styles.tool} badgeClassName={styles.toolBadge} />}
+        <RadioButton className={styles.tool} open={radioOpen} onClick={() => setRadioOpen((o) => !o)} />
         <button
           type="button"
           className={styles.tool}
@@ -278,36 +290,67 @@ export function DriveHud() {
         </button>
         <button
           type="button"
-          className={styles.tool}
-          aria-label="Re-centre the camera behind the car"
-          onClick={() => Object.assign(driveView, { yaw: 0, tilt: 0, zoom: 1, held: false })}
+          className={`${styles.tool} ${raceTag.hot ? styles.hot : ''}`}
+          aria-label="More: races, camera, horn and sound"
+          aria-expanded={moreOpen}
+          onClick={() => setMoreOpen((o) => !o)}
         >
-          <LocateFixed size={18} aria-hidden="true" />
-        </button>
-        <button
-          type="button"
-          className={styles.tool}
-          aria-label={muted ? 'Turn game sounds on' : 'Turn game sounds off'}
-          aria-pressed={muted}
-          onClick={() => {
-            setDriveMuted(!muted)
-            setMuted(!muted)
-          }}
-        >
-          {muted ? <VolumeX size={18} aria-hidden="true" /> : <Volume2 size={18} aria-hidden="true" />}
+          <MoreHorizontal size={18} aria-hidden="true" />
         </button>
       </div>
-      {near ? (
-        <button type="button" className={styles.park} disabled={busy} onClick={() => void park(near.id, driveTelemetry.x, driveTelemetry.z)}>
+      {moreOpen ? (
+        <div className={styles.menu} role="menu" aria-label="More driving tools">
+          <button
+            type="button"
+            role="menuitem"
+            className={`${styles.item} ${raceTag.hot ? styles.itemHot : ''}`}
+            onClick={() => {
+              setMoreOpen(false)
+              if (!currentRun()) setRacing(inPvp ? 'players' : 'sheet')
+            }}
+          >
+            <Flag size={18} aria-hidden="true" />
+            <span>{raceTag.label}</span>
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            className={styles.item}
+            onClick={() => {
+              driveView.mode = (driveView.mode + 1) % 3
+              driveView.yaw = 0
+              driveView.tilt = 0
+              setView(driveView.mode)
+            }}
+          >
+            <Camera size={18} aria-hidden="true" />
+            <span>{['Chase view', "Driver's seat", 'Bumper view'][view]}</span>
+          </button>
+          <button type="button" role="menuitem" className={styles.item} onClick={() => Object.assign(driveView, { yaw: 0, tilt: 0, zoom: 1, held: false })}>
+            <LocateFixed size={18} aria-hidden="true" />
+            <span>Behind the car</span>
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            className={styles.item}
+            aria-pressed={muted}
+            onClick={() => {
+              setDriveMuted(!muted)
+              setMuted(!muted)
+            }}
+          >
+            {muted ? <VolumeX size={18} aria-hidden="true" /> : <Volume2 size={18} aria-hidden="true" />}
+            <span>{muted ? 'Game sounds off' : 'Game sounds on'}</span>
+          </button>
+        </div>
+      ) : null}
+      <div className={styles.fill} />
+      {near && !currentRun() ? (
+        <button type="button" className={`${styles.park} ${radioOpen ? styles.parkUp : ''}`} disabled={busy} onClick={() => void park(near.id, driveTelemetry.x, driveTelemetry.z)}>
           🅿️ {busy ? 'Parking…' : `Park at ${near.label}`}
         </button>
       ) : null}
-      <div className={styles.dial} aria-live="off">
-        <span>
-          <strong>{speed}</strong> km/h
-        </span>
-        {roadName ? <small>{roadName}</small> : null}
-      </div>
       <div className={styles.pad}>
         <SteerPad />
         <div className={styles.pedals}>
@@ -322,7 +365,10 @@ export function DriveHud() {
       </div>
       <p className={styles.credit}>{OSM_CREDIT}</p>
 
-      <RaceHud open={racing && !picking} onClose={() => setRacing(false)} />
+      <RaceHud open={racing === 'players' && !picking} onClose={() => setRacing(null)} />
+      <RacingSheet open={racing === 'sheet' && !picking} onClose={() => setRacing(null)} onPlayers={() => setRacing('players')} />
+      <RaceRunOverlay />
+      {radioOpen ? <RadioPill source="car" bottom="var(--radio-bottom)" onClose={() => setRadioOpen(false)} /> : null}
 
       {picking ? (
         <div className={styles.sheet} role="dialog" aria-label="Where are you going?">

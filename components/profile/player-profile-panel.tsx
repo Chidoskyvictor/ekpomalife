@@ -8,6 +8,7 @@ import { formatNaira } from '@/lib/game/live'
 import { fetchHeadToHead } from '@/lib/game/games-hub-api'
 import { requestOpenGames } from '@/lib/game/open-games'
 import { ProfileEditSheet } from './profile-edit-sheet'
+import { RacerCard } from './racer-card'
 import styles from './profile.module.css'
 
 function formatJoinDate(iso: string) {
@@ -114,6 +115,8 @@ export function PlayerProfilePanel({
           <p className={styles.statValue}>{profile.stats.whotWins}</p>
         </div>
       </div>
+
+      <RacerCard userId={profile.userId} />
 
       {profile.isOwner && profile.private && !compact ? (
         <div className={styles.ownerBlock}>

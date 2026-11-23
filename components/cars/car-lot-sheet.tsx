@@ -14,6 +14,7 @@ import {
   openCarLot,
   paintCar,
   sellCar,
+  upgradeCarPart,
   useCarLot,
   useCarLotModel,
   useGarage,
@@ -23,6 +24,8 @@ import {
 import { CARS_ON_SALE, PAINTS, PARKING_PRICE, carById, carSellBack, dentFixPrice } from '@/lib/game/cars-rules'
 import type { ServerGameState } from '@/lib/game/game-api'
 import { BottomSheet } from '@/components/ui/bottom-sheet'
+import { NO_UPGRADES, upgradeNote } from '@/lib/game/race-rewards'
+import { UpgradePanel } from './upgrade-panel'
 import { CarModel } from './car-model'
 import styles from './car-lot-sheet.module.css'
 
@@ -54,7 +57,7 @@ function Preview({ id, color, dents = 0 }: { id: string; color: string; dents?: 
   )
 }
 
-type Step = 'idle' | 'confirm' | 'paint' | 'sell' | 'parking'
+type Step = 'idle' | 'confirm' | 'paint' | 'sell' | 'parking' | 'tune'
 
 /**
  * Magmus Autos car lot: Showroom (buy, with a confirm step that shows price and wallet) and
@@ -266,7 +269,18 @@ export function CarLotSheet({ hidden = false }: { hidden?: boolean }) {
                 ))}
               </div>
             ) : null}
-            {step === 'paint' ? (
+            {step === 'tune' ? (
+              <UpgradePanel
+                carName={ownedModel.name}
+                carPrice={ownedModel.price}
+                up={owned.up ?? NO_UPGRADES}
+                xp={garage?.xp ?? 0}
+                cash={cash}
+                busy={busy}
+                onBuy={(part) => void run((k) => upgradeCarPart(owned.id, part, k))}
+                onBack={() => setStep('idle')}
+              />
+            ) : step === 'paint' ? (
               <div className={styles.swatches} role="listbox" aria-label="Paint colour">
                 {PAINTS.map((c) => (
                   <button key={c} type="button" role="option" aria-selected={c === owned.color} aria-label={`Paint ${c}`} disabled={busy} className={c === owned.color ? styles.swatchOn : ''} onClick={() => void run((k) => paintCar(owned.id, c, k))}>
@@ -300,6 +314,9 @@ export function CarLotSheet({ hidden = false }: { hidden?: boolean }) {
                   🔧 {atMechanic ? `Fix dents · ${naira(dentFixPrice(owned.paid))}` : `Fix at Magmus Autos · ${naira(dentFixPrice(owned.paid))}`}
                 </button>
               ) : null}
+              <button type="button" className={`${styles.btn} ${styles.wide}`} onClick={() => setStep('tune')}>
+                🏁 Upgrades · {upgradeNote(owned.up ?? NO_UPGRADES) ?? 'stock'}
+              </button>
               <div className={styles.row3}>
                 <button type="button" className={`${styles.btn} ${owned.active ? '' : styles.primary}`} disabled={busy || owned.active} onClick={() => void run((k) => driveCar(owned.id, k))}>
                   {owned.active ? '🔑 Driving' : '🔑 Drive'}

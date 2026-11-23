@@ -1,0 +1,646 @@
+/* Race run on the drive view: the banner to the start box, the live panel, the lights, the grid card and the results. */
+
+/* Race run on the drive view: the banner to the start box, the slim live strip, the lights, the grid card and the results.
+   Panels are solid dark with a clear border (readable day and night); they stay left of the mini-map. */
+
+.banner,
+.live {
+  pointer-events: auto;
+  max-width: calc(100% - 116px);
+  box-sizing: border-box;
+  border: 2px solid #4b5668;
+  background: #0f1623;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  color: #fff;
+}
+
+/* —— heading for the start box: course, how far, then one full-width button —— */
+
+.banner {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) 30px;
+  align-items: center;
+  gap: 6px 8px;
+  margin-top: 8px;
+  padding: 8px 6px 8px 8px;
+  border-radius: var(--r-lg);
+}
+
+.bannerIcon {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--primary);
+}
+
+.bannerText {
+  min-width: 0;
+}
+
+.bannerText strong {
+  display: block;
+  overflow: hidden;
+  font-size: var(--fs-14);
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bannerText small {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: var(--fs-12);
+  font-weight: 600;
+  line-height: 1.25;
+  color: #cbd5e1;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.bannerGo {
+  position: relative;
+  grid-column: 1 / -1;
+  min-height: 40px;
+  margin-right: 2px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-size: var(--fs-14);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.bannerX {
+  position: relative;
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: #cbd5e1;
+}
+
+.bannerX::after {
+  position: absolute;
+  inset: -7px;
+  content: '';
+}
+
+/* —— live strip: place, lap, time, gap, then thin checkpoint bars —— */
+
+.live {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+  padding: 6px 8px 7px 10px;
+  border-radius: var(--r-lg);
+  align-self: flex-start;
+}
+
+.liveRow {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.place {
+  display: flex;
+  align-items: baseline;
+  gap: 1px;
+}
+
+.place strong {
+  font-family: var(--font-game);
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.place small {
+  font-size: var(--fs-12);
+  font-weight: 700;
+  color: #cbd5e1;
+}
+
+.lap {
+  font-size: var(--fs-12);
+  font-weight: 700;
+  color: #cbd5e1;
+}
+
+.clock {
+  font-size: var(--fs-14);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+}
+
+.gap {
+  font-size: var(--fs-12);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+}
+
+.behind {
+  color: #f87171;
+}
+
+.leading {
+  color: #4ade80;
+}
+
+.pips {
+  display: flex;
+  gap: 3px;
+}
+
+.pips span {
+  height: 4px;
+  flex: 1;
+  max-width: 18px;
+  border-radius: 2px;
+  background: #3b4658;
+}
+
+.pips .pipOn {
+  background: #34d399;
+}
+
+.pips .pipNext {
+  background: #ffd21f;
+  animation: blink 0.9s ease-in-out infinite;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0.4;
+  }
+}
+
+.flash {
+  align-self: flex-start;
+  padding: 2px 7px;
+  border-radius: var(--r-pill);
+  background: #064e3b;
+  color: #a7f3d0;
+  font-size: var(--fs-12);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.quit {
+  position: relative;
+  display: grid;
+  width: 22px;
+  height: 22px;
+  align-self: center;
+  place-items: center;
+  margin-left: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #1c2636;
+  color: #cbd5e1;
+}
+
+.quit::after {
+  position: absolute;
+  inset: -11px;
+  content: '';
+}
+
+/* —— the lights —— */
+
+.count {
+  position: absolute;
+  top: 36%;
+  left: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  transform: translateX(-50%);
+  color: #fff;
+  text-align: center;
+  text-shadow: 0 3px 14px rgba(0, 0, 0, 0.7);
+  pointer-events: none;
+}
+
+.lights {
+  display: flex;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: var(--r-pill);
+  border: 2px solid #4b5668;
+  background: #0f1623;
+}
+
+.lights span {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #3b3f47;
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.12);
+}
+
+.lights .red {
+  background: #ef4444;
+  box-shadow: 0 0 14px #ef4444;
+}
+
+.lights .green {
+  background: #22c55e;
+  box-shadow: 0 0 16px #22c55e;
+}
+
+.count strong {
+  font-family: var(--font-game);
+  font-size: 80px;
+  font-weight: 400;
+  line-height: 0.95;
+  white-space: nowrap;
+}
+
+.count .words {
+  font-size: 38px;
+}
+
+.count .goText {
+  color: #4ade80;
+  animation: pop var(--dur-pop) var(--ease-ui);
+}
+
+@keyframes pop {
+  from {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+}
+
+.count small {
+  font-size: var(--fs-14);
+  font-weight: 700;
+}
+
+/* —— on the grid / results: a card above the pedals —— */
+
+.grid,
+.result {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  max-height: 46%;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px max(14px, env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
+  background: var(--paper);
+  box-shadow: 0 -10px 32px rgba(0, 0, 0, 0.22);
+  color: var(--ink);
+  pointer-events: auto;
+  animation: rise var(--dur-sheet) var(--ease-ui);
+}
+
+@keyframes rise {
+  from {
+    transform: translateY(40%);
+    opacity: 0;
+  }
+}
+
+.gridText strong {
+  display: block;
+  font-size: var(--fs-16);
+  font-weight: 800;
+}
+
+.gridText small {
+  color: var(--ink-2);
+  font-size: var(--fs-14);
+  font-weight: 600;
+}
+
+.gridButtons {
+  display: flex;
+  gap: 8px;
+}
+
+.start,
+.ghost {
+  display: inline-flex;
+  min-height: 52px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 0;
+  border-radius: var(--r-pill);
+  font-size: var(--fs-16);
+  font-weight: 800;
+  transition: transform var(--dur-press) var(--ease-ui);
+}
+
+.start:active,
+.ghost:active {
+  transform: scale(0.96);
+}
+
+.start {
+  flex: 1;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-family: var(--font-game);
+  font-size: 22px;
+  font-weight: 400;
+}
+
+.ghost {
+  padding: 0 20px;
+  background: var(--fill);
+  color: var(--ink);
+}
+
+.resultHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.resultHead > div {
+  min-width: 0;
+  flex: 1;
+}
+
+.resultHead strong {
+  display: block;
+  overflow: hidden;
+  font-family: var(--font-game);
+  font-size: var(--fs-20);
+  font-weight: 400;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.resultHead small {
+  display: block;
+  overflow: hidden;
+  color: var(--ink-2);
+  font-size: var(--fs-12);
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.medal {
+  font-size: 36px;
+  line-height: 1;
+}
+
+.time {
+  font-size: var(--fs-20);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+}
+
+.table {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.table li {
+  display: grid;
+  min-height: 34px;
+  grid-template-columns: 22px 1fr auto 52px;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  border-radius: var(--r-sm);
+  background: var(--fill);
+  font-size: var(--fs-14);
+}
+
+.table li.me {
+  background: color-mix(in oklab, var(--primary) 16%, var(--paper));
+  font-weight: 800;
+}
+
+.table span {
+  color: var(--ink-2);
+  font-weight: 800;
+}
+
+.table em {
+  overflow: hidden;
+  font-style: normal;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.table b {
+  font-variant-numeric: tabular-nums;
+}
+
+.table small {
+  color: var(--ink-2);
+  font-size: var(--fs-12);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: var(--r-md);
+  background: var(--fill);
+  color: var(--ink-2);
+  font-size: var(--fs-14);
+  font-weight: 700;
+}
+
+.chip.good {
+  background: color-mix(in oklab, var(--ok) 16%, var(--paper));
+  color: var(--ok-strong);
+}
+
+.chip.warn {
+  background: color-mix(in oklab, var(--bad) 14%, var(--paper));
+  color: var(--bad-strong);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grid,
+  .result,
+  .goText,
+  .pipNext {
+    animation: none;
+  }
+}
+
+/* Phone on its side: the cards are as tall as the screen allows and sit to the side, clear of the pedals */
+@media (orientation: landscape) and (max-height: 520px) {
+  .grid,
+  .result {
+    inset-inline: auto;
+    right: 0;
+    width: min(360px, 52%);
+    max-height: calc(100% - 8px);
+    border-radius: var(--r-lg) 0 0 var(--r-lg);
+  }
+
+  .count {
+    top: 16%;
+  }
+
+  .count strong {
+    font-size: 56px;
+  }
+}
+
+/* —— the field on the grid: rank and upgrades of every car —— */
+
+.entries {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.entries li {
+  display: grid;
+  min-height: 34px;
+  grid-template-columns: 22px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  border-radius: var(--r-sm);
+  background: var(--fill);
+  font-size: var(--fs-14);
+}
+
+.entries .meRow {
+  background: color-mix(in oklab, var(--primary) 14%, var(--paper));
+  font-weight: 800;
+}
+
+.entries em {
+  overflow: hidden;
+  font-style: normal;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.entries small {
+  color: var(--ink-2);
+  font-size: var(--fs-12);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.entries b {
+  color: var(--ink-3);
+  font-size: var(--fs-12);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+}
+
+.entries b.fitted {
+  color: var(--primary);
+}
+
+/* —— rewards on the result card —— */
+
+.reward {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.xp {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: var(--r-md);
+  background: color-mix(in oklab, var(--primary) 14%, var(--paper));
+  font-size: var(--fs-14);
+  font-weight: 700;
+}
+
+.xp b {
+  color: var(--primary);
+  font-size: var(--fs-16);
+  font-weight: 800;
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.badges li {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px 4px 8px;
+  border-radius: var(--r-pill);
+  background: color-mix(in oklab, #f59e0b 22%, var(--paper));
+  animation: pop var(--dur-pop) var(--ease-ui);
+}
+
+.badges i {
+  font-size: 22px;
+  font-style: normal;
+  line-height: 1;
+}
+
+.badges span {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.badges b {
+  font-size: var(--fs-14);
+  font-weight: 800;
+}
+
+.badges small {
+  color: var(--ink-2);
+  font-size: var(--fs-12);
+  font-weight: 700;
+}
+
+/* Landscape: keep the banner and strip a thumb-width column, not the whole screen */
+@media (orientation: landscape) and (max-height: 520px) {
+  .banner,
+  .live {
+    max-width: 330px;
+  }
+}

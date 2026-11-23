@@ -77,6 +77,13 @@ export type Tune = {
   reverse: number
   brake: number
   drag: number
+  /** Tyre upgrades: a multiplier on the sideways grip (1 = stock). */
+  grip?: number
+}
+
+/** A stock tune with a car's upgrades applied (multipliers from upgradeEffects in race-rewards.ts): engine, tyres, brakes. */
+export function upgradedTune(tune: Tune, fx: { top: number; gas: number; grip: number; brake: number }): Tune {
+  return { ...tune, top: tune.top * fx.top, gas: tune.gas * fx.gas, brake: tune.brake * fx.brake, grip: (tune.grip ?? 1) * fx.grip }
 }
 
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n))
@@ -145,7 +152,7 @@ export function drive(b: Body, pedals: Pedals, car: CarBody, tune: Tune, surface
 
   // Turning: ideal yaw from the bicycle model, then limited by what the tyres can hold
   const yawIdeal = idealYaw(b.wheelAngle, b.v, car.wheelbase)
-  const grip = gripLimit(car.drive, surface, pedals.gas)
+  const grip = gripLimit(car.drive, surface, pedals.gas) * (tune.grip ?? 1)
   const maxYaw = grip / Math.max(speed, 1)
   const yaw = clamp(yawIdeal, -maxYaw, maxYaw)
   // The part the tyres could not do: the car slides wide of the turn, and scrubs speed

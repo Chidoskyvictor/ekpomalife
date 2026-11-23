@@ -4,7 +4,12 @@ import { notFound, useSearchParams } from 'next/navigation'
 import { Suspense, useEffect, useMemo, useRef } from 'react'
 import { StreetCanvas } from '@/components/drive/street-world'
 import type { Peer } from '@/lib/game/club-live'
-import { driveView } from '@/lib/game/drive'
+import { DriveHud } from '@/components/drive/drive-hud'
+import { RadioDock } from '@/components/radio/radio-dock'
+import { GameProvider } from '@/hooks/use-game'
+import { driveView, startDrive } from '@/lib/game/drive'
+import { beginRun, pressStart } from '@/lib/game/race-run'
+import { courseById } from '@/lib/game/race-courses'
 import { driveStartFrom, roadById, spotAt } from '@/lib/game/drive-road'
 
 /** Development only: the street world without signing in. `?at=<place id>&time=21:30` */
@@ -25,9 +30,36 @@ function Inner() {
     driveView.zoom = Number(q.get('zoom') ?? 1)
   }, [q])
   const peers = useRef(new Map<string, Peer>())
+  // `?hud=1` mounts the real driving controls over the scene; `?race=<course id>&phase=grid` starts a run
+  const hud = q.get('hud') === '1'
+  // `?radio=stub` answers the station list locally (the dev API may be offline); streams stay silent here
+  useEffect(() => {
+    if (q.get('radio') !== 'stub') return
+    const real = window.fetch.bind(window)
+    const list = ['Cool FM', 'Wazobia FM', 'Beat FM', 'Naija Info FM'].map((name, i) => ({ id: `s${i}`, name, streamUrl: 'about:blank', logo: null, city: i % 2 ? 'Abuja' : 'Lagos', genre: 'Pop', frequency: `${96 + i}.9 FM` }))
+    window.fetch = (input, init) => (String(input).includes('/radio/stations') ? Promise.resolve(new Response(JSON.stringify({ ok: true, stations: list }), { headers: { 'content-type': 'application/json' } })) : real(input, init))
+    return () => {
+      window.fetch = real
+    }
+  }, [q])
+  useEffect(() => {
+    if (!hud) return
+    startDrive({ dest: null, car: { id: 'dev', model: 'gt3', color: '#c94f4f' }, start, fromPlace: 'aau-gate' })
+    const race = q.get('race')
+    const course = race ? courseById(race) : null
+    if (course) beginRun(course, { rivals: 3, model: 'gt3', named: q.get('phase') === 'togrid' })
+    // `phase=racing` presses Start (the scene turns the lights green after the countdown)
+    if (course && q.get('phase') === 'racing') window.setTimeout(pressStart, 1500)
+  }, [hud, q, start])
   return (
     <div style={{ position: 'fixed', inset: 0, background: '#000' }}>
       <StreetCanvas car={{ model: 'gt3', color: '#c94f4f' }} start={start} send={() => {}} peers={peers} roster={0} />
+      {q.get('dock') === '1' ? <RadioDock /> : null}
+      {hud ? (
+        <GameProvider guest>
+          <DriveHud />
+        </GameProvider>
+      ) : null}
     </div>
   )
 }

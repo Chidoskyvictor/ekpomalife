@@ -1,0 +1,173 @@
+/* The radio pill: solid dark with a clear border, so it reads the same in daylight and at night. */
+
+.pill {
+  position: fixed;
+  left: 50%;
+  z-index: calc(var(--z-hud) + 6);
+  display: flex;
+  width: min(268px, calc(100vw - 24px));
+  box-sizing: border-box;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 4px 4px 5px;
+  border: 1.5px solid rgba(255, 255, 255, 0.35);
+  border-radius: 18px;
+  background: rgba(15, 22, 35, 0.4);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+  color: #fff;
+  pointer-events: auto;
+  transform: translateX(-50%);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.logo {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  flex: none;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 9px;
+  background: rgba(31, 42, 59, 0.5);
+  color: #cbd5e1;
+}
+
+.logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.text {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  line-height: 1.2;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.text strong {
+  overflow: hidden;
+  font-size: var(--fs-12);
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.text small {
+  overflow: hidden;
+  color: #e2e8f0;
+  font-size: 11px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.text small.air {
+  color: #4ade80;
+}
+
+.text small.warn {
+  color: #fbbf24;
+}
+
+.step,
+.play,
+.close,
+.button {
+  position: relative;
+  display: grid;
+  flex: none;
+  place-items: center;
+  border: 1.5px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  background: rgba(28, 38, 54, 0.45);
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+}
+
+/* 34px to look at, 44px to touch */
+.step,
+.close {
+  width: 28px;
+  height: 28px;
+}
+
+.step::after,
+.close::after {
+  position: absolute;
+  inset: -5px;
+  content: '';
+}
+
+.close {
+  border-color: transparent;
+  background: transparent;
+  color: #aab6c8;
+}
+
+.play {
+  width: 36px;
+  height: 36px;
+  border-color: #22c55e;
+  background: #16a34a;
+}
+
+.step:disabled,
+.play:disabled {
+  opacity: 0.45;
+}
+
+.step:active,
+.play:active {
+  transform: scale(0.94);
+}
+
+.spin {
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spin {
+    animation-duration: 2.5s;
+  }
+}
+
+/* The dock button used inside buildings (the car uses its own tool-column style) */
+.button {
+  width: 44px;
+  height: 44px;
+  background: #0f1623;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+
+.button[data-on='true'] {
+  border-color: #22c55e;
+  color: #4ade80;
+}
+
+/* Floating button position inside buildings: right edge, above the tab bar */
+.dock {
+  position: fixed;
+  right: max(12px, env(safe-area-inset-right));
+  z-index: calc(var(--z-hud) + 6);
+  pointer-events: auto;
+}
+
+.play::after {
+  position: absolute;
+  inset: -4px;
+  content: '';
+}
