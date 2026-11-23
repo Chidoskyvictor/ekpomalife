@@ -1,4 +1,5 @@
 import { BufferGeometry, Color, ConeGeometry, CylinderGeometry, Float32BufferAttribute, SphereGeometry } from 'three'
+import lampData from './streetlight-data.json'
 import { BLOCK_SIGNS, KIOSK_SIGNS, SHOP_SIGNS, signRect } from './town-signs'
 
 /*
@@ -144,6 +145,25 @@ class Mesher {
       this.tri(a, b, c, [nn[0] / len, nn[1] / len, nn[2] / len], u(a), u(b), u(c), o)
     }
     g.dispose()
+  }
+
+  /** Triangles from a real model (indexed arrays), scaled, optionally turned half way round, flat-shaded. */
+  raw(pos: number[], idx: number[], sx: number, sy: number, sz: number, turn: boolean, o: Opt) {
+    const at = (i: number): V3 => {
+      const x = pos[i * 3]! * sx
+      const z = pos[i * 3 + 2]! * sz
+      return [turn ? -x : x, pos[i * 3 + 1]! * sy, turn ? -z : z]
+    }
+    for (let i = 0; i < idx.length; i += 3) {
+      const a = at(idx[i]!)
+      const b = at(idx[i + 1]!)
+      const c = at(idx[i + 2]!)
+      const e1: V3 = [b[0] - a[0], b[1] - a[1], b[2] - a[2]]
+      const e2: V3 = [c[0] - a[0], c[1] - a[1], c[2] - a[2]]
+      const n: V3 = [e1[1] * e2[2] - e1[2] * e2[1], e1[2] * e2[0] - e1[0] * e2[2], e1[0] * e2[1] - e1[1] * e2[0]]
+      const len = Math.hypot(...n) || 1
+      this.tri(a, b, c, [n[0] / len, n[1] / len, n[2] / len], [0, 0], [0, 0], [0, 0], o)
+    }
   }
 
   build(): BufferGeometry {
@@ -385,14 +405,23 @@ export function club(label: string, ink = '#ff4fa8'): Shape {
   return { geo: m.build(), w: 14, d: 10, h: 7.4 }
 }
 
-/** A street lamp: pole, an arm reaching toward the road (+z), a lamp head that lights at night. */
-export function lamp(): Shape {
+/**
+ * A street lamp from the real CC0 Quaternius "Street Light" model (public/models/streetlight.glb;
+ * its triangles are in streetlight-data.json): pole, an arm reaching toward the road (+z), a lamp
+ * head that lights at night. `reach` stretches the arm; `double` adds a second arm the other way,
+ * for the middle of the dual carriageway.
+ */
+function lampOf(reach: number, double: boolean): Shape {
   const m = new Mesher()
-  m.box(0.2, 8.4, 0.2, 0, 4.2, 0, { c: '#4c535a', m: MAT.flat, skip: 'u' })
-  m.box(0.14, 0.14, 2.6, 0, 8.3, 1.2, { c: '#4c535a', m: MAT.flat })
-  m.box(0.6, 0.14, 1.3, 0, 8.18, 2.4, { c: '#e8e2c8', m: MAT.flat, g: 1.6, faces: { t: { c: '#3a3f44' }, f: { c: '#3a3f44' } } })
-  return { geo: m.build(), w: 1, d: 1, h: 8.5 }
+  for (const turn of double ? [false, true] : [false]) {
+    m.raw(lampData.a.pos, lampData.a.idx, 1.2, 1.4, reach, turn, { c: '#6c747c', m: MAT.flat })
+    m.raw(lampData.b.pos, lampData.b.idx, 1.2, 1.4, reach, turn, { c: '#fff1c8', m: MAT.flat, g: 1.8 })
+  }
+  return { geo: m.build(), w: 1, d: 1, h: 9.3 }
 }
+export const lamp = () => lampOf(1.4, false)
+/** Middle-of-the-road lamp: two arms, one over each carriageway. */
+export const lampDouble = () => lampOf(2.5, true)
 
 /**
  * The far version of any building: a plain block with a few lit windows. 10 x 10 x 10 in its own

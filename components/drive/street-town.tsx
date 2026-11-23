@@ -6,7 +6,6 @@ import {
   AdditiveBlending,
   BufferGeometry,
   CanvasTexture,
-  CircleGeometry,
   Color,
   DynamicDrawUsage,
   Float32BufferAttribute,
@@ -15,6 +14,7 @@ import {
   MeshBasicMaterial,
   MeshLambertMaterial,
   Object3D,
+  PlaneGeometry,
   Points,
   PointsMaterial,
   RepeatWrapping,
@@ -136,6 +136,7 @@ function buildVariants() {
   add('mosque', kit.mosque(), 12)
   add('station', kit.station(), 12)
   add('lamp', kit.lamp(), 220)
+  add('lamp2', kit.lampDouble(), 220)
   add('far', kit.farBlock(), 900)
   for (const l of LANDMARKS) {
     const shape =
@@ -204,9 +205,9 @@ export function Town({ level }: { level: Level }) {
       new PointsMaterial({ map: glow, size: 7, sizeAttenuation: true, transparent: true, blending: AdditiveBlending, depthWrite: false, vertexColors: true, fog: false }),
     )
     halo.frustumCulled = false
-    const poolGeo = new CircleGeometry(6, 20)
+    const poolGeo = new PlaneGeometry(16, 16)
     poolGeo.rotateX(-Math.PI / 2)
-    const poolMat = new MeshBasicMaterial({ map: glow, color: '#ffc880', transparent: true, opacity: 0.6, blending: AdditiveBlending, depthWrite: false, fog: false })
+    const poolMat = new MeshBasicMaterial({ map: loader.load('/lights/lamp-pool.png'), color: '#ffc880', transparent: true, opacity: 0.6, blending: AdditiveBlending, depthWrite: false, fog: false })
     const pools = new InstancedMesh(poolGeo, poolMat, 220)
     pools.instanceMatrix.setUsage(DynamicDrawUsage)
     pools.instanceColor = new InstancedBufferAttribute(new Float32Array(220 * 3), 3).setUsage(DynamicDrawUsage)
@@ -404,7 +405,7 @@ export function Town({ level }: { level: Level }) {
       const dz = lot.z - pz
       const d2 = dx * dx + dz * dz
       if (d2 > R2) return
-      if (lot.v === 'lamp') {
+      if (lot.v === 'lamp' || lot.v === 'lamp2') {
         if (d2 < 220 * 220) {
           place(lot, false)
           lamps.push(lot)
@@ -432,21 +433,25 @@ export function Town({ level }: { level: Level }) {
       const col: number[] = []
       let np = 0
       for (const l of lamps) {
-        const hx = l.x + Math.sin(l.yaw) * 2.4
-        const hz = l.z + Math.cos(l.yaw) * 2.4
-        const d = Math.hypot(hx - px, hz - pz)
-        const fade = Math.max(0, Math.min(1, 1 - (d - 110) / 90))
-        if (fade <= 0 || np >= 220) continue
-        pos.push(hx, 8.1, hz)
-        tmpColor.setRGB(1, 0.78, 0.45).multiplyScalar(fade * (level === 'night' ? 1 : 0.55))
-        col.push(tmpColor.r, tmpColor.g, tmpColor.b)
-        dummy.position.set(hx, 0.07, hz)
-        dummy.rotation.set(0, 0, 0)
-        dummy.scale.set(1, 1, 1)
-        dummy.updateMatrix()
-        sys.pools.setMatrixAt(np, dummy.matrix)
-        sys.pools.setColorAt(np, tmpColor.setRGB(fade, fade, fade))
-        np++
+        // Heads: the single lamp's arm reaches 3.4 m; the middle lamp has an arm each way, 6 m out
+        const heads = l.v === 'lamp2' ? [6, -6] : [3.4]
+        for (const reach of heads) {
+          const hx = l.x + Math.sin(l.yaw) * reach
+          const hz = l.z + Math.cos(l.yaw) * reach
+          const d = Math.hypot(hx - px, hz - pz)
+          const fade = Math.max(0, Math.min(1, 1 - (d - 110) / 90))
+          if (fade <= 0 || np >= 220) continue
+          pos.push(hx, 8.6, hz)
+          tmpColor.setRGB(1, 0.78, 0.45).multiplyScalar(fade * (level === 'night' ? 1 : 0.55))
+          col.push(tmpColor.r, tmpColor.g, tmpColor.b)
+          dummy.position.set(hx, 0.07, hz)
+          dummy.rotation.set(0, 0, 0)
+          dummy.scale.set(1, 1, 1)
+          dummy.updateMatrix()
+          sys.pools.setMatrixAt(np, dummy.matrix)
+          sys.pools.setColorAt(np, tmpColor.setRGB(fade, fade, fade))
+          np++
+        }
       }
       sys.halo.geometry.setAttribute('position', new Float32BufferAttribute(pos, 3))
       sys.halo.geometry.setAttribute('color', new Float32BufferAttribute(col, 3))

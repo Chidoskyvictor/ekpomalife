@@ -1,5 +1,5 @@
 import { Color } from 'three'
-import { HALF, ROADS, ROAD_DIMS, ROAD_PLACES, SCENE_ROADS, locateOn, pointAt, roadsNear, spotAt, type Road, type RoadKind } from '@/lib/game/drive-road'
+import { HALF, ROADS, dividerOpen, ROAD_DIMS, ROAD_PLACES, SCENE_ROADS, locateOn, pointAt, roadsNear, spotAt, type Road, type RoadKind } from '@/lib/game/drive-road'
 import { mulberry32 } from '@/lib/game/world-layout'
 
 /*
@@ -359,7 +359,11 @@ export function fillerLots(tx: number, tz: number, covered: (x: number, z: numbe
   return out
 }
 
-/** Street lamps along the roads of one tile: kerb side, staggered, arm reaching over the road. */
+/**
+ * Street lamps along the roads of one tile. On the expressway they stand in the middle, one pole
+ * with an arm over each carriageway ('lamp2'); on the other roads, single lamps at the kerb,
+ * staggered, arm reaching over the road.
+ */
 export function lampLots(tx: number, tz: number): Lot[] {
   const rect = rectOf(tx, tz)
   const out: Lot[] = []
@@ -368,11 +372,17 @@ export function lampLots(tx: number, tz: number): Lot[] {
   for (const road of roadsNear(cx, cz, TILE_SIZE * 0.75)) {
     if (!SCENE.has(road.id)) continue
     const dims = ROAD_DIMS[road.kind]
-    const gap = road.kind === 'highway' ? 34 : road.kind === 'road' ? 40 : 46
+    const gap = road.kind === 'highway' ? 36 : road.kind === 'road' ? 38 : 44
     for (const [a, b] of rangesIn(road, rect, 10)) {
       for (let k = Math.max(1, Math.floor(a / gap)); k <= Math.floor(b / gap); k++) {
         const s = k * gap
         if (s < 14 || s > road.length - 14) continue
+        if (road.kind === 'highway') {
+          // Not in a gap of the divider (junctions, the ends); the kerb lamps below stand as well
+          const mid = !dividerOpen(road, s)
+          const sp = spotAt(road.id, s, 0)
+          if (mid && sp.x >= rect.x0 && sp.x < rect.x1 && sp.z >= rect.z0 && sp.z < rect.z1) out.push(makeLot('lamp2', sp.x, sp.z, Math.atan2(sp.dz, -sp.dx), 1, 1, 1, 0, [1, 9, 1], 260))
+        }
         for (const side of road.kind === 'street' ? [k % 2 ? 1 : -1] : [1, -1]) {
           const sp = spotAt(road.id, s + (side > 0 ? gap / 2 : 0), side * (HALF[road.kind] + dims.kerb + dims.pave * 0.45))
           if (sp.x < rect.x0 || sp.x >= rect.x1 || sp.z < rect.z0 || sp.z >= rect.z1) continue
