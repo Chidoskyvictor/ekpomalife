@@ -57,6 +57,8 @@ const envSchema = z.object({
   /** Comma-separated IPs that skip rate limits (load testing). Empty by default. */
   RATE_LIMIT_ALLOWLIST: z.preprocess(emptyToUndefined, z.string().optional()),
   /** Campus Spaces (voice rooms) on LiveKit Cloud. Unset = Spaces can be browsed but not joined. */
+  /** Naija Radio station list (fm.puzzofme.com). Server-side only. Unset = radio shows no stations. */
+  NAIJA_RADIO_API_KEY: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
   LIVEKIT_URL: z.preprocess(emptyToUndefined, z.string().url().optional()),
   LIVEKIT_API_KEY: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
   LIVEKIT_API_SECRET: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
