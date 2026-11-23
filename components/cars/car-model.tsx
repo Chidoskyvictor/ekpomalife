@@ -18,6 +18,7 @@ import {
   MeshStandardMaterial,
   PlaneGeometry,
   Shape,
+  SRGBColorSpace,
   type Group,
   type Material,
   type Mesh,
@@ -146,9 +147,9 @@ const LAMPS: Record<string, { tail: LampPick; flashRear: LampPick; flashFront: L
     flashFront: { mats: ['Carro_Vidros_1'], ax: [0.62, 0.9], y: [0.6, 0.9], z: [1.65, 2.2] },
   },
 }
-const REAL: Record<string, { url: string; length: number; paint: string[]; glass: string[]; tail: [number, number, number, number]; flash: Flash; lens: Lens }> = {
-  rx350: { url: '/models/cars/lexus-rx.glb?v=1', length: 4.89, paint: ['Material_1.003', 'Material_3.003'], glass: ['Material_5.003', 'Material_20'], tail: [0.68, 1.02, 0.3, 0.1], flash: { rear: [0.66, 1.09, -2.3, 0.15, 0.09], front: [0.54, 0.87, 2.15, 0.16, 0.08] }, lens: [0.575, 1.095, -2.36, 0.43, 0.23] },
-  gla: { url: '/models/cars/benz-gla.glb?v=1', length: 4.4, paint: ['Carro_Pintura'], glass: ['Carro_Vidros', 'Carro_Vidros_1'], tail: [0.7, 0.98, 0.26, 0.1], flash: { rear: [0.69, 1.03, -2.02, 0.14, 0.12], front: [0.77, 0.78, 2.04, 0.12, 0.08] }, lens: [0.645, 0.985, -2.04, 0.41, 0.21] },
+const REAL: Record<string, { url: string; length: number; paint: string[]; glass: string[]; tail: [number, number, number, number]; flash: Flash; lens: Lens; /** Number plates: [height, z] at the back and the front, centred */ plates: [[number, number], [number, number]] }> = {
+  rx350: { url: '/models/cars/lexus-rx.glb?v=1', length: 4.89, paint: ['Material_1.003', 'Material_3.003'], glass: ['Material_5.003', 'Material_20'], tail: [0.68, 1.02, 0.3, 0.1], flash: { rear: [0.66, 1.09, -2.3, 0.15, 0.09], front: [0.54, 0.87, 2.15, 0.16, 0.08] }, lens: [0.575, 1.095, -2.36, 0.43, 0.23], plates: [[0.895, -2.372], [0.625, 2.44]] },
+  gla: { url: '/models/cars/benz-gla.glb?v=1', length: 4.4, paint: ['Carro_Pintura'], glass: ['Carro_Vidros', 'Carro_Vidros_1'], tail: [0.7, 0.98, 0.26, 0.1], flash: { rear: [0.69, 1.03, -2.02, 0.14, 0.12], front: [0.77, 0.78, 2.04, 0.12, 0.08] }, lens: [0.645, 0.985, -2.04, 0.41, 0.21], plates: [[0.8, -2.07], [0.45, 2.21]] },
 }
 for (const r of Object.values(REAL)) useGLTF.preload(r.url)
 
@@ -597,6 +598,43 @@ const glowMaterial = (color: string, opacity = 1) => new MeshBasicMaterial({ map
 /** Facing back (rear lamps) or forward (front lamps). */
 const glowBack = new PlaneGeometry(1, 1).rotateY(Math.PI)
 const glowFront = new PlaneGeometry(1, 1)
+const plateCache = new Map<string, CanvasTexture>()
+/** A Nigerian-style number plate with a name on it: white, green lettering, "EDO" and the state line. */
+function plateTexture(text: string) {
+  let hit = plateCache.get(text)
+  if (!hit && typeof document !== 'undefined') {
+    const c = document.createElement('canvas')
+    c.width = 512
+    c.height = 140
+    const g = c.getContext('2d')!
+    g.fillStyle = '#f4f6f2'
+    g.fillRect(0, 0, 512, 140)
+    g.strokeStyle = '#1f6b3a'
+    g.lineWidth = 6
+    g.strokeRect(5, 5, 502, 130)
+    g.fillStyle = '#1f6b3a'
+    g.textAlign = 'center'
+    g.font = '700 22px Arial, sans-serif'
+    g.fillText('EDO STATE', 256, 30)
+    let size = 84
+    do {
+      g.font = `900 ${size}px Arial, Helvetica, sans-serif`
+      size -= 4
+    } while (g.measureText(text).width > 440 && size > 30)
+    g.textBaseline = 'middle'
+    g.fillText(text, 256, 86)
+    g.textBaseline = 'alphabetic'
+    g.font = '600 16px Arial, sans-serif'
+    g.fillText('EKPOMA LIFE', 256, 128)
+    hit = new CanvasTexture(c)
+    hit.colorSpace = SRGBColorSpace
+    hit.anisotropy = 4
+    plateCache.set(text, hit)
+  }
+  return hit ?? null
+}
+const plateGeo = new PlaneGeometry(0.52, 0.14)
+
 /** Hazard flashers: a soft amber glow. */
 const hazardMaterial = glowMaterial('#ffa21a')
 const reverseGlow = glowMaterial('#ffffff', 0.9)
@@ -642,7 +680,7 @@ function headLamps(id: string): [number, number, number] {
 }
 
 /** One car by catalogue id, painted `color`, with `dents` crumpled patches. Unknown ids draw nothing. */
-export function CarModel({ id, color, dents = 0, seeThrough = false, rig, hazard }: { id: string; color: string; dents?: number; /** Clear windows, for the car you are sitting in */ seeThrough?: boolean; /** Your own car: steering and spinning wheels, brake and reverse lights */ rig?: MutableRefObject<CarRig>; /** Someone else's car: are their hazard lights on? */ hazard?: MutableRefObject<boolean> }) {
+export function CarModel({ id, color, dents = 0, seeThrough = false, rig, hazard, plate }: { /** A name on the number plates (real models only) */ plate?: string; id: string; color: string; dents?: number; /** Clear windows, for the car you are sitting in */ seeThrough?: boolean; /** Your own car: steering and spinning wheels, brake and reverse lights */ rig?: MutableRefObject<CarRig>; /** Someone else's car: are their hazard lights on? */ hazard?: MutableRefObject<boolean> }) {
   const body =
     id in SPECS ? (
       <ProcCar id={id} color={color} seeThrough={seeThrough} rig={rig} />
@@ -703,6 +741,13 @@ export function CarModel({ id, color, dents = 0, seeThrough = false, rig, hazard
         ? [-1, 1].map((side, i) => (
             // White reversing lamps, low and inboard of the tail lamps
             <mesh key={side} ref={(m) => void (backup.current[i] = m as Mesh)} geometry={glowBack} material={reverseGlow} position={[side * gap * 0.55, y - h * 0.9, (REAL[id] ? REAL[id]!.lens[2] : z) - 0.02]} scale={[w * 1.1, h * 2, 1]} visible={false} />
+          ))
+        : null}
+      {plate && REAL[id]
+        ? REAL[id]!.plates.map(([py, pz], i) => (
+            <mesh key={`pl${i}`} geometry={plateGeo} position={[0, py, pz]} rotation={[0, pz < 0 ? Math.PI : 0, 0]}>
+              <meshBasicMaterial map={plateTexture(plate)} toneMapped={false} />
+            </mesh>
           ))
         : null}
       {DENT_SPOTS.slice(0, dents).map(([x, y, z, turn], i) => (

@@ -2,7 +2,7 @@
 
 import { useGLTF } from '@react-three/drei'
 import { Canvas } from '@react-three/fiber'
-import { Suspense, useMemo, type MutableRefObject } from 'react'
+import { Suspense, useMemo, type MutableRefObject, type ReactNode } from 'react'
 import { ACESFilmicToneMapping, CanvasTexture, SRGBColorSpace } from 'three'
 import { ContextRestore } from '@/components/three/context-restore'
 import { GATE_URL } from '@/components/travel/drive-scene'
@@ -142,9 +142,11 @@ export type StreetProps = {
   send: (state: PeerState) => void
   peers: MutableRefObject<Map<string, Peer>>
   roster: number
+  /** Film mode: scripted cars and camera instead of the car you drive (dev only). */
+  film?: ReactNode
 }
 
-function Scene({ car, look: driverLook, start, send, peers, roster }: StreetProps) {
+function Scene({ car, look: driverLook, start, send, peers, roster, film }: StreetProps) {
   // Light for the hour on the game clock, fixed for the drive
   const look = useMemo(() => rideLookAt(rideMinute()), [])
   const mid = useMemo(() => pointAt(roadById("expressway"), roadById("expressway").length / 2), [])
@@ -175,7 +177,7 @@ function Scene({ car, look: driverLook, start, send, peers, roster }: StreetProp
         <Walkers />
       </Suspense>
       <PeerCars peers={peers} roster={roster} scale={1} />
-      <DriveCar car={car} driverLook={driverLook} start={start} send={send} world={STREET_WORLD} />
+      {film ?? <DriveCar car={car} driverLook={driverLook} start={start} send={send} world={STREET_WORLD} />}
     </CarLightsContext.Provider>
   )
 }
