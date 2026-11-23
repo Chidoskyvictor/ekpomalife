@@ -2,6 +2,7 @@
 
 import { LiveKitRoom, RoomAudioRenderer, useLocalParticipant, useParticipants, useSpeakingParticipants } from '@livekit/components-react'
 import { useCallback, useMemo, type ReactNode } from 'react'
+import { VoiceWatchdog } from '@/components/hud/voice-watchdog'
 import { LiveContext, type LiveInfo } from './spaces-live-context'
 
 /* Loaded only when someone joins a Space, so LiveKit stays out of the main bundle. */
@@ -62,6 +63,8 @@ export default function SpaceLive({
       style={{ display: 'contents' }}
     >
       <RoomAudioRenderer />
+      {/* Listening in the background is allowed a little longer than other voice rooms */}
+      <VoiceWatchdog onLeave={onDisconnected} hiddenMs={2 * 60_000} aloneMs={5 * 60_000} />
       <Bridge>{children}</Bridge>
     </LiveKitRoom>
   )

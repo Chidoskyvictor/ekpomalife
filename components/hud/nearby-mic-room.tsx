@@ -3,6 +3,7 @@
 import { LiveKitRoom, RoomAudioRenderer, useLocalParticipant, useParticipants, useSpeakingParticipants } from '@livekit/components-react'
 import { useEffect } from 'react'
 import { nearbyVoice, type VoiceFace } from './nearby-voice-store'
+import { VOICE_LEFT_TEXT, VoiceWatchdog } from './voice-watchdog'
 
 /* Loaded only once you join the voice where you are, so LiveKit stays out of the main bundle.
    Joining means you want to talk, so the mic goes on as soon as the room connects. Draws nothing:
@@ -50,6 +51,12 @@ export default function NearbyMicRoom({ url, token, onError, onLeave }: { url: s
       style={{ display: 'contents' }}
     >
       <RoomAudioRenderer />
+      <VoiceWatchdog
+        onLeave={(reason) => {
+          onError(VOICE_LEFT_TEXT[reason])
+          onLeave()
+        }}
+      />
       <Reporter onError={onError} />
     </LiveKitRoom>
   )
