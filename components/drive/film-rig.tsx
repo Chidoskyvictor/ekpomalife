@@ -26,6 +26,7 @@ import { HALF, LANE, MID_LANE, roadById, spotAt } from '@/lib/game/drive-road'
 export type FilmShot =
   | 'chase' // behind and above the Lexus, the Benz ahead
   | 'between' // very low between the two cars, door to door
+  | 'bumpers' // very low just behind both back bumpers, side by side (the reference's close shot)
   | 'gantry' // a roadside cameraman under the G1 ROAD gantry, swinging round as they fly past
   | 'behind' // behind both cars, the truck ahead in the Lexus's lane
   | 'top' // drone straight down over the Lexus and the truck
@@ -45,8 +46,9 @@ declare global {
 
 type Props = { road: string; s0: number; dir: number; shot: FilmShot; speed?: number }
 
-const LEAD = { model: 'gla', color: '#f2f2ef' }
-const CHASER = { model: 'rx350', color: '#b9bec5' }
+// In front at the start and trapped by the truck: the Lexus. Right behind it and the winner: the Benz.
+const LEAD = { model: 'rx350', color: '#b9bec5', plate: 'SAMUEL' }
+const CHASER = { model: 'gla', color: '#f2f2ef', plate: 'PRODIGY' }
 const TRUCK_BACK = 10.9 // trailer's back end behind the truck's origin (m)
 const TRUCK_FRONT = 3.04
 const LEX_HALF = 2.45
@@ -57,67 +59,79 @@ const MID = MID_LANE.highway // 7.25: middle lane
 const INSIDE = 3.9 // inside lane, by the median
 const OUTSIDE = LANE.highway // 10.75
 
-/** When the Lexus, boxed in behind the truck with the Benz alongside, stands on the brakes. */
-const BRAKE_AT = 10.1
+/** The truck's angle once it has swung across (rad; its back end swings toward the median). */
+const TRUCK_SWING = 0.22
 
-type Frame = { lead: number; leadOff: number; lex: number; lexOff: number; lexV: number; lexYaw: number; lexBrake: boolean; truck: number }
+type Frame = {
+  /** The Lexus (in front at the start, the one that gets trapped) */
+  lead: number; leadOff: number; leadV: number; leadYaw: number; leadBrake: boolean
+  /** The Benz (behind at the start, the one that gets through and wins) */
+  lex: number; lexOff: number; lexV: number; lexYaw: number; lexBrake: boolean
+  /** The truck's cab: along the road, across it, and how far it has swung */
+  truck: number; truckOff: number; truckYaw: number
+}
 
-/** The whole race worked out ahead of time at 240 steps a second (distances along the road from the start). */
+/**
+ * The race worked out ahead of time at 240 steps a second, after the owner's reference edit: the Lexus
+ * leads with the Benz right behind; the Benz pulls into the outside lane and draws level; the Ekpoma
+ * Life truck comes head-on down the middle lane and swings across the middle and inside lanes; the Benz
+ * squeezes past in the free outside lane, the Lexus is trapped, brakes, slides sideways and stops just
+ * short of the truck. Nothing ever touches (the clearance check proves it).
+ */
 function simulate(speed: number): Frame[] {
   const dt = 1 / 240
   const out: Frame[] = []
-  const truckV = 10
-  const truck0 = 240
-  let lex = -9
-  let lexV = speed
-  let yaw = 0
-  let yawV = 0
-  let off = MID
+  const TRUCK_V = 13
+  const SWING_AT = 9.2
+  // Cab meets the race around t = 10.6
+  let truck = speed * 10.6 + TRUCK_V * 10.6
+  let truckV = TRUCK_V
+  let truckYaw = 0
+  let lexus = 0
+  let lexusV = speed
+  let lexusYaw = 0
+  let lexusYawV = 0
+  let lexusOff = MID
+  let benz = -9
+  let benzV = speed
+  let benzOff = MID
   for (let i = 0; i <= 240 * 30; i++) {
     const t = i * dt
-    const lead = speed * t
-    const truck = truck0 + truckV * t
-    // Where the Lexus wants to be: closing on the Benz, then alongside it (centres 0.4 m apart)
-    // (it changes lane while still a full car length behind, then draws level)
-    const gap = t < 1 ? 9 : t < 2.2 ? 9 - ((t - 1) / 1.2) * 2.2 : t < 3.8 ? 6.8 : Math.max(0.4, 6.8 - (t - 3.8) * 3.2)
-    const want = lead - gap
-    // Lane: middle, then into the inside lane while still well behind the Benz (no overlap during the move)
+    // Truck: wrong way down the middle lane, then brakes and swings its back end across toward the median
+    if (t > SWING_AT) {
+      truckV = Math.max(0, truckV - 9 * dt)
+      truckYaw = Math.min(TRUCK_SWING, truckYaw + dt * 0.35)
+    }
+    truck -= truckV * dt
+    // Benz: right behind the Lexus, moves out while still a car length back, then draws level and goes on past
+    const gap = t < 1 ? 9 : t < 2.2 ? 9 - ((t - 1) / 1.2) * 2.2 : t < 3.8 ? 6.8 : Math.max(-1, 6.8 - (t - 3.8) * 3.2)
     const laneT = Math.min(1, Math.max(0, (t - 2.3) / 1.3))
     const ease = laneT * laneT * (3 - 2 * laneT)
-    let targetOff = MID + (INSIDE - MID) * ease
-    // Shoulder-to-shoulder push once alongside (never closer than 0.95 m door to door)
-    if (t > 5.2 && t < 9.4) targetOff += Math.max(0, Math.sin((t - 5.2) * 2.3)) * 0.45
-    // Speed: chase the target, but never past the point where the Lexus would reach the truck's back
-    let vWant = speed + (want - lex) * 1.6
-    // How far the Lexus reaches forward, turned sideways or not
-    const reach = LEX_HALF * Math.abs(Math.cos(yaw)) + 0.97 * Math.abs(Math.sin(yaw))
-    const room = truck - TRUCK_BACK - 0.8 - (lex + reach)
-    const vSafe = truckV + Math.sqrt(Math.max(0, 2 * 7 * room))
-    let brake = false
-    if (t > BRAKE_AT) {
-      // Boxed in behind the truck with the Benz alongside: stand on the brakes and slide to a stop
-      vWant = 0
-      brake = true
+    let benzTarget = MID + (OUTSIDE - MID) * ease
+    if (t > 5.2 && t < 8.6) benzTarget -= Math.max(0, Math.sin((t - 5.2) * 2.3)) * 0.45
+    const benzWant = t < 9 ? lexus - gap : benz + speed
+    benzV = Math.max(0, benzV + Math.max(-9, Math.min(4, (speed + (benzWant - benz) * 1.6 - benzV) * 3)) * dt)
+    if (t >= 9) benzV += (speed - benzV) * dt * 2
+    benz += benzV * dt
+    benzOff += (benzTarget - benzOff) * Math.min(1, dt * 4)
+    // Lexus: in the middle lane, straight at the truck. Brakes when it sees it, slides, stops just short of the cab
+    const reach = LEX_HALF * Math.abs(Math.cos(lexusYaw)) + 0.97 * Math.abs(Math.sin(lexusYaw))
+    const room = truck - TRUCK_FRONT - 0.9 - (lexus + reach)
+    const braking = t > 9.3
+    let vWant = braking ? 0 : speed
+    const vSafe = Math.sqrt(Math.max(0, 2 * 8 * room)) - truckV * 0.2
+    if (vWant > vSafe) vWant = Math.max(0, vSafe)
+    lexusV = Math.max(0, lexusV + Math.max(-9.5, Math.min(4, (vWant - lexusV) * 3)) * dt)
+    lexus += lexusV * dt
+    if (braking && lexusV > 0.5) {
+      lexusYawV += (1.4 - lexusYawV) * dt * 2
+      lexusYaw = Math.min(1.25, lexusYaw + lexusYawV * dt)
     }
-    if (vWant > vSafe) {
-      vWant = vSafe
-      brake = true
-    }
-    const acc = Math.max(-9, Math.min(4, (vWant - lexV) * 3))
-    lexV = Math.max(0, lexV + acc * dt)
-    lex += lexV * dt
-    // Hard braking at speed breaks the back loose: the car slides round, up to a half spin, and drifts into
-    // the empty middle lane (the Benz is long gone by then), away from the median
-    // Only once it's slowing hard: a small slide at speed, the full spin as it scrubs off the last of it
-    if (t > BRAKE_AT && lexV > 1) {
-      const limit = lexV > 14 ? 0.5 : 2.3
-      yawV += (1.6 - yawV) * dt * 2
-      yaw = Math.min(limit, yaw + yawV * dt)
-    }
-    // …and it drifts into the empty middle lane, only once the Benz is well clear ahead
-    if (t > BRAKE_AT && lead - lex > 14) targetOff = INSIDE + Math.min(1.6, (lead - lex - 14) * 0.08)
-    off += (targetOff - off) * Math.min(1, dt * 4)
-    out.push({ lead, leadOff: MID, lex, lexOff: off, lexV, lexYaw: yaw, lexBrake: brake, truck })
+    out.push({
+      lead: lexus, leadOff: lexusOff, leadV: lexusV, leadYaw: lexusYaw, leadBrake: braking,
+      lex: benz, lexOff: benzOff, lexV: benzV, lexYaw: 0, lexBrake: false,
+      truck, truckOff: MID, truckYaw,
+    })
   }
   return out
 }
@@ -151,18 +165,23 @@ export function FilmRig({ road, s0, dir, shot, speed = 30 }: Props) {
     const t = Math.max(0, typeof window !== 'undefined' && typeof window.__filmT === 'number' ? window.__filmT : clock.elapsedTime - start.current)
     const f = sim[Math.min(sim.length - 1, Math.round(t * 240))]!
     const at = (p: number, off: number) => spotAt(road, s0 + dir * p, dir * off)
-    const a = at(f.lead, f.leadOff)
-    const b = at(f.lex, f.lexOff)
-    const k = at(f.truck, INSIDE)
+    const a = at(f.lead, f.leadOff) // the Lexus
+    const b = at(f.lex, f.lexOff) // the Benz
     const heading = (p: { dx: number; dz: number }) => Math.atan2(p.dx * dir, p.dz * dir)
     const place = (g: Group | null, p: { x: number; z: number; dx: number; dz: number }, yaw = 0, roll = 0) => {
       if (!g) return
       g.position.set(p.x, 0.05, p.z)
       g.rotation.set(0, heading(p) + yaw, roll)
     }
-    place(lead.current, a)
-    place(chaser.current, b, f.lexYaw, f.lexBrake && f.lexV > 3 ? -0.03 : 0)
-    place(truck.current, k)
+    place(lead.current, a, f.leadYaw, f.leadBrake && f.leadV > 3 ? -0.03 : 0)
+    place(chaser.current, b)
+    // The truck faces the race; as it swings, its back end goes toward the median (road space: along, across)
+    const k = at(f.truck, f.truckOff)
+    const nose = at(f.truck - Math.cos(f.truckYaw) * 5, f.truckOff + Math.sin(f.truckYaw) * 5)
+    if (truck.current) {
+      truck.current.position.set(k.x, 0.05, k.z)
+      truck.current.rotation.set(0, Math.atan2(nose.x - k.x, nose.z - k.z), 0)
+    }
     ONCOMING.forEach(([p0, off, v, ,], i) => {
       const g = others.current[i]
       if (!g) return
@@ -170,78 +189,84 @@ export function FilmRig({ road, s0, dir, shot, speed = 30 }: Props) {
       g.position.set(p.x, 0.05, p.z)
       g.rotation.set(0, heading(p) + Math.PI, 0)
     })
-    // Wheels: turn at ~1.15 a second on film (a 30 fps camera freezes or reverses real-speed wheels); the
-    // Lexus's slow as it brakes and stop when it stops
-    leadRig.current.spin = t * Math.PI * 2 * 1.15
-    chaseRig.current.spin += (f.lexV / speed) * Math.PI * 2 * 1.15 * (1 / 30)
-    chaseRig.current.braking = f.lexBrake
-    chaseRig.current.steer = f.lexBrake ? -0.35 : 0
-    leadRig.current.braking = false
+    // Wheels on film turn ~1.15 a second at race speed (a 30 fps camera freezes or reverses real-speed wheels)
+    const turn = Math.PI * 2 * 1.15 * (1 / 30)
+    leadRig.current.spin += (f.leadV / speed) * turn
+    chaseRig.current.spin += (f.lexV / speed) * turn
+    leadRig.current.braking = f.leadBrake
+    leadRig.current.steer = f.leadBrake ? -0.35 : 0
 
     // The town streams around the action
-    const focus = t > 11 ? b : a
+    const focus = t > 13 ? b : a
     driveTelemetry.x = focus.x
     driveTelemetry.z = focus.z
     driveTelemetry.h = heading(a)
     driveTelemetry.speed = speed
 
-    // Camera
+    // Camera (placed in road space: along the road, across it)
     const shotNow = (typeof window !== 'undefined' && window.__filmShot) || shot
-    const fx = a.dx * dir
-    const fz = a.dz * dir
-    const lx = fz // towards the median (left of travel)
-    const lz = -fx
     const shake = Math.sin(t * 37) * 0.012 + Math.sin(t * 23) * 0.01
+    const cam = (p: number, off: number, y: number) => {
+      const c = at(p, off)
+      camera.position.set(c.x, y, c.z)
+    }
+    const look = (p: number, off: number, y: number) => {
+      const c = at(p, off)
+      camera.lookAt(c.x, y, c.z)
+    }
+    const midP = (f.lead + f.lex) / 2
+    const midO = (f.leadOff + f.lexOff) / 2
     camera.fov = 50
     camera.up.set(0, 1, 0)
     if (shotNow === 'chase') {
-      camera.position.set(b.x - fx * 5.6, 2.9 + shake, b.z - fz * 5.6)
-      camera.lookAt(a.x + fx * 6, 1.0, a.z + fz * 6)
+      // Behind and above the Benz, the Lexus just ahead (the reference's shot over the chasing car's rear)
+      cam(f.lex - 5.6, f.lexOff, 2.9 + shake)
+      look(f.lead + 6, f.leadOff, 1.0)
     } else if (shotNow === 'between') {
-      const mx = (a.x + b.x) / 2
-      const mz = (a.z + b.z) / 2
-      camera.position.set(mx - fx * 2.6, 0.42 + shake, mz - fz * 2.6)
-      camera.lookAt(mx + fx * 10, 0.5, mz + fz * 10)
+      cam(midP - 2.6, midO, 0.42 + shake)
+      look(midP + 10, midO, 0.5)
       camera.fov = 62
+    } else if (shotNow === 'bumpers') {
+      // The reference's close shot: very low right behind the two back bumpers, side by side, almost touching
+      const backP = Math.min(f.lead, f.lex) - 3.6
+      cam(backP, midO, 0.32 + shake * 0.6)
+      look(backP + 9, midO, 0.55)
+      camera.fov = 78
     } else if (shotNow === 'gantry') {
       camera.position.set(gantryPost.x, 1.6, gantryPost.z)
-      camera.lookAt((a.x + b.x) / 2, 0.9, (a.z + b.z) / 2)
+      const c = at(midP, midO)
+      camera.lookAt(c.x, 0.9, c.z)
       camera.fov = 40
     } else if (shotNow === 'behind') {
-      const mx = (a.x + b.x) / 2
-      const mz = (a.z + b.z) / 2
-      camera.position.set(mx - fx * 11, 2.4 + shake, mz - fz * 11)
-      camera.lookAt(mx + fx * 30, 1.2, mz + fz * 30)
+      cam(midP - 11, midO, 2.4 + shake)
+      look(midP + 30, midO, 1.2)
       camera.fov = 48
     } else if (shotNow === 'top') {
-      const mx = (b.x + k.x) / 2 - fx * 2
-      const mz = (b.z + k.z) / 2 - fz * 2
-      // Road running straight up the screen, the way the cars are going
-      camera.position.set(mx, 30, mz)
-      camera.up.set(fx, 0, fz)
-      camera.lookAt(mx, 0, mz)
+      const cp = (f.lead + f.lex + f.truck + 5) / 3
+      const co = (f.leadOff + f.lexOff + f.truckOff) / 3
+      const c = at(cp, co)
+      const up = at(cp + 1, co)
+      camera.position.set(c.x, 32, c.z)
+      camera.up.set(up.x - c.x, 0, up.z - c.z)
+      camera.lookAt(c.x, 0, c.z)
       camera.fov = 45
     } else if (shotNow === 'truckwheel') {
-      // Low by the truck's back wheels on its median side, looking back at the Lexus sliding up
-      const bx = k.x - fx * (TRUCK_BACK - 2.2) + lx * 1.9
-      const bz = k.z - fz * (TRUCK_BACK - 2.2) + lz * 1.9
-      camera.position.set(bx, 0.55 + shake * 0.3, bz)
-      camera.lookAt(b.x, 0.7, b.z)
+      // Low by the truck's front wheel on the free (outside) side, looking at the Lexus sliding up to the cab
+      cam(f.truck + 1.2, f.truckOff + 2.1, 0.5 + shake * 0.3)
+      look(f.lead, f.leadOff, 0.7)
       camera.fov = 52
     } else if (shotNow === 'spin') {
-      const post = at(f.lex + 16, OUTSIDE + 3.5)
-      camera.position.set(post.x, 1.5, post.z)
-      camera.lookAt(b.x, 0.8, b.z)
+      cam(f.lead - 7, OUTSIDE + 3.5, 1.5)
+      look(f.lead, f.leadOff, 0.8)
       camera.fov = 40
     } else if (shotNow === 'wheel' || shotNow === 'wheel-benz') {
-      const c = shotNow === 'wheel' ? b : a
-      const out = shotNow === 'wheel' ? 1 : -1
-      camera.position.set(c.x + lx * out * 2.2 - fx * 2.4, 0.45 + shake * 0.5, c.z + lz * out * 2.2 - fz * 2.4)
-      camera.lookAt(c.x + lx * out * 0.85 + fx * 1.3, 0.38, c.z + lz * out * 0.85 + fz * 1.3)
+      // Low beside the Benz's front wheel on its kerb side, the rim turning, the road rushing past
+      cam(f.lex - 2.4, f.lexOff + 2.2, 0.45 + shake * 0.5)
+      look(f.lex + 1.3, f.lexOff + 0.85, 0.38)
     } else {
-      // front: ahead of the Benz, low, it rushes at the camera
-      camera.position.set(a.x + fx * 16 + lx * 1.4, 0.6 + shake, a.z + fz * 16 + lz * 1.4)
-      camera.lookAt(a.x - fx * 2, 0.7, a.z - fz * 2)
+      // front: ahead of the Benz, low, as it rushes at the camera, the winner
+      cam(f.lex + 16, f.lexOff - 1.4, 0.6 + shake)
+      look(f.lex - 2, f.lexOff, 0.7)
       camera.fov = 46
     }
     camera.updateProjectionMatrix()
@@ -251,7 +276,7 @@ export function FilmRig({ road, s0, dir, shot, speed = 30 }: Props) {
     <>
       <group ref={lead}>
         <Suspense fallback={null}>
-          <CarModel id={LEAD.model} color={LEAD.color} rig={leadRig} plate="PRODIGY" />
+          <CarModel id={LEAD.model} color={LEAD.color} rig={leadRig} plate={LEAD.plate} />
         </Suspense>
       </group>
       <group ref={truck}>
@@ -261,7 +286,7 @@ export function FilmRig({ road, s0, dir, shot, speed = 30 }: Props) {
       </group>
       <group ref={chaser}>
         <Suspense fallback={null}>
-          <CarModel id={CHASER.model} color={CHASER.color} rig={chaseRig} plate="SAMUEL" />
+          <CarModel id={CHASER.model} color={CHASER.color} rig={chaseRig} plate={CHASER.plate} />
         </Suspense>
       </group>
       {ONCOMING.map(([, , , model, color], i) => (
@@ -276,4 +301,4 @@ export function FilmRig({ road, s0, dir, shot, speed = 30 }: Props) {
 }
 
 /** For tests: the scripted race, and the closest any two vehicles come (m, edge to edge along/across). */
-export const filmScript = { simulate, LEX_HALF, BENZ_HALF, TRUCK_BACK, TRUCK_FRONT, MID, INSIDE }
+export const filmScript = { simulate, LEX_HALF, BENZ_HALF, TRUCK_BACK, TRUCK_FRONT, MID, INSIDE, OUTSIDE, TRUCK_SWING }
