@@ -207,7 +207,7 @@ export function Town({ level }: { level: Level }) {
     halo.frustumCulled = false
     const poolGeo = new PlaneGeometry(16, 16)
     poolGeo.rotateX(-Math.PI / 2)
-    const poolMat = new MeshBasicMaterial({ map: loader.load('/lights/lamp-pool.png'), color: '#ffc880', transparent: true, opacity: 0.6, blending: AdditiveBlending, depthWrite: false, fog: false })
+    const poolMat = new MeshBasicMaterial({ map: loader.load('/lights/lamp-pool.png'), color: '#ffb840', transparent: true, opacity: 0.5, blending: AdditiveBlending, depthWrite: false, fog: false })
     const pools = new InstancedMesh(poolGeo, poolMat, 220)
     pools.instanceMatrix.setUsage(DynamicDrawUsage)
     pools.instanceColor = new InstancedBufferAttribute(new Float32Array(220 * 3), 3).setUsage(DynamicDrawUsage)
@@ -240,7 +240,7 @@ export function Town({ level }: { level: Level }) {
   useEffect(() => {
     sys.uniforms.uNight.value = level === 'night' ? 1 : level === 'dusk' ? 0.55 : 0
     sys.halo.visible = sys.pools.visible = level !== 'day'
-    sys.poolMat.opacity = level === 'night' ? 0.6 : 0.3
+    sys.poolMat.opacity = level === 'night' ? 0.5 : 0.25
   }, [level, sys])
 
   const st = useRef({
