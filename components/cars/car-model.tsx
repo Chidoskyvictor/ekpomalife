@@ -22,6 +22,7 @@ import {
   type Material,
   type Mesh,
   type Object3D,
+  Vector3,
 } from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { seatFor } from '@/lib/game/car-seats'
@@ -128,6 +129,23 @@ const GLB: Record<string, { url: string; length: number; paint: Rgb[]; glass: Rg
 type Flash = { rear: [number, number, number, number, number]; front: [number, number, number, number, number] }
 /** The model's own red tail-lamp lens (right side; mirrored): [x, height, z, width, height]. */
 type Lens = [number, number, number, number, number]
+/**
+ * The model's own lamp parts, picked by material and a box (glTF metres: |x| range, height range, z range).
+ * Copies of these exact triangles glow on top of the lamps, so a lit lamp has the lamp's own shape.
+ */
+type LampPick = { mats: string[]; ax: [number, number]; y: [number, number]; z: [number, number] }
+const LAMPS: Record<string, { tail: LampPick; flashRear: LampPick; flashFront: LampPick }> = {
+  rx350: {
+    tail: { mats: ['Material_18', 'Material_24'], ax: [0.3, 1.1], y: [0.95, 1.26], z: [-2.6, -1.8] },
+    flashRear: { mats: ['Material_18', 'Material_24'], ax: [0.5, 1.1], y: [0.95, 1.26], z: [-2.6, -1.8] },
+    flashFront: { mats: ['Material_24'], ax: [0.4, 1.1], y: [0.78, 0.96], z: [1.8, 2.6] },
+  },
+  gla: {
+    tail: { mats: ['Carro_Vidros_Vermelhos', 'Carro_Metal_Vermelho', 'Carro_Metal_Vermelho_1'], ax: [0.4, 0.9], y: [0.85, 1.12], z: [-2.2, -1.65] },
+    flashRear: { mats: ['Carro_Vidros_Vermelhos', 'Carro_Metal_Vermelho', 'Carro_Metal_Vermelho_1'], ax: [0.56, 0.9], y: [0.85, 1.12], z: [-2.2, -1.65] },
+    flashFront: { mats: ['Carro_Vidros_1'], ax: [0.62, 0.9], y: [0.6, 0.9], z: [1.65, 2.2] },
+  },
+}
 const REAL: Record<string, { url: string; length: number; paint: string[]; glass: string[]; tail: [number, number, number, number]; flash: Flash; lens: Lens }> = {
   rx350: { url: '/models/cars/lexus-rx.glb?v=1', length: 4.89, paint: ['Material_1.003', 'Material_3.003'], glass: ['Material_5.003', 'Material_20'], tail: [0.68, 1.02, 0.3, 0.1], flash: { rear: [0.66, 1.09, -2.3, 0.15, 0.09], front: [0.54, 0.87, 2.15, 0.16, 0.08] }, lens: [0.575, 1.095, -2.36, 0.43, 0.23] },
   gla: { url: '/models/cars/benz-gla.glb?v=1', length: 4.4, paint: ['Carro_Pintura'], glass: ['Carro_Vidros', 'Carro_Vidros_1'], tail: [0.7, 0.98, 0.26, 0.1], flash: { rear: [0.69, 1.03, -2.02, 0.14, 0.12], front: [0.77, 0.78, 2.04, 0.12, 0.08] }, lens: [0.645, 0.985, -2.04, 0.41, 0.21] },
@@ -415,7 +433,48 @@ function GlbCar({ id, color, seeThrough }: { id: string; color: string; seeThrou
 }
 
 const realCache = new Map<string, Object3D>()
-function RealCar({ id, color, seeThrough, rig }: { id: string; color: string; seeThrough: boolean; rig?: MutableRefObject<CarRig> }) {
+const lampCache = new Map<string, { tail: BufferGeometry; flashRear: BufferGeometry; flashFront: BufferGeometry }>()
+/** The triangles of `pick` in the loaded model, in the model's own space, as one geometry. */
+function lampGeometry(root: Object3D, pick: LampPick): BufferGeometry {
+  root.updateMatrixWorld(true)
+  const out: number[] = []
+  const a = new Vector3()
+  const b = new Vector3()
+  const c = new Vector3()
+  root.traverse((o) => {
+    const mesh = o as Mesh
+    if (!mesh.isMesh) return
+    const geo = mesh.geometry as BufferGeometry
+    const pos = geo.getAttribute('position')
+    if (!pos) return
+    const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
+    const groups = geo.groups.length ? geo.groups : [{ start: 0, count: geo.index ? geo.index.count : pos.count, materialIndex: 0 }]
+    for (const g of groups) {
+      if (!pick.mats.includes(mats[g.materialIndex ?? 0]?.name ?? '')) continue
+      for (let i = g.start; i < g.start + g.count; i += 3) {
+        const ia = geo.index ? geo.index.getX(i) : i
+        const ib = geo.index ? geo.index.getX(i + 1) : i + 1
+        const ic = geo.index ? geo.index.getX(i + 2) : i + 2
+        a.fromBufferAttribute(pos, ia).applyMatrix4(mesh.matrixWorld)
+        b.fromBufferAttribute(pos, ib).applyMatrix4(mesh.matrixWorld)
+        c.fromBufferAttribute(pos, ic).applyMatrix4(mesh.matrixWorld)
+        const cx = Math.abs((a.x + b.x + c.x) / 3)
+        const cy = (a.y + b.y + c.y) / 3
+        const cz = (a.z + b.z + c.z) / 3
+        if (cx < pick.ax[0] || cx > pick.ax[1] || cy < pick.y[0] || cy > pick.y[1] || cz < pick.z[0] || cz > pick.z[1]) continue
+        out.push(a.x, a.y, a.z, b.x, b.y, b.z, c.x, c.y, c.z)
+      }
+    }
+  })
+  const geo = new BufferGeometry()
+  geo.setAttribute('position', new Float32BufferAttribute(out, 3))
+  return geo
+}
+/** Glow drawn over a lamp's own surface: added light, pulled a hair towards the camera so it never flickers. */
+const lampMaterial = (color: string, opacity: number) =>
+  new MeshBasicMaterial({ color, transparent: true, opacity, depthWrite: false, blending: AdditiveBlending, toneMapped: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 })
+
+function RealCar({ id, color, seeThrough, rig, hazard }: { id: string; color: string; seeThrough: boolean; rig?: MutableRefObject<CarRig>; hazard?: MutableRefObject<boolean> }) {
   const spec = REAL[id]!
   const { scene } = useGLTF(spec.url)
   const car = useMemo(() => {
@@ -458,20 +517,50 @@ function RealCar({ id, color, seeThrough, rig }: { id: string; color: string; se
     realCache.set(key, root)
     return root.clone(true)
   }, [id, scene, color, seeThrough, spec])
+  // The lamps' own shapes, lit: red under the brake, amber when the hazards blink
+  const lamps = useMemo(() => {
+    const pick = LAMPS[id]
+    if (!pick) return null
+    let hit = lampCache.get(id)
+    if (!hit) {
+      const root = scene.clone(true)
+      hit = { tail: lampGeometry(root, pick.tail), flashRear: lampGeometry(root, pick.flashRear), flashFront: lampGeometry(root, pick.flashFront) }
+      lampCache.set(id, hit)
+    }
+    return hit
+  }, [id, scene])
+  const brakeLit = useMemo(() => lampMaterial('#ff2a14', 0), [])
+  const amber = useMemo(() => lampMaterial('#ffa21a', 0), [])
   const wheels = useMemo(() => {
     const w = wheelNodes(car)
     if (w) for (const n of Object.values(w)) n!.rotation.order = 'YXZ'
     return w
   }, [car])
-  useFrame(() => {
+  useFrame(({ clock }) => {
     const r = rig?.current
+    // Hazards: the outer part of each lamp blinks amber in its own shape, softly in and out
+    const on = Boolean(r?.hazard || hazard?.current)
+    const phase = (clock.elapsedTime % 0.72) / 0.72
+    amber.opacity = on ? Math.max(0, Math.sin(Math.min(1, phase / 0.56) * Math.PI)) * 0.95 : 0
+    brakeLit.opacity = r?.braking ? 0.85 : 0
     if (!r || !wheels) return
     wheels.fl!.rotation.set(r.spin, r.steer, 0)
     wheels.fr!.rotation.set(r.spin, r.steer, 0)
     wheels.rl!.rotation.x = r.spin
     wheels.rr!.rotation.x = r.spin
   })
-  return <primitive object={car} />
+  return (
+    <group>
+      <primitive object={car} />
+      {lamps ? (
+        <>
+          <mesh geometry={lamps.tail} material={brakeLit} renderOrder={2} />
+          <mesh geometry={lamps.flashRear} material={amber} renderOrder={3} />
+          <mesh geometry={lamps.flashFront} material={amber} renderOrder={3} />
+        </>
+      ) : null}
+    </group>
+  )
 }
 
 /** Where dents show, in order: [x, y, z, turn]. Dark crumpled patches on the corners and doors. */
@@ -563,7 +652,7 @@ export function CarModel({ id, color, dents = 0, seeThrough = false, rig, hazard
       </Suspense>
     ) : id in REAL ? (
       <Suspense fallback={null}>
-        <RealCar id={id} color={color} seeThrough={seeThrough} rig={rig} />
+        <RealCar id={id} color={color} seeThrough={seeThrough} rig={rig} hazard={hazard} />
       </Suspense>
     ) : null
   const tail = useMemo(() => (rig ? new MeshBasicMaterial({ color: '#5a0f0a', toneMapped: false }) : tailMaterial), [rig])
@@ -597,14 +686,11 @@ export function CarModel({ id, color, dents = 0, seeThrough = false, rig, hazard
         </>
       ) : null}
       {REAL[id]
-        ? [-1, 1].map((sx) => {
-            const [lx, ly, lz, lw, lh] = REAL[id]!.lens
-            return <mesh key={`tl${sx}`} geometry={glowBack} material={brakeGlow} position={[sx * lx, ly, lz]} scale={[lw * 1.7, lh * 2.6, 1]} />
-          })
+        ? null
         : [-1, 1].map((sx) => <mesh key={`tl${sx}`} geometry={tailBox} material={tail} position={[sx * gap, y, z]} scale={[w, h, 0.08]} />)}
       {/* Amber flashers on the lamp lenses: the real models' own indicator spots, else the outer half of each tail lamp and the outer edge of each headlamp */}
       {(REAL[id]
-        ? [-1, 1].flatMap((sx) => [REAL[id]!.flash.rear, REAL[id]!.flash.front].map(([fx, fy, fz, fw, fh]) => [sx * fx, fy, fz, fw, fh]))
+        ? []
         : [
             [-(gap + w * 0.25), y, z - 0.015, w * 0.5, h],
             [gap + w * 0.25, y, z - 0.015, w * 0.5, h],
