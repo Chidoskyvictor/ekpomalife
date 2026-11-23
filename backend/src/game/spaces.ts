@@ -568,6 +568,14 @@ export async function sweepSpaces(now = new Date()) {
         try {
           const inRoom = new Set(await listParticipants(cfg, space.id))
           hostConnected = inRoom.has(space.host_id)
+          // No webhooks on LiveKit's Hobby plan, so catch anyone banned who connected with an older token here
+          if (inRoom.size) {
+            const banned = await pool.query<{ user_id: string }>(`SELECT user_id FROM space_bans WHERE space_id = $1 AND user_id = ANY($2::text[])`, [space.id, [...inRoom]])
+            for (const { user_id } of banned.rows) {
+              await removeParticipant(cfg, space.id, user_id).catch((error) => log('RemoveParticipant', error))
+              inRoom.delete(user_id)
+            }
+          }
           // Anyone we think is present but LiveKit doesn't have (after a short grace) has left
           await closeSessions(pool, 'space_id = $1 AND joined_at < $2 AND NOT (user_id = ANY($3::text[]))', [
             space.id,
