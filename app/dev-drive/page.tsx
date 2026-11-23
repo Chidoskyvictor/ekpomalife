@@ -42,6 +42,20 @@ function Inner() {
       window.fetch = real
     }
   }, [q])
+  // With the HUD on, play the drive's breeze like the real game does (browsers need a first tap before sound)
+  useEffect(() => {
+    if (!hud) return
+    const road = new Audio('/audio/ride/breeze.mp3')
+    road.loop = true
+    road.volume = 0.12
+    const go = () => void road.play().catch(() => {})
+    go()
+    window.addEventListener('pointerdown', go, { once: true })
+    return () => {
+      window.removeEventListener('pointerdown', go)
+      road.pause()
+    }
+  }, [hud])
   useEffect(() => {
     if (!hud) return
     startDrive({ dest: null, car: { id: 'dev', model: 'gt3', color: '#c94f4f' }, start, fromPlace: 'aau-gate' })
