@@ -415,7 +415,7 @@ function lampOf(reach: number, double: boolean): Shape {
   const m = new Mesher()
   for (const turn of double ? [false, true] : [false]) {
     m.raw(lampData.a.pos, lampData.a.idx, 1.2, 1.4, reach, turn, { c: '#6c747c', m: MAT.flat })
-    m.raw(lampData.b.pos, lampData.b.idx, 1.2, 1.4, reach, turn, { c: '#ffc77a', m: MAT.flat, g: 1.8 })
+    m.raw(lampData.b.pos, lampData.b.idx, 1.2, 1.4, reach, turn, { c: '#ffa826', m: MAT.flat, g: 0.85 })
   }
   return { geo: m.build(), w: 1, d: 1, h: 9.3 }
 }
