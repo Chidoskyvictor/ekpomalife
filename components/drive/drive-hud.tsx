@@ -238,6 +238,20 @@ export function DriveHud() {
         </span>
         {roadName ? <small>{roadName}</small> : null}
       </div>
+      {/* Race, one tap away under the speed (also in the ⋯ menu); hidden while a race is running */}
+      {!currentRun() ? (
+        <button
+          type="button"
+          className={`${styles.raceBtn} ${raceTag.hot ? styles.raceHot : ''}`}
+          onClick={() => {
+            setMoreOpen(false)
+            setRacing(inPvp ? 'players' : 'sheet')
+          }}
+        >
+          <Flag size={15} aria-hidden="true" />
+          <span>{raceTag.label}</span>
+        </button>
+      ) : null}
       <RaceRunTop />
       <div className={styles.mapAnchor}>
         <MiniMap destId={destId} />
