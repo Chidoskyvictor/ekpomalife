@@ -16,3 +16,9 @@ Keep this file. It is our proof of permission for every car model in the game an
 
 ## Not allowed (do not use)
 - "2016 Mercedes-Benz GLE63 AMG Coupe" by Ddiaz Design — CC BY-NC-SA 4.0 (non-commercial). Only usable if the author grants written commercial permission.
+
+## Logistics Semi-Truck → `public/models/cars/truck.glb` (trailer film/scenery truck)
+- Author: **Nez1x75** — https://sketchfab.com/Nez1x75
+- Source: https://sketchfab.com/3d-models/logistics-semi-truck-3d-model-cd48bf440b4d4f3a8a7c93b5926be663
+- Licence: **CC BY 4.0** — commercial use allowed with credit (confirmed by the owner). Credit line for the game credits and trailer end card: "Logistics Semi-Truck model by Nez1x75 (Sketchfab), CC BY 4.0".
+- Our changes: the original "EAGLE TRANS LOGISTICS" livery is covered in the game by our own Ekpoma Life panels on both trailer sides and the roof (`public/models/cars/truck-side.webp`, `truck-roof.webp`; designs in `brand/truck/`).

@@ -4,6 +4,7 @@ import { useFrame, useThree } from '@react-three/fiber'
 import { Suspense, useMemo, useRef } from 'react'
 import type { Group, PerspectiveCamera } from 'three'
 import { CarModel, type CarRig } from '@/components/cars/car-model'
+import { TruckModel } from '@/components/cars/truck-model'
 import { driveTelemetry } from '@/lib/game/drive'
 import { HALF, LANE, MID_LANE, roadById, spotAt } from '@/lib/game/drive-road'
 
@@ -47,6 +48,7 @@ const CHASER = { model: 'rx350', color: '#b9bec5' }
 export function FilmRig({ road, s0, dir, shot, speed = 30 }: Props) {
   const lead = useRef<Group>(null)
   const chaser = useRef<Group>(null)
+  const truck = useRef<Group>(null)
   const leadRig = useRef<CarRig>({ steer: 0, spin: 0, braking: false, reversing: false, hazard: true })
   const chaseRig = useRef<CarRig>({ steer: 0, spin: 0, braking: false, reversing: false, hazard: true })
   const camera = useThree((s) => s.camera) as PerspectiveCamera
@@ -76,6 +78,9 @@ export function FilmRig({ road, s0, dir, shot, speed = 30 }: Props) {
       g.position.set(p.x, 0.05, p.z)
       g.rotation.set(0, Math.atan2(p.dx * dir, p.dz * dir), roll)
     }
+    // The Ekpoma Life truck, ahead in the outside lane, slower than the race
+    const tk = spotAt(road, s0 + dir * (140 + 14 * t), dir * (kind === 'highway' ? LANE.highway : LANE[kind]))
+    place(truck.current, tk, 0)
     place(lead.current, a, 0)
     place(chaser.current, b, -push * 0.03)
     // Wheels: at race speed a real wheel turns ~13 times a second, which a 30 fps camera shows frozen or going
@@ -144,6 +149,11 @@ export function FilmRig({ road, s0, dir, shot, speed = 30 }: Props) {
       <group ref={lead}>
         <Suspense fallback={null}>
           <CarModel id={LEAD.model} color={LEAD.color} rig={leadRig} plate="PRODIGY" />
+        </Suspense>
+      </group>
+      <group ref={truck}>
+        <Suspense fallback={null}>
+          <TruckModel />
         </Suspense>
       </group>
       <group ref={chaser}>

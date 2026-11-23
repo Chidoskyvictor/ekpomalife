@@ -18,7 +18,8 @@ fs.mkdirSync(path.join(outDir, 'sub'), { recursive: true })
 const browser = await chromium.launch({ channel: 'chrome', args: ['--use-angle=d3d11', '--ignore-gpu-blocklist', '--enable-gpu-rasterization'] })
 const ctx = await browser.newContext({ viewport: { width: 540, height: 960 }, deviceScaleFactor: 2 })
 const page = await ctx.newPage()
-const url = `http://localhost:3000/dev-film?shot=${shots[0].shot}&time=08:30${extra ? '&' + extra : ''}`
+// Late afternoon light by default (the owner found morning too bright); `extra` can pass time=HH:MM
+const url = `http://localhost:3000/dev-film?shot=${shots[0].shot}${extra && extra.includes('time=') ? '' : '&time=16:45'}${extra ? '&' + extra : ''}`
 await page.goto(url, { timeout: 240000 })
 // Wait until the 3D view has sized itself (setting the film clock earlier stops it from sizing: it stays 300×150)
 page.on('pageerror', (e) => console.log('pageerror:', e.message.slice(0, 200)))
@@ -36,6 +37,14 @@ for (let attempt = 0; attempt < 6 && !ready; attempt++) {
 if (!ready) throw new Error('film page never loaded')
 const frame = () => page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r(null)))))
 await page.evaluate(() => (window.__filmT = 0))
+// Run the whole scene on the film clock: blinking hazards, walkers and traffic read performance.now(), so
+// without this they race ahead while each frame takes ~2 s to capture, and look sped up in the video
+await page.evaluate(() => {
+  const base = performance.now()
+  const real = performance.now.bind(performance)
+  window.__realNow = real
+  performance.now = () => base + (typeof window.__filmT === 'number' ? window.__filmT * 1000 : real() - base)
+})
 // Let the town around the start stream in
 await page.waitForTimeout(17000)
 // Hide the Next.js dev badge (added after load: injecting it earlier stopped the 3D canvas from sizing)
