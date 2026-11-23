@@ -30,13 +30,17 @@ describe('getStations', () => {
   })
 
   it('sends the key as a bearer token and caches the list', async () => {
-    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ stations: [{ id: 'a', name: 'A', streamUrl: 'https://a' }] })))
+    const fetchMock = vi.fn(async (url: string) =>
+      url.includes('offset=0')
+        ? new Response(JSON.stringify({ data: [{ id: 'a', name: 'A', streamUrl: 'https://a', tags: ['afrobeats', 'talk'] }], pagination: { nextOffset: 100 } }))
+        : new Response(JSON.stringify({ data: [{ id: 'b', name: 'B', streamUrl: 'https://b' }], pagination: { nextOffset: null } })),
+    )
     vi.stubGlobal('fetch', fetchMock)
     const first = await getStations('k', 1000)
     const second = await getStations('k', 2000)
-    expect(first).toMatchObject({ ok: true, stations: [{ id: 'a' }] })
+    expect(first).toMatchObject({ ok: true, stations: [{ id: 'a', genre: 'afrobeats, talk' }, { id: 'b' }] })
     expect(second).toEqual(first)
-    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
     const init = (fetchMock.mock.calls[0] as unknown as [string, RequestInit])[1]
     expect((init.headers as Record<string, string>).Authorization).toBe('Bearer k')
   })

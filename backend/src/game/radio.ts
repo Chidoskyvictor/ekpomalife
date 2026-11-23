@@ -50,7 +50,7 @@ export function normaliseStations(body: unknown): RadioStation[] {
       streamUrl,
       logo: pick(o, ['logo', 'logoUrl', 'logo_url', 'image', 'favicon', 'artwork']),
       city: pick(o, ['city', 'location', 'state', 'region']),
-      genre: pick(o, ['genre', 'category', 'tags']),
+      genre: Array.isArray(o.tags) ? (o.tags.filter((t) => typeof t === 'string').join(', ') || null) : pick(o, ['genre', 'category', 'tags']),
       frequency: pick(o, ['frequency', 'freq', 'band']),
     })
   }
@@ -62,12 +62,21 @@ let cache: { at: number; stations: RadioStation[] } | null = null
 export async function getStations(apiKey: string | undefined, now = Date.now()): Promise<{ ok: true; stations: RadioStation[] } | { ok: false; code: number; error: string }> {
   if (!apiKey) return { ok: false, code: 503, error: 'Radio is not set up yet.' }
   if (cache && now - cache.at < CACHE_MS) return { ok: true, stations: cache.stations }
-  const res = await fetch(API, { headers: { Authorization: `Bearer ${apiKey}`, Accept: 'application/json' }, signal: AbortSignal.timeout(10_000) })
-  if (!res.ok) {
-    if (cache) return { ok: true, stations: cache.stations } // serve the last good list
-    return { ok: false, code: 502, error: 'Radio stations are unavailable right now.' }
+  // Paged: at most 100 per call, follow `pagination.nextOffset` (cap the pages so a bad reply can't loop).
+  const raw: unknown[] = []
+  let offset: number | null = 0
+  for (let page = 0; offset != null && page < 10; page++) {
+    const res = await fetch(`${API}?limit=100&offset=${offset}`, { headers: { Authorization: `Bearer ${apiKey}`, Accept: 'application/json' }, signal: AbortSignal.timeout(10_000) })
+    if (!res.ok) {
+      if (cache) return { ok: true, stations: cache.stations } // serve the last good list
+      return { ok: false, code: 502, error: 'Radio stations are unavailable right now.' }
+    }
+    const body = (await res.json()) as { data?: unknown[]; pagination?: { nextOffset?: number | null } }
+    raw.push(...(body.data ?? []))
+    const next = body.pagination?.nextOffset
+    offset = typeof next === 'number' && next > offset ? next : null
   }
-  const stations = normaliseStations(await res.json())
+  const stations = normaliseStations(raw)
   cache = { at: now, stations }
   return { ok: true, stations }
 }
