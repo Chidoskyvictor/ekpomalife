@@ -5,6 +5,7 @@ import { useFrame } from '@react-three/fiber'
 import { createContext, Suspense, useContext, useMemo, useRef, type MutableRefObject } from 'react'
 import {
   AdditiveBlending,
+  CanvasTexture,
   TextureLoader,
   SphereGeometry,
   BoxGeometry,
@@ -125,9 +126,11 @@ const GLB: Record<string, { url: string; length: number; paint: Rgb[]; glass: Rg
  */
 /** Hazard flasher spots measured on the model's own lamp lenses: [x, height, z, width, height] for the rear and the front (right side; mirrored). */
 type Flash = { rear: [number, number, number, number, number]; front: [number, number, number, number, number] }
-const REAL: Record<string, { url: string; length: number; paint: string[]; glass: string[]; tail: [number, number, number, number]; flash: Flash }> = {
-  rx350: { url: '/models/cars/lexus-rx.glb?v=1', length: 4.89, paint: ['Material_1.003', 'Material_3.003'], glass: ['Material_5.003', 'Material_20'], tail: [0.68, 1.02, 0.3, 0.1], flash: { rear: [0.74, 1.03, -2.24, 0.17, 0.1], front: [0.54, 0.87, 2.14, 0.16, 0.08] } },
-  gla: { url: '/models/cars/benz-gla.glb?v=1', length: 4.4, paint: ['Carro_Pintura'], glass: ['Carro_Vidros', 'Carro_Vidros_1'], tail: [0.7, 0.98, 0.26, 0.1], flash: { rear: [0.77, 0.99, -1.95, 0.15, 0.15], front: [0.77, 0.78, 2.0, 0.12, 0.08] } },
+/** The model's own red tail-lamp lens (right side; mirrored): [x, height, z, width, height]. */
+type Lens = [number, number, number, number, number]
+const REAL: Record<string, { url: string; length: number; paint: string[]; glass: string[]; tail: [number, number, number, number]; flash: Flash; lens: Lens }> = {
+  rx350: { url: '/models/cars/lexus-rx.glb?v=1', length: 4.89, paint: ['Material_1.003', 'Material_3.003'], glass: ['Material_5.003', 'Material_20'], tail: [0.68, 1.02, 0.3, 0.1], flash: { rear: [0.74, 1.03, -2.28, 0.17, 0.1], front: [0.54, 0.87, 2.15, 0.16, 0.08] }, lens: [0.575, 1.095, -2.36, 0.43, 0.23] },
+  gla: { url: '/models/cars/benz-gla.glb?v=1', length: 4.4, paint: ['Carro_Pintura'], glass: ['Carro_Vidros', 'Carro_Vidros_1'], tail: [0.7, 0.98, 0.26, 0.1], flash: { rear: [0.77, 0.99, -2.0, 0.15, 0.15], front: [0.77, 0.78, 2.04, 0.12, 0.08] }, lens: [0.645, 0.985, -2.04, 0.41, 0.21] },
 }
 for (const r of Object.values(REAL)) useGLTF.preload(r.url)
 
@@ -485,13 +488,33 @@ const DENT_SPOTS: [number, number, number, number][] = [
 ]
 const dentMaterial = new MeshStandardMaterial({ color: '#2b2b2e', roughness: 1 })
 
-/** Hazard flashers: bright amber, unaffected by the scene's light. */
-const hazardMaterial = new MeshBasicMaterial({ color: new Color('#ffa21a').multiplyScalar(1.6), toneMapped: false })
+/** A soft round glow (bright centre fading to nothing at the edges), so lamps never look like boxes. */
+function glowTexture() {
+  if (typeof document === 'undefined') return null
+  const c = document.createElement('canvas')
+  c.width = c.height = 64
+  const g = c.getContext('2d')!
+  const grad = g.createRadialGradient(32, 32, 0, 32, 32, 32)
+  grad.addColorStop(0, 'rgba(255,255,255,1)')
+  grad.addColorStop(0.35, 'rgba(255,255,255,0.75)')
+  grad.addColorStop(0.7, 'rgba(255,255,255,0.18)')
+  grad.addColorStop(1, 'rgba(255,255,255,0)')
+  g.fillStyle = grad
+  g.fillRect(0, 0, 64, 64)
+  return new CanvasTexture(c)
+}
+const GLOW = glowTexture()
+const glowMaterial = (color: string, opacity = 1) => new MeshBasicMaterial({ map: GLOW, color, transparent: true, opacity, depthWrite: false, blending: AdditiveBlending, toneMapped: false })
+/** Facing back (rear lamps) or forward (front lamps). */
+const glowBack = new PlaneGeometry(1, 1).rotateY(Math.PI)
+const glowFront = new PlaneGeometry(1, 1)
+/** Hazard flashers: a soft amber glow. */
+const hazardMaterial = glowMaterial('#ffa21a')
+const reverseGlow = glowMaterial('#ffffff', 0.9)
 
 /** Tail lamps: lit red, unaffected by the scene's light, so they glow at dusk and at night. */
 const tailMaterial = new MeshBasicMaterial({ color: '#ff2a1f', toneMapped: false })
 const tailBox = new BoxGeometry(1, 1, 1)
-const reverseMaterial = new MeshBasicMaterial({ color: '#ffffff', toneMapped: false })
 
 /** Where a car's tail lamps are: [half the gap between them, height, the rear's z, lamp width, lamp height]. */
 function tailLamps(id: string): [number, number, number, number, number] {
@@ -544,6 +567,8 @@ export function CarModel({ id, color, dents = 0, seeThrough = false, rig, hazard
       </Suspense>
     ) : null
   const tail = useMemo(() => (rig ? new MeshBasicMaterial({ color: '#5a0f0a', toneMapped: false }) : tailMaterial), [rig])
+  // The real models have their own red lenses: only a soft red glow on top of them, brighter under the brake
+  const brakeGlow = useMemo(() => glowMaterial('#ff1a0a', 0.18), [])
   const backup = useRef<Mesh[]>([])
   const flashers = useRef<Mesh[]>([])
   useFrame(({ clock }) => {
@@ -554,6 +579,7 @@ export function CarModel({ id, color, dents = 0, seeThrough = false, rig, hazard
     if (!r) return
     // Dim red running lamps; flaring bright red under the brake
     tail.color.set(r.braking ? '#ff1208' : '#5a0f0a').multiplyScalar(r.braking ? 1.8 : 1)
+    brakeGlow.opacity = r.braking ? 1 : 0.18
     for (const m of backup.current) if (m) m.visible = r.reversing
   })
   if (!body) return null
@@ -570,8 +596,12 @@ export function CarModel({ id, color, dents = 0, seeThrough = false, rig, hazard
           <mesh geometry={beamPlane} material={beamMaterial} position={[0, 0.06, hz + 8]} />
         </>
       ) : null}
-      <mesh geometry={tailBox} material={tail} position={[-gap, y, z]} scale={[w, h, 0.08]} />
-      <mesh geometry={tailBox} material={tail} position={[gap, y, z]} scale={[w, h, 0.08]} />
+      {REAL[id]
+        ? [-1, 1].map((sx) => {
+            const [lx, ly, lz, lw, lh] = REAL[id]!.lens
+            return <mesh key={`tl${sx}`} geometry={glowBack} material={brakeGlow} position={[sx * lx, ly, lz]} scale={[lw * 1.7, lh * 2.6, 1]} />
+          })
+        : [-1, 1].map((sx) => <mesh key={`tl${sx}`} geometry={tailBox} material={tail} position={[sx * gap, y, z]} scale={[w, h, 0.08]} />)}
       {/* Amber flashers on the lamp lenses: the real models' own indicator spots, else the outer half of each tail lamp and the outer edge of each headlamp */}
       {(REAL[id]
         ? [-1, 1].flatMap((sx) => [REAL[id]!.flash.rear, REAL[id]!.flash.front].map(([fx, fy, fz, fw, fh]) => [sx * fx, fy, fz, fw, fh]))
@@ -581,12 +611,12 @@ export function CarModel({ id, color, dents = 0, seeThrough = false, rig, hazard
             [-(hx + 0.06), hy, hz + 0.015, 0.1, 0.09],
             [hx + 0.06, hy, hz + 0.015, 0.1, 0.09],
           ]).map(([fx, fy, fz, fw, fh], i) => (
-        <mesh key={`hz${i}`} ref={(m) => void (flashers.current[i] = m as Mesh)} geometry={tailBox} material={hazardMaterial} position={[fx!, fy!, fz!]} scale={[fw!, fh!, 0.09]} visible={false} />
+        <mesh key={`hz${i}`} ref={(m) => void (flashers.current[i] = m as Mesh)} geometry={fz! < 0 ? glowBack : glowFront} material={hazardMaterial} position={[fx!, fy!, fz! + (fz! < 0 ? -0.02 : 0.02)]} scale={[fw! * 2.4, fh! * 3.2, 1]} visible={false} />
       ))}
       {rig
         ? [-1, 1].map((side, i) => (
             // White reversing lamps, low and inboard of the tail lamps
-            <mesh key={side} ref={(m) => void (backup.current[i] = m as Mesh)} geometry={tailBox} material={reverseMaterial} position={[side * gap * 0.55, y - h * 0.9, z - 0.02]} scale={[w * 0.5, h * 0.8, 0.08]} visible={false} />
+            <mesh key={side} ref={(m) => void (backup.current[i] = m as Mesh)} geometry={glowBack} material={reverseGlow} position={[side * gap * 0.55, y - h * 0.9, (REAL[id] ? REAL[id]!.lens[2] : z) - 0.02]} scale={[w * 1.1, h * 2, 1]} visible={false} />
           ))
         : null}
       {DENT_SPOTS.slice(0, dents).map(([x, y, z, turn], i) => (
