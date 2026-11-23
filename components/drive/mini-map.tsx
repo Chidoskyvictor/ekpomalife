@@ -20,7 +20,7 @@ const ROAD_WIDTH = { highway: 5, road: 3.2, street: 2.2 } as const
 export function MiniMap({ destId }: { destId: string | null }) {
   const canvas = useRef<HTMLCanvasElement>(null)
   const [big, setBig] = useState(false)
-  const size = big ? 196 : 112
+  const size = big ? 196 : 96
 
   useEffect(() => {
     const el = canvas.current

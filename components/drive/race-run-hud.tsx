@@ -64,6 +64,9 @@ export function RaceRunTop() {
             Start line · {kmLabel(runLive.toStart || toStartBox(course))}. Follow the arrows and stop in the glowing box.
           </small>
         </div>
+        <button type="button" className={styles.bannerX} aria-label="Cancel the race" onClick={endRun}>
+          <X size={16} aria-hidden="true" />
+        </button>
         <button
           type="button"
           className={styles.bannerGo}
@@ -74,9 +77,6 @@ export function RaceRunTop() {
         >
           Take me there
         </button>
-        <button type="button" className={styles.bannerX} aria-label="Cancel the race" onClick={endRun}>
-          <X size={16} aria-hidden="true" />
-        </button>
       </div>
     )
   }
@@ -86,27 +86,36 @@ export function RaceRunTop() {
     const passed = runLive.tracker.passed
     const racers = Math.max(1, runLive.racers.length)
     const lap = course.laps > 1 ? Math.min(course.laps, Math.floor(runLive.tracker.progress / course.lap) + 1) : 0
+    // Gap: the car just ahead of you, or (in front) your lead over the car behind, in game metres
+    const me = runLive.racers.find((r) => r.you)
+    const others = runLive.racers.filter((r) => !r.you)
+    const ahead = me ? others.filter((r) => r.progress > me.progress).sort((x, y) => x.progress - y.progress)[0] : undefined
+    const behind = me ? others.filter((r) => r.progress <= me.progress).sort((x, y) => y.progress - x.progress)[0] : undefined
+    const gap = me && ahead ? `-${kmLabel(ahead.progress - me.progress)}` : me && behind ? `+${kmLabel(me.progress - behind.progress)}` : ''
     return (
       <div className={styles.live} role="status" aria-label="Race status">
-        {racers > 1 ? (
-          <div className={styles.place}>
-            <strong>{ordinal(runLive.place)}</strong>
-            <small>/ {racers}</small>
-          </div>
-        ) : null}
-        <div className={styles.clock}>{formatRaceTime(phase === 'racing' || phase === 'done' ? runLive.t : 0)}</div>
+        <div className={styles.liveRow}>
+          {racers > 1 ? (
+            <div className={styles.place}>
+              <strong>{ordinal(runLive.place)}</strong>
+              <small>/{racers}</small>
+            </div>
+          ) : null}
+          <span className={styles.lap}>{lap ? `Lap ${lap}/${course.laps}` : `${kmLabel(Math.max(0, course.length - runLive.tracker.progress))} to go`}</span>
+          <span className={styles.clock}>{formatRaceTime(phase === 'racing' || phase === 'done' ? runLive.t : 0)}</span>
+          {gap ? <span className={`${styles.gap} ${gap.startsWith('-') ? styles.behind : styles.leading}`}>{gap}</span> : null}
+          {phase === 'racing' ? (
+            <button type="button" className={styles.quit} aria-label="Quit the race" onClick={() => finishRun(null, [])}>
+              <X size={14} aria-hidden="true" />
+            </button>
+          ) : null}
+        </div>
         <div className={styles.pips} aria-label={`${passed} of ${total} checkpoints`}>
           {course.checkpoints.map((_, i) => (
             <span key={i} className={i < passed ? styles.pipOn : i === passed ? styles.pipNext : ''} />
           ))}
         </div>
-        {lap ? <small className={styles.lap}>Lap {lap}/{course.laps}</small> : <small className={styles.lap}>{kmLabel(Math.max(0, course.length - runLive.tracker.progress))} to go</small>}
         {flash ? <small className={styles.flash}>{flash.text}</small> : null}
-        {phase === 'racing' ? (
-          <button type="button" className={styles.quit} onClick={() => finishRun(null, [])}>
-            Quit
-          </button>
-        ) : null}
       </div>
     )
   }

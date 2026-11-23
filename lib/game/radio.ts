@@ -70,11 +70,26 @@ export function loadStations(force = false): Promise<void> {
   return loading
 }
 
+const LAST_KEY = 'ekpoma-radio-last'
+/** The station this player listened to last (kept on this device), if any. */
+export function lastStationId(): string | null {
+  try {
+    return localStorage.getItem(LAST_KEY)
+  } catch {
+    return null
+  }
+}
+
 /** Must be called from a tap (browsers block audio that wasn't started by the player). */
 export async function playStation(station: RadioStation, source: RadioSource = 'phone') {
   const a = player()
   if (state.current?.id !== station.id) a.src = station.streamUrl
   set({ current: station, source, buffering: true, error: null })
+  try {
+    localStorage.setItem(LAST_KEY, station.id)
+  } catch {
+    /* private mode: it just won't be remembered */
+  }
   try {
     await a.play()
   } catch {

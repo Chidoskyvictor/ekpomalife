@@ -1,20 +1,26 @@
 /* Race run on the drive view: the banner to the start box, the live panel, the lights, the grid card and the results. */
 
+/* Race run on the drive view: the banner to the start box, the slim live strip, the lights, the grid card and the results.
+   Panels are solid dark with a clear border (readable day and night); they stay left of the mini-map. */
+
 .banner,
 .live {
   pointer-events: auto;
+  max-width: calc(100% - 116px);
+  box-sizing: border-box;
+  border: 2px solid #4b5668;
+  background: #0f1623;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
   color: #fff;
-  background: rgba(17, 24, 39, 0.86);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
-  backdrop-filter: blur(6px);
 }
 
-/* —— heading for the start box —— */
+/* —— heading for the start box: course, how far, then one full-width button —— */
 
 .banner {
-  display: flex;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) 30px;
   align-items: center;
-  gap: 8px;
+  gap: 6px 8px;
   margin-top: 8px;
   padding: 8px 6px 8px 8px;
   border-radius: var(--r-lg);
@@ -22,9 +28,8 @@
 
 .bannerIcon {
   display: grid;
-  width: 30px;
-  height: 30px;
-  flex: none;
+  width: 28px;
+  height: 28px;
   place-items: center;
   border-radius: 50%;
   background: var(--primary);
@@ -32,7 +37,6 @@
 
 .bannerText {
   min-width: 0;
-  flex: 1;
 }
 
 .bannerText strong {
@@ -50,29 +54,24 @@
   font-size: var(--fs-12);
   font-weight: 600;
   line-height: 1.25;
-  opacity: 0.85;
+  color: #cbd5e1;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
 }
 
 .bannerGo {
   position: relative;
-  flex: none;
-  min-height: 34px;
+  grid-column: 1 / -1;
+  min-height: 40px;
+  margin-right: 2px;
   padding: 0 12px;
   border: 0;
   border-radius: var(--r-pill);
   background: var(--primary);
   color: var(--primary-foreground);
-  font-size: var(--fs-12);
+  font-size: var(--fs-14);
   font-weight: 800;
   white-space: nowrap;
-}
-
-.bannerGo::after {
-  position: absolute;
-  inset: -6px -2px;
-  content: '';
 }
 
 .bannerX {
@@ -80,11 +79,10 @@
   display: grid;
   width: 30px;
   height: 30px;
-  flex: none;
   place-items: center;
   border: 0;
   background: transparent;
-  color: rgba(255, 255, 255, 0.8);
+  color: #cbd5e1;
 }
 
 .bannerX::after {
@@ -93,56 +91,82 @@
   content: '';
 }
 
-/* —— live panel: place, clock, checkpoints —— */
+/* —— live strip: place, lap, time, gap, then thin checkpoint bars —— */
 
 .live {
   display: flex;
-  width: 118px;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
+  gap: 4px;
   margin-top: 8px;
-  padding: 8px 10px 9px;
+  padding: 6px 8px 7px 10px;
   border-radius: var(--r-lg);
+  align-self: flex-start;
+}
+
+.liveRow {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: 8px;
+  white-space: nowrap;
 }
 
 .place {
   display: flex;
   align-items: baseline;
-  gap: 4px;
+  gap: 1px;
 }
 
 .place strong {
   font-family: var(--font-game);
-  font-size: 30px;
+  font-size: 24px;
   font-weight: 400;
   line-height: 1;
 }
 
 .place small {
-  font-size: var(--fs-14);
+  font-size: var(--fs-12);
   font-weight: 700;
-  opacity: 0.7;
+  color: #cbd5e1;
+}
+
+.lap {
+  font-size: var(--fs-12);
+  font-weight: 700;
+  color: #cbd5e1;
 }
 
 .clock {
-  font-size: var(--fs-20);
+  font-size: var(--fs-14);
   font-variant-numeric: tabular-nums;
   font-weight: 800;
-  line-height: 1.1;
+}
+
+.gap {
+  font-size: var(--fs-12);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+}
+
+.behind {
+  color: #f87171;
+}
+
+.leading {
+  color: #4ade80;
 }
 
 .pips {
   display: flex;
-  gap: 5px;
-  margin: 4px 0 2px;
+  gap: 3px;
 }
 
 .pips span {
-  width: 18px;
-  height: 6px;
-  border-radius: 3px;
-  background: rgba(255, 255, 255, 0.25);
+  height: 4px;
+  flex: 1;
+  max-width: 18px;
+  border-radius: 2px;
+  background: #3b4658;
 }
 
 .pips .pipOn {
@@ -160,17 +184,11 @@
   }
 }
 
-.lap {
-  font-size: var(--fs-12);
-  font-weight: 700;
-  opacity: 0.8;
-}
-
 .flash {
-  margin-top: 2px;
+  align-self: flex-start;
   padding: 2px 7px;
   border-radius: var(--r-pill);
-  background: rgba(52, 211, 153, 0.22);
+  background: #064e3b;
   color: #a7f3d0;
   font-size: var(--fs-12);
   font-weight: 800;
@@ -179,19 +197,22 @@
 
 .quit {
   position: relative;
-  margin-top: 4px;
+  display: grid;
+  width: 22px;
+  height: 22px;
+  align-self: center;
+  place-items: center;
+  margin-left: auto;
   padding: 0;
   border: 0;
-  background: transparent;
-  color: rgba(255, 255, 255, 0.7);
-  font-size: var(--fs-12);
-  font-weight: 800;
-  text-decoration: underline;
+  border-radius: 50%;
+  background: #1c2636;
+  color: #cbd5e1;
 }
 
 .quit::after {
   position: absolute;
-  inset: -12px -10px;
+  inset: -11px;
   content: '';
 }
 
@@ -199,7 +220,7 @@
 
 .count {
   position: absolute;
-  top: 24%;
+  top: 36%;
   left: 50%;
   display: flex;
   flex-direction: column;
@@ -217,7 +238,8 @@
   gap: 10px;
   padding: 8px 12px;
   border-radius: var(--r-pill);
-  background: rgba(17, 24, 39, 0.8);
+  border: 2px solid #4b5668;
+  background: #0f1623;
 }
 
 .lights span {
@@ -613,4 +635,12 @@
   color: var(--ink-2);
   font-size: var(--fs-12);
   font-weight: 700;
+}
+
+/* Landscape: keep the banner and strip a thumb-width column, not the whole screen */
+@media (orientation: landscape) and (max-height: 520px) {
+  .banner,
+  .live {
+    max-width: 330px;
+  }
 }
