@@ -26,6 +26,8 @@ export type FilmShot = 'chase' | 'between' | 'wheel' | 'wheel-benz' | 'whip' | '
 declare global {
   interface Window {
     __filmT?: number
+    /** A recorder can switch the shot without reloading */
+    __filmShot?: FilmShot
   }
 }
 
@@ -91,6 +93,7 @@ export function FilmRig({ road, s0, dir, shot, speed = 30 }: Props) {
     driveTelemetry.speed = speed
 
     // Camera
+    const shotNow = (typeof window !== 'undefined' && window.__filmShot) || shot
     const fx = a.dx * dir
     const fz = a.dz * dir
     // Left of travel (Nigeria drives on the right; the Lexus is on the inside, i.e. towards the median = +left)
@@ -98,30 +101,30 @@ export function FilmRig({ road, s0, dir, shot, speed = 30 }: Props) {
     const lz = -fx
     const shake = Math.sin(t * 37) * 0.012 + Math.sin(t * 23) * 0.01
     camera.fov = 50
-    if (shot === 'chase') {
+    if (shotNow === 'chase') {
       // Just behind and above the Lexus's tail (like video 2's shot over the car's rear), the Benz ahead
       camera.position.set(b.x - fx * 5.6, 2.9 + shake, b.z - fz * 5.6)
       camera.lookAt(a.x + fx * 6, 1.0, a.z + fz * 6)
-    } else if (shot === 'between') {
+    } else if (shotNow === 'between') {
       const mx = (a.x + b.x) / 2
       const mz = (a.z + b.z) / 2
       camera.position.set(mx - fx * 2.6, 0.42 + shake, mz - fz * 2.6)
       camera.lookAt(mx + fx * 10, 0.5, mz + fz * 10)
       camera.fov = 62
-    } else if (shot === 'wheel' || shot === 'wheel-benz') {
+    } else if (shotNow === 'wheel' || shotNow === 'wheel-benz') {
       // Low beside a front wheel, on the car's open side, a little behind it: the rim turning, the road rushing past
-      const c = shot === 'wheel' ? b : a
-      const out = shot === 'wheel' ? 1 : -1
+      const c = shotNow === 'wheel' ? b : a
+      const out = shotNow === 'wheel' ? 1 : -1
       const wx = c.x + lx * out * 2.7 - fx * 2.4
       const wz = c.z + lz * out * 2.7 - fz * 2.4
       camera.position.set(wx, 0.45 + shake * 0.5, wz)
       camera.lookAt(c.x + lx * out * 0.85 + fx * 1.3, 0.38, c.z + lz * out * 0.85 + fz * 1.3)
       camera.fov = 50
-    } else if (shot === 'whip') {
+    } else if (shotNow === 'whip') {
       camera.position.set(post.x, 1.55, post.z)
       camera.lookAt(a.x, 0.8, a.z)
       camera.fov = 38
-    } else if (shot === 'top') {
+    } else if (shotNow === 'top') {
       const mx = (a.x + b.x) / 2
       const mz = (a.z + b.z) / 2
       camera.position.set(mx + 0.01, 24, mz)
