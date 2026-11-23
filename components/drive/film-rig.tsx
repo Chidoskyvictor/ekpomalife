@@ -21,7 +21,7 @@ import { HALF, LANE, MID_LANE, roadById, spotAt } from '@/lib/game/drive-road'
  *   front   - ahead of the cars, low, as they rush at the camera
  */
 
-export type FilmShot = 'chase' | 'between' | 'wheel' | 'whip' | 'top' | 'front'
+export type FilmShot = 'chase' | 'between' | 'wheel' | 'wheel-benz' | 'whip' | 'top' | 'front'
 
 declare global {
   interface Window {
@@ -76,9 +76,10 @@ export function FilmRig({ road, s0, dir, shot, speed = 30 }: Props) {
     }
     place(lead.current, a, 0)
     place(chaser.current, b, -push * 0.03)
-    // Wheels: at race speed a real wheel turns ~13 times a second, which a camera shows frozen or going backwards
-    // (the wagon-wheel effect). On film they turn about 3 times a second so they read as rolling forward.
-    const spin = t * Math.PI * 2 * 3.1
+    // Wheels: at race speed a real wheel turns ~13 times a second, which a 30 fps camera shows frozen or going
+    // backwards (the wagon-wheel effect: the Benz rim has 10 spokes 36° apart). On film they turn ~1.15 times a
+    // second, about 14° a frame, a third of a spoke gap, so the eye reads them clearly as rolling forward.
+    const spin = t * Math.PI * 2 * 1.15
     leadRig.current.spin = spin
     chaseRig.current.spin = spin * 1.03
     chaseRig.current.steer = push * 0.08
@@ -107,13 +108,15 @@ export function FilmRig({ road, s0, dir, shot, speed = 30 }: Props) {
       camera.position.set(mx - fx * 2.6, 0.42 + shake, mz - fz * 2.6)
       camera.lookAt(mx + fx * 10, 0.5, mz + fz * 10)
       camera.fov = 62
-    } else if (shot === 'wheel') {
-      // Outside the Lexus's rear wheel (on its left side, away from the Benz), low, slightly behind it
-      const wx = b.x + lx * 1.55 - fx * 2.2
-      const wz = b.z + lz * 1.55 - fz * 2.2
-      camera.position.set(wx, 0.32 + shake * 0.5, wz)
-      camera.lookAt(b.x + lx * 0.85 - fx * 1.1, 0.35, b.z + lz * 0.85 - fz * 1.1)
-      camera.fov = 55
+    } else if (shot === 'wheel' || shot === 'wheel-benz') {
+      // Low beside a front wheel, on the car's open side, a little behind it: the rim turning, the road rushing past
+      const c = shot === 'wheel' ? b : a
+      const out = shot === 'wheel' ? 1 : -1
+      const wx = c.x + lx * out * 2.7 - fx * 2.4
+      const wz = c.z + lz * out * 2.7 - fz * 2.4
+      camera.position.set(wx, 0.45 + shake * 0.5, wz)
+      camera.lookAt(c.x + lx * out * 0.85 + fx * 1.3, 0.38, c.z + lz * out * 0.85 + fz * 1.3)
+      camera.fov = 50
     } else if (shot === 'whip') {
       camera.position.set(post.x, 1.55, post.z)
       camera.lookAt(a.x, 0.8, a.z)

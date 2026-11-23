@@ -149,7 +149,7 @@ const LAMPS: Record<string, { tail: LampPick; flashRear: LampPick; flashFront: L
 }
 const REAL: Record<string, { url: string; length: number; paint: string[]; glass: string[]; tail: [number, number, number, number]; flash: Flash; lens: Lens; /** Number plates, measured on the model's own plate spots: [x, height, z, tilt, width, height] at the back and the front */ plates: [number, number, number, number, number, number][] }> = {
   rx350: { url: '/models/cars/lexus-rx.glb?v=1', length: 4.89, paint: ['Material_1.003', 'Material_3.003'], glass: ['Material_5.003', 'Material_20'], tail: [0.68, 1.02, 0.3, 0.1], flash: { rear: [0.66, 1.09, -2.3, 0.15, 0.09], front: [0.54, 0.87, 2.15, 0.16, 0.08] }, lens: [0.575, 1.095, -2.36, 0.43, 0.23], plates: [[-0.0125, 0.8965, -2.356, 0.12, 0.565, 0.113], [-0.0125, 0.63, 2.423, 0, 0.565, 0.113]] },
-  gla: { url: '/models/cars/benz-gla.glb?v=1', length: 4.4, paint: ['Carro_Pintura'], glass: ['Carro_Vidros', 'Carro_Vidros_1'], tail: [0.7, 0.98, 0.26, 0.1], flash: { rear: [0.69, 1.03, -2.02, 0.14, 0.12], front: [0.77, 0.78, 2.04, 0.12, 0.08] }, lens: [0.645, 0.985, -2.04, 0.41, 0.21], plates: [[0, 0.875, -2.024, 0, 0.5, 0.11], [0, 0.5, 2.194, 0, 0.5, 0.11]] },
+  gla: { url: '/models/cars/benz-gla.glb?v=2', length: 4.4, paint: ['Carro_Pintura'], glass: ['Carro_Vidros', 'Carro_Vidros_1'], tail: [0.7, 0.98, 0.26, 0.1], flash: { rear: [0.69, 1.03, -2.02, 0.14, 0.12], front: [0.77, 0.78, 2.04, 0.12, 0.08] }, lens: [0.645, 0.985, -2.04, 0.41, 0.21], plates: [[0, 0.875, -2.024, 0, 0.5, 0.11], [0, 0.5, 2.194, 0, 0.5, 0.11]] },
 }
 for (const r of Object.values(REAL)) useGLTF.preload(r.url)
 

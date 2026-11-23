@@ -21,11 +21,11 @@ function Inner() {
   const peers = useRef(new Map<string, Peer>())
   const shot = (q.get('shot') ?? 'chase') as FilmShot
   const speed = Number(q.get('speed') ?? 30)
-  // `?road=ihumudumu-road&s=1420&dir=1` starts the cars anywhere (default: Ihumudumu Road toward Iruekpen,
-  // past the IHUMUDUMU ROAD, G2 ROAD and G1 ROAD gantries)
-  const roadId = q.get('road') ?? (q.get('at') ? null : 'ihumudumu-road')
+  // `?road=expressway&s=6000&dir=1` starts the cars anywhere (default: the expressway toward Auchi, past the
+  // UKE, G1 ROAD and G2 ROAD gantries; Ihumudumu Road from s=1420 passes IHUMUDUMU ROAD, G2 and G1)
+  const roadId = q.get('road') ?? (q.get('at') ? null : 'expressway')
   if (roadId) {
-    const s = Number(q.get('s') ?? 1420)
+    const s = Number(q.get('s') ?? 6000)
     const dir = Number(q.get('dir') ?? 1)
     const sp = spotAt(roadId, s, dir * 4)
     return (
