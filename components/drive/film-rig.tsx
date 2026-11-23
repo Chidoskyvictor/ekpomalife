@@ -30,6 +30,7 @@ export type FilmShot =
   | 'gantry' // a roadside cameraman under the G1 ROAD gantry, swinging round as they fly past
   | 'behind' // behind both cars, the truck ahead in the Lexus's lane
   | 'top' // drone straight down over the Lexus and the truck
+  | 'hood' // on the Lexus's bonnet: the Benz in front blocks the view, swerves out, the truck is revealed
   | 'overlexus' // over the Lexus's rear, the Benz pulling out, the truck coming head-on
   | 'squeeze' // slow-motion close-up, the Lexus sliding sideways right up to the truck's nose
   | 'truckwheel' // low beside the truck's back wheels, the Lexus sliding up behind it
@@ -97,6 +98,7 @@ function simulate(speed: number): Frame[] {
   let benz = -9
   let benzV = speed
   let benzOff = MID
+  let cut = 0
   for (let i = 0; i <= 240 * 30; i++) {
     const t = i * dt
     // Truck: wrong way down the middle lane, then brakes and swings its back end across toward the median
@@ -106,19 +108,21 @@ function simulate(speed: number): Frame[] {
     }
     truck -= truckV * dt
     // Benz: right behind the Lexus, moves out while still a car length back, then draws level and goes on past
-    const gap = t < 1 ? 9 : t < 2.2 ? 9 - ((t - 1) / 1.2) * 2.2 : t < 3.8 ? 6.8 : Math.max(-1, 6.8 - (t - 3.8) * 3.2)
+    // level by ~5.6, then past: 9 m ahead by 6.0, where it cuts in front of the Lexus and blocks its view
+    const gap = t < 1 ? 9 : t < 2.2 ? 9 - ((t - 1) / 1.2) * 2.2 : t < 3.8 ? 6.8 : t < 5.6 ? 6.8 - (t - 3.8) * 8.8 : -9
     const laneT = Math.min(1, Math.max(0, (t - 2.3) / 1.3))
     const ease = laneT * laneT * (3 - 2 * laneT)
     let benzTarget = MID + (OUTSIDE - MID) * ease
-    // The reference's bumper-to-bumper moment: the Benz leans right up to the Lexus (0.38 m apart at the closest)
-    // around t = 6, then backs off to its lane before the truck arrives
-    if (t > 4.9 && t < 7.3) {
-      const k = (t - 4.9) / 2.4
-      benzTarget -= Math.sin(Math.PI * k) ** 2 * (OUTSIDE - MID - 2.3)
-    }
-    const benzWant = t < 9 ? lexus - gap : benz + speed
-    benzV = Math.max(0, benzV + Math.max(-9, Math.min(4, (speed + (benzWant - benz) * 1.6 - benzV) * 3)) * dt)
-    if (t >= 9) benzV += (speed - benzV) * dt * 2
+    // Bumper to bumper while level (closest ~0.5 m), then into the Lexus's lane in front of it once a clear car
+    // length ahead (blocking the view ahead), then out again at 6.4 to reveal the truck
+    if (t > 4.0 && t < 5.0) benzTarget -= Math.sin(Math.PI * (t - 4.0)) ** 2 * (OUTSIDE - MID - 2.4)
+    // (only while a clear car length ahead: 5.8 m between centres = 1.1 m between bumpers)
+    const wantCut = t > 5.3 && t < 6.5 && benz - lexus > 5.8
+    cut = Math.max(0, Math.min(1, cut + (wantCut ? dt / 0.3 : -dt / 0.45)))
+    benzTarget += (MID - OUTSIDE) * cut * cut * (3 - 2 * cut)
+    const benzWant = t < 5.6 ? lexus - gap : lexus + 9
+    benzV = Math.max(0, benzV + Math.max(-9, Math.min(7, (speed + (benzWant - benz) * 2.2 - benzV) * 3)) * dt)
+    if (t >= 7) benzV += (speed + 0.5 - benzV) * dt * 2
     benz += benzV * dt
     benzOff += (benzTarget - benzOff) * Math.min(1, dt * 4)
     // Lexus: in the middle lane, straight at the truck. Brakes when it sees it, slides, stops just short of the cab
@@ -282,6 +286,12 @@ export function FilmRig({ road, s0, dir, shot, speed = 30 }: Props) {
       camera.up.set(up.x - c.x, 0, up.z - c.z)
       camera.lookAt(c.x, 0, c.z)
       camera.fov = 45
+    } else if (shotNow === 'hood') {
+      // On the Lexus's bonnet looking ahead (the reference's camera on the white car): the Benz right in front
+      // blocks the view, swerves out, and the truck is there, coming head-on
+      cam(f.lead + 1.2, f.leadOff, 1.45 + shake * 0.6)
+      look(f.lead + 40, f.leadOff, 1.25)
+      camera.fov = 56
     } else if (shotNow === 'overlexus') {
       // Over the Lexus's rear: the Benz pulls out beside it and the truck comes at them head-on
       cam(f.lead - 5.4, f.leadOff, 2.7 + shake)

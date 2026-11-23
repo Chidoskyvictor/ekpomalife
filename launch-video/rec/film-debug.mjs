@@ -13,6 +13,6 @@ await page.addStyleTag({ content: 'nextjs-portal{display:none!important}' })
 for (const [shot, t] of plan) {
   await page.evaluate(([s, v]) => { window.__filmShot = s; window.__filmT = v }, [shot, t])
   await page.waitForTimeout(2500)
-  await page.screenshot({ path: `launch-video/clips/film-debug/${shot}.png` })
+  await page.screenshot({ path: `launch-video/clips/film-debug/${shot}-${t}.png` })
 }
 await browser.close()
