@@ -1,6 +1,6 @@
 'use client'
 
-import { ArrowUp, Camera, Flag, Home, LocateFixed, MapPin, Megaphone, MoreHorizontal, Navigation, Search, Volume2, VolumeX, X } from 'lucide-react'
+import { ArrowUp, Camera, Flag, TriangleAlert, Home, LocateFixed, MapPin, Megaphone, MoreHorizontal, Navigation, Search, Volume2, VolumeX, X } from 'lucide-react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { NearbyMic } from '@/components/hud/nearby-mic'
@@ -8,7 +8,7 @@ import { RadioButton, RadioPill } from '@/components/radio/radio-pill'
 import { playHorn } from '@/lib/game/horn'
 import { useGame } from '@/hooks/use-game'
 import { parkCar } from '@/lib/game/cars-api'
-import { driveInput, driveAudio, driveTelemetry, driveView, kmh, leaveDrive, setDriveMuted, setDriveDest, useDrive } from '@/lib/game/drive'
+import { driveInput, driveAudio, driveLights, driveTelemetry, driveView, kmh, leaveDrive, setDriveMuted, setDriveDest, useDrive } from '@/lib/game/drive'
 import { OSM_CREDIT, ROAD_PLACES, ROAD_SCALE, guide, placeSpot, roadById, roadPlaceNear, roadUnder, type Guidance } from '@/lib/game/drive-road'
 import { hasInterior } from '@/lib/game/home-place'
 import { pushNavigation } from '@/lib/navigation/safe-nav'
@@ -118,6 +118,7 @@ export function DriveHud() {
   const [busy, setBusy] = useState(false)
   const [view, setView] = useState(driveView.mode)
   const [muted, setMuted] = useState(driveAudio.muted)
+  const [hazard, setHazard] = useState(driveLights.hazard)
   const hornAt = useRef(0)
   const [picking, setPicking] = useState(false)
   const [radioOpen, setRadioOpen] = useState(false)
@@ -356,6 +357,19 @@ export function DriveHud() {
           >
             {muted ? <VolumeX size={18} aria-hidden="true" /> : <Volume2 size={18} aria-hidden="true" />}
             <span>{muted ? 'Game sounds off' : 'Game sounds on'}</span>
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            className={`${styles.item} ${hazard ? styles.itemHazard : ''}`}
+            aria-pressed={hazard}
+            onClick={() => {
+              driveLights.hazard = !hazard
+              setHazard(!hazard)
+            }}
+          >
+            <TriangleAlert size={18} aria-hidden="true" />
+            <span>{hazard ? 'Hazard lights on' : 'Hazard lights off'}</span>
           </button>
         </div>
       ) : null}

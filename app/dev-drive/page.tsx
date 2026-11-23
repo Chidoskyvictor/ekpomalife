@@ -7,7 +7,7 @@ import type { Peer } from '@/lib/game/club-live'
 import { DriveHud } from '@/components/drive/drive-hud'
 import { RadioDock } from '@/components/radio/radio-dock'
 import { GameProvider } from '@/hooks/use-game'
-import { driveView, startDrive } from '@/lib/game/drive'
+import { driveLights, driveView, startDrive } from '@/lib/game/drive'
 import { beginRun, pressStart } from '@/lib/game/race-run'
 import { courseById } from '@/lib/game/race-courses'
 import { driveStartFrom, roadById, spotAt } from '@/lib/game/drive-road'
@@ -32,6 +32,12 @@ function Inner() {
   const peers = useRef(new Map<string, Peer>())
   // `?hud=1` mounts the real driving controls over the scene; `?race=<course id>&phase=grid` starts a run
   const hud = q.get('hud') === '1'
+  // `?car=gla&color=%23ffffff` picks the car; `?hazard=1` starts with the hazard lights on
+  const model = q.get('car') ?? 'gt3'
+  const paint = q.get('color') ?? '#c94f4f'
+  useEffect(() => {
+    driveLights.hazard = q.get('hazard') === '1'
+  }, [q])
   // `?radio=stub` answers the station list locally (the dev API may be offline); streams stay silent here
   useEffect(() => {
     if (q.get('radio') !== 'stub') return
@@ -58,16 +64,16 @@ function Inner() {
   }, [hud])
   useEffect(() => {
     if (!hud) return
-    startDrive({ dest: null, car: { id: 'dev', model: 'gt3', color: '#c94f4f' }, start, fromPlace: 'aau-gate' })
+    startDrive({ dest: null, car: { id: 'dev', model, color: paint }, start, fromPlace: 'aau-gate' })
     const race = q.get('race')
     const course = race ? courseById(race) : null
-    if (course) beginRun(course, { rivals: 3, model: 'gt3', named: q.get('phase') === 'togrid' })
+    if (course) beginRun(course, { rivals: 3, model, named: q.get('phase') === 'togrid' })
     // `phase=racing` presses Start (the scene turns the lights green after the countdown)
     if (course && q.get('phase') === 'racing') window.setTimeout(pressStart, 1500)
-  }, [hud, q, start])
+  }, [hud, q, start, model, paint])
   return (
     <div style={{ position: 'fixed', inset: 0, background: '#000' }}>
-      <StreetCanvas car={{ model: 'gt3', color: '#c94f4f' }} start={start} send={() => {}} peers={peers} roster={0} />
+      <StreetCanvas car={{ model, color: paint }} start={start} send={() => {}} peers={peers} roster={0} />
       {q.get('dock') === '1' ? <RadioDock /> : null}
       {hud ? (
         <GameProvider guest>

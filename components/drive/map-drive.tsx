@@ -14,7 +14,7 @@ import { NO_UPGRADES, upgradeEffects } from '@/lib/game/race-rewards'
 import { playCrash } from '@/lib/game/crash-sound'
 import { playHorn } from '@/lib/game/horn'
 import { seatFor } from '@/lib/game/car-seats'
-import { GET_IN_MS, driveAudio, driveCommand, driveInput, driveTelemetry, driveView, reducedMotion, type DriveStart } from '@/lib/game/drive'
+import { GET_IN_MS, driveAudio, driveCommand, driveLights, driveInput, driveTelemetry, driveView, reducedMotion, type DriveStart } from '@/lib/game/drive'
 
 /* Feel of the car, in map units (a car is about 1.9 long there). Multiplied by the world's `unit`.
    Each car has its own top speed (km/h on the dial = units × 9) and pull; these are for an unknown model.
@@ -147,6 +147,7 @@ export function DriveCar({
     rig.current.steer = b.wheelAngle
     rig.current.spin = b.spin
     rig.current.braking = driveInput.brake && b.v > 0.3 * u || (driveCommand.hold && Math.abs(b.v) < 0.5)
+    rig.current.hazard = driveLights.hazard
     rig.current.reversing = b.v < -0.2 || (driveInput.brake && b.v <= 0.3 * u && seated)
 
     const g = group.current
@@ -184,7 +185,7 @@ export function DriveCar({
       driveTelemetry.z = b.z
       driveTelemetry.h = b.h
       driveTelemetry.speed = b.v / u
-      send({ x: b.x, y: 0, z: b.z, h: b.h, pose: 'sit', moving: Math.abs(b.v) > 0.2 * u, horn: driveAudio.horn })
+      send({ x: b.x, y: 0, z: b.z, h: b.h, pose: 'sit', moving: Math.abs(b.v) > 0.2 * u, horn: driveAudio.horn, hazard: driveLights.hazard })
       return
     }
     const back = 4.6 * u * v.zoom
@@ -201,7 +202,7 @@ export function DriveCar({
     driveTelemetry.z = b.z
     driveTelemetry.h = b.h
     driveTelemetry.speed = b.v / u
-    send({ x: b.x, y: 0, z: b.z, h: b.h, pose: 'sit', moving: Math.abs(b.v) > 0.2 * u, horn: driveAudio.horn })
+    send({ x: b.x, y: 0, z: b.z, h: b.h, pose: 'sit', moving: Math.abs(b.v) > 0.2 * u, horn: driveAudio.horn, hazard: driveLights.hazard })
   })
 
   return (
@@ -242,6 +243,7 @@ const PLAYBACK_DELAY_MS = 250
 function PeerCar({ peer, scale }: { peer: Peer; scale: number }) {
   const group = useRef<Group>(null)
   const lastHorn = useRef<number | null>(null)
+  const hazard = useRef(false)
   const [model, color] = (peer.car ?? '').split(':')
   useFrame((_, delta) => {
     const g = group.current
@@ -254,6 +256,7 @@ function PeerCar({ peer, scale }: { peer: Peer; scale: number }) {
       }
       lastHorn.current = s.horn
     }
+    hazard.current = s?.hazard === true
     const driving = Boolean(s && s.pose === 'sit')
     if (driving && !g.visible) g.position.set(s!.x, 0.05, s!.z)
     g.visible = driving
@@ -298,7 +301,7 @@ function PeerCar({ peer, scale }: { peer: Peer; scale: number }) {
   return (
     <group ref={group} visible={false}>
       <group scale={scale}>
-        <CarModel id={model} color={color ?? '#c9ccd1'} />
+        <CarModel id={model} color={color ?? '#c9ccd1'} hazard={hazard} />
       </group>
       <sprite position={[0, 2.0 * scale + 0.35, 0]} scale={[1.8 * scale, 0.45 * scale, 1]}>
         <spriteMaterial map={nameTexture(peer.username)} depthTest={false} />

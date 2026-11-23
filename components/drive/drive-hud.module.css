@@ -689,6 +689,10 @@
   color: #f87171;
 }
 
+.itemHazard svg {
+  color: #ffa21a;
+}
+
 /* Phone on its side: the same tools as a row left of the map, so the right thumb area stays free */
 @media (orientation: landscape) and (max-height: 520px) {
   .mapAnchor {

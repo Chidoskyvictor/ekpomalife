@@ -32,7 +32,7 @@ type PlayerInfo = {
   work?: 'decorator' | 'cleaner'
 }
 
-type PlayerState = { x: number; y: number; z: number; h: number; pose: LivePose; moving: boolean; horn?: number }
+type PlayerState = { x: number; y: number; z: number; h: number; pose: LivePose; moving: boolean; horn?: number; hazard?: boolean }
 
 type Member = {
   socket: WebSocket
@@ -133,7 +133,7 @@ function readState(raw: Record<string, unknown>, reach = 30): PlayerState | null
   const clamp = (v: number) => Math.max(-reach, Math.min(reach, v))
   const y = Math.max(-1, Math.min(3, num(raw.y) ?? 0))
   const horn = num(raw.horn)
-  return { x: clamp(x), y, z: clamp(z), h, pose, moving: raw.moving === true, ...(horn != null ? { horn: Math.max(0, Math.min(1_000_000, Math.floor(horn))) } : {}) }
+  return { x: clamp(x), y, z: clamp(z), h, pose, moving: raw.moving === true, ...(horn != null ? { horn: Math.max(0, Math.min(1_000_000, Math.floor(horn))) } : {}), ...(raw.hazard === true ? { hazard: true } : {}) }
 }
 
 /** The one room for the town map: drivers' cars. */

@@ -30,6 +30,8 @@ const subscribe = (fn: () => void) => {
 export const drivePeers: { current: Map<string, import('./club-live').Peer> } = { current: new Map() }
 /** Sound while driving: `muted` silences the road hum and other cars' horns; `horn` counts your honks (sent to the live room). */
 export const driveAudio = { muted: false, horn: 0, onMute: null as ((muted: boolean) => void) | null }
+/** Your hazard lights (the amber corners blink; other drivers see them too). */
+export const driveLights = { hazard: false }
 export function setDriveMuted(muted: boolean) {
   driveAudio.muted = muted
   driveAudio.onMute?.(muted)

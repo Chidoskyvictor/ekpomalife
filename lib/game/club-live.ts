@@ -10,7 +10,7 @@ import type { FigurePose } from '@/components/look/character-figure'
  * group, where they stand and what they're doing, plus money sprays raining on the group.
  */
 
-export type PeerState = { x: number; y: number; z: number; h: number; pose: FigurePose; moving: boolean; /** Honks so far (a counter: a change means a new honk) */ horn?: number }
+export type PeerState = { x: number; y: number; z: number; h: number; pose: FigurePose; moving: boolean; /** Honks so far (a counter: a change means a new honk) */ horn?: number; /** Hazard lights on */ hazard?: boolean }
 
 export type Peer = {
   userId: string

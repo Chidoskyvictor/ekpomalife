@@ -35,7 +35,7 @@ import { seatFor } from '@/lib/game/car-seats'
 type Pt = [number, number]
 
 /** What the car you drive tells its model every frame: the front wheels' angle, how far the wheels have turned, and the lamps. */
-export type CarRig = { steer: number; spin: number; braking: boolean; reversing: boolean }
+export type CarRig = { steer: number; spin: number; braking: boolean; reversing: boolean; /** Hazard lights blinking */ hazard?: boolean }
 
 /** The wheel nodes of a real (GLB) car, by name; null when the model has none. */
 function wheelNodes(root: Object3D) {
@@ -483,6 +483,9 @@ const DENT_SPOTS: [number, number, number, number][] = [
 ]
 const dentMaterial = new MeshStandardMaterial({ color: '#2b2b2e', roughness: 1 })
 
+/** Hazard flashers: bright amber, unaffected by the scene's light. */
+const hazardMaterial = new MeshBasicMaterial({ color: new Color('#ffa21a').multiplyScalar(1.6), toneMapped: false })
+
 /** Tail lamps: lit red, unaffected by the scene's light, so they glow at dusk and at night. */
 const tailMaterial = new MeshBasicMaterial({ color: '#ff2a1f', toneMapped: false })
 const tailBox = new BoxGeometry(1, 1, 1)
@@ -525,7 +528,7 @@ function headLamps(id: string): [number, number, number] {
 }
 
 /** One car by catalogue id, painted `color`, with `dents` crumpled patches. Unknown ids draw nothing. */
-export function CarModel({ id, color, dents = 0, seeThrough = false, rig }: { id: string; color: string; dents?: number; /** Clear windows, for the car you are sitting in */ seeThrough?: boolean; /** Your own car: steering and spinning wheels, brake and reverse lights */ rig?: MutableRefObject<CarRig> }) {
+export function CarModel({ id, color, dents = 0, seeThrough = false, rig, hazard }: { id: string; color: string; dents?: number; /** Clear windows, for the car you are sitting in */ seeThrough?: boolean; /** Your own car: steering and spinning wheels, brake and reverse lights */ rig?: MutableRefObject<CarRig>; /** Someone else's car: are their hazard lights on? */ hazard?: MutableRefObject<boolean> }) {
   const body =
     id in SPECS ? (
       <ProcCar id={id} color={color} seeThrough={seeThrough} rig={rig} />
@@ -540,7 +543,11 @@ export function CarModel({ id, color, dents = 0, seeThrough = false, rig }: { id
     ) : null
   const tail = useMemo(() => (rig ? new MeshBasicMaterial({ color: '#5a0f0a', toneMapped: false }) : tailMaterial), [rig])
   const backup = useRef<Mesh[]>([])
-  useFrame(() => {
+  const flashers = useRef<Mesh[]>([])
+  useFrame(({ clock }) => {
+    // Hazard lights: all four amber corners blink together, about 1.4 times a second
+    const on = Boolean(rig?.current.hazard || hazard?.current) && clock.elapsedTime % 0.72 < 0.4
+    for (const m of flashers.current) if (m) m.visible = on
     const r = rig?.current
     if (!r) return
     // Dim red running lamps; flaring bright red under the brake
@@ -563,6 +570,15 @@ export function CarModel({ id, color, dents = 0, seeThrough = false, rig }: { id
       ) : null}
       <mesh geometry={tailBox} material={tail} position={[-gap, y, z]} scale={[w, h, 0.08]} />
       <mesh geometry={tailBox} material={tail} position={[gap, y, z]} scale={[w, h, 0.08]} />
+      {/* Amber flashers at the four corners: rear just outboard of the tail lamps, front beside the headlamps */}
+      {[
+        [-(gap + w * 0.5 + 0.05), y, z - 0.01, 0.12, h],
+        [gap + w * 0.5 + 0.05, y, z - 0.01, 0.12, h],
+        [-(hx + 0.14), hy, hz + 0.01, 0.12, 0.08],
+        [hx + 0.14, hy, hz + 0.01, 0.12, 0.08],
+      ].map(([fx, fy, fz, fw, fh], i) => (
+        <mesh key={`hz${i}`} ref={(m) => void (flashers.current[i] = m as Mesh)} geometry={tailBox} material={hazardMaterial} position={[fx!, fy!, fz!]} scale={[fw!, fh!, 0.09]} visible={false} />
+      ))}
       {rig
         ? [-1, 1].map((side, i) => (
             // White reversing lamps, low and inboard of the tail lamps
