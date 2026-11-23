@@ -20,7 +20,8 @@ import {
   type Texture,
 } from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
-import { BARRIER_AT, DEAD_ENDS, GANTRIES, HALF, ROAD_DIMS, SCENE_ROADS, roadById, spotAt } from '@/lib/game/drive-road'
+import { ALL_GANTRIES } from '@/lib/game/drive-gantries'
+import { BARRIER_AT, DEAD_ENDS, HALF, ROAD_DIMS, SCENE_ROADS, roadById, spotAt } from '@/lib/game/drive-road'
 import { buildRoadChunks, type Buf } from '@/lib/game/road-mesh'
 import { mulberry32 } from '@/lib/game/world-layout'
 
@@ -285,9 +286,10 @@ function merge(list: BufferGeometry[]) {
 /* —— area signs on dark steel gantries —— */
 
 const signCache = new Map<string, CanvasTexture>()
-/** White bold capitals on highway green. */
-function signTexture(text: string): Texture {
-  let hit = signCache.get(text)
+/** White bold capitals on highway green, with an optional small second line. */
+function signTexture(text: string, sub?: string): Texture {
+  const key = `${text}|${sub ?? ''}`
+  let hit = signCache.get(key)
   if (!hit) {
     const canvas = document.createElement('canvas')
     canvas.width = 1024
@@ -301,16 +303,25 @@ function signTexture(text: string): Texture {
     ctx.fillStyle = '#ffffff'
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
-    let size = 150
+    let size = sub ? 128 : 150
     do {
       ctx.font = `800 ${size}px Arial, Helvetica, sans-serif`
       size -= 6
     } while (ctx.measureText(text).width > 900 && size > 40)
-    ctx.fillText(text, 512, 164)
+    ctx.fillText(text, 512, sub ? 124 : 164)
+    if (sub) {
+      let small = 64
+      do {
+        ctx.font = `700 ${small}px Arial, Helvetica, sans-serif`
+        small -= 4
+      } while (ctx.measureText(sub).width > 880 && small > 28)
+      ctx.fillStyle = '#d9f2e2'
+      ctx.fillText(sub, 512, 250)
+    }
     hit = new CanvasTexture(canvas)
     hit.colorSpace = SRGBColorSpace
     hit.anisotropy = 4
-    signCache.set(text, hit)
+    signCache.set(key, hit)
   }
   return hit
 }
@@ -323,7 +334,7 @@ export function Gantries() {
     const steel: BufferGeometry[] = []
     const faces = new Map<string, BufferGeometry[]>()
     const scene = new Set(SCENE_ROADS.map((r) => r.id))
-    for (const g of GANTRIES) {
+    for (const g of ALL_GANTRIES) {
       if (!scene.has(g.road)) continue
       const road = roadById(g.road)
       const d = ROAD_DIMS[road.kind]
@@ -357,18 +368,19 @@ export function Gantries() {
       plane.applyMatrix4(new Matrix4().makeRotationY(yaw))
       const p = at(-centre, 6.7, faceZ * 1.35)
       plane.translate(p[0], p[1], p[2])
-      if (!faces.has(g.text)) faces.set(g.text, [])
-      faces.get(g.text)!.push(plane)
+      const fk = `${g.text}|${g.sub ?? ''}`
+      if (!faces.has(fk)) faces.set(fk, [])
+      faces.get(fk)!.push(plane)
       // Little brackets from the truss to the sign
       for (const k of [-0.32, 0.32]) put(0.14, 1.9, 0.5, -centre + width * k, 6.2, faceZ * 0.5)
     }
     return {
       steel: steel.length ? merge(steel) : null,
       steelMat: new MeshLambertMaterial({ vertexColors: true }),
-      signs: [...faces].map(([text, list]) => ({ text, geo: merge(list.map((g) => g.toNonIndexed())) })),
+      signs: [...faces].map(([text, list]) => ({ text, sub: text.split('|')[1] || undefined, geo: merge(list.map((g) => g.toNonIndexed())) })),
     }
   }, [])
-  const textures = useMemo(() => kit.signs.map((s) => signTexture(s.text)), [kit])
+  const textures = useMemo(() => kit.signs.map((s) => signTexture(s.text.split('|')[0]!, s.sub)), [kit])
   useEffect(
     () => () => {
       kit.steel?.dispose()

@@ -126,8 +126,8 @@ function Places() {
           </group>
         )
       })}
-      {ROAD_SIGNS.map((sign) => (
-        <Board key={`${sign.road}-${sign.s}`} road={sign.road} s={sign.s - sign.side * 26} side={sign.side} text={sign.text} color="#136b3a" />
+      {ROAD_SIGNS.map((sign, i) => (
+        <Board key={`${sign.road}-${sign.s}-${i}`} road={sign.road} s={sign.s - sign.side * 26} side={sign.side} text={sign.text} color="#136b3a" />
       ))}
     </>
   )
