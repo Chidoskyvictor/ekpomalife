@@ -14,8 +14,8 @@ const csp = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
-  // Voice notes play straight from R2 storage via short-lived signed links
-  "media-src 'self' blob: data: https://*.r2.cloudflarestorage.com",
+  // Voice notes play from R2 via signed links; the in-car radio streams from whichever host each station uses
+  "media-src 'self' blob: data: https:",
   `connect-src 'self' blob: data: ${apiOrigin} ${apiWs} https://*.livekit.cloud wss://*.livekit.cloud https://*.paystack.co https://*.paystack.com https://www.gstatic.com https://cloudflareinsights.com`,
   "frame-src 'self' https://*.paystack.com https://*.paystack.co",
   "worker-src 'self' blob:",
