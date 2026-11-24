@@ -293,6 +293,17 @@ export function pick(s: WhotState, seat: number, rng: Rng = Math.random): Action
   const count = s.pending > 0 ? s.pending : 1
   const got = draw(s, seat, count, events, rng)
   events.push({ kind: 'pick', seat, count: got })
+  if (got === 0) {
+    // The market is dry and the pile can't be reshuffled: the game ends, fewest cards wins
+    // (ties go to the lower card total).
+    const alive = s.hands.map((_, i) => i).filter((i) => !isOut(s, i))
+    const total = (i: number) => s.hands[i]!.reduce((n, c) => n + c.num, 0)
+    alive.sort((a, b) => s.hands[a]!.length - s.hands[b]!.length || total(a) - total(b))
+    s.winner = alive[0]!
+    s.owesCall = null
+    events.push({ kind: 'win', seat: s.winner })
+    return { ok: true, events }
+  }
   s.pending = 0
   s.pendingKind = null
   advance(s)

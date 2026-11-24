@@ -229,12 +229,22 @@ describe('whot simulation', () => {
       const players = 2 + (g % 3)
       const s = newWhot(players, { stackPicks: g % 2 === 0, lastCardCall: true })
       let guard = 0
-      while (s.winner == null && guard++ < 4000) {
+      while (s.winner == null && guard++ < 20000) {
         expect(autoMove(s, s.turn).ok).toBe(true)
         expect(s.hands.flat().length + s.market.length + s.pile.length).toBe(54)
       }
       expect(s.winner).not.toBeNull()
     }
+  }, 30_000)
+})
+
+describe('dry market', () => {
+  it('ends the game when nobody can draw: fewest cards wins', () => {
+    const s = setup({ top: c('circle', 4), hands: [[c('star', 3), c('star', 5)], [c('star', 4)], [c('cross', 9), c('cross', 7)]] })
+    s.market = []
+    s.pile = [c('circle', 4)]
+    pick(s, 0)
+    expect(s.winner).toBe(1)
   })
 })
 

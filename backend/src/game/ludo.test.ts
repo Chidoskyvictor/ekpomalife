@@ -174,6 +174,26 @@ describe('ludo-engine: two dice', () => {
   })
 })
 
+describe('ludo-engine: extra rolls', () => {
+  it('a player only rolls twice in a row after a double six', () => {
+    for (let g = 0; g < 200; g++) {
+      const s = newLudo([0, 1, 2, 3])
+      let guard = 0
+      while (s.winner == null && guard++ < 20000) {
+        const seat = s.turn
+        const a = 1 + Math.floor(Math.random() * 6)
+        const b = 1 + Math.floor(Math.random() * 6)
+        const rolled = applyRoll(s, a, b)
+        if (rolled.passed) continue // nothing could move: the turn just passes
+        while (s.dice != null && s.winner == null) applyMove(s, autoMove(s)!)
+        if (s.winner != null) break
+        const rolledAgain = s.turn === seat
+        expect(rolledAgain).toBe(a === 6 && b === 6)
+      }
+    }
+  }, 30_000)
+})
+
 describe('ludo-live (server rolls, server decides)', () => {
   const sent: unknown[] = []
   const finished: number[] = []

@@ -28,6 +28,7 @@ export function LudoLocalGame({
   const [last, setLast] = useState<LudoView['last']>(null)
   const [left, setLeft] = useState(TURN_SECONDS)
   const seq = useRef(0)
+  const leftRef = useRef(TURN_SECONDS)
   const reported = useRef(false)
   const s = game.current
 
@@ -38,6 +39,7 @@ export function LudoLocalGame({
 
   const bump = useCallback(() => {
     setTick((t) => t + 1)
+    leftRef.current = TURN_SECONDS
     setLeft(TURN_SECONDS)
   }, [])
 
@@ -87,16 +89,19 @@ export function LudoLocalGame({
     const st = game.current!
     if (st.winner != null || (mode === 'cpu' && st.turn !== 0)) return
     const id = window.setInterval(() => {
-      setLeft((v) => {
-        if (v > 1) return v - 1
-        const cur = game.current!
-        if (cur.dice == null) doRoll()
-        else {
-          const m = autoMove(cur)
-          if (m) doMove(m)
-        }
-        return TURN_SECONDS
-      })
+      // No side effects inside a state updater: React may run those twice and play a move twice
+      if (leftRef.current > 1) {
+        leftRef.current -= 1
+        setLeft(leftRef.current)
+        return
+      }
+      leftRef.current = TURN_SECONDS
+      const cur = game.current!
+      if (cur.dice == null) doRoll()
+      else {
+        const m = autoMove(cur)
+        if (m) doMove(m)
+      }
     }, 1000)
     return () => window.clearInterval(id)
   })
