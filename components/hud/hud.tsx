@@ -364,7 +364,7 @@ export function Hud() {
       {STREET_AND_TRAVEL && state ? <TravelControl /> : null}
 
       {/* Inside a building or your house: a radio button (the phone has no radio) */}
-      {inBuilding && !phoneOpen && !buyOpen && !homeBuy.active && !driving ? <RadioDock /> : null}
+      {inBuilding && !placeSheet && !phoneOpen && !buyOpen && !homeBuy.active && !driving ? <RadioDock /> : null}
 
       {homeBuy.active || driving ? null : <div className={styles.bottomDock}>
         <div className={styles.bottomRow}>

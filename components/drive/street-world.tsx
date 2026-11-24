@@ -9,7 +9,7 @@ import { GATE_URL } from '@/components/travel/drive-scene'
 import { rideLookAt, rideMinute } from '@/components/travel/ride-environment'
 import type { Peer, PeerState } from '@/lib/game/club-live'
 import type { DriveStart } from '@/lib/game/drive'
-import { HALF, SCENE_ROADS, ROAD_PLACES, ROAD_SIGNS, surfaceAt, pointAt, roadById, spotAt } from '@/lib/game/drive-road'
+import { HALF, SCENE_ROADS, ROAD_PLACES, ROAD_SIGNS, surfaceAt, spotAt } from '@/lib/game/drive-road'
 import { GFX, useGfxTier } from '@/lib/game/gfx-quality'
 import { CarLightsContext } from '@/components/cars/car-model'
 import { DriveCar, PeerCars, type DriveWorld } from './map-drive'
@@ -149,7 +149,6 @@ export type StreetProps = {
 function Scene({ car, look: driverLook, start, send, peers, roster, film }: StreetProps) {
   // Light for the hour on the game clock, fixed for the drive
   const look = useMemo(() => rideLookAt(rideMinute()), [])
-  const mid = useMemo(() => pointAt(roadById("expressway"), roadById("expressway").length / 2), [])
   return (
     <CarLightsContext.Provider value={look.level !== 'day'}>
       <StreetSky look={look} />
@@ -157,8 +156,10 @@ function Scene({ car, look: driverLook, start, send, peers, roster, film }: Stre
       <ambientLight intensity={look.ambient} />
       <directionalLight position={[look.lightDir.x * 120, look.lightDir.y * 120, look.lightDir.z * 120]} color={look.sunColor} intensity={look.sunInt} />
       <fog attach="fog" args={[look.horizon, look.level === 'day' ? 130 : look.level === 'dusk' ? 90 : 70, look.level === 'day' ? 440 : look.level === 'dusk' ? 400 : 360]} />
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[mid.x, -0.05, mid.z]}>
-        <planeGeometry args={[4200, 3000]} />
+      {/* Ground under every road (they span x -4976…9397, z -4961…6071): smaller than that, the far
+          quarters had no ground and showed the pale sky colour as "white grass" */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[2211, -0.05, 555]}>
+        <planeGeometry args={[16400, 13000]} />
         <meshLambertMaterial color="#8f9a66" />
       </mesh>
       <Roads level={look.level} />

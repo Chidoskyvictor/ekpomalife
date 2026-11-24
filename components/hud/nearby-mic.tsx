@@ -110,7 +110,19 @@ function HousePrivacy({ onClose }: { onClose: () => void }) {
  * (avatars), your mic button and Leave. House owners get a privacy switch; visitors the owner shut out
  * see why instead of Join.
  */
-export function NearbyMic({ tone = 'light', className, badgeClassName }: { tone?: 'light' | 'night'; /** Round button for the drive HUD instead of the pill */ className?: string; badgeClassName?: string }) {
+export function NearbyMic({
+  tone = 'light',
+  className,
+  badgeClassName,
+  popClassName,
+}: {
+  tone?: 'light' | 'night'
+  /** Round button for the drive HUD instead of the pill */
+  className?: string
+  badgeClassName?: string
+  /** Place sheets: a round mic button that pops the voice pill above the sheet (this class places it); it closes once you've joined */
+  popClassName?: string
+}) {
   const { state, notifyToast } = useGame()
   const place = state?.locationId ?? null
   const path = usePathname()
@@ -118,6 +130,12 @@ export function NearbyMic({ tone = 'light', className, badgeClassName }: { tone?
   const home = path?.startsWith('/room/') ? decodeURIComponent(path.split('/')[2] ?? '') || undefined : undefined
   const v = useNearbyVoice()
   const [privacy, setPrivacy] = useState(false)
+  const [pop, setPop] = useState(false)
+  const joined = Boolean(v.seat)
+  // Joining closes the pop-up: the mic button then shows you're on
+  useEffect(() => {
+    if (joined) setPop(false)
+  }, [joined])
 
   useEffect(() => {
     nearbyVoice.shownChange(1)
@@ -138,6 +156,28 @@ export function NearbyMic({ tone = 'light', className, badgeClassName }: { tone?
   const faces = inRoom ? v.members : v.people
   const live = inRoom ? v.others + 1 : v.count
   const err = (text: string) => notifyToast(text, false)
+  if (className && popClassName) {
+    const badge = inRoom ? v.others + 1 : v.count
+    return (
+      <>
+        <button
+          type="button"
+          className={`${className} ${inRoom ? styles.roundOn : ''} ${inRoom && v.micOn ? styles.micOn : ''}`}
+          aria-label={inRoom ? 'Voice: mute or leave' : live ? `Voice: ${live} talking, join` : 'Voice here'}
+          aria-expanded={pop}
+          title="Voice"
+          onClick={() => {
+            hapticTap()
+            setPop((o) => !o)
+          }}
+        >
+          {inRoom && !v.micOn ? <MicOff size={18} aria-hidden="true" /> : <Mic size={18} aria-hidden="true" />}
+          {badge ? <span className={badgeClassName}>{badge > 9 ? '9+' : badge}</span> : null}
+        </button>
+        {pop ? <div className={popClassName}>{pill()}</div> : null}
+      </>
+    )
+  }
   if (className) {
     const badge = inRoom ? v.others : v.count
     return (
@@ -157,8 +197,10 @@ export function NearbyMic({ tone = 'light', className, badgeClassName }: { tone?
       </button>
     )
   }
-  const cls = `${styles.pill} ${tone === 'night' ? styles.night : ''} ${inRoom ? styles.joined : ''}`
+  return pill()
 
+  function pill() {
+  const cls = `${styles.pill} ${tone === 'night' ? styles.night : ''} ${inRoom ? styles.joined : ''}`
   return (
     <div className={styles.wrap}>
       <div className={cls} role="group" aria-label="Voice here">
@@ -212,6 +254,7 @@ export function NearbyMic({ tone = 'light', className, badgeClassName }: { tone?
       {privacy && v.isOwner && !inRoom ? <HousePrivacy onClose={() => setPrivacy(false)} /> : null}
     </div>
   )
+  }
 }
 
 /** Always mounted with the HUD: holds the voice room so the call survives the sheet re-rendering. */

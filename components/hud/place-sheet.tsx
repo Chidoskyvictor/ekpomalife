@@ -1,8 +1,9 @@
 'use client'
 
 import { PlayerFace } from '@/components/look/player-face'
+import { RadioButton, RadioPill } from '@/components/radio/radio-pill'
 import { ChevronDown, ChevronUp, Clock } from 'lucide-react'
-import { useEffect, useSyncExternalStore, type ReactNode } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
 import { hapticTap } from './haptic'
 import { NearbyMic } from './nearby-mic'
 import styles from './place-sheet.module.css'
@@ -64,8 +65,26 @@ export function PlaceSheet({
     onExpandedChange(!expanded)
   }
 
+  // The radio pill sits just above the sheet (measured when it opens, and again if the sheet changes size)
+  const sheetRef = useRef<HTMLElement>(null)
+  const [radioOpen, setRadioOpen] = useState(false)
+  const [radioBottom, setRadioBottom] = useState(0)
+  useEffect(() => {
+    if (!radioOpen || !sheetRef.current) return
+    const el = sheetRef.current
+    const place = () => setRadioBottom(Math.round(window.innerHeight - el.getBoundingClientRect().top + 8))
+    place()
+    const ro = new ResizeObserver(place)
+    ro.observe(el)
+    window.addEventListener('resize', place)
+    return () => {
+      ro.disconnect()
+      window.removeEventListener('resize', place)
+    }
+  }, [radioOpen])
+
   return (
-    <section className={`${styles.sheet} ${tone === 'night' ? styles.night : ''}`} aria-label={title}>
+    <section ref={sheetRef} className={`${styles.sheet} ${tone === 'night' ? styles.night : ''}`} aria-label={title}>
       <button type="button" className={styles.handle} onClick={toggle} aria-label={expanded ? 'Show less' : 'Show more'}>
         <span />
       </button>
@@ -78,19 +97,21 @@ export function PlaceSheet({
           {subtitle ? <span>{subtitle}</span> : null}
         </button>
         <div className={styles.buttons}>
+          <NearbyMic tone={tone} className={styles.round} badgeClassName={styles.badge} popClassName={styles.pop} />
+          <RadioButton className={styles.round} open={radioOpen} onClick={() => setRadioOpen((o) => !o)} />
           {buttons.map((b) => (
             <button key={b.label} type="button" className={styles.round} onClick={b.onClick} disabled={b.disabled} aria-label={b.label} title={b.label}>
               {b.icon}
               {b.badge ? <span className={styles.badge}>{b.badge}</span> : null}
             </button>
           ))}
-          <button type="button" className={styles.round} onClick={toggle} aria-label={expanded ? 'Show less' : 'Show more'}>
+          <button type="button" className={`${styles.round} ${styles.more}`} onClick={toggle} aria-label={expanded ? 'Show less' : 'Show more'}>
             {expanded ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
           </button>
         </div>
       </div>
-      <NearbyMic tone={tone} />
       {expanded && children ? <div className={styles.body}>{children}</div> : null}
+      {radioOpen && radioBottom ? <RadioPill source="building" bottom={radioBottom} onClose={() => setRadioOpen(false)} /> : null}
     </section>
   )
 }

@@ -100,23 +100,23 @@
 /* A small card at the left edge: arrow and distance, what to do, then Skip */
 .guide {
   display: grid;
-  width: 148px;
-  grid-template-columns: 30px 1fr;
+  width: 128px;
+  grid-template-columns: 26px 1fr;
   align-items: center;
   gap: 2px 7px;
   margin-top: 8px;
-  padding: 7px 8px 5px;
+  padding: 5px 7px 3px;
   border-radius: var(--r-lg);
-  border: 2px solid #22c55e;
-  background: #14532d;
+  border: 1.5px solid #22c55e;
+  background: rgb(20 83 45 / 0.82);
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
   color: #fff;
 }
 
 .arrow {
   display: grid;
-  width: 30px;
-  height: 30px;
+  width: 26px;
+  height: 26px;
   flex: none;
   place-items: center;
   border-radius: 50%;
@@ -135,7 +135,7 @@
 }
 
 .guideText strong {
-  font-size: var(--fs-16);
+  font-size: var(--fs-14);
   font-weight: 800;
   line-height: 1.1;
 }
@@ -720,5 +720,20 @@
     left: 50%;
     margin: 0;
     transform: translateX(-50%);
+  }
+}
+
+/* Wide screens (laptops, phones on their side): smaller pedals so they don't block the road */
+@media (min-width: 700px) {
+  .pedal {
+    width: 56px;
+  }
+
+  .brake {
+    height: 60px;
+  }
+
+  .gas {
+    height: 78px;
   }
 }

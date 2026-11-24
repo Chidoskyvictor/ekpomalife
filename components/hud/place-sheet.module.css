@@ -436,3 +436,35 @@
     justify-content: flex-end;
   }
 }
+
+/* The voice pop-up: floats just above the sheet, full sheet width */
+.pop {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  left: 0;
+  z-index: 3;
+}
+
+/* Phones: mic and radio join the round buttons, so the title keeps room. The sheet already expands
+   from its handle and title, so the chevron button goes. */
+@media (max-width: 460px) {
+  .buttons .round {
+    width: 40px;
+    height: 40px;
+  }
+
+  .buttons {
+    gap: 2px;
+  }
+
+  .more {
+    display: none;
+  }
+}
+
+/* Radio playing */
+.round[data-on='true'] {
+  background: #16a34a;
+  color: #fff;
+}
