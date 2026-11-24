@@ -1,0 +1,150 @@
+<!doctype html>
+<!--
+  Ekpoma Life racing flyer (1080x1350, Instagram/TikTok 4:5). Same brand as announcement.html
+  (Boogaloo headlines, Plus Jakarta text, the logo, our blue, gold), on a night-race background.
+  Render: node brand/graphics/render.mjs brand/graphics/posts/race.json brand/graphics/out/race.png race.html
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<style>
+  @font-face { font-family: 'Boogaloo'; src: url('assets/boogaloo.woff2') format('woff2'); }
+  @font-face { font-family: 'Jakarta'; src: url('assets/jakarta-latin.woff2') format('woff2'); font-weight: 200 800; }
+  :root {
+    --blue: #2f6fed;
+    --blue-hi: #6aa0ff;
+    --night: #07122b;
+    --gold: #ffc531;
+    --fire: #ff7a1a;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { width: 1080px; height: 1350px; }
+  body {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    font-family: 'Jakarta', system-ui, sans-serif;
+    color: #fff;
+    background:
+      radial-gradient(ellipse 70% 38% at 50% 64%, rgba(255, 122, 26, 0.38), transparent 70%),
+      radial-gradient(ellipse 90% 60% at 50% 20%, rgba(47, 111, 237, 0.45), transparent 70%),
+      linear-gradient(180deg, #0b1d47 0%, var(--night) 55%, #040a19 100%);
+  }
+  /* speed lines */
+  body::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(-14deg, transparent 0 46px, rgba(106, 160, 255, 0.07) 46px 48px, transparent 48px 120px);
+    pointer-events: none;
+  }
+  /* checkered strip */
+  .flagstrip {
+    position: absolute; left: 0; right: 0; top: 0; height: 18px;
+    background: conic-gradient(#fff 25%, #0b1d47 0 50%, #fff 0 75%, #0b1d47 0) 0 0 / 36px 36px;
+    opacity: 0.9;
+  }
+
+  .top { position: relative; display: flex; align-items: center; justify-content: space-between; padding: 52px 56px 0; }
+  .brand { display: flex; align-items: center; gap: 18px; }
+  .brand img { width: 76px; height: 76px; border-radius: 22px; background: #fff; box-shadow: 0 10px 26px rgba(0, 0, 0, 0.4); }
+  .brand b { font-family: 'Boogaloo'; font-weight: 400; font-size: 54px; color: #fff; }
+  .tag {
+    display: inline-flex; align-items: center; gap: 10px;
+    padding: 12px 22px; border-radius: 999px;
+    background: var(--gold); color: var(--night); font-weight: 800; font-size: 24px;
+    box-shadow: 0 8px 24px rgba(255, 197, 49, 0.35);
+  }
+  .tag::before { content: ''; width: 12px; height: 12px; border-radius: 50%; background: #e11d48; box-shadow: 0 0 10px #e11d48; }
+
+  main { position: relative; flex: 1; padding: 30px 56px 0; }
+  .kicker { font-weight: 800; font-size: 26px; letter-spacing: 0.16em; color: var(--blue-hi); text-transform: uppercase; }
+  h1 {
+    margin-top: 10px;
+    font-family: 'Boogaloo'; font-weight: 400;
+    font-size: 100px; line-height: 0.95;
+    text-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
+  }
+  h1 em { font-style: normal; color: var(--gold); }
+
+  /* The picture the cars burst out of */
+  .stage { position: absolute; left: 56px; right: 56px; top: 455px; height: 520px; }
+  .frame {
+    position: absolute; left: 70px; right: 70px; top: 0; height: 320px;
+    border-radius: 36px; overflow: hidden;
+    border: 6px solid rgba(255, 255, 255, 0.92);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55), 0 0 0 2px rgba(106, 160, 255, 0.4) inset;
+    transform: perspective(1200px) rotateX(8deg);
+  }
+  .frame img { width: 100%; height: 100%; object-fit: cover; filter: saturate(1.15) brightness(0.85); }
+  .frame::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 40%, rgba(7, 18, 43, 0.55)); }
+  .car { position: absolute; filter: drop-shadow(0 26px 30px rgba(0, 0, 0, 0.6)); }
+  .benz { width: 430px; left: -40px; top: 165px; transform: rotate(-4deg); }
+  .lexus { width: 430px; right: -40px; top: 155px; transform: rotate(4deg); }
+  .gt { width: 620px; left: 50%; top: 185px; transform: translateX(-50%); z-index: 3; }
+  .sparks { position: absolute; z-index: 2; mix-blend-mode: screen; }
+  .sparks.l { width: 480px; left: 110px; top: 170px; transform: rotate(-10deg); }
+  .sparks.r { width: 480px; right: 110px; top: 160px; transform: rotate(12deg) scaleX(-1); }
+
+  .chips { position: absolute; left: 30px; right: 30px; top: 1005px; display: flex; gap: 12px; flex-wrap: nowrap; justify-content: center; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 12px;
+    padding: 14px 18px; border-radius: 999px; white-space: nowrap;
+    background: rgba(255, 255, 255, 0.1); border: 2px solid rgba(255, 255, 255, 0.22);
+    font-size: 25px; font-weight: 800;
+    backdrop-filter: blur(6px);
+  }
+  .chip b { color: var(--gold); }
+  .lead { position: absolute; left: 56px; right: 56px; top: 1088px; text-align: center; font-size: 26px; line-height: 1.4; font-weight: 600; color: #c9d7f2; }
+  .lead b { color: #fff; }
+
+  .foot {
+    position: absolute; left: 40px; right: 40px; bottom: 40px;
+    display: flex; align-items: center; gap: 18px;
+    padding: 18px 18px 18px 22px; border-radius: 34px;
+    background: #fff; box-shadow: 0 14px 40px rgba(0, 0, 0, 0.4);
+  }
+  .foot b { flex: 1; padding-left: 12px; font-family: 'Boogaloo'; font-weight: 400; font-size: 44px; color: var(--night); }
+  .foot span { padding: 16px 28px; border-radius: 999px; background: var(--blue); color: #fff; font-size: 30px; font-weight: 800; }
+.ribbon {
+    position: absolute; right: -30px; top: 250px; z-index: 4;
+    padding: 18px 70px 18px 46px;
+    background: linear-gradient(90deg, #e11d48, #ff7a1a);
+    color: #fff; text-transform: uppercase;
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 24px 50%);
+    transform: rotate(-8deg);
+    box-shadow: 0 12px 30px rgba(225, 29, 72, 0.45);
+  }
+  .ribbon b { display: block; font-family: 'Boogaloo'; font-weight: 400; font-size: 64px; line-height: 0.95; letter-spacing: 0.02em; }
+  .ribbon span { display: block; font-size: 24px; font-weight: 900; letter-spacing: 0.12em; }
+</style>
+</head>
+<body>
+  <div class="flagstrip"></div>
+  <header class="top">
+    <div class="brand"><img src="assets/logo.png" alt="" /><b>Ekpoma Life</b></div>
+    <div class="tag">New · Racing</div>
+  </header>
+  <main>
+    <p class="kicker">Ekpoma Life Racing</p>
+    <h1>Race the streets<br />of <em>Ekpoma</em></h1>
+  </main>
+  <div class="ribbon"><b>Win cash</b><span>&amp; racer badges</span></div>
+  <div class="stage">
+    <div class="frame"><img src="assets/road-frame.png" alt="" /></div>
+    <img class="sparks l" src="assets/sparks.png" alt="" />
+    <img class="sparks r" src="assets/sparks.png" alt="" />
+    <img class="car benz" src="assets/cutouts/benz-crop.png" alt="" />
+    <img class="car lexus" src="assets/cutouts/lexus-crop.png" alt="" />
+    <img class="car gt" src="assets/cutouts/gt-crop.png" alt="" />
+  </div>
+  <div class="chips">
+    <span class="chip">🏁 Race your friends <b>live</b></span>
+    <span class="chip">💰 Win <b>cash</b> &amp; badges</span>
+    <span class="chip">🚗 Drive all of Ekpoma</span>
+  </div>
+  <p class="lead">Real Ekpoma roads: <b>Ihumudumu, G1, G2, the expressway</b>. Pick your car, find a rival, floor it.</p>
+  <footer class="foot"><b>Play free. Race tonight.</b><span>ekpomalife.app</span></footer>
+</body>
+</html>

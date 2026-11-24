@@ -9,7 +9,7 @@ import { pathToFileURL } from 'node:url'
 const [postFile, outFile] = process.argv.slice(2)
 if (!postFile || !outFile) throw new Error('usage: node render.mjs <post.json> <out.png>')
 const post = JSON.parse(fs.readFileSync(postFile, 'utf8'))
-const page = pathToFileURL(path.join(import.meta.dirname, 'announcement.html')).href
+const page = pathToFileURL(path.join(import.meta.dirname, process.argv[4] ?? 'announcement.html')).href
 
 const browser = await chromium.launch({ channel: 'chrome' })
 const ctx = await browser.newContext({ viewport: { width: 1080, height: 1350 }, deviceScaleFactor: 1 })
