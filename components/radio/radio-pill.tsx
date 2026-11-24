@@ -6,11 +6,13 @@ import { hapticTap } from '@/components/hud/haptic'
 import { lastStationId, loadStations, playStation, stepStation, stopRadio, useRadio, type RadioSource, type RadioStation } from '@/lib/game/radio'
 import styles from './radio-pill.module.css'
 
-/** What "play" starts when nothing is tuned: the last station on this device, else Cool FM (Lagos), else the first. */
+/** What "play" starts when nothing is tuned: the last station on this device, else Esan Binoculars (Edo, our home
+ * station), else Cool FM (Lagos), else the first. */
 function firstStation(list: RadioStation[]): RadioStation | null {
   const last = lastStationId()
   return (
     list.find((s) => s.id === last) ??
+    list.find((s) => /esan\s*binoculars/i.test(s.name)) ??
     list.find((s) => /cool\s*fm/i.test(s.name) && /lagos/i.test(s.city ?? '')) ??
     list.find((s) => /cool\s*fm/i.test(s.name)) ??
     list[0] ??
