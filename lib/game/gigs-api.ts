@@ -70,10 +70,26 @@ export type Gig = {
   disputeReason: string | null
   hidden: boolean
   is3D: boolean
+  /** Cook jobs: the dish asked for, and whether it has been cooked. */
+  dish: CookDish | null
+  cooked: boolean
   keyOpen: boolean
   houseOwner: string | null
   canUndo: boolean
 }
+
+/** Dishes a Cook job can ask for (mirrors backend COOK_MENU; the server decides the real price and checks the id). */
+export type CookDish = { id: string; name: string; emoji: string; cost: number }
+export const COOK_MENU: CookDish[] = [
+  { id: 'dish-jollof-rice', name: 'Jollof rice', emoji: '🍲', cost: 1500 },
+  { id: 'dish-fried-rice', name: 'Fried rice and chicken', emoji: '🍛', cost: 1800 },
+  { id: 'dish-egusi', name: 'Egusi and pounded yam', emoji: '🥘', cost: 2500 },
+  { id: 'dish-moi-moi', name: 'Moi moi', emoji: '🫘', cost: 1200 },
+  { id: 'dish-pepper-soup', name: 'Pepper soup', emoji: '🍜', cost: 2000 },
+  { id: 'dish-efo-riro', name: 'Efo riro and rice', emoji: '🥬', cost: 2200 },
+  { id: 'dish-ofada', name: 'Ofada rice and stew', emoji: '🍚', cost: 2800 },
+  { id: 'dish-suya', name: 'Suya platter', emoji: '🍢', cost: 3000 },
+]
 
 export type Pro = GigPerson & { categories: GigCategory[]; fromPrice: number; pitch: string; free: boolean; isMe: boolean }
 export type MyPro = { categories: GigCategory[]; fromPrice: number; pitch: string; active: boolean }
@@ -101,7 +117,7 @@ const idem = (key: string) => ({ 'Idempotency-Key': key })
 /** A fresh key per tap: the screen disables the button while the call runs, so it is never reused by mistake. */
 const post = <T = Record<string, never>>(path: string, body?: unknown): Res<T & { message?: string }> => apiPost(path, body ?? {}, idem(newIdempotencyKey()))
 
-export type NewGig = { category: GigCategory; title: string; details: string; fee: number; budget: number; startInHours: number; directTo?: string }
+export type NewGig = { dish?: string; category: GigCategory; title: string; details: string; fee: number; budget: number; startInHours: number; directTo?: string }
 export const postGig = (g: NewGig) => post<{ id: string }>('/gigs', g)
 export const applyToGig = (id: string, message: string) => post(`/gigs/${id}/apply`, { message })
 export const hireWorker = (id: string, workerId: string) => post(`/gigs/${id}/hire`, { workerId })
@@ -119,7 +135,7 @@ export const saveMyPro = (p: { categories: GigCategory[]; fromPrice: number; pit
 export const removeMyPro = (): Res<Record<string, never>> => apiRequest('/gigs/pros/me', { method: 'DELETE' })
 
 /** The job key for a house: set when you are hired as its decorator (or cleaner) and the window is open. */
-export type JobKey = { gigId: string; category: GigCategory; title: string; budgetLeft: number; started: boolean; endsAt: string }
+export type JobKey = { gigId: string; category: GigCategory; title: string; dish?: CookDish | null; cooked?: boolean; budgetLeft: number; started: boolean; endsAt: string }
 export const fetchJobKey = (ownerUsername: string): Res<{ key: JobKey | null; keys?: JobKey[] }> => apiGet(`/gigs/key/${encodeURIComponent(ownerUsername)}`)
 
 export const GIG_STATUS_LABEL: Record<GigStatus, string> = {
@@ -146,3 +162,6 @@ export type MessProp = { id: string; kind: string; x: number; z: number }
 export const fetchHouseMess = (username: string): Res<{ mess: MessProp[]; cleanliness: number }> => apiGet(`/homes/${encodeURIComponent(username)}/mess`)
 export const cleanMessProp = (gigId: string, messId: string): Res<{ mess: MessProp[]; cleanliness: number; cleaned: number; message?: string }> =>
   apiPost(`/gigs/${encodeURIComponent(gigId)}/clean`, { messId }, idem(newIdempotencyKey()))
+
+/** The Cook, at the owner's stove: makes the dish and puts it in the owner's bag. */
+export const cookGig = (gigId: string): Res<{ message?: string; dish: CookDish; cooked: boolean }> => apiPost(`/gigs/${encodeURIComponent(gigId)}/cook`, {}, idem(newIdempotencyKey()))

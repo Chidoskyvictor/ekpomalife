@@ -86,7 +86,7 @@ function PeerFigure({ peer, bubble, onTap }: { peer: Peer; bubble?: string; onTa
               whiteSpace: 'nowrap',
             }}
           >
-            {peer.work === 'cleaner' ? '🧹 Cleaner at work' : '🛋️ Decorator at work'}
+            {peer.work === 'cleaner' ? '🧹 Cleaner at work' : peer.work === 'cook' ? '🍲 Cook at work' : '🛋️ Decorator at work'}
           </span>
         ) : null}
       </Html>

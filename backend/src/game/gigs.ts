@@ -11,6 +11,7 @@ import {
   canMove,
   cleanGigText,
   cleanMoney,
+  dishById,
   escrowFor,
   GIG_3D_CATEGORIES,
   GIG_CATEGORY_LABEL,
@@ -57,6 +58,8 @@ export type GigRow = {
   auto_accept_at: Date | null
   completed_at: Date | null
   snapshot: unknown
+  dish: string | null
+  cooked_at: Date | null
   dispute_reason: string | null
   rating_worker: number | null
   rating_owner: number | null
@@ -185,6 +188,8 @@ async function viewGigs(db: Pick<PoolClient, 'query'>, viewerId: string, rows: G
       hidden: g.hidden,
       reported: false,
       is3D: GIG_3D_CATEGORIES.includes(g.category),
+      dish: dishById(g.dish),
+      cooked: Boolean(g.cooked_at),
       keyOpen: mineWorker ? keyOpen(g.status, g.start_at, g.expires_at, now) : false,
       houseOwner: mineWorker ? (owner?.username ?? null) : null,
       canUndo: mine && Boolean(g.snapshot) && ['working', 'done', 'completed', 'disputed'].includes(g.status),
@@ -368,7 +373,7 @@ async function lockWallets(client: PoolClient, characterIds: string[]) {
   await client.query(`SELECT 1 FROM game_state WHERE character_id = ANY($1::text[]) ORDER BY character_id FOR UPDATE`, [characterIds])
 }
 
-export type PostBody = { category: unknown; title: unknown; details: unknown; fee: unknown; budget: unknown; startInHours: unknown; directTo?: unknown }
+export type PostBody = { dish?: unknown; category: unknown; title: unknown; details: unknown; fee: unknown; budget: unknown; startInHours: unknown; directTo?: unknown }
 
 export function postGig(userId: string, body: PostBody, key: string) {
   return writeGig(userId, key, 'POST /gigs', body, async ({ client, characterId }) => {
@@ -379,7 +384,10 @@ export function postGig(userId: string, body: PostBody, key: string) {
     if (!details.ok) return bad(details.error)
     const fee = cleanMoney(body.fee, GIG_LIMITS.feeMin, GIG_LIMITS.feeMax)
     if (fee === null) return bad(`The fee must be a whole amount from ₦${GIG_LIMITS.feeMin}.`)
-    const budget = body.category === 'decorator' ? cleanMoney(body.budget ?? 0, 0, GIG_LIMITS.budgetMax) : 0
+    const dish = body.category === 'cook' ? dishById(body.dish) : null
+    if (body.category === 'cook' && !dish) return bad('Pick the dish you want cooked.')
+    // A cook's ingredient money is the dish's cost; a decorator's item budget is the owner's choice
+    const budget = dish ? dish.cost : body.category === 'decorator' ? cleanMoney(body.budget ?? 0, 0, GIG_LIMITS.budgetMax) : 0
     if (budget === null) return bad('The item budget must be a whole amount of naira.')
     const hours = typeof body.startInHours === 'number' ? body.startInHours : 0
     const when = startAtFrom(hours, new Date())
@@ -396,9 +404,9 @@ export function postGig(userId: string, body: PostBody, key: string) {
     if ((open.rows[0]?.n ?? 0) >= GIG_LIMITS.openPostsMax) return bad(`You can have ${GIG_LIMITS.openPostsMax} open jobs at a time.`)
     const id = `gig_${createId()}`
     await client.query(
-      `INSERT INTO gigs (id, owner_id, direct_to, category, title, details, fee, budget, start_at, expires_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-      [id, userId, direct, body.category, title.text, details.text, fee, budget, when.startAt, when.expiresAt],
+      `INSERT INTO gigs (id, owner_id, direct_to, category, title, details, fee, budget, start_at, expires_at, dish)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+      [id, userId, direct, body.category, title.text, details.text, fee, budget, when.startAt, when.expiresAt, dish?.id ?? null],
     )
     return good({ id, message: direct ? 'Offer sent.' : 'Job posted.' })
   })
@@ -577,6 +585,7 @@ export function markDone(userId: string, gigId: string, key: string) {
     if (g.status === 'done') return good({ message: 'Already marked done.' })
     if (!canMove(g.status, 'done')) return bad('This job cannot be marked done now.', 409)
     if (!keyOpen(g.status, g.start_at, g.expires_at, new Date())) return bad('This job has not started yet.', 409, 'NOT_YET')
+    if (g.category === 'cook' && !g.cooked_at) return bad('Cook the dish at the stove first.', 409, 'NOTHING_COOKED')
     if (g.category === 'cleaner') {
       // A cleaner has to have cleared something, unless the house has nothing left to clean
       const cleared = await client.query<{ n: number }>(`SELECT COUNT(*)::int AS n FROM house_mess WHERE gig_id = $1`, [gigId])
@@ -822,7 +831,7 @@ export async function jobKeyFor(workerId: string, ownerUsername: string) {
   const rows = await pool.query<GigRow>(
     `SELECT g.* FROM gigs g JOIN users u ON u.id = g.owner_id
      WHERE g.worker_id = $1 AND LOWER(u.username) = LOWER($2) AND g.status IN ('hired','working')
-       AND g.start_at <= NOW() AND g.expires_at >= NOW() AND g.category IN ('decorator','cleaner')
+       AND g.start_at <= NOW() AND g.expires_at >= NOW() AND g.category IN ('decorator','cleaner','cook')
      ORDER BY g.start_at`,
     [workerId, ownerUsername],
   )
@@ -830,6 +839,8 @@ export async function jobKeyFor(workerId: string, ownerUsername: string) {
     gigId: g.id,
     category: g.category,
     title: g.title,
+    dish: dishById(g.dish),
+    cooked: Boolean(g.cooked_at),
     budgetLeft: budgetLeft(asMoney(g.budget), asMoney(g.budget_spent)),
     started: g.status === 'working',
     endsAt: g.expires_at.toISOString(),

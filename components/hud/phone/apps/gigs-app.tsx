@@ -18,6 +18,7 @@ import {
   fetchMyGigStats,
   fetchPros,
   fetchWorking,
+  COOK_MENU,
   GIG_CATEGORIES,
   GIG_START_CHOICES,
   GIG_STATUS_LABEL,
@@ -352,6 +353,7 @@ function GigCard({
         <span className={styles.pill}>
           <Icon size={13} aria-hidden="true" /> {c.label}
         </span>
+        {gig.dish ? <span className={styles.pill}>{gig.dish.emoji} {gig.dish.name}</span> : null}
         {showStatus ? <span className={`${styles.pill} ${styles.pillStatus}`}>{gig.role === 'offered' ? 'Offer for you' : GIG_STATUS_LABEL[gig.status]}</span> : null}
         {gig.status === 'open' ? <span className={styles.pill}>Starts {startsLabel(gig.startAt).toLowerCase()}</span> : null}
         {gig.role === 'owner' && gig.status === 'open' ? <span className={`${styles.pill} ${gig.applicantCount ? styles.pillWarn : ''}`}>{gig.applicantCount} applied</span> : null}
@@ -675,14 +677,17 @@ function PostForm({ directTo, cash, onCancel, onPosted, toast }: { directTo?: Pr
   const [details, setDetails] = useState('')
   const [fee, setFee] = useState(directTo ? String(directTo.fromPrice || '') : '')
   const [budget, setBudget] = useState('')
+  const [dishId, setDishId] = useState<string>(COOK_MENU[0]!.id)
   const [hours, setHours] = useState(0)
   const [busy, setBusy] = useState(false)
   const feeN = Math.floor(Number(fee) || 0)
-  const budgetN = category === 'decorator' ? Math.floor(Number(budget) || 0) : 0
+  const dish = category === 'cook' ? (COOK_MENU.find((d) => d.id === dishId) ?? COOK_MENU[0]!) : null
+  // A cook's ingredient money is the dish's price; a decorator's item budget is the owner's choice
+  const budgetN = dish ? dish.cost : category === 'decorator' ? Math.floor(Number(budget) || 0) : 0
   const total = feeN + budgetN
   const submit = async () => {
     setBusy(true)
-    const res = await postGig({ category, title, details, fee: feeN, budget: budgetN, startInHours: hours, directTo: directTo?.userId })
+    const res = await postGig({ category, title, details, fee: feeN, budget: budgetN, startInHours: hours, directTo: directTo?.userId, ...(dish ? { dish: dish.id } : {}) })
     setBusy(false)
     if (!res.ok) return toast(res.error, false)
     onPosted(res.message ?? 'Posted.')
@@ -696,8 +701,23 @@ function PostForm({ directTo, cash, onCancel, onPosted, toast }: { directTo?: Pr
       {directTo ? <p className={styles.note}>They get your offer and can accept or decline. Your money is held only when they accept.</p> : null}
       <span className={styles.label}>Kind of job</span>
       <CategoryChips value={category} onChange={(c) => c && setCategory(c)} all={false} />
-      {category === 'driver' || category === 'dj' || category === 'cook' ? (
+      {category === 'driver' || category === 'dj' ? (
         <p className={styles.note}>Special 3D work for {categoryOf(category).label}s comes later. You can post and pay for it now: agree the details in chat, then accept when it is done.</p>
+      ) : null}
+      {category === 'cook' ? (
+        <>
+          <span className={styles.label}>What should they cook?</span>
+          <div className={styles.chips} role="group" aria-label="Dish">
+            {COOK_MENU.map((d) => (
+              <button key={d.id} type="button" className={`${styles.chip} ${dishId === d.id ? styles.chipOn : ''}`} aria-pressed={dishId === d.id} onClick={() => setDishId(d.id)}>
+                <span aria-hidden="true">{d.emoji}</span> {d.name}
+              </button>
+            ))}
+          </div>
+          <p className={styles.note}>
+            The cook walks to your stove in 3D and cooks it. The dish lands in your bag to eat. Ingredients ({naira(dish!.cost)}) are held with the fee. You need a stove in your house.
+          </p>
+        </>
       ) : null}
       <label className={styles.field}>
         <span className={styles.label}>Title</span>
@@ -898,7 +918,9 @@ function GigDetail({
             <p className={styles.note}>
               {gig.category === 'decorator'
                 ? 'You have a key to their house. Go there, open Buy and move, turn or store their furniture, or place items from the item budget. Then tap Done here.'
-                : 'You have a key to their house. Go there and tap the mess on the floor to clean it away. Then tap Done here.'}
+                : gig.category === 'cook'
+                  ? `You have a key to their house. Go to their kitchen, tap the stove and cook ${gig.dish ? `${gig.dish.emoji} ${gig.dish.name}` : 'the dish'}. Then tap Done here.`
+                  : 'You have a key to their house. Go there and tap the mess on the floor to clean it away. Then tap Done here.'}
             </p>
           ) : (
             <p className={styles.note}>The special 3D work for {c.label}s comes later. Agree the details in chat, do it, then tap Done.</p>

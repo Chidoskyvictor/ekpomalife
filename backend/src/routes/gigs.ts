@@ -27,6 +27,7 @@ import {
   withdrawApplication,
 } from '../game/gigs.js'
 import { getGigHome, gigMove, gigPlace, gigStore } from '../game/gigs-home.js'
+import { cookDish } from '../game/gigs-cook.js'
 import { cleanMess, getHouseMess } from '../game/house-mess.js'
 import { isUuidV4, readIdempotencyKey } from '../game/idempotency.js'
 
@@ -124,6 +125,7 @@ export async function gigsRoutes(app: FastifyInstance) {
   simple('accept', acceptWork)
   simple('cancel', cancelGig)
   simple('undo-layout', undoLayout)
+  simple('cook', cookDish)
 
   app.post<{ Params: { id: string } }>('/gigs/:id/dispute', write, guard<{ id: string }>(async (u, r, reply) => {
     const key = idemKey(r, reply)

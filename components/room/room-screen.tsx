@@ -10,7 +10,7 @@ import { endActivity, runTimed, setActivityQueue, startActivity, useActivity } f
 import { markSelfDone, type SelfAction } from '@/lib/game/self-actions'
 import { fetchHostCard, type HostCard } from '@/lib/game/hostels-api'
 import { normalizeAppearance, type Appearance } from '@/lib/game/look'
-import type { FurnitureAction, FurnitureId } from '@/lib/game/room-furniture'
+import { FURNITURE, type FurnitureAction, type FurnitureId } from '@/lib/game/room-furniture'
 import { fetchGigHome, fetchHomeFurniture, fetchVisitFurniture, type HomeItem, type HomeStyle, type OwnedPiece } from '@/lib/game/home-buy-api'
 import { exitBuyMode, setBuyAvailable, useBuyUi } from '@/lib/game/home-buy-store'
 import { furnitureUse, homeSpecFor, layoutWithPlaced, placedIdOf, startersFor } from '@/lib/game/home-placed'
@@ -35,7 +35,7 @@ import { ClubPeers } from '@/components/club/club-peers'
 import { useClubLive } from '@/lib/game/club-live'
 import type { Object3D } from 'three'
 import { VisitBanner } from './visit-banner'
-import { cleanMessProp, fetchHouseMess, fetchJobKey, type JobKey, type MessProp } from '@/lib/game/gigs-api'
+import { cleanMessProp, cookGig, fetchHouseMess, fetchJobKey, type JobKey, type MessProp } from '@/lib/game/gigs-api'
 import { HomeMess } from './home-mess'
 import { setGigHouse } from '@/lib/game/gig-house-store'
 import { AskPrompt, PeopleBar, PersonSheet, useHomePeople } from './people-panel'
@@ -63,7 +63,12 @@ export function RoomScreen() {
   const [furnitureKey, setFurnitureKey] = useState<SpotKey | null>(null)
   // The 3D character fills in control.use once it has mounted
   const control = useMemo<RoomPlayerControl>(() => ({}), [])
-  const pick = useRoomActionQueue(control, (action) => void act(action.id, { atHome: true }))
+  // A hired cook at someone's stove cooks for the owner (server pays the ingredients) instead of for themselves
+  const cookGigRef = useRef<string | null>(null)
+  const pick = useRoomActionQueue(control, (action) => {
+    if (action.id === 'cook' && cookGigRef.current) void cookForOwner()
+    else void act(action.id, { atHome: true })
+  })
   // Tap yourself: the "What should they do?" sheet; the pick runs as a timed activity on the spot
   const [selfOpen, setSelfOpen] = useState(false)
   const activity = useActivity()
@@ -107,6 +112,19 @@ export function RoomScreen() {
   const [jobKeys, setJobKeys] = useState<JobKey[]>([])
   const decoKey = jobKeys.find((k) => k.category === 'decorator') ?? null
   const cleanKey = jobKeys.find((k) => k.category === 'cleaner') ?? null
+  const cookKey = jobKeys.find((k) => k.category === 'cook') ?? null
+  cookGigRef.current = cookKey?.gigId ?? null
+  const cookForOwner = async () => {
+    const id = cookGigRef.current
+    if (!id) return
+    const res = await cookGig(id)
+    if (!res.ok) {
+      notifyToast(res.error, false)
+      return
+    }
+    notifyToast(res.message ?? 'Cooked.', true)
+    setJobKeys((ks) => ks.map((k) => (k.gigId === id ? { ...k, cooked: true } : k)))
+  }
   useEffect(() => {
     if (!visitingOther || !visiting || !state) {
       setJobKeys([])
@@ -144,6 +162,23 @@ export function RoomScreen() {
     return furnitureUse(home.catalog.find((i) => i.id === piece?.itemId))
   }, [furnitureKey, home.placements, home.catalog])
   const buy = useBuyUi()
+  // Tapping a stove as the hired cook walks over and cooks the owner's dish (no menu of your own meals)
+  const onFurnitureTap = (key: SpotKey) => {
+    if (cookKey) {
+      const placed = placedIdOf(key)
+      const kind = placed ? furnitureUse(home.catalog.find((i) => i.id === home.placements.find((p) => p.id === placed)?.itemId)) : (key as FurnitureId)
+      if (kind === 'cooker') {
+        if (cookKey.cooked) {
+          notifyToast('You already cooked it. Tap Done in the Gigs app.', true)
+          return
+        }
+        const base = FURNITURE.cooker.actions[0]!
+        pick(key, { ...base, title: `Cook ${cookKey.dish?.name ?? 'the dish'}`, emoji: cookKey.dish?.emoji ?? base.emoji, seconds: 14, cost: 0 })
+        return
+      }
+    }
+    setFurnitureKey(key)
+  }
   // Wall paint follows whoever lives here, so visitors see the owner's colour
   const ownerName = visitingOther ? host?.username : state?.username
   // Your own home shows what you're trying on in the Design tab; a visit shows the owner's look
@@ -324,7 +359,7 @@ export function RoomScreen() {
             host={hostLive ? undefined : hostLook}
             effects={effects}
             onPlayerMove={onPlayerMove}
-            onFurniture={buy.active ? undefined : setFurnitureKey}
+            onFurniture={buy.active ? undefined : onFurnitureTap}
             onSelf={own && !scene.outside && !buy.active ? () => setSelfOpen(true) : undefined}
             furnishing={furnishing}
             control={control}
@@ -398,7 +433,7 @@ export function RoomScreen() {
         ) : null}
         {HOME_STREET && own && scene.outside && !scene.cover ? <WalkStick /> : null}
         {visiting && !isOwn ? (
-          <VisitBanner username={host?.username ?? visiting} displayName={host?.displayName ?? null} place={layout.label} hostHome={hostLive} job={[decoKey ? 'Decorator job · tap Buy' : null, cleanKey ? `Cleaner job · tap the mess${cleanliness !== null ? ` · ${cleanliness}% clean` : ''}` : null].filter(Boolean).join(' · ') || undefined} />
+          <VisitBanner username={host?.username ?? visiting} displayName={host?.displayName ?? null} place={layout.label} hostHome={hostLive} job={[decoKey ? 'Decorator job · tap Buy' : null, cookKey ? `Cook job · tap the stove${cookKey.cooked ? ' · cooked ✓' : ''}` : null, cleanKey ? `Cleaner job · tap the mess${cleanliness !== null ? ` · ${cleanliness}% clean` : ''}` : null].filter(Boolean).join(' · ') || undefined} />
         ) : null}
         {owner && !scene.outside && !buy.active && !selfOpen ? <PeopleBar live={live} people={people} onOpen={people.setTarget} /> : null}
         {owner ? <PersonSheet peer={people.target} homeOwner={owner} onClose={() => people.setTarget(null)} people={people} /> : null}

@@ -21,7 +21,7 @@ export type Peer = {
   /** Map room only: the car they drive, "model:#colour". */
   car?: string
   /** Hired to work in this home right now (tag over them). */
-  work?: 'decorator' | 'cleaner'
+  work?: 'decorator' | 'cleaner' | 'cook'
   /** Latest position from the server; the scene glides toward it. */
   state: PeerState | null
   /** Recent positions with the time they arrived (performance.now()), for smooth playback of moving cars. */
