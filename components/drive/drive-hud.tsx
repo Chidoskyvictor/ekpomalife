@@ -53,8 +53,12 @@ function Pedal({ label, className, onChange, children }: { label: string; classN
   )
 }
 
-/** How far the knob slides each way for full lock (px). */
-const STEER_TRAVEL = 46
+/** How far the thumb slides each way for full lock (px). Was 46: players on phones found it twitchy. */
+const STEER_TRAVEL = 70
+/** How far the knob is drawn each way (px); it stays inside the pad. */
+const KNOB_TRAVEL = 46
+/** Soft centre: small slides steer gently, full lock only near the end (1 = straight line). */
+const STEER_CURVE = 1.7
 
 /** The steering pad: put a thumb anywhere on it and slide left or right; the knob follows and springs back. */
 function SteerPad() {
@@ -63,7 +67,7 @@ function SteerPad() {
   const steer = (value: number) => {
     setTurn(value)
     // Sliding left steers left (+1)
-    driveInput.steer = -value
+    driveInput.steer = -Math.sign(value) * Math.abs(value) ** STEER_CURVE
   }
   const release = () => {
     from.current = null
@@ -95,7 +99,7 @@ function SteerPad() {
       onContextMenu={(e) => e.preventDefault()}
     >
       <span className={`${styles.tri} ${styles.triLeft}`} aria-hidden="true" />
-      <span className={styles.knob} style={{ transform: `translateX(${turn * STEER_TRAVEL}px)`, transition: from.current === null ? 'transform 0.16s ease-out' : 'none' }} aria-hidden="true" />
+      <span className={styles.knob} style={{ transform: `translateX(${turn * KNOB_TRAVEL}px)`, transition: from.current === null ? 'transform 0.16s ease-out' : 'none' }} aria-hidden="true" />
       <span className={`${styles.tri} ${styles.triRight}`} aria-hidden="true" />
     </div>
   )
