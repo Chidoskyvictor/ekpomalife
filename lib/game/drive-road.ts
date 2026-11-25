@@ -37,7 +37,13 @@ export const ROADS: Road[] = (data.roads as RawRoad[]).map((r) => {
   return { id: r.id, name: r.name, kind: (r.kind === 'highway' || r.kind === 'road' ? r.kind : 'street') as RoadKind, pts, at, length: at[at.length - 1]! }
 })
 export const JUNCTIONS = data.junctions as Junction[]
-export const ROAD_PLACES = data.places as RoadPlace[]
+/**
+ * Your own house ('My Home', the same for every player) has no kerb in the OSM data, so it gets one
+ * here on Poultry Road (one of the home addresses). It comes first so it tops the "Where to?" list,
+ * and leaving home in the car starts here too.
+ */
+const HOME_PLACE: RoadPlace = { id: 'home', label: 'My Home', road: 'poultry-road', s: 335, side: 1 }
+export const ROAD_PLACES = [HOME_PLACE, ...(data.places as RoadPlace[])]
 export const ROAD_SIGNS = data.signs as RoadSign[]
 export const GANTRIES = data.gantries as Gantry[]
 /** Where the building footprint tiles are served from, and their size in metres. */
