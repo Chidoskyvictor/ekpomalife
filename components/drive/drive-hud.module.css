@@ -537,7 +537,7 @@
 @media (orientation: landscape) and (max-height: 520px) {
   .root {
     --radio-bottom: calc(14px + env(safe-area-inset-bottom));
-    padding-top: calc(62px + env(safe-area-inset-top));
+    padding-top: var(--hud-top, calc(62px + env(safe-area-inset-top)));
     padding-bottom: calc(72px + 14px + env(safe-area-inset-bottom));
   }
 
@@ -696,30 +696,30 @@
 /* Phone on its side: the same tools as a row left of the map, so the right thumb area stays free */
 @media (orientation: landscape) and (max-height: 520px) {
   .mapAnchor {
-    top: calc(62px + env(safe-area-inset-top));
+    top: var(--hud-top, calc(62px + env(safe-area-inset-top)));
   }
 
   .side {
-    top: calc(62px + env(safe-area-inset-top));
+    top: var(--hud-top, calc(62px + env(safe-area-inset-top)));
     right: calc(max(12px, env(safe-area-inset-right)) + 96px);
     flex-direction: row;
     padding: 4px;
   }
 
   .menu {
-    top: calc(62px + 62px + env(safe-area-inset-top));
+    top: calc(var(--hud-top, calc(62px + env(safe-area-inset-top))) + 62px);
     right: calc(max(12px, env(safe-area-inset-right)) + 96px);
   }
 }
 
-/* Landscape: directions sit top middle (between "Where to?" and the tools), so the left stack stays clear of the steering pad */
+/* Landscape: directions sit on the right, under the tools row and left of the map, over the
+   roadside instead of the road ahead (they used to sit top middle and cover the road and the tools) */
 @media (orientation: landscape) and (max-height: 520px) {
   .guide {
     position: absolute;
-    top: calc(62px + env(safe-area-inset-top));
-    left: 50%;
+    top: calc(var(--hud-top, calc(62px + env(safe-area-inset-top))) + 58px);
+    right: calc(max(12px, env(safe-area-inset-right)) + 96px);
     margin: 0;
-    transform: translateX(-50%);
   }
 }
 

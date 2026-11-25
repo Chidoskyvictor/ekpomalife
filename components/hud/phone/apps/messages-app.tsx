@@ -1,7 +1,7 @@
 'use client'
 
 import { PlayerFace } from '@/components/look/player-face'
-import { Bell, Check, CheckCheck, DoorOpen, Heart, Home, MoreHorizontal, Phone, Reply, Search, Send, Smile, SquarePen, User, Users, X, Lock, Mic, ChevronUp, Trash2 } from 'lucide-react'
+import { Bell, Check, CheckCheck, DoorOpen, Heart, Home, MoreHorizontal, Phone, Reply, Search, Send, Smile, SquarePen, User, Users, X, Lock, Mic, ChevronUp, Trash2, Copy } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import { PlayerProfilePanel } from '@/components/profile/player-profile-panel'
@@ -1224,6 +1224,21 @@ function MessageRow({
             {emoji}
           </button>
         ))}
+        {message.kind === 'text' && message.body ? (
+          <button
+            type="button"
+            className={styles.pickCopy}
+            aria-label="Copy message"
+            onClick={() => {
+              void navigator.clipboard?.writeText(message.body).catch(() => {})
+              onClosePicker()
+              showCopied()
+            }}
+          >
+            <Copy size={16} aria-hidden="true" />
+            Copy
+          </button>
+        ) : null}
       </div>
     </>
   ) : null
@@ -1315,6 +1330,24 @@ function MessageRow({
  * Touch gestures on a bubble: swipe right ~60px to reply (springs back), long-press ~450ms to react.
  * On desktop: hover reply button and double-click to react (no drag, so text can still be selected).
  */
+/** A short "Copied" bubble so players see the copy worked (paste it in any chat box). */
+function showCopied() {
+  if (typeof document === 'undefined') return
+  document.querySelectorAll(`.${styles.copiedToast}`).forEach((n) => n.remove())
+  const el = document.createElement('div')
+  el.className = styles.copiedToast
+  el.setAttribute('role', 'status')
+  el.textContent = 'Copied — hold the message box to paste'
+  // Inside the phone screen (the phone sits above the page, so a note on <body> would hide under it)
+  const host = document.querySelector(`.${styles.messages}`)?.parentElement as HTMLElement | null | undefined
+  if (host) {
+    if (getComputedStyle(host).position === 'static') host.style.position = 'relative'
+    el.classList.add(styles.copiedToastIn)
+  }
+  ;(host ?? document.body).appendChild(el)
+  window.setTimeout(() => el.remove(), 1800)
+}
+
 function Gesture({ onReply, onPicker, children }: { onReply: () => void; onPicker: () => void; children: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null)
   const st = useRef({ x: 0, y: 0, dx: 0, down: false, swiping: false, suppress: false, timer: 0, armed: false })

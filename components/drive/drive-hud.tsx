@@ -112,6 +112,31 @@ export function DriveHud() {
   const pathname = usePathname()
   const { select, applyServerState, notifyToast } = useGame()
   const [speed, setSpeed] = useState(0)
+  // Phone on its side: keep the tools, map and directions just under the real top bar. Big phone
+  // text makes that bar taller than the 62px the layout assumes, and the tools slid under it.
+  const rootRef = useRef<HTMLDivElement>(null)
+  const driving = Boolean(drive)
+  useEffect(() => {
+    const root = rootRef.current
+    if (!root) return
+    let bar: Element | null = null
+    const place = () => {
+      if (!bar || !bar.isConnected) bar = document.querySelector('header[aria-label="Status"]')
+      const bottom = bar ? bar.getBoundingClientRect().bottom : 0
+      if (bottom > 0) root.style.setProperty('--hud-top', `${Math.max(Math.round(bottom) + 8, 62)}px`)
+      else root.style.removeProperty('--hud-top')
+    }
+    place()
+    const ro = new ResizeObserver(place)
+    if (bar) ro.observe(bar)
+    window.addEventListener('resize', place)
+    const t = window.setInterval(place, 2000) // the bar can mount after the HUD
+    return () => {
+      ro.disconnect()
+      window.removeEventListener('resize', place)
+      window.clearInterval(t)
+    }
+  }, [driving])
   const [near, setNear] = useState<{ id: string; label: string } | null>(null)
   const [dents, setDents] = useState(0)
   const [roadName, setRoadName] = useState('')
@@ -223,7 +248,7 @@ export function DriveHud() {
           : `${g.turn === 'left' ? 'Left' : 'Right'}: ${g.onto}`
 
   return (
-    <div className={styles.root} aria-label="Driving controls">
+    <div ref={rootRef} className={styles.root} aria-label="Driving controls">
       <div className={styles.top}>
         <button type="button" className={styles.round} aria-label="Stop driving" disabled={busy} onClick={cancel}>
           <X size={16} aria-hidden="true" />

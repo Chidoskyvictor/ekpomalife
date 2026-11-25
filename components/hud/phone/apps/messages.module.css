@@ -1678,6 +1678,9 @@
   position: relative;
   z-index: 5;
   display: flex;
+  max-width: calc(100% - 8px);
+  flex-wrap: wrap;
+  justify-content: center;
   align-self: flex-start;
   margin: -2px 0 2px 36px;
   padding: 0 4px;
@@ -1692,7 +1695,7 @@
 }
 
 .pickEmoji {
-  width: 44px;
+  width: 40px;
   height: 44px;
   border: 0;
   border-radius: var(--r-pill);
@@ -1701,6 +1704,55 @@
   line-height: 1;
   cursor: pointer;
   transition: transform 0.12s;
+}
+
+.pickCopy {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 36px;
+  margin: 4px 2px 4px 6px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: #1d6ff2;
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pickCopy:active {
+  transform: scale(0.95);
+}
+
+.copiedToast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(96px + env(safe-area-inset-bottom));
+  z-index: 9999;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: rgba(17, 24, 39, 0.92);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+  animation: copiedIn 0.18s ease-out;
+}
+
+.copiedToastIn {
+  position: absolute;
+  bottom: calc(76px + env(safe-area-inset-bottom));
+}
+
+@keyframes copiedIn {
+  from { opacity: 0; transform: translate(-50%, 8px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
 }
 
 .pickEmoji:active {
