@@ -32,6 +32,7 @@ const BY_ID: Record<string, string> = {
   'college-of-medicine': '🏥',
   'cordelia-hall': '🏫',
   education: '📚',
+  library: '📖',
   engineering: '⚙️',
   'etf-hall': '🏢',
   'hall-100': '1️⃣',

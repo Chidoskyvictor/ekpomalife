@@ -105,6 +105,7 @@ const HALLS: [string, string][] = [
   ['twin-hall', 'Twin Hall'],
   ['cordelia-hall', 'Cordelia Agbebaku Hall'],
   ['education', 'Education'],
+  ['library', 'Library'],
   ['mass-comm', 'Mass Comm'],
   ['law-campus', 'Law'],
   ['physical-science', 'Physical Science'],

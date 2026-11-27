@@ -52,6 +52,15 @@ export const PLACES: Place[] = [
     openHours: { open: 8, close: 20 },
   },
   {
+    id: 'library',
+    label: 'Library',
+    zoneId: 'library',
+    type: 'campus',
+    // Open 24/7: read books and novels (reading finishes as a study session)
+    actions: ['study'],
+    openHours: null,
+  },
+  {
     id: 'education',
     label: 'Education',
     zoneId: 'education',
@@ -459,6 +468,7 @@ export const PLACE_UV: Record<string, { u: number; v: number }> = {
   'sports-complex': { u: 0.4728, v: 0.4584 },
   'ict-exams': { u: 0.54, v: 0.26 },
   education: { u: 0.54, v: 0.38 },
+  library: { u: 0.64, v: 0.34 },
   'mass-comm': { u: 0.6, v: 0.46 },
   'admin-block': { u: 0.54, v: 0.72 },
   'students-centre': { u: 0.7, v: 0.54 },

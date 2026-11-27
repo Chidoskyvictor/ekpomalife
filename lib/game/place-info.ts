@@ -43,6 +43,11 @@ export const PLACE_INFO: Record<string, PlaceInfo> = {
       { emoji: '💼', text: 'Pick up a side hustle' },
     ],
   },
+  library: {
+    area: CAMPUS,
+    about: 'The campus library. Open day and night: pick a book or a novel off the shelf and read in peace.',
+    doing: [{ emoji: '📖', text: 'Read books and novels' }],
+  },
   education: {
     area: CAMPUS,
     about: 'Faculty of Education. Lecture halls, notice boards and future teachers rehearsing their lessons.',

@@ -416,6 +416,8 @@ const FIRST_ZONES: MapZone[] = [
   zone('life-science', 'Life Science', 0.835, 0.21, 'building-f', [10, 8], 0, 4.9, original),
   zone('law-campus', 'Law', 0.5647, 0.0713, 'building-l', [10, 8], 0, 3.75, original),
   zone('students-centre', 'Student Conference', 0.7289, 0.4859, 'building-k', [10.5, 8.5], -1.5816, 5.75, lilac),
+  // Library (open 24/7): the same brown tower as Cordelia Agbebaku Hall (owner's pick), inside campus
+  zone('library', 'Library', 0.64, 0.34, 'building-m', [11.5, 8.5], 0, 5.1, clay),
   zone('cordelia-hall', 'Cordelia Agbebaku Hall', 0.6929, 0.743, 'building-m', [11.5, 8.5], -0.0016, 5.1, clay),
   zone('twin-hall', 'Twin Hall', 0.8076, 0.7777, 'building-n', [11.5, 8.5], -0.0092, 3.749, purple),
 

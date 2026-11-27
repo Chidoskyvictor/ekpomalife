@@ -4,6 +4,7 @@ import confetti from 'canvas-confetti'
 import { X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState, type MutableRefObject } from 'react'
+import { LibraryReader } from './library-reader'
 import { Drawer } from 'vaul'
 import { QuizFlow } from '@/components/buildings/quiz-flow'
 import { JobsPanel } from '@/components/hud/jobs-panel'
@@ -237,6 +238,7 @@ export function BuildingPanel({
   const [portalOpen, setPortalOpen] = useState(false)
   const [ceremonyOpen, setCeremonyOpen] = useState(false)
   const [notices, setNotices] = useState<string[] | null>(null)
+  const [libraryOpen, setLibraryOpen] = useState(false)
 
   const zone = useMemo(
     () => (selectedId ? MAP_ZONES.find((entry) => entry.id === selectedId) : null),
@@ -264,6 +266,7 @@ export function BuildingPanel({
     setCeremonyOpen(false)
     setNotices(null)
     setPortalOpen(false)
+    setLibraryOpen(false)
   }
 
   const runWithConfetti = async (action: BuildingActionDef, payload?: {
@@ -343,6 +346,10 @@ export function BuildingPanel({
       void runWithConfetti(action)
       return
     }
+    if (action.flow === 'library') {
+      setLibraryOpen(true)
+      return
+    }
     if (action.flow === 'travel-stub') {
       void runWithConfetti(action)
       return
@@ -417,6 +424,24 @@ export function BuildingPanel({
       )}
 
       {portalOpen ? <StudentPortal onClose={() => setPortalOpen(false)} /> : null}
+
+      {libraryOpen ? (
+        <LibraryReader
+          busy={busy}
+          onClose={() => setLibraryOpen(false)}
+          onFinish={async (book) => {
+            if (busy) return false
+            setBusy(true)
+            // Finishing a book counts as a study session: the knowledge boost
+            const result = await act('study')
+            setBusy(false)
+            if (!result?.ok) return false
+            playSfx('celebrate')
+            notifyToast(`Finished "${book.title}". Knowledge up!`, true)
+            return true
+          }}
+        />
+      ) : null}
 
       {quiz ? (
         <QuizFlow

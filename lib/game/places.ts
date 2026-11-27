@@ -107,6 +107,15 @@ export const PLACES: Place[] = [
     openHours: { open: 8, close: 20 },
   },
   {
+    id: 'library',
+    label: 'Library',
+    zoneId: 'library',
+    type: 'campus',
+    // Open 24/7: read books and novels (reading finishes as a study session)
+    actions: ['study'],
+    openHours: null,
+  },
+  {
     id: 'education',
     label: 'Education',
     zoneId: 'education',

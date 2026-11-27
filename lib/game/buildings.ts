@@ -30,7 +30,7 @@ export type BuildingActionDef = {
   chips: ActionChip[]
   buttonLabel: string
   /** Opens quiz / exam / amount / gpa overlay before POST */
-  flow?: 'quiz' | 'exam' | 'pay-fees' | 'gpa' | 'ceremony' | 'travel-stub'
+  flow?: 'quiz' | 'exam' | 'pay-fees' | 'gpa' | 'ceremony' | 'travel-stub' | 'library'
   quizBank?: string
   /** Soft lock — server still validates */
   lock?: (ctx: BuildingLockCtx) => string | null
@@ -326,6 +326,27 @@ export const BUILDINGS: Record<string, BuildingDef> = {
     kind: 'lecture-hall',
     openHours: { open: 8, close: 20 },
     actions: lectureActions(),
+  },
+  library: {
+    id: 'library',
+    label: 'Library',
+    emoji: '📖',
+    kind: 'generic',
+    openHours: null,
+    actions: [
+      {
+        id: 'study',
+        emoji: '📖',
+        title: 'Read a book',
+        subtitle: 'Stories, novels and old tales. Finish one to boost your knowledge.',
+        chips: [
+          { kind: 'reward', text: '+knowledge' },
+          { kind: 'energy', amount: -15 },
+        ],
+        buttonLabel: 'Open the shelf',
+        flow: 'library',
+      },
+    ],
   },
   education: {
     id: 'education',

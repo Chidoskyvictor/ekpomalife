@@ -15,6 +15,8 @@ export const HALLS: Record<string, Hall> = Object.fromEntries(
       ['twin-hall', 'Twin Hall', '#b58a1b'],
       ['cordelia-hall', 'Cordelia Agbebaku Hall', '#a3263f'],
       ['education', 'Education', '#2e8b57'],
+      // Reading room: the same 3D hall, warm brown like the tower outside
+      ['library', 'Library', '#7a4a26'],
       ['mass-comm', 'Mass Comm', '#d2691e'],
       ['law-campus', 'Law', '#34495e'],
       ['physical-science', 'Physical Science', '#1f6b8f'],
